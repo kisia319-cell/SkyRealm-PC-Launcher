@@ -1,5 +1,6 @@
 """Replace the launcher after its process exits; keep a backup for recovery."""
 import os
+import ctypes
 import shutil
 import subprocess
 import sys
@@ -11,7 +12,19 @@ from pathlib import Path
 
 def process_is_running(pid):
     try:
-        os.kill(int(pid), 0)
+        pid = int(pid)
+        if pid <= 0:
+            return False
+        if os.name == "nt":
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            handle = kernel32.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE
+            if not handle:
+                return False
+            try:
+                return kernel32.WaitForSingleObject(handle, 0) == 0x00000102  # WAIT_TIMEOUT
+            finally:
+                kernel32.CloseHandle(handle)
+        os.kill(pid, 0)
         return True
     except (OSError, ValueError):
         return False
