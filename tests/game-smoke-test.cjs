@@ -39,7 +39,7 @@ const expectedMapSizes = {
   impossible: [360, 260],
 };
 for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
-  const line = game.split('\\n').find(row => row.includes(difficulty + ":{id:'" + difficulty + "'"));
+  const line = game.split(/\r?\n/).find(row => row.includes(difficulty + ":{id:'" + difficulty + "'"));
   assert.ok(line, 'Missing map size for difficulty: ' + difficulty);
   assert.ok(line.includes('cols:' + cols + ',rows:' + rows), 'Incorrect doubled map size for difficulty: ' + difficulty);
 }
