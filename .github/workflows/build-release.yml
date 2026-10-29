@@ -85,7 +85,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Game $($gameVersion): animated Werewolf with sound and tree collision, fewer forest trees, a locked dog cage and boss-dropped key, plus persistent world saves."
+            notes = "SkyRealm Game $($gameVersion): five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; new trophies and rewards. Existing world saves continue to persist across game updates."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
