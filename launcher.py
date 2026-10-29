@@ -296,13 +296,16 @@ def run_game_window(game_html: str) -> None:
     width, height = resolution_size(settings)
     game_fullscreen = settings["windowMode"] == "fullscreen"
 
-    # Use a stable port so the game's localStorage (save data/preferences) persists
-    # between runs. If another app occupies it, pick an available port for this run.
+    # Keep the origin stable: browser localStorage is keyed by host + port.
+    # Silently switching to a random port makes every saved world look missing.
     handler = functools.partial(QuietGameFileHandler, directory=str(file_path.parent))
     try:
         local_server = http.server.ThreadingHTTPServer(("127.0.0.1", 48731), handler)
-    except OSError:
-        local_server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    except OSError as exc:
+        raise RuntimeError(
+            "Не удалось открыть игровой порт 48731. Закрой другое окно SkyRealm "
+            "и попробуй снова. Порт нельзя менять автоматически: от него зависят сохранения миров."
+        ) from exc
     local_server.daemon_threads = True
     server_thread = threading.Thread(target=local_server.serve_forever, name="SkyRealmGameHTTP", daemon=True)
     server_thread.start()
@@ -321,8 +324,11 @@ def run_game_window(game_html: str) -> None:
             fullscreen=game_fullscreen,
             js_api=GameApi(),
         )
-        # Diagnostic build: enable WebView2 DevTools so JavaScript errors can be inspected.
-        webview.start(debug=True)
+        # Explicit persistent WebView2 profile: keep localStorage (world saves) across
+        # launcher/game updates instead of relying on pywebview's private-mode default.
+        profile_dir = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "webview-profile"
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        webview.start(debug=True, private_mode=False, storage_path=str(profile_dir))
     finally:
         local_server.shutdown()
         local_server.server_close()
