@@ -51,6 +51,7 @@
   const ADMIN_PASSWORD_SHA256 = '98afe2c58807589c4c816138a1efd5f4e3fdb06a5dc3e0f4a4f7a0371212198c';
   let hintTimer = 0;
   let saveTimer = 0;
+  let saveErrorNotified = false, lastSaveAt = 0;
   let signDialogOpen = false;
   let inventoryDialogOpen = false;
   let inventoryTab = 'items';
@@ -1158,12 +1159,24 @@
     lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);lastClockMinute=-1;wasNight=isNightTime();monsterSpawnTimer=0;damageToastTimer=0;monsters.length=0;
   }
   function saveGame(){
-    if(!currentWorldId)return;
+    if(!currentWorldId)return false;
+    const serialized=JSON.stringify({difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),adventureQuestProgress,farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY}));
     try{
-      localStorage.setItem(saveKey,JSON.stringify({difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),adventureQuestProgress,farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY}));
+      localStorage.setItem(saveKey,serialized);
+    }catch(error){
+      console.error('SkyRealm save failed:',error);
+      if(!saveErrorNotified){toast('Не удалось сохранить мир: хранилище закончилось или недоступно. Экспортируй копию мира из меню.');saveErrorNotified=true;}
+      const status=document.getElementById('save-status');if(status)status.textContent='Ошибка сохранения · сделай резервную копию';
+      return false;
+    }
+    try{
       const worlds=readWorlds();const worldRecord=worlds.find(w=>w.id===currentWorldId);
       if(worldRecord){worldRecord.updatedAt=Date.now();writeWorlds(worlds);}
-    }catch(_){}
+    }catch(metadataError){console.warn('SkyRealm save metadata could not be updated:',metadataError);}
+    saveErrorNotified=false;lastSaveAt=Date.now();
+    const status=document.getElementById('save-status');
+    if(status){const d=new Date(lastSaveAt);status.textContent='Последнее сохранение: '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+    return true;
   }
   function loadGame(){
     try{
@@ -1220,13 +1233,53 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     list.innerHTML='';empty.hidden=worlds.length>0;
     worlds.slice().sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).forEach(w=>{
       const card=document.createElement('article');card.className='world-card';
-      const level=DIFFICULTIES[w.difficulty];card.innerHTML='<div class="world-card-art"><span>✦</span></div><div class="world-card-main"><b>'+escapeHtml(w.name)+'</b><small>Сложность: '+escapeHtml(level?level.name:'не выбрана')+' · Последний вход: '+escapeHtml(formatWorldDate(w.updatedAt||w.createdAt))+'</small></div><div class="world-card-actions"><button class="world-enter-button" type="button" data-enter-world="'+escapeHtml(w.id)+'">Войти в мир <span>→</span></button><button class="world-rename-button" type="button" data-rename-world="'+escapeHtml(w.id)+'">✎ Имя</button><button class="world-delete-button" type="button" data-delete-world="'+escapeHtml(w.id)+'" aria-label="Удалить мир '+escapeHtml(w.name)+'">✕</button></div>';
+      const level=DIFFICULTIES[w.difficulty];card.innerHTML='<div class="world-card-art"><span>✦</span></div><div class="world-card-main"><b>'+escapeHtml(w.name)+'</b><small>Сложность: '+escapeHtml(level?level.name:'не выбрана')+' · Последний вход: '+escapeHtml(formatWorldDate(w.updatedAt||w.createdAt))+'</small></div><div class="world-card-actions"><button class="world-enter-button" type="button" data-enter-world="'+escapeHtml(w.id)+'">Войти в мир <span>→</span></button><button class="world-rename-button" type="button" data-rename-world="'+escapeHtml(w.id)+'">✎ Имя</button><button class="world-rename-button world-export-button" type="button" data-export-world="'+escapeHtml(w.id)+'" title="Скачать резервную копию">⇩ Копия</button><button class="world-delete-button" type="button" data-delete-world="'+escapeHtml(w.id)+'" aria-label="Удалить мир '+escapeHtml(w.name)+'">✕</button></div>';
       list.appendChild(card);
     });
     list.querySelectorAll('[data-enter-world]').forEach(btn=>btn.addEventListener('click',()=>enterWorld(btn.dataset.enterWorld)));
     list.querySelectorAll('[data-rename-world]').forEach(btn=>btn.addEventListener('click',()=>openRenameWorld(btn.dataset.renameWorld)));
+    list.querySelectorAll('[data-export-world]').forEach(btn=>btn.addEventListener('click',()=>downloadWorldBackup(btn.dataset.exportWorld)));
     list.querySelectorAll('[data-delete-world]').forEach(btn=>btn.addEventListener('click',()=>deleteWorld(btn.dataset.deleteWorld)));
     document.getElementById('admin-world-count').textContent=String(worlds.length);
+  }
+  function downloadWorldBackup(id){
+    const record=readWorlds().find(w=>w.id===id);if(!record){toast('Мир не найден. Обнови список миров.');return;}
+    if(currentWorldId===id&&!saveGame())return;
+    let saved;
+    try{saved=JSON.parse(localStorage.getItem(worldSaveKey(id))||'null');}catch(error){toast('Не удалось прочитать сохранение.');return;}
+    if(!saved||typeof saved!=='object'||!Number.isFinite(saved.x)||!Number.isFinite(saved.y)){toast('Для этого мира пока нет корректного сохранения.');return;}
+    const backup={format:'skyrealm-world-backup',formatVersion:1,exportedAt:new Date().toISOString(),gameVersion:'0.13.0',world:{name:record.name,difficulty:record.difficulty||saved.difficulty||'medium',createdAt:record.createdAt||Date.now(),updatedAt:record.updatedAt||Date.now()},save:saved};
+    try{
+      const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download='SkyRealm-'+String(record.name||'world').replace(/[^\p{L}\p{N}_-]+/gu,'_').slice(0,32)+'-backup.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+      toast('Резервная копия мира «'+record.name+'» скачана.');
+    }catch(error){console.error('SkyRealm export failed:',error);toast('Не удалось создать резервную копию.');}
+  }
+  function importWorldBackupFile(file){
+    if(!file)return;
+    if(file.size>8*1024*1024){toast('Файл слишком большой: максимум 8 МБ.');return;}
+    const reader=new FileReader();
+    reader.onerror=()=>toast('Не удалось прочитать файл резервной копии.');
+    reader.onload=()=>{
+      try{
+        const backup=JSON.parse(String(reader.result||''));
+        if(!backup||backup.format!=='skyrealm-world-backup'||backup.formatVersion!==1)throw new Error('Это не резервная копия SkyRealm поддерживаемого формата.');
+        const saved=backup.save;
+        if(!saved||typeof saved!=='object'||Array.isArray(saved)||!Number.isFinite(saved.x)||!Number.isFinite(saved.y))throw new Error('В файле нет корректных данных мира.');
+        const worlds=readWorlds();if(worlds.length>=50)throw new Error('Достигнут лимит 50 миров. Удали ненужный мир перед импортом.');
+        const difficulty=DIFFICULTIES[backup.world?.difficulty]?backup.world.difficulty:(DIFFICULTIES[saved.difficulty]?saved.difficulty:'medium');
+        const rawName=backup.world?.name||String(file.name||'').replace(/(?:-backup)?\.json$/i,'');
+        const name=String(rawName).trim().replace(/\s+/g,' ').slice(0,32)||'Импортированный мир';
+        const id=makeWorldId(),now=Date.now(),record={id,name,difficulty,createdAt:now,updatedAt:now};
+        const safeSave={...saved,difficulty};
+        localStorage.setItem(worldSaveKey(id),JSON.stringify(safeSave));
+        try{writeWorlds([...worlds,record]);}
+        catch(error){localStorage.removeItem(worldSaveKey(id));throw error;}
+        renderWorldList();toast('Мир «'+name+'» восстановлен из резервной копии.');
+      }catch(error){console.error('SkyRealm import failed:',error);toast('Импорт не выполнен: '+(error&&error.message?error.message:'неверный файл'));}
+      finally{const input=document.getElementById('import-world-file');if(input)input.value='';}
+    };
+    reader.readAsText(file);
   }
   function deleteWorld(id){const worlds=readWorlds(),record=worlds.find(w=>w.id===id);if(!record)return;if(!window.confirm('Удалить мир «'+record.name+'» вместе с его сохранением? Это действие нельзя отменить.'))return;try{localStorage.removeItem(worldSaveKey(id));const remaining=worlds.filter(w=>w.id!==id);writeWorlds(remaining);if(currentWorldId===id){currentWorldId=null;currentWorldName='';saveKey=LEGACY_SAVE_KEY;}renderWorldList();toast('Мир удалён. Осталось миров: '+remaining.length+'.');}catch(e){toast('Не удалось удалить мир: '+String(e));}}
   function openWorldCreate(){
@@ -1499,6 +1552,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('close-world-settings').addEventListener('click',()=>{document.getElementById('world-settings-shade').hidden=true;document.getElementById('pause-shade').hidden=false;setPaused(true);showPauseMain();});
   document.getElementById('open-game-settings').addEventListener('click',()=>{settingsOpenedFromMainMenu=false;document.getElementById('pause-main-view').hidden=true;document.getElementById('pause-settings-view').hidden=false;syncSettingsControls();});
   document.getElementById('menu-create-world').addEventListener('click',openWorldCreate);
+   document.getElementById('import-world-button').addEventListener('click',()=>document.getElementById('import-world-file').click());
+   document.getElementById('import-world-file').addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)importWorldBackupFile(file);else e.target.value='';});
   document.getElementById('empty-create-world').addEventListener('click',openWorldCreate);
   document.getElementById('world-create-cancel').addEventListener('click',closeWorldCreate);
   document.getElementById('world-create-form').addEventListener('submit',e=>{e.preventDefault();createWorld(document.getElementById('world-name-input').value);});
@@ -1562,7 +1617,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   ['game-quality-select','game-resolution-select','game-window-mode-select','game-ui-scale-select','show-vitals-toggle','show-quest-toggle','show-controls-toggle','show-inventory-toggle','show-minimap-toggle','hud-layout-select'].forEach(id=>document.getElementById(id).addEventListener('change',()=>applyAndSaveSettings(false)));
   document.getElementById('apply-game-settings').addEventListener('click',()=>applyAndSaveSettings(true));
   document.getElementById('toggle-hud-move').addEventListener('click',()=>{if(!hudMoveMode){setHudMoveMode(true);document.getElementById('pause-shade').hidden=true;paused=false;keys.clear();canvas.focus();}else finishHudMoveMode();});
-  document.getElementById('exit').addEventListener('click', () => { saveGame(); if (window.pywebview?.api?.close) window.pywebview.api.close(); else { toast('Закрой вкладку, чтобы выйти из игры.'); setPaused(false); } });
+  document.getElementById('save-world-now').addEventListener('click',()=>{if(saveGame())toast('Мир успешно сохранён.');});
+   document.getElementById('exit').addEventListener('click', () => { saveGame(); if (window.pywebview?.api?.close) window.pywebview.api.close(); else { toast('Закрой вкладку, чтобы выйти из игры.'); setPaused(false); } });
   document.getElementById('sign-dialog-close').addEventListener('click', closeSignDialog);
   document.getElementById('sign-dialog-ok').addEventListener('click', closeSignDialog);
   document.getElementById('skip-day-button').addEventListener('click',skipGameDay);
@@ -1583,5 +1639,5 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('close-inventory').addEventListener('click', closeInventory);
   document.querySelectorAll('[data-difficulty]').forEach(btn=>btn.addEventListener('click',()=>{if(btn.disabled)return;confirmDifficultySelection(btn.dataset.difficulty);}));
   document.getElementById('difficulty-cancel').addEventListener('click',()=>{closeDifficultyPicker();renderWorldList();});
-  setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); window.addEventListener('resize',()=>{resize();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
+  setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
 })();
