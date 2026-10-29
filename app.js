@@ -338,6 +338,63 @@
       setBusy(button, false);
     }
   });
+  let recoveryAccessToken = '';
+  function showPasswordReset(accessToken) {
+    recoveryAccessToken = accessToken || '';
+    $('#auth-form').hidden = true;
+    $('.auth-tabs').hidden = true;
+    $('#verification-view').hidden = true;
+    $('#profile-view').hidden = true;
+    $('#reset-password-view').hidden = false;
+    $('#auth-title').textContent = currentLanguage === 'en' ? 'Reset your password' : 'Восстановление пароля';
+    $('#auth-intro').textContent = currentLanguage === 'en' ? 'Choose a new password for your account.' : 'Придумай новый пароль для аккаунта.';
+    setMessage('#reset-password-message', '');
+    $('#reset-password').focus();
+  }
+  $('#reset-password-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const password = $('#reset-password').value;
+    const confirmation = $('#reset-password-confirm').value;
+    if (password.length < 8 || password.length > 128) {
+      setMessage('#reset-password-message', currentLanguage === 'en' ? 'Password must contain 8–128 characters.' : 'Пароль должен содержать от 8 до 128 символов.', 'error');
+      return;
+    }
+    if (password !== confirmation) {
+      setMessage('#reset-password-message', currentLanguage === 'en' ? 'Passwords do not match.' : 'Пароли не совпадают.', 'error');
+      return;
+    }
+    if (!recoveryAccessToken) {
+      setMessage('#reset-password-message', currentLanguage === 'en' ? 'Recovery link is invalid or expired. Request a new one.' : 'Ссылка недействительна или истекла. Запроси новое письмо.', 'error');
+      return;
+    }
+    const button = $('#reset-password-form button[type="submit"]');
+    setBusy(button, true, currentLanguage === 'en' ? 'Saving…' : 'Сохранение…');
+    try {
+      const result = await requestApi('/api/auth/reset-password', {method:'POST', body:{password, access_token:recoveryAccessToken}});
+      recoveryAccessToken = '';
+      $('#reset-password').value = '';
+      $('#reset-password-confirm').value = '';
+      if (window.history && window.history.replaceState) window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      $('#reset-password-view').hidden = true;
+      $('#auth-form').hidden = false;
+      $('.auth-tabs').hidden = false;
+      setAuthMode('login');
+      toast(result.message || (currentLanguage === 'en' ? 'Password changed. You can sign in.' : 'Пароль изменён. Теперь можно войти.'));
+    } catch (error) {
+      setMessage('#reset-password-message', localizeError(error.message || 'Не удалось изменить пароль.', error.code), 'error');
+    } finally {
+      setBusy(button, false);
+    }
+  });
+  $('#cancel-password-reset').addEventListener('click', () => {
+    recoveryAccessToken = '';
+    if (window.history && window.history.replaceState) window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+    $('#reset-password-view').hidden = true;
+    $('#auth-form').hidden = false;
+    $('.auth-tabs').hidden = false;
+    setAuthMode('login');
+  });
+
   $('#back-to-register').addEventListener('click', () => {
     sessionStorage.removeItem('skyrealm_pending_email');
     setAuthMode('register');
@@ -423,6 +480,15 @@
     showAuthAfterLogout();
     toast('Ты вышел из аккаунта.');
   });
+
+  // Supabase recovery links return access_token and type=recovery in the URL fragment.
+  try {
+    const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const recoveryToken = fragment.get('access_token');
+    if (fragment.get('type') === 'recovery' && recoveryToken) {
+      showPasswordReset(recoveryToken);
+    }
+  } catch (_) { /* ignore malformed URL fragments */ }
 
   // Show real API availability instead of a hardcoded 'online' status.
   checkCloudStatus();
