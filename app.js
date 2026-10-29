@@ -332,6 +332,7 @@
     try {
       const result = await requestApi('/api/auth/forgot-password', {method:'POST', body:{email:normalizedEmail}});
       toast(result.message || (currentLanguage === 'en' ? 'If recovery is available, check your email.' : 'Если восстановление доступно, проверь почту.'));
+      showCodePasswordReset(normalizedEmail);
     } catch (error) {
       toast(localizeError(error.message || 'Не удалось запросить восстановление пароля.', error.code));
     } finally {
@@ -339,8 +340,25 @@
     }
   });
   let recoveryAccessToken = '';
+  function showCodePasswordReset(email) {
+    recoveryAccessToken = '';
+    $('#reset-code-fields').hidden = false;
+    $('#reset-email').value = email || '';
+    $('#reset-code').required = true;
+    $('#auth-form').hidden = true;
+    $('.auth-tabs').hidden = true;
+    $('#verification-view').hidden = true;
+    $('#profile-view').hidden = true;
+    $('#reset-password-view').hidden = false;
+    $('#auth-title').textContent = currentLanguage === 'en' ? 'Reset your password' : 'Восстановление пароля';
+    $('#auth-intro').textContent = currentLanguage === 'en' ? 'Enter the recovery code from your email and choose a new password.' : 'Введи код восстановления из письма и придумай новый пароль.';
+    setMessage('#reset-password-message', '');
+    $('#reset-code').focus();
+  }
   function showPasswordReset(accessToken) {
     recoveryAccessToken = accessToken || '';
+    $('#reset-code-fields').hidden = true;
+    $('#reset-code').required = false;
     $('#auth-form').hidden = true;
     $('.auth-tabs').hidden = true;
     $('#verification-view').hidden = true;
@@ -370,8 +388,13 @@
     const button = $('#reset-password-form button[type="submit"]');
     setBusy(button, true, currentLanguage === 'en' ? 'Saving…' : 'Сохранение…');
     try {
-      const result = await requestApi('/api/auth/reset-password', {method:'POST', body:{password, access_token:recoveryAccessToken}});
+      const resetPayload = recoveryAccessToken
+        ? {password, access_token:recoveryAccessToken}
+        : {password, email:$('#reset-email').value.trim().toLowerCase(), code:$('#reset-code').value.replace(/\\D/g, '')};
+      const result = await requestApi('/api/auth/reset-password', {method:'POST', body:resetPayload});
       recoveryAccessToken = '';
+      $('#reset-code-fields').hidden = true;
+      $('#reset-code').required = false;
       $('#reset-password').value = '';
       $('#reset-password-confirm').value = '';
       if (window.history && window.history.replaceState) window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
