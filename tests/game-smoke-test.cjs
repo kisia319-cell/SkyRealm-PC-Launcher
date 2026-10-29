@@ -80,7 +80,7 @@ for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
 }
 assert.ok(game.includes("function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)"), 'Biome regions must scale with the larger map');
 
-assert.ok(gameHtml.includes('content="0.16.0"'), 'Game HTML version metadata must match game/version.txt');
+assert.ok(gameHtml.includes('content="0.17.0"'), 'Game HTML version metadata must match game/version.txt');
 assert.ok(gameHtml.includes('id="anvil-enchant-weapon"'), 'Enchanting button must exist in game UI');
 assert.ok(game.includes("getElementById('anvil-enchant-weapon')"), 'Enchanting button must be wired');
 assert.ok(game.includes('weaponEnchantments'), 'Weapon enchantments must be persisted');
