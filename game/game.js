@@ -948,8 +948,8 @@
   function updateVitals(){const hp=document.querySelector('.hp i'),stamina=document.querySelector('.stamina i');if(hp)hp.style.width=Math.max(0,Math.min(100,player.hp))+'%';if(stamina)stamina.style.width=Math.max(0,Math.min(100,player.stamina))+'%';}
   function useCombatAbility(){
     if(combatAbilityCooldown>0){toast('Способность перезаряжается: '+Math.ceil(combatAbilityCooldown)+' сек.');return;}
-    if(stamina<22){toast('Не хватает выносливости для особой атаки.');return;}
-    stamina=Math.max(0,stamina-22);combatAbilityCooldown=12;updateVitals();
+    if(player.stamina<22){toast('Не хватает выносливости для особой атаки.');return;}
+    player.stamina=Math.max(0,player.stamina-22);combatAbilityCooldown=12;updateVitals();
     const weapon=equipment.weapon||'Деревянный меч';
     const radius=weapon==='Ледяной посох'?190:weapon==='Молниеносное копьё'?170:145;
     const multiplier=weapon==='Ледяной посох'?1.65:weapon==='Молниеносное копьё'?1.45:1.35;
