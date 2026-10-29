@@ -83,5 +83,7 @@ assert.ok(game.includes("getElementById('anvil-enchant-weapon')"), 'Enchanting b
 assert.ok(game.includes('weaponEnchantments'), 'Weapon enchantments must be persisted');
 assert.ok(game.includes("weatherMode==='snow'") && game.includes("weatherMode==='storm'"), 'Snow and storm weather must be rendered');
 assert.ok(game.includes('villageQuestStage') && game.includes('dogBehavior'), 'Village quest chain and dog commands must persist');
+assert.ok(game.includes('function drawBlacksmith') && game.includes('function talkToBlacksmith'), 'Blacksmith NPC and multi-stage quest chain must exist');
+assert.ok(game.includes('blacksmithQuestStage'), 'Blacksmith quest progress must persist');
 
 console.log('SkyRealm smoke tests passed for game ' + version + ' (' + recipeKeys.length + ' unique recipes).');
