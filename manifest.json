@@ -1,9 +1,9 @@
 {
-  "sha256": "a242cb8f664bc1b1493178ba8e25daa451de0cb1f89fa3c3007922d08684abb1",
-  "notes": "SkyRealm Game 0.9.5: Blood Moon event, 15-slot storage chests, forest biome, Werewolf boss, tameable companion dog, and world-save preservation across updates.",
+  "game_version": "0.9.6",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "game_version": "0.9.5",
-  "game_sha256": "a07fcba31372012d3fbdd436c0ea21e999fea09b2f8303fb423d77a842268e4b",
   "version": "0.9.8",
-  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
+  "game_sha256": "b656becd1a815a4820ff680c9dee49ef481e5f6be8147d99c698a63e15fa8283",
+  "notes": "SkyRealm Game 0.9.6: animated Werewolf with sound and tree collision, fewer forest trees, a locked dog cage and boss-dropped key, plus persistent world saves.",
+  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
+  "sha256": "db8d2d56d8fa177ce28a8fc3efe3b47303cf9ba47d2e1cb6e3b02acb4b9f205a"
 }
