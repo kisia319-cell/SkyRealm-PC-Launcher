@@ -2,8 +2,12 @@ name: Build SkyRealm Windows Launcher
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
+    paths-ignore:
+      - "manifest.json"
   workflow_dispatch:
 
 permissions:
@@ -74,7 +78,15 @@ jobs:
         run: |
           $tag = "${{ github.ref_name }}"
           if ($tag -eq "main" -or $tag -eq "") { $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() }
-          gh release create $tag update_release/SkyRealm_Update.zip update_release/manifest.json --title "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())" --notes "Автоматическая сборка SkyRealm Launcher для Windows." --latest
+          $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
+          $notes = "Автоматическая сборка SkyRealm Launcher для Windows."
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag update_release/SkyRealm_Update.zip update_release/manifest.json --clobber
+            gh release edit $tag --title $title --notes $notes
+          } else {
+            gh release create $tag update_release/SkyRealm_Update.zip update_release/manifest.json --title $title --notes $notes --latest
+          }
 
       - name: Commit updated manifest
         shell: pwsh
