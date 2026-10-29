@@ -101,7 +101,8 @@ jobs:
           $tag = "${{ github.ref_name }}"
           if ($tag -eq "main" -or $tag -eq "") { $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() }
           $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
-          $notes = "SkyRealm Launcher 0.9.8 + Game 0.9.5. NEW: Blood Moon every fifth night with dawn rewards; craftable 15-slot storage chests; a forest biome with the Werewolf boss; defeat the boss to tame a 300 HP dog companion. The dog follows you, attacks for 15-35 damage based on difficulty, and heals with sheep meat. World saves are stored independently from game files and persist across updates."
+          $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
+          $notes = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. NEW in 0.10.0: five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; new trophies and rewards. Existing world saves continue to persist across game updates."
           $assets = @(
             "dist/SkyRealm.exe",
             "update_release/SkyRealm_Windows.zip",
