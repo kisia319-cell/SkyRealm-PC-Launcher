@@ -90,10 +90,47 @@
 
 .character-editor{width:min(760px,96vw);max-height:92vh;overflow:auto;text-align:left}.character-editor-grid{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start}.character-preview{min-height:250px;display:grid;place-items:center;border:1px solid #35547e;border-radius:16px;background:radial-gradient(circle at 50% 35%,#24466a,#081525 72%);position:relative;overflow:hidden}.character-preview:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:18px 18px}.avatar-doll{position:relative;width:92px;height:145px;filter:drop-shadow(0 12px 12px #0008);z-index:1}.avatar-doll .avatar-head{position:absolute;left:28px;top:14px;width:36px;height:38px;border-radius:10px;background:var(--skin,#e8b88c);border-top:9px solid var(--hair,#352d3d);box-shadow:inset 0 -4px #0002}.avatar-doll .avatar-eyes{position:absolute;top:35px;left:37px;width:5px;height:5px;background:#26334c;box-shadow:15px 0 #26334c;z-index:2}.avatar-doll .avatar-body{position:absolute;top:53px;left:19px;width:54px;height:53px;border-radius:12px 12px 8px 8px;background:var(--armor,#526fba);border:4px solid var(--accent,#9cb9ff)}.avatar-doll .avatar-body:after{content:"✦";position:absolute;left:15px;top:10px;color:#fff8;font-size:18px}.avatar-doll .avatar-leg{position:absolute;top:100px;width:20px;height:35px;border-radius:5px;background:#33435d}.avatar-doll .avatar-leg.left{left:22px}.avatar-doll .avatar-leg.right{right:22px}.avatar-options{display:grid;gap:12px}.avatar-options label{display:grid;gap:6px;color:#c7d8f4;font-size:12px;font-weight:800}.avatar-options select{width:100%;padding:10px;border:1px solid #35547e;border-radius:9px;background:#0b1b2e;color:#f2f6ff}.avatar-palette{display:flex;gap:8px;flex-wrap:wrap}.avatar-color{width:34px;height:34px;border:2px solid #ffffff55;border-radius:10px;cursor:pointer}.avatar-color:focus{outline:2px solid white;outline-offset:2px}.character-editor-buttons{display:flex;gap:8px;margin-top:14px}.character-editor-buttons button{flex:1}.main-menu-action .menu-action-icon.avatar-icon{font-size:20px}@media(max-width:620px){.character-editor-grid{grid-template-columns:1fr}.character-preview{min-height:170px}.avatar-doll{transform:scale(.8)}}
 .difficulty-dialog{width:min(720px,96vw);text-align:center}.difficulty-dialog>p{max-width:570px;margin:0 auto 17px;line-height:1.65}.difficulty-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 17px}.difficulty-option{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-height:113px;padding:15px 14px 13px 53px;text-align:left;border:1px solid #38537c;border-radius:13px;background:linear-gradient(135deg,#102541,#0b192b);color:#e7efff;font:inherit;cursor:pointer;transition:transform .13s,border-color .13s,background .13s}.difficulty-option:hover{transform:translateY(-2px);border-color:#94b6ff;background:linear-gradient(135deg,#1a365c,#10243d)}.difficulty-option b{font-size:15px}.difficulty-option small{font-size:10px;line-height:1.55;color:#9bb1d2}.difficulty-index{position:absolute;left:13px;top:14px;width:29px;height:29px;display:grid;place-items:center;border:1px solid #7898df;border-radius:9px;background:#203d70;color:#fff;font-weight:950}.difficulty-option[data-difficulty="easy"] .difficulty-index{background:#1c684e;border-color:#59c99c}.difficulty-option[data-difficulty="hard"] .difficulty-index{background:#7b342e;border-color:#e78367}.difficulty-option[data-difficulty="hell"] .difficulty-index{background:#782a40;border-color:#e45c80}.difficulty-option.difficulty-disabled{opacity:.42;cursor:not-allowed;border-style:dashed}.difficulty-option.difficulty-disabled:hover{transform:none;border-color:#38537c;background:linear-gradient(135deg,#102541,#0b192b)}.difficulty-shade{z-index:45}.avatar-doll{--eye:#26334c}.avatar-doll .avatar-eyes{background:var(--eye);box-shadow:15px 0 var(--eye)}.avatar-doll[data-face="smile"] .avatar-eyes:after{content:"⌣";position:absolute;left:4px;top:3px;color:#7c4135;font-size:13px;font-weight:900;line-height:1}.avatar-doll[data-face="stern"] .avatar-eyes{height:4px;top:34px;transform:rotate(-2deg)}.avatar-doll[data-face="visor"] .avatar-eyes{left:27px;top:31px;width:38px;height:8px;background:var(--accent);box-shadow:0 0 10px var(--accent);border-radius:3px}.avatar-doll[data-face="visor"] .avatar-eyes:after{content:"";position:absolute;left:8px;top:2px;width:22px;height:3px;background:#20344d}.avatar-doll[data-face="mask"] .avatar-eyes:after{content:"";position:absolute;left:-4px;top:6px;width:29px;height:13px;background:#d5dce6;border-radius:3px;box-shadow:inset 0 -3px #7e8ba0}.avatar-doll[data-hair="long"] .avatar-head{box-shadow:inset 0 -4px #0002,-6px 10px 0 -1px var(--hair),6px 10px 0 -1px var(--hair)}.avatar-doll[data-hair="mohawk"] .avatar-head{border-top-width:0}.avatar-doll[data-hair="curly"] .avatar-head{box-shadow:inset 0 -4px #0002,-5px -5px 0 -2px var(--hair),0 -9px 0 -3px var(--hair),5px -5px 0 -2px var(--hair)}.avatar-doll[data-hair="hood"] .avatar-head{border-top:0;box-shadow:inset 0 -4px #0002,0 0 0 7px var(--accent)}@media(max-width:620px){.difficulty-grid{grid-template-columns:1fr}.difficulty-option{min-height:88px}.difficulty-dialog{padding:18px}}
- .difficulty-impossible{position:relative;overflow:hidden;border-color:#ff526b!important;background:linear-gradient(135deg,rgba(90,13,34,.88),rgba(27,13,30,.96))!important;box-shadow:inset 0 0 0 1px #ff526b22,0 0 22px #ff28451c}.difficulty-impossible:hover{border-color:#ff9aab!important;box-shadow:0 0 24px #ff284544;transform:translateY(-2px)}.difficulty-impossible .difficulty-index{background:#7e1832!important;color:#fff!important;box-shadow:0 0 14px #ff345b55}.difficulty-impossible b{color:#ff9aab!important}.difficulty-impossible small{color:#f2bdc7!important}.difficulty-impossible em{display:block;margin-top:7px;color:#ff526b;font-size:10px;font-style:normal;font-weight:900;letter-spacing:.7px;text-transform:uppercase}</style>
+ .difficulty-impossible{position:relative;overflow:hidden;border-color:#ff526b!important;background:linear-gradient(135deg,rgba(90,13,34,.88),rgba(27,13,30,.96))!important;box-shadow:inset 0 0 0 1px #ff526b22,0 0 22px #ff28451c}.difficulty-impossible:hover{border-color:#ff9aab!important;box-shadow:0 0 24px #ff284544;transform:translateY(-2px)}.difficulty-impossible .difficulty-index{background:#7e1832!important;color:#fff!important;box-shadow:0 0 14px #ff345b55}.difficulty-impossible b{color:#ff9aab!important}.difficulty-impossible small{color:#f2bdc7!important}.difficulty-impossible em{display:block;margin-top:7px;color:#ff526b;font-size:10px;font-style:normal;font-weight:900;letter-spacing:.7px;text-transform:uppercase}
+/* SkyRealm startup reveal: emerald sword rises from below, then the emblem fades in */
+#skyrealm-intro{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#123c35 0%,#071a20 38%,#030912 78%);opacity:1;visibility:visible;transition:opacity .65s ease,visibility .65s ease}
+#skyrealm-intro.intro-out{opacity:0;visibility:hidden;pointer-events:none}
+#skyrealm-intro:before{content:"";position:absolute;width:min(72vw,620px);aspect-ratio:1;border:1px solid #50ffc52b;border-radius:50%;box-shadow:0 0 90px #00ff9d12,inset 0 0 90px #00ff9d0a;animation:sr-ring 2.5s ease-out both}
+#skyrealm-intro:after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 49.8%,#4effbd12 50%,transparent 50.2%);opacity:.45}
+.sr-intro-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px;text-align:center}
+.sr-sword{width:clamp(68px,12vw,112px);height:clamp(160px,30vh,230px);overflow:visible;filter:drop-shadow(0 0 16px #1dff9b70);transform:translateY(75vh) rotate(-8deg) scale(.8);opacity:0;animation:sr-sword-rise 1.05s cubic-bezier(.18,.8,.2,1) .08s forwards}
+.sr-logo{width:clamp(130px,24vw,210px);height:auto;display:block;opacity:0;transform:translateY(16px) scale(.92);filter:drop-shadow(0 0 24px #3bffbd4d);animation:sr-logo-appear .9s cubic-bezier(.2,.8,.2,1) .72s forwards}
+.sr-title{margin-top:2px;font-size:clamp(21px,4vw,34px);font-weight:950;letter-spacing:.22em;color:#effff9;text-shadow:0 0 28px #3dffb75c;opacity:0;transform:translateY(8px);animation:sr-logo-appear .75s ease 1s forwards}
+.sr-subtitle{font-size:9px;letter-spacing:.38em;color:#79cdb0;opacity:0;animation:sr-logo-appear .7s ease 1.18s forwards}
+.sr-loading{position:absolute;bottom:9%;left:50%;transform:translateX(-50%);width:min(220px,55vw);height:3px;border-radius:9px;background:#15392f;overflow:hidden}
+.sr-loading span{display:block;width:38%;height:100%;border-radius:9px;background:linear-gradient(90deg,#20b86c,#a6ffd8);box-shadow:0 0 14px #27ff9c;animation:sr-load 1.8s ease-in-out .1s both}
+@keyframes sr-sword-rise{0%{transform:translateY(75vh) rotate(-8deg) scale(.8);opacity:0}65%{opacity:1}82%{transform:translateY(-8px) rotate(2deg) scale(1.03)}100%{transform:translateY(0) rotate(0) scale(1);opacity:1}}
+@keyframes sr-logo-appear{to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes sr-ring{0%{transform:scale(.72);opacity:0}45%{opacity:.8}100%{transform:scale(1.05);opacity:.35}}
+@keyframes sr-load{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+@media(prefers-reduced-motion:reduce){.sr-sword,.sr-logo,.sr-title,.sr-subtitle,#skyrealm-intro:before,.sr-loading span{animation:none!important;opacity:1;transform:none}}
+
+</style>
 <style>.world-import-row{display:flex;justify-content:flex-end;margin:10px 0 2px}.world-import-button{border:1px solid #45638f;border-radius:9px;padding:9px 12px;background:#10233d;color:#cfe0ff;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.world-import-button:hover{border-color:#8eaeff;background:#172f50}.world-export-button{white-space:nowrap}@media(max-width:760px){.world-import-row{justify-content:stretch}.world-import-button{width:100%}}</style></head>
 <body>
 <div class="game-shell">
+
+  <div id="skyrealm-intro" aria-label="SkyRealm загружается" role="status">
+    <div class="sr-intro-content">
+      <svg class="sr-sword" viewBox="0 0 100 250" aria-hidden="true">
+        <defs><linearGradient id="srBlade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e0fff0"/><stop offset=".34" stop-color="#59ffad"/><stop offset=".7" stop-color="#13c979"/><stop offset="1" stop-color="#08714d"/></linearGradient><linearGradient id="srHandle" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#102e29"/><stop offset=".5" stop-color="#5affb1"/><stop offset="1" stop-color="#102e29"/></linearGradient></defs>
+        <path d="M50 7 68 106 57 151 43 151 32 106Z" fill="url(#srBlade)" stroke="#c6ffe3" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M50 15 51 137" stroke="#f0fff7" stroke-width="3" opacity=".8"/>
+        <path d="M20 145 42 137 50 151 58 137 80 145 67 160 56 157 56 188 44 188 44 157 33 160Z" fill="url(#srHandle)" stroke="#65ffb8" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M44 188 56 188 59 228 50 241 41 228Z" fill="#143b30" stroke="#59ffad" stroke-width="2"/>
+        <circle cx="50" cy="198" r="3" fill="#caffdf"/>
+      </svg>
+      <img class="sr-logo" src="skyrealm-logo.svg" alt="Эмблема SkyRealm">
+      <div class="sr-title">SKYREALM</div>
+      <div class="sr-subtitle">ТВОЙ МИР · ТВОЯ ИСТОРИЯ</div>
+    </div>
+    <div class="sr-loading" aria-hidden="true"><span></span></div>
+  </div>
+
   <canvas id="world" tabindex="0" aria-label="Мир SkyRealm, управление WASD"></canvas>
   <div class="progress-hud" id="progress-hud">УРОВЕНЬ 1 · XP 0/100</div>
   <div class="wallet-hud" id="wallet-hud" hidden>🟡 БАЛАНС <strong id="wallet-value">0,00 🟡</strong></div>
@@ -193,6 +230,20 @@
   <div class="shade custom-modal-shade" id="storage-shade" hidden aria-hidden="true"><div class="dialog custom-modal storage-dialog" role="dialog" aria-modal="true" aria-labelledby="storage-title"><div class="dialog-mark">📦</div><div class="eyebrow">SKYREALM · ХРАНИЛИЩЕ</div><h1 id="storage-title">Сундук-хранилище</h1><p>Переноси предметы между инвентарём и сундуком. Содержимое сохраняется в этом мире.</p><div class="storage-items" id="storage-items"></div><button class="action secondary" id="storage-close" type="button">Закрыть сундук · Esc</button></div></div>
   <div class="toast" id="toast"></div>
 </div>
+<script>
+(() => {
+  const intro = document.getElementById('skyrealm-intro');
+  if (!intro) return;
+  const finish = () => {
+    window.setTimeout(() => {
+      intro.classList.add('intro-out');
+      window.setTimeout(() => intro.remove(), 750);
+    }, 2700);
+  };
+  if (document.readyState === 'complete') finish();
+  else window.addEventListener('load', finish, {once:true});
+})();
+</script>
 <script src="game.js"></script>
 </body>
 </html>
