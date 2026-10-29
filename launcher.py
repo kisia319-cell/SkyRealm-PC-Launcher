@@ -142,6 +142,66 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Не удалось сохранить настройки: " + str(exc)}
 
+    def open_game_folder(self):
+        """Open the installed game directory without changing its contents."""
+        try:
+            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+            directory = app_data / "SkyRealm" / "game"
+            directory.mkdir(parents=True, exist_ok=True)
+            if os.name == "nt":
+                os.startfile(str(directory))
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(directory)])
+            else:
+                subprocess.Popen(["xdg-open", str(directory)])
+            return {"ok": True, "path": str(directory)}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось открыть папку игры: " + str(exc)}
+
+    def open_update_log(self):
+        """Open the updater log in the default text editor."""
+        try:
+            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+            root = app_data / "SkyRealm"
+            root.mkdir(parents=True, exist_ok=True)
+            log_path = root / "update.log"
+            if not log_path.exists():
+                log_path.write_text("SkyRealm update log\\nЖурнал будет заполняться при проверке и обновлении игры.\\n", encoding="utf-8")
+            if os.name == "nt":
+                os.startfile(str(log_path))
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(log_path)])
+            else:
+                subprocess.Popen(["xdg-open", str(log_path)])
+            return {"ok": True, "path": str(log_path)}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось открыть журнал: " + str(exc)}
+
+    def get_diagnostics(self):
+        """Inspect the installed game without modifying files or save data."""
+        try:
+            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+            root = app_data / "SkyRealm"
+            install_dir = root / "game"
+            required = ("index.html", "game.js", "version.txt")
+            missing = [name for name in required if not (install_dir / name).is_file()]
+            version = ""
+            try:
+                version = (install_dir / "version.txt").read_text(encoding="utf-8").strip()
+            except OSError:
+                pass
+            log_path = root / "update.log"
+            last_log = ""
+            try:
+                last_log = "\\n".join(log_path.read_text(encoding="utf-8", errors="replace").splitlines()[-8:])
+            except OSError:
+                pass
+            return {"ok": True, "installed": install_dir.is_dir(), "version": version or "не установлена",
+                    "missing": missing, "healthy": not missing, "game_path": str(install_dir),
+                    "log_path": str(log_path), "last_log": last_log}
+        except Exception as exc:
+            return {"ok": False, "message": "Ошибка диагностики: " + str(exc)}
+
     def launch_game(self, settings=None):
         """Install the bundled prototype into LocalAppData and start it in a new process."""
         try:
@@ -165,7 +225,16 @@ class LauncherApi:
             except OSError:
                 pass
 
-            already_installed = installed_index.is_file() and installed_version == version
+            source_files = [p for p in source_dir.rglob("*") if p.is_file()]
+            # Never overwrite a newer remote release with an older bundled copy.
+            installed_files_ok = version != bundled_version or (
+                bool(source_files) and all(
+                    (install_dir / p.relative_to(source_dir)).is_file()
+                    and (install_dir / p.relative_to(source_dir)).stat().st_size == p.stat().st_size
+                    for p in source_files
+                )
+            )
+            already_installed = installed_index.is_file() and installed_version == version and installed_files_ok
             time.sleep(0.25)
 
             if already_installed:
