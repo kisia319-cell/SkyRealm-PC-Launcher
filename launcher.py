@@ -152,11 +152,13 @@ class LauncherApi:
             if not source_index.is_file() or not source_version.is_file():
                 return {"ok": False, "message": "В сборке лаунчера отсутствуют файлы игры. Пересобери EXE из полного архива."}
 
-            version = source_version.read_text(encoding="utf-8").strip()
+            bundled_version = source_version.read_text(encoding="utf-8").strip()
             app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
             install_dir = app_data / "SkyRealm" / "game"
             installed_index = install_dir / "index.html"
             installed_version_file = install_dir / "version.txt"
+            _js_update(8, "Проверяем обновления…", "Проверяем версию игры и загружаем обновления при необходимости")
+            version = _skyrealm_update_game(install_dir, bundled_version) if getattr(sys, "frozen", False) else bundled_version
             installed_version = ""
             try:
                 installed_version = installed_version_file.read_text(encoding="utf-8").strip()
@@ -164,7 +166,6 @@ class LauncherApi:
                 pass
 
             already_installed = installed_index.is_file() and installed_version == version
-            _js_update(8, "Проверяем установку…", "Проверяем версию игры на этом компьютере")
             time.sleep(0.25)
 
             if already_installed:
@@ -334,6 +335,127 @@ def _skyrealm_version_tuple(value):
         return parts if parts and all(part >= 0 for part in parts) else ()
     except (TypeError, ValueError):
         return ()
+
+
+
+def _skyrealm_update_game(install_dir: Path, bundled_version: str) -> str:
+    """Download and atomically install the latest game package before launching it."""
+    root = install_dir.parent
+    version_file = install_dir / "version.txt"
+    installed_version = ""
+    try:
+        installed_version = version_file.read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
+
+    def fallback_version():
+        return installed_version or bundled_version
+
+    stage = install_dir.with_name("game.update-staging")
+    backup = install_dir.with_name("game.previous")
+    archive_path = root / "updates" / "SkyRealm_Game.zip"
+    try:
+        config_path = Path(resource_path("updater_config.json"))
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        manifest_url = str(config.get("manifest_url", "")).strip()
+        if not manifest_url.startswith("https://"):
+            return fallback_version()
+        request = urllib.request.Request(
+            manifest_url,
+            headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0", "Cache-Control": "no-cache"},
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
+
+        latest = str(manifest.get("game_version", "")).strip()
+        latest_tuple = _skyrealm_version_tuple(latest)
+        if not latest_tuple:
+            return fallback_version()
+
+        game_ok = (install_dir / "index.html").is_file() and (install_dir / "game.js").is_file()
+        installed_tuple = _skyrealm_version_tuple(installed_version)
+        if game_ok and installed_tuple and installed_tuple >= latest_tuple:
+            return installed_version
+
+        download_url = str(manifest.get("game_download_url", "")).strip()
+        expected_hash = str(manifest.get("game_sha256", "")).strip().lower()
+        if not download_url.startswith("https://"):
+            raise ValueError("В манифесте отсутствует HTTPS-ссылка на обновление игры")
+        if len(expected_hash) != 64 or any(ch not in "0123456789abcdef" for ch in expected_hash):
+            raise ValueError("Некорректный SHA-256 архива игры")
+
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.sha256()
+        total_downloaded = 0
+        request = urllib.request.Request(download_url, headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0"})
+        with urllib.request.urlopen(request, timeout=30) as response, archive_path.open("wb") as output:
+            while True:
+                chunk = response.read(1024 * 1024)
+                if not chunk:
+                    break
+                total_downloaded += len(chunk)
+                if total_downloaded > 1024 * 1024 * 1024:
+                    raise ValueError("Архив игры превышает лимит 1 ГБ")
+                digest.update(chunk)
+                output.write(chunk)
+        if digest.hexdigest().lower() != expected_hash:
+            raise ValueError("SHA-256 архива игры не совпал")
+
+        if stage.exists():
+            shutil.rmtree(stage, ignore_errors=True)
+        stage.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            total_unpacked = sum(info.file_size for info in archive.infolist() if not info.is_dir())
+            if total_unpacked > 1024 * 1024 * 1024:
+                raise ValueError("Распакованный архив игры превышает лимит 1 ГБ")
+            for info in archive.infolist():
+                if info.is_dir():
+                    continue
+                normalized = info.filename.replace("\\", "/")
+                relative = Path(*normalized.split("/"))
+                if relative.is_absolute() or not relative.parts or any(part in ("", ".", "..") for part in relative.parts):
+                    raise ValueError("В архиве игры обнаружен небезопасный путь")
+                if ":" in relative.parts[0]:
+                    raise ValueError("В архиве игры обнаружен небезопасный путь")
+                if ((info.external_attr >> 16) & 0o170000) == 0o120000:
+                    raise ValueError("Символические ссылки в архиве игры запрещены")
+                destination = stage.joinpath(*relative.parts)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with archive.open(info, "r") as source, destination.open("wb") as target:
+                    shutil.copyfileobj(source, target)
+
+        staged_version_file = stage / "version.txt"
+        if not (stage / "index.html").is_file() or not (stage / "game.js").is_file() or not staged_version_file.is_file():
+            raise ValueError("В архиве обновления отсутствуют основные файлы игры")
+        if staged_version_file.read_text(encoding="utf-8").strip() != latest:
+            raise ValueError("Версия в архиве игры не совпадает с манифестом")
+
+        if backup.exists():
+            shutil.rmtree(backup, ignore_errors=True)
+        if install_dir.exists():
+            os.replace(install_dir, backup)
+        try:
+            os.replace(stage, install_dir)
+        except Exception:
+            if backup.exists() and not install_dir.exists():
+                os.replace(backup, install_dir)
+            raise
+        shutil.rmtree(backup, ignore_errors=True)
+        archive_path.unlink(missing_ok=True)
+        return latest
+    except Exception as exc:
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with (root / "update.log").open("a", encoding="utf-8") as log:
+                log.write(time.strftime("%Y-%m-%d %H:%M:%S") + " | game update: " + str(exc) + "\n")
+        except OSError:
+            pass
+        shutil.rmtree(stage, ignore_errors=True)
+        try:
+            archive_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return fallback_version()
 
 
 def _skyrealm_startup_update():

@@ -36,7 +36,7 @@ jobs:
             "launcher.py", "update_helper.py", "launcher_version.txt",
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "config.js", "realm.jpg", "icon.png",
-            "SkyRealm.ico", "game/index.html", "game/game.js"
+            "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
           if ($missing.Count -gt 0) {
@@ -67,11 +67,18 @@ jobs:
           New-Item -ItemType Directory -Force update_release | Out-Null
           Compress-Archive -Path "dist/SkyRealm.exe","launcher_version.txt" -DestinationPath "update_release/SkyRealm_Update.zip" -Force
           $hash = (Get-FileHash "update_release/SkyRealm_Update.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
+          if (-not $gameVersion) { throw "game/version.txt is empty" }
+          Compress-Archive -Path "game\*" -DestinationPath "update_release/SkyRealm_Game.zip" -Force
+          $gameHash = (Get-FileHash "update_release/SkyRealm_Game.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
           $manifest = @{
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
             notes = "SkyRealm Launcher $version"
+            game_version = $gameVersion
+            game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
+            game_sha256 = $gameHash
           } | ConvertTo-Json
           Set-Content -Path update_release/manifest.json -Value $manifest -Encoding utf8
           Copy-Item update_release/manifest.json manifest.json -Force
@@ -87,10 +94,10 @@ jobs:
           $notes = "Автоматическая сборка SkyRealm Launcher для Windows."
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag update_release/SkyRealm_Update.zip update_release/manifest.json --clobber
+            gh release upload $tag update_release/SkyRealm_Update.zip update_release/SkyRealm_Game.zip update_release/manifest.json --clobber
             gh release edit $tag --title $title --notes $notes
           } else {
-            gh release create $tag update_release/SkyRealm_Update.zip update_release/manifest.json --title $title --notes $notes --latest
+            gh release create $tag update_release/SkyRealm_Update.zip update_release/SkyRealm_Game.zip update_release/manifest.json --title $title --notes $notes --latest
           }
 
       - name: Commit updated manifest
