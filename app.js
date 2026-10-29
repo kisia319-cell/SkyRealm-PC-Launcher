@@ -319,7 +319,25 @@
     }, 280);
   }));
   $('#show-password').addEventListener('click', () => { const p = $('#password'); p.type = p.type === 'password' ? 'text' : 'password'; });
-  $('#forgot').addEventListener('click', () => toast('Восстановление пароля добавим следующим этапом.'));
+  $('#forgot').addEventListener('click', async () => {
+    const email = window.prompt(currentLanguage === 'en' ? 'Enter the email address linked to your SkyRealm account:' : 'Введи электронную почту, привязанную к аккаунту SkyRealm:');
+    if (email === null) return;
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(normalizedEmail)) {
+      toast(currentLanguage === 'en' ? 'Enter a valid email address.' : 'Укажи корректный адрес электронной почты.');
+      return;
+    }
+    const button = $('#forgot');
+    setBusy(button, true, currentLanguage === 'en' ? 'Sending…' : 'Отправка…');
+    try {
+      const result = await requestApi('/api/auth/forgot-password', {method:'POST', body:{email:normalizedEmail}});
+      toast(result.message || (currentLanguage === 'en' ? 'If recovery is available, check your email.' : 'Если восстановление доступно, проверь почту.'));
+    } catch (error) {
+      toast(localizeError(error.message || 'Не удалось запросить восстановление пароля.', error.code));
+    } finally {
+      setBusy(button, false);
+    }
+  });
   $('#back-to-register').addEventListener('click', () => {
     sessionStorage.removeItem('skyrealm_pending_email');
     setAuthMode('register');
