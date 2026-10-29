@@ -102,6 +102,31 @@
   const ORE_PRICES={Камень:15,Уголь:50,Железо:180};
   let audioContext=null;
   function playSound(kind='tap'){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!audioContext)audioContext=new AC();if(audioContext.state==='suspended')audioContext.resume();const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();const presets={wood:[150,85,'triangle',.12],stone:[280,115,'square',.09],iron:[620,240,'triangle',.14],coal:[190,130,'square',.1],step:[105,70,'sine',.045],hit:[230,95,'sawtooth',.07],sheep:[500,380,'sine',.1],craft:[390,780,'triangle',.18],coin:[900,1250,'sine',.12],portal:[180,660,'sine',.32],tap:[350,240,'sine',.06]};const q=presets[kind]||presets.tap;osc.type=q[2];osc.frequency.setValueAtTime(q[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(40,q[1]),now+q[3]);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.07,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+q[3]);osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+q[3]+.02);}catch(_){}}
+  // Original procedural sound effects are kept. Add optional original ambient music using Web Audio.
+  let skyMusic=null;
+  let skyMusicEnabled=false;
+  function setSkyMusic(enabled){
+    skyMusicEnabled=!!enabled;
+    const button=document.getElementById('menu-music-toggle');
+    if(button){button.setAttribute('aria-pressed',String(skyMusicEnabled));button.innerHTML=skyMusicEnabled?'♫ <span>Музыка: вкл.</span>':'♫ <span>Музыка: выкл.</span>';}
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC)return;
+      if(!audioContext)audioContext=new AC();
+      if(audioContext.state==='suspended')audioContext.resume();
+      if(skyMusicEnabled&&!skyMusic){
+        const master=audioContext.createGain();master.gain.value=.0001;master.connect(audioContext.destination);
+        const notes=[110,164.81,220,261.63];
+        const voices=notes.map((freq,index)=>{const osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type=index===0?'sine':'triangle';osc.frequency.value=freq;gain.gain.value=index===0?.10:.035;osc.connect(gain);gain.connect(master);osc.start();return osc;});
+        const now=audioContext.currentTime;master.gain.setTargetAtTime(.18,now,.9);
+        skyMusic={master,voices};
+      }else if(!skyMusicEnabled&&skyMusic){
+        const current=skyMusic;skyMusic=null;current.master.gain.setTargetAtTime(.0001,audioContext.currentTime,.12);
+        window.setTimeout(()=>{try{current.voices.forEach(v=>v.stop());current.master.disconnect();}catch(_){}},900);
+      }
+    }catch(_){}
+  }
+  function playUiSound(kind='tap'){if(skyMusicEnabled||kind==='tap')playSound(kind);}
   let furnaceCrafted=false;
   let houseLevel=1;
   let placedStructures=[];
@@ -1551,6 +1576,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('save-world-settings').addEventListener('click',()=>{worldEarlyMonsters=document.getElementById('world-early-monsters').checked;saveGame();document.getElementById('world-settings-shade').hidden=true;document.getElementById('pause-shade').hidden=false;showPauseMain();setPaused(true);toast('Настройки мира сохранены.');});
   document.getElementById('close-world-settings').addEventListener('click',()=>{document.getElementById('world-settings-shade').hidden=true;document.getElementById('pause-shade').hidden=false;setPaused(true);showPauseMain();});
   document.getElementById('open-game-settings').addEventListener('click',()=>{settingsOpenedFromMainMenu=false;document.getElementById('pause-main-view').hidden=true;document.getElementById('pause-settings-view').hidden=false;syncSettingsControls();});
+  document.getElementById('menu-music-toggle').addEventListener('click',()=>{setSkyMusic(!skyMusicEnabled);playSound('tap');});
+  // Gentle interface feedback; world/action sounds retain their existing individual handlers.
+  document.querySelectorAll('.main-menu-action,.action,.pause-button,.game-settings-tab').forEach(button=>button.addEventListener('click',()=>playSound('tap')));
   document.getElementById('menu-create-world').addEventListener('click',openWorldCreate);
    document.getElementById('import-world-button').addEventListener('click',()=>document.getElementById('import-world-file').click());
    document.getElementById('import-world-file').addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)importWorldBackupFile(file);else e.target.value='';});
