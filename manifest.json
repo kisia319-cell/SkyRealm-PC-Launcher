@@ -1,9 +1,9 @@
 {
   "version": "1.0.0",
-  "sha256": "8c465bae1e2057f7d9bfc458165e4aa15998238cea9b07ef0cbb0e9877714ff3",
-  "game_version": "0.13.0",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "sha256": "547e6a611b45d1c95eef365555ab41116e4aac1bf76c6e6899b18a6d7fbcc4de",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "game_sha256": "b69243dc5e76dfd2563cbe1bacb3b8c708d382afb89b3cbbb7407f02651768ec",
+  "game_sha256": "b9ae2bcd0e71126df0f32a5ab99ac45e38037e54e5379338eb718e13e778886d",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "game_version": "0.13.0",
   "notes": "SkyRealm Launcher 1.0.0 + Game 0.13.0: launcher diagnostics, game file verification/repair, update log access, functional project/news links and cosmetic showcase; portable world backup export/import; visible save errors and manual save control; save when the window closes or is backgrounded; corrected expanded map dimensions; five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates."
 }
