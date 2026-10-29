@@ -17,6 +17,14 @@ assert.ok(launcher.includes('ThreadingHTTPServer(("127.0.0.1", 48731), handler)'
   'Game server must keep a stable origin for localStorage');
 assert.ok(!launcher.includes('ThreadingHTTPServer(("127.0.0.1", 0), handler)'),
   'Game server must not silently switch to a random port and hide existing saves');
+assert.ok(game.includes('function downloadWorldBackup(id)'), 'Worlds must support exporting a portable backup');
+assert.ok(game.includes('function importWorldBackupFile(file)'), 'Worlds must support restoring a portable backup');
+assert.ok(game.includes("backup.format!=='skyrealm-world-backup'"), 'Imported backups must be validated before use');
+assert.ok(game.includes('Не удалось сохранить мир'), 'Save failures must not be silently swallowed');
+assert.ok(game.includes("document.visibilityState==='hidden'&&currentWorldId"), 'Game must save when the app is backgrounded');
+assert.ok(html.includes('id="import-world-button"') && html.includes('id="import-world-file"'), 'The world menu must expose backup import');
+assert.ok(html.includes('id="save-world-now"'), 'Pause menu must offer manual saving');
+assert.ok(html.includes('360 × 260') && !html.includes('180 × 130 · Босс 8500 HP'), 'Difficulty picker must show actual expanded map dimensions');
 
 assert.match(version, /^\d+\.\d+\.\d+$/, 'game/version.txt must be a semantic version');
 assert.ok(html.includes(version), 'game/index.html version label must match game/version.txt');
