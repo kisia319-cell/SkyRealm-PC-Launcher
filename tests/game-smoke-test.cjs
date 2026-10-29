@@ -3,7 +3,8 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
 const game = fs.readFileSync('game/game.js', 'utf8');
-const html = fs.readFileSync('game/index.html', 'utf8');
+const gameHtml = fs.readFileSync('game/index.html', 'utf8');
+const launcherHtml = fs.readFileSync('index.html', 'utf8');
 const version = fs.readFileSync('game/version.txt', 'utf8').trim();
 
 new vm.Script(game, { filename: 'game/game.js' });
@@ -24,20 +25,20 @@ assert.ok(game.includes('function importWorldBackupFile(file)'), 'Worlds must su
 assert.ok(game.includes("backup.format!=='skyrealm-world-backup'"), 'Imported backups must be validated before use');
 assert.ok(game.includes('Не удалось сохранить мир'), 'Save failures must not be silently swallowed');
 assert.ok(game.includes("document.visibilityState==='hidden'&&currentWorldId"), 'Game must save when the app is backgrounded');
-assert.ok(html.includes('id="import-world-button"') && html.includes('id="import-world-file"'), 'The world menu must expose backup import');
-assert.ok(html.includes('id="save-world-now"'), 'Pause menu must offer manual saving');
-assert.ok(html.includes('id="check-game-files"'), 'Launcher settings must expose game file diagnostics');
-assert.ok(html.includes('id="open-update-log"'), 'Launcher settings must expose the update log');
-assert.ok(html.includes('https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest'), 'News must link to the latest real release');
-assert.ok(html.includes('Никаких скрытых покупок'), 'Shop must clearly disclose that purchases are not enabled');
+assert.ok(gameHtml.includes('id="import-world-button"') && gameHtml.includes('id="import-world-file"'), 'The world menu must expose backup import');
+assert.ok(gameHtml.includes('id="save-world-now"'), 'Pause menu must offer manual saving');
+assert.ok(launcherHtml.includes('id="check-game-files"'), 'Launcher settings must expose game file diagnostics');
+assert.ok(launcherHtml.includes('id="open-update-log"'), 'Launcher settings must expose the update log');
+assert.ok(launcherHtml.includes('https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest'), 'News must link to the latest real release');
+assert.ok(launcherHtml.includes('Никаких скрытых покупок'), 'Shop must clearly disclose that purchases are not enabled');
 assert.ok(app.includes('function runGameDiagnostics()'), 'Launcher diagnostics button must be wired');
 assert.ok(py.includes('def get_diagnostics(self):') && py.includes('def open_update_log(self):'), 'Desktop launcher must provide diagnostics and log actions');
 assert.ok(py.includes('installed_files_ok'), 'Play flow must repair missing or size-mismatched installed files');
-assert.ok(html.includes('v1.0.0'), 'Launcher UI version must match the release');
-assert.ok(html.includes('360 × 260') && !html.includes('180 × 130 · Босс 8500 HP'), 'Difficulty picker must show actual expanded map dimensions');
+assert.ok(launcherHtml.includes('v1.0.0'), 'Launcher UI version must match the release');
+assert.ok(gameHtml.includes('360 × 260') && !gameHtml.includes('180 × 130 · Босс 8500 HP'), 'Difficulty picker must show actual expanded map dimensions');
 
 assert.match(version, /^\d+\.\d+\.\d+$/, 'game/version.txt must be a semantic version');
-assert.ok(html.includes(version), 'game/index.html version label must match game/version.txt');
+assert.ok(gameHtml.includes(version), 'game/index.html version label must match game/version.txt');
 
 for (const feature of [
   'function generateMineStock',
