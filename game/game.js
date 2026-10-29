@@ -75,7 +75,7 @@
   let sheepSpawned = false;
   let sheepSpawnTimer = 0;
   let playerAttackCooldown = 0;
-  let attackAnimTimer=0, weatherMode='clear', weatherTimer=75, weatherFlash=0, ambientTime=0;
+  let attackAnimTimer=0, combatAbilityCooldown=0, weatherMode='clear', weatherTimer=75, weatherFlash=0, ambientTime=0;
   let strengthPotionTimer=0, wardPotionTimer=0, speedPotionTimer=0, eventRollTimer=74, meteorShowerTimer=0, meteorPoint=null;
   const visualParticles=[];
   let sprintExhaustionToast=0;
@@ -946,7 +946,48 @@
     }
   }
   function updateVitals(){const hp=document.querySelector('.hp i'),stamina=document.querySelector('.stamina i');if(hp)hp.style.width=Math.max(0,Math.min(100,player.hp))+'%';if(stamina)stamina.style.width=Math.max(0,Math.min(100,player.stamina))+'%';}
-  function attackNearestMonster(){
+  function useCombatAbility(){
+    if(combatAbilityCooldown>0){toast('Способность перезаряжается: '+Math.ceil(combatAbilityCooldown)+' сек.');return;}
+    if(stamina<22){toast('Не хватает выносливости для особой атаки.');return;}
+    stamina=Math.max(0,stamina-22);combatAbilityCooldown=12;updateVitals();
+    const weapon=equipment.weapon||'Деревянный меч';
+    const radius=weapon==='Ледяной посох'?190:weapon==='Молниеносное копьё'?170:145;
+    const multiplier=weapon==='Ледяной посох'?1.65:weapon==='Молниеносное копьё'?1.45:1.35;
+    const damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*multiplier);
+    const color=weapon==='Ледяной посох'?'#8deaff':weapon==='Молниеносное копьё'?'#ffe68a':'#c4d6ff';
+    spawnVisualBurst(player.x,player.y,30,'spark',color);playSound('portal');
+    let hits=0,kills=0;
+    if(dungeonMode){
+      if(!dungeonRoomCleared()&&Math.hypot(player.x-dungeonEnemyX,player.y-dungeonEnemyY)<=radius+30){
+        const dealt=Math.min(dungeonEnemyHp,damage);dungeonEnemyHp=Math.max(0,dungeonEnemyHp-dealt);hits++;
+        spawnVisualBurst(dungeonEnemyX,dungeonEnemyY,18,'spark',color);
+        if(dungeonEnemyHp<=0){dungeonClearedRooms=Array.from(new Set(dungeonClearedRooms.concat([dungeonRoom])));if(dungeonRoom<5){changeItem('Эссенция глубин',1);if(Math.random()<.6)changeItem('Кристалл',1);}else{changeItem('Эссенция глубин',4);walletCents+=15000;}awardXP(dungeonRoom===5?300:70,'особая атака в руинах');renderInventory();}
+      }
+    }else{
+      for(let i=monsters.length-1;i>=0;i--){
+        const mob=monsters[i];if(mob.exploding||Math.hypot(player.x-mob.x,player.y-mob.y)>radius)continue;
+        mob.hp=Math.max(0,mob.hp-damage);hits++;spawnVisualBurst(mob.x,mob.y,8,'spark',color);
+        if(mob.hp<=0){monsters.splice(i,1);dropMonsterLoot(mob);awardXP(12,'особая атака');kills++;}
+      }
+      if(!caveMode&&!mineMode&&!inHouse){
+        for(const def of biomeBossDefs()){
+          const b=biomeBosses[def.id];if(!b||!b.active||b.defeated||Math.hypot(player.x-def.x,player.y-def.y)>radius+30)continue;
+          b.hp=Math.max(0,b.hp-damage);b.flash=.2;hits++;spawnVisualBurst(def.x,def.y,14,'spark',def.color);
+          if(b.hp<=0)defeatBiomeBoss(def,b);
+        }
+        if(wolfBossActive&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=radius+30){
+          wolfBossHp=Math.max(0,wolfBossHp-damage);wolfBossFlash=.2;hits++;spawnVisualBurst(wolfBossX,wolfBossY,14,'spark',color);if(wolfBossHp<=0)defeatWolfBoss();
+        }
+      }
+      if(caveMode&&!caveBossDefeated&&Math.hypot(player.x-caveBossX,player.y-caveBossY)<=radius+30){
+        caveBossHp=Math.max(0,caveBossHp-damage);caveBossFlash=.2;hits++;spawnVisualBurst(caveBossX,caveBossY,14,'spark',color);
+        if(caveBossHp<=0){caveBossDefeated=true;walletCents+=10000;changeItem('Кристалл',5);changeItem('Железо',8);changeItem('Малое зелье',3);awardXP(240,'победа над Каменным стражем');renderInventory();spawnVisualBurst(caveBossX,caveBossY,36,'spark','#8ef5ff');toast('Каменный страж побеждён особой атакой!');}
+      }
+    }
+    saveGame();
+    toast((weapon==='Ледяной посох'?'ЛЕДЯНОЙ ВЗРЫВ':weapon==='Молниеносное копьё'?'ЦЕПНАЯ МОЛНИЯ':'УДАР ВОЛНЫ')+': '+(hits?('целей поражено '+hits+(kills?' · побеждено '+kills:'')):'рядом нет врагов')+' · перезарядка 12 сек.');
+  }
+    function attackNearestMonster(){
     if(playerAttackCooldown>0)return;if(dungeonMode){attackDungeonEnemy();return;}playerAttackCooldown=.7;attackAnimTimer=.24;playSound('hit');spawnVisualBurst(player.x+(player.face==='left'?-20:player.face==='right'?20:0),player.y+(player.face==='up'?-22:player.face==='down'?12:0),5,'spark','#d8eeff');
     if(!caveMode&&!dungeonMode&&!mineMode){for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||!b.active||b.defeated)continue;const d=Math.hypot(player.x-def.x,player.y-def.y);if(d<Math.max(weaponRange()+35,130)){const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.1)*(Math.random()<.14?2:1));b.hp=Math.max(0,b.hp-damage);spawnVisualBurst(def.x,def.y,9,'spark',def.color);toast(def.name+' получил '+damage+' урона · '+Math.ceil(b.hp)+' HP');if(b.hp<=0)defeatBiomeBoss(def,b);else saveGame();return;}}}
     if(!caveMode&&!dungeonMode&&wolfBossActive){const bossDistance=Math.hypot(player.x-wolfBossX,player.y-wolfBossY);if(bossDistance<Math.max(125,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));wolfBossHp=Math.max(0,wolfBossHp-damage);wolfBossFlash=.18;spawnVisualBurst(wolfBossX,wolfBossY,10,'spark','#ff5267');toast('Оборотень получил '+damage+' урона · '+Math.ceil(wolfBossHp)+' HP');if(wolfBossHp<=0)defeatWolfBoss();else saveGame();return;}}
@@ -1210,7 +1251,7 @@
     ambientTime=now;
     updateVisualEffects(dt);
     if (!paused && !signDialogOpen && !inventoryDialogOpen && !fullMapOpen && !workbenchDialogOpen) {
-      playerAttackCooldown=Math.max(0,playerAttackCooldown-dt);dodgeCooldown=Math.max(0,dodgeCooldown-dt);dodgeTimer=Math.max(0,dodgeTimer-dt);
+      playerAttackCooldown=Math.max(0,playerAttackCooldown-dt);combatAbilityCooldown=Math.max(0,combatAbilityCooldown-dt);dodgeCooldown=Math.max(0,dodgeCooldown-dt);dodgeTimer=Math.max(0,dodgeTimer-dt);
       if(sleeping){sleepSeconds+=dt;if(sleepSeconds>=5){sleeping=false;questStage=Math.max(questStage,4);const oldMinute=minuteOfDay(),oldDay=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(oldMinute<DAWN_MINUTE?oldDay:oldDay+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;if(oldMinute>=18*60&&oldMinute<NIGHT_MINUTE)survivedNights++;refreshMineDailyStock();lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;player.hp=100;updateVitals();updateClockDisplay(true);toast('Ты проспал 5 секунд. Наступил рассвет!');saveGame();}}
       updateWorldClock(dt);strengthPotionTimer=Math.max(0,strengthPotionTimer-dt);wardPotionTimer=Math.max(0,wardPotionTimer-dt);speedPotionTimer=Math.max(0,speedPotionTimer-dt);updateWorldEvents(dt);updateBiomeBosses(dt);
       if(inHouse && !sleeping && player.hp<100){player.hp=Math.min(100,player.hp+dt*(1+(houseLevel-1)*.65));updateVitals();}
@@ -1603,7 +1644,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(e.code==='F11'||e.key==='F11'){e.preventDefault();toggleFullscreen();return;}
     const k = gameKey(e);
     const formTarget = e.target && (e.target.matches?.('input,textarea,select') || e.target.isContentEditable);
-    if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','q','j','1','2','3','4'].includes(k)) e.preventDefault();
+    if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','q','j','r','1','2','3','4'].includes(k)) e.preventDefault();
     if(k==='l'&&!formTarget&&!inMainMenu){if(fullMapOpen)closeFullMap();else if(!paused&&!signDialogOpen&&!inventoryDialogOpen)openFullMap();return;}
     if(fullMapOpen){if(k==='escape'||k==='l')closeFullMap();return;}
     if (k === 'escape') {
@@ -1630,6 +1671,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if (e.repeat && ['e','i'].includes(k)) return;
     if (k === 'e' && !paused && !signDialogOpen && !inventoryDialogOpen) { interact(); return; }
     if (k === 'q' && !paused && !signDialogOpen && !inventoryDialogOpen) { startDodge(); return; }
+    if (k === 'r' && !paused && !signDialogOpen && !inventoryDialogOpen) { useCombatAbility(); return; }
     if (k === 'h' && !paused && !signDialogOpen && !inventoryDialogOpen) { useHealingPotion(); return; }
     if (k === 'j' && !paused && !signDialogOpen && !inventoryDialogOpen) { useBuffPotion(); return; }
     if (k === ' ' && !paused && !signDialogOpen && !inventoryDialogOpen) { attackNearestMonster(); return; }
