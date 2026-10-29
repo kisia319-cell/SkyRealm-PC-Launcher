@@ -1,6 +1,6 @@
 {
-  "version": "0.9.4",
+  "sha256": "17e971ef7ef5312c642331a4d5e8a7c2bfb2c85c47be28295c0265cba947cae3",
+  "notes": "SkyRealm Launcher 0.9.5",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "sha256": "",
-  "notes": "Начальная версия манифеста. Первая автоматическая сборка появится после загрузки исходников и публикации релиза."
+  "version": "0.9.5"
 }
