@@ -1,9 +1,9 @@
 {
+  "game_sha256": "6892991cf7a26c3beee34cae354231a266525c7cb2cde26c682edd918a7348b0",
+  "notes": "SkyRealm Launcher 1.0.0 + Game 0.14.0: launcher diagnostics, game file verification/repair, update log access, functional project/news links and cosmetic showcase; portable world backup export/import; visible save errors and manual save control; save when the window closes or is backgrounded; corrected expanded map dimensions; five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates.",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "game_version": "0.13.0",
+  "game_version": "0.14.0",
   "version": "1.0.0",
-  "notes": "SkyRealm Launcher 1.0.0 + Game 0.13.0: launcher diagnostics, game file verification/repair, update log access, functional project/news links and cosmetic showcase; portable world backup export/import; visible save errors and manual save control; save when the window closes or is backgrounded; corrected expanded map dimensions; five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates.",
-  "sha256": "d986fd7a08aee3a04e2ae97da300b3b210210f37a09cf5a40ced4e03ba893cd4",
-  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "game_sha256": "286af346486daebcc186d8314af5434e0dc0511f202034b5660dc2fef486b277"
+  "sha256": "aa287b28413769426b85ce92f9669a84660498e239670c2b3cf9aa8b621e2e37",
+  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
 }
