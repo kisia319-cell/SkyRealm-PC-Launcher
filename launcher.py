@@ -404,7 +404,8 @@ def _skyrealm_startup_update():
         return False
 
 
-\nif __name__ == "__main__":
+
+if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "--skyrealm-game":
         run_game_window(sys.argv[2])
     else:
