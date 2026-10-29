@@ -85,6 +85,7 @@
   let sleepSeconds = 0;
   let questStage = 0;
   let villageQuestStage = 0;
+  let blacksmithQuestStage = 0;
   let dogBehavior = 'follow';
   let workbenchUsed = false;
   let mineMode=false, mineLevel=1, mineRocks=[], mineSeed=0, mineTileX=62, mineTileY=43, worldEarlyMonsters=false, mineHoverIndex=-1, minePlayerX=86, minePlayerY=0;
@@ -331,6 +332,31 @@
     // Occasional shooting star at night: a small ambient world event, not a gameplay requirement.
     if(isNightTime()){const cycle=(time%19000)/19000;if(cycle<.035){const x=width*(.22+cycle*13),y=30+cycle*900;ctx.save();ctx.globalAlpha=1-cycle/.035;ctx.strokeStyle='#dceeff';ctx.lineWidth=2;ctx.shadowColor='#b5d8ff';ctx.shadowBlur=9;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-38,y-18);ctx.stroke();ctx.restore();}}
   }
+  function drawBlacksmith(camX,camY,time){
+    const x=35*TILE+16-camX,y=21*TILE+16-camY;
+    if(x<-40||x>width+40||y<-55||y>height+40)return;
+    ctx.save();ctx.translate(Math.round(x),Math.round(y)+Math.sin(time/390+1)*1.1);
+    ctx.fillStyle='#07101c77';ctx.beginPath();ctx.ellipse(0,12,14,6,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#4a5666';ctx.fillRect(-9,-2,18,15);ctx.fillStyle='#d2a77a';ctx.fillRect(-7,-16,14,14);
+    ctx.fillStyle='#b7c2ce';ctx.fillRect(-9,-22,18,7);ctx.fillStyle='#303b49';ctx.fillRect(-11,-24,22,4);
+    ctx.fillStyle='#f1d6aa';ctx.fillRect(-4,-11,2,2);ctx.fillRect(3,-11,2,2);
+    ctx.fillStyle='#f3d18b';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('КУЗНЕЦ',0,-30);
+    ctx.fillStyle='#b7d2ff';ctx.font='bold 9px Segoe UI';ctx.fillText('E · ЗАДАНИЕ',0,29);ctx.restore();
+  }
+  function talkToBlacksmith(){
+    const iron=itemCount('Железо'),coal=itemCount('Уголь'),crystal=itemCount('Кристалл'),obsidian=itemCount('Обсидиан'),shards=itemCount('Метеоритный осколок'),mithril=itemCount('Мифрил');
+    if(blacksmithQuestStage===0){
+      if(iron>=4&&coal>=3){changeItem('Железо',-4);changeItem('Уголь',-3);walletCents+=2200;awardXP(90,'заказ кузнеца');blacksmithQuestStage=1;toast('Кузнец: Отлично! Вот 22 золота. Теперь найди 2 кристалла и 2 обсидиана для редкого сплава.');}
+      else toast('Кузнец: Нужны 4 железа и 3 угля для новой наковальни. Сейчас: '+iron+'/4 железа, '+coal+'/3 угля.');
+    }else if(blacksmithQuestStage===1){
+      if(crystal>=2&&obsidian>=2){changeItem('Кристалл',-2);changeItem('Обсидиан',-2);walletCents+=5000;changeItem('Малое зелье',2);awardXP(180,'редкий сплав');blacksmithQuestStage=2;toast('Кузнец: Сплав готов! Награда — 50 золота и 2 зелья. Последний заказ: 3 метеоритных осколка и 2 мифрила.');}
+      else toast('Кузнец: Нужны 2 кристалла и 2 обсидиана. Сейчас: '+crystal+'/2 кристалла, '+obsidian+'/2 обсидиана.');
+    }else if(blacksmithQuestStage===2){
+      if(shards>=3&&mithril>=2){changeItem('Метеоритный осколок',-3);changeItem('Мифрил',-2);walletCents+=10000;changeItem('Кристалл',3);awardXP(350,'легендарный заказ кузнеца');blacksmithQuestStage=3;toast('Кузнец: Невероятно! Вот 100 золота и 3 кристалла. Ты помог создать легендарный сплав!');}
+      else toast('Кузнец: Нужны 3 метеоритных осколка и 2 мифрила. Сейчас: '+shards+'/3 осколка, '+mithril+'/2 мифрила.');
+    }else toast('Кузнец: Мастерская снова работает. Новые заказы появятся в будущих обновлениях.');
+    renderInventory();saveGame();
+  }
   function drawVillageElder(camX,camY,time){
     const x=38*TILE+16-camX,y=21*TILE+16-camY;
     if(x<-40||x>width+40||y<-55||y>height+40)return;
@@ -508,7 +534,7 @@
       drawTradeShop(BUY_SHOP,camX,camY,'ЛАВКА РУДОКОПА','E · КУПИТЬ РУДУ','#70818d');
     }else{
       if(gameSettings.graphicsQuality!=='low') drawFlowers(camX,camY,time);
-      drawCabin(camX,camY); drawVillageElder(camX,camY,time); drawFences(camX,camY); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
+      drawCabin(camX,camY); drawBlacksmith(camX,camY,time); drawVillageElder(camX,camY,time); drawFences(camX,camY); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
       for(const rock of world.rocks){const x=rock.x-camX,y=rock.y-camY;if(x>-30&&x<width+30&&y>-30&&y<height+30)drawRock(rock,camX,camY);}
       for(const tree of world.trees){const x=tree.x-camX,y=tree.y-camY;if(x>-60&&x<width+60&&y>-70&&y<height+40)drawTree(tree,camX,camY);}
       world.signs.forEach(s=>drawSign(s,camX,camY));drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawWolfCage(camX,camY,time);drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);drawWolfCompanion(camX,camY,time);const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
@@ -1044,6 +1070,7 @@
       toast('Подойди к кровати, верстаку или двери.');return;
     }
     if(interactWolfCage())return;
+    if(!tradeWorldMode&&Math.hypot(player.x-(35*TILE+16),player.y-(21*TILE+16))<72){talkToBlacksmith();return;}
     if(!tradeWorldMode&&Math.hypot(player.x-(38*TILE+16),player.y-(21*TILE+16))<78){talkToVillageElder();return;}
     if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(player.x-wolfCompanionX(),player.y-wolfCompanionY())<95){commandDog();return;}
     const nearbyStorage=placedStructures.find(v=>v.type==='storage'&&Math.hypot(player.x-v.x,player.y-v.y)<76);if(nearbyStorage){openStorage(nearbyStorage);return;}
@@ -1215,14 +1242,14 @@
   }
   function resetWorldState(){
     dungeonMode=false;dungeonReturn={x:player.x,y:player.y};dungeonRoom=1;dungeonClearedRooms=[];dungeonEnemyHp=0;dungeonEnemyX=0;dungeonEnemyY=0;dungeonChestOpened=false;dungeonTrapCooldown=0;biomeBosses=makeBiomeBossState();strengthPotionTimer=0;wardPotionTimer=0;speedPotionTimer=0;eventRollTimer=74;meteorShowerTimer=0;meteorPoint=null;
-    bloodMoonActive=false;bloodMoonRewardPending=false;lastBloodMoonNight=-1;wolfBossActive=false;wolfBossHp=0;wolfBossKeyDropped=false;wolfCageOpen=false;wolfDogCaged=true;wolfBossX=0;wolfBossY=0;wolfBossFlash=0;wolfBossAttackTimer=1.2;wolfBossDefeated=false;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfCompanionAttackTimer=.5;wolfCompanionRevivals=0;wolfDogDeathHandled=false;wolfCompanionOffsetX=20;wolfCompanionOffsetY=24;dogBehavior='follow';villageQuestStage=0;
+    bloodMoonActive=false;bloodMoonRewardPending=false;lastBloodMoonNight=-1;wolfBossActive=false;wolfBossHp=0;wolfBossKeyDropped=false;wolfCageOpen=false;wolfDogCaged=true;wolfBossX=0;wolfBossY=0;wolfBossFlash=0;wolfBossAttackTimer=1.2;wolfBossDefeated=false;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfCompanionAttackTimer=.5;wolfCompanionRevivals=0;wolfDogDeathHandled=false;wolfCompanionOffsetX=20;wolfCompanionOffsetY=24;dogBehavior='follow';villageQuestStage=0;blacksmithQuestStage=0;
     player.x=21*TILE;player.y=26*TILE;player.vx=player.vy=0;player.face='down';player.frame=0;player.hp=100;player.stamina=84;
     discovered=false;worldEarlyMonsters=false;tradeWorldMode=false;walletCents=0;playerLevel=1;playerXP=0;skillPoints=0;skills={warrior:0,miner:0,scout:0};equipment={weapon:'Деревянный меч',armor:'',helmet:'',boots:'',amulet:''};weaponUpgrades={};armorUpgrade=0;anvilCrafted=false;adventureQuestProgress={hunt:0,mining:0,harvest:0};farmCrops=[];caveBossDefeated=false;caveBossHp=bossMaxHp();caveBossAttackTimer=2.5;caveMode=false;caveChestOpened=false;treasureChests.forEach(c=>c.opened=false);dodgeTimer=0;dodgeCooldown=0;placedStructures=[];lootDrops.length=0;enteredPlacedHouse=null;tradeEntranceX=17;tradeEntranceY=47;mineLevel=1;houseLevel=1;furnaceCrafted=false;mineMode=false;mineHoverIndex=-1;workbenchDialogOpen=false;exploredCells=new Set();selectedSlot=1;questStage=0;workbenchUsed=false;sheepSpawnTimer=0;inHouse=false;sleeping=false;sleepSeconds=0;playerAttackCooldown=0;gameMinuteTotal=8*60;survivedNights=0;immortal=false;hunger=100;hungerElapsedMinutes=0;skipDayRealSeconds=300;sheepSpawned=false;sheep.length=0;inventoryItems.forEach(item=>{const base=starterItemCounts.find(v=>v.name===item.name);item.count=base?base.count:0;});
     lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);lastClockMinute=-1;wasNight=isNightTime();monsterSpawnTimer=0;damageToastTimer=0;monsters.length=0;
   }
   function saveGame(){
     if(!currentWorldId)return false;
-    const serialized=JSON.stringify({difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),adventureQuestProgress,farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage});
+    const serialized=JSON.stringify({difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),adventureQuestProgress,farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage});
     try{
       localStorage.setItem(saveKey,serialized);
     }catch(error){
@@ -1265,7 +1292,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         if(Array.isArray(d.sheep)){sheep.length=0;d.sheep.slice(0,120).forEach(a=>{if(a&&Number.isFinite(a.x)&&Number.isFinite(a.y))sheep.push({x:a.x,y:a.y,hp:Number(a.hp)||0,phase:Number(a.phase)||0,dir:Number(a.dir)||0,wander:Number(a.wander)||1,alive:a.alive===true});});}
         if(Number.isFinite(d.skipDayRealSeconds))skipDayRealSeconds=Math.max(0,Math.min(300,d.skipDayRealSeconds));
         if(Array.isArray(d.resources))d.resources.forEach(r=>{const item=inventoryItems.find(i=>i.name===r.name);if(item&&Number.isFinite(r.count))item.count=Math.max(0,Math.min(999999,Math.floor(r.count)));});
-        immortal=d.immortal===true;bloodMoonActive=d.bloodMoonActive===true;bloodMoonRewardPending=d.bloodMoonRewardPending===true;lastBloodMoonNight=Number.isInteger(d.lastBloodMoonNight)?d.lastBloodMoonNight:-1;wolfBossActive=d.wolfBossActive===true;wolfBossHp=Math.max(0,Number(d.wolfBossHp)||0);wolfBossKeyDropped=d.wolfBossKeyDropped===true;wolfCageOpen=d.wolfCageOpen===true;wolfDogCaged=d.wolfDogCaged!==false;wolfBossX=Number.isFinite(d.wolfBossX)?d.wolfBossX:wolfDenPosition().x;wolfBossY=Number.isFinite(d.wolfBossY)?d.wolfBossY:wolfDenPosition().y;wolfBossDefeated=d.wolfBossDefeated===true;wolfCompanionUnlocked=d.wolfCompanionUnlocked===true;wolfCompanionHp=Math.max(0,Math.min(300,Number(d.wolfCompanionHp)||300));wolfCompanionRevivals=Math.max(0,Math.min(3,Number(d.wolfCompanionRevivals)||0));wolfCompanionOffsetX=Number.isFinite(d.wolfCompanionOffsetX)?d.wolfCompanionOffsetX:28;wolfCompanionOffsetY=Number.isFinite(d.wolfCompanionOffsetY)?d.wolfCompanionOffsetY:22;dogBehavior=['follow','guard','hunt'].includes(d.dogBehavior)?d.dogBehavior:'follow';villageQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.villageQuestStage)||0)));
+        immortal=d.immortal===true;bloodMoonActive=d.bloodMoonActive===true;bloodMoonRewardPending=d.bloodMoonRewardPending===true;lastBloodMoonNight=Number.isInteger(d.lastBloodMoonNight)?d.lastBloodMoonNight:-1;wolfBossActive=d.wolfBossActive===true;wolfBossHp=Math.max(0,Number(d.wolfBossHp)||0);wolfBossKeyDropped=d.wolfBossKeyDropped===true;wolfCageOpen=d.wolfCageOpen===true;wolfDogCaged=d.wolfDogCaged!==false;wolfBossX=Number.isFinite(d.wolfBossX)?d.wolfBossX:wolfDenPosition().x;wolfBossY=Number.isFinite(d.wolfBossY)?d.wolfBossY:wolfDenPosition().y;wolfBossDefeated=d.wolfBossDefeated===true;wolfCompanionUnlocked=d.wolfCompanionUnlocked===true;wolfCompanionHp=Math.max(0,Math.min(300,Number(d.wolfCompanionHp)||300));wolfCompanionRevivals=Math.max(0,Math.min(3,Number(d.wolfCompanionRevivals)||0));wolfCompanionOffsetX=Number.isFinite(d.wolfCompanionOffsetX)?d.wolfCompanionOffsetX:28;wolfCompanionOffsetY=Number.isFinite(d.wolfCompanionOffsetY)?d.wolfCompanionOffsetY:22;dogBehavior=['follow','guard','hunt'].includes(d.dogBehavior)?d.dogBehavior:'follow';villageQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.villageQuestStage)||0)));blacksmithQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.blacksmithQuestStage)||0)));
       }
     }catch(_){}
     lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
