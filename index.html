@@ -136,6 +136,12 @@
             <h3>Придумай новый пароль</h3>
             <p class="verify-copy">Ссылка действительна ограниченное время. Не передавай её другим людям.</p>
             <form id="reset-password-form" autocomplete="on">
+              <div id="reset-code-fields" hidden>
+                <label class="field-label" for="reset-email">Электронная почта</label>
+                <div class="field-wrap"><span class="field-icon" aria-hidden="true">✉</span><input id="reset-email" type="email" autocomplete="email" maxlength="254" placeholder="name@example.com"></div>
+                <label class="field-label" for="reset-code">Код восстановления из письма</label>
+                <div class="field-wrap"><span class="field-icon" aria-hidden="true">⌁</span><input id="reset-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" placeholder="12345678"></div>
+              </div>
               <label class="field-label" for="reset-password">Новый пароль</label>
               <div class="field-wrap"><span class="field-icon" aria-hidden="true">▣</span><input id="reset-password" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="Не менее 8 символов" required></div>
               <label class="field-label" for="reset-password-confirm">Повтори новый пароль</label>
