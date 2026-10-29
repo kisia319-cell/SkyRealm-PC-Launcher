@@ -17,4 +17,13 @@ const invalidResponse = await fetch(url("/api/auth/register"), {
 assert.equal(invalidResponse.status, 400);
 const invalid = await invalidResponse.json();
 assert.equal(invalid?.detail?.code, "INVALID_USERNAME");
+const recoveryResponse = await fetch(url("/api/auth/forgot-password"), {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ email: "not-an-email" }),
+});
+assert.equal(recoveryResponse.status, 400, "password recovery should reject malformed email");
+const recovery = await recoveryResponse.json();
+assert.equal(recovery?.detail?.code, "INVALID_EMAIL");
+
 console.log("SkyRealm auth smoke tests passed.");
