@@ -48,6 +48,53 @@
     } catch (_) { toast(currentLanguage === 'en' ? 'Could not open folder.' : 'Не удалось открыть папку.'); }
   });
 
+  function showDiagnostics(message, isError = false) {
+    const el = $('#diagnostics-result');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.toggle('diagnostics-error', isError);
+  }
+  async function runGameDiagnostics() {
+    showDiagnostics(currentLanguage === 'en' ? 'Checking game files…' : 'Проверяем файлы игры…');
+    try {
+      if (!window.pywebview?.api?.get_diagnostics) {
+        showDiagnostics(currentLanguage === 'en' ? 'File diagnostics are available in the installed Windows launcher.' : 'Проверка файлов доступна в установленном Windows-лаунчере.');
+        return;
+      }
+      const result = await window.pywebview.api.get_diagnostics();
+      if (!result?.ok) throw new Error(result?.message || 'Диагностика не выполнена');
+      const missing = Array.isArray(result.missing) ? result.missing : [];
+      const healthy = result.healthy && result.installed;
+      const msg = healthy
+        ? (currentLanguage === 'en' ? 'Main files are present. Installed version: ' : 'Основные файлы на месте. Установленная версия: ') + result.version + '\\n' + result.game_path
+        : (currentLanguage === 'en' ? 'Repair needed. Missing files: ' : 'Нужно восстановление. Нет файлов: ') + (missing.join(', ') || (currentLanguage === 'en' ? 'game not installed' : 'игра ещё не установлена')) + '\\n' + (currentLanguage === 'en' ? 'Click Play to reinstall/repair the game. Save data is kept separately.' : 'Нажми «Играть», чтобы переустановить/восстановить игру. Данные сохранений хранятся отдельно.');
+      showDiagnostics(msg, !healthy);
+      if (healthy) toast(currentLanguage === 'en' ? 'Game file check completed.' : 'Проверка файлов завершена.');
+    } catch (error) {
+      showDiagnostics((currentLanguage === 'en' ? 'Diagnostics failed: ' : 'Ошибка диагностики: ') + (error.message || error), true);
+    }
+  }
+  const checkFilesButton = $('#check-game-files');
+  if (checkFilesButton) checkFilesButton.addEventListener('click', runGameDiagnostics);
+  const openGameFolderButton = $('#open-game-folder');
+  if (openGameFolderButton) openGameFolderButton.addEventListener('click', async () => {
+    try {
+      if (!window.pywebview?.api?.open_game_folder) { toast(currentLanguage === 'en' ? 'Available in the desktop launcher.' : 'Доступно в настольном лаунчере.'); return; }
+      const result = await window.pywebview.api.open_game_folder();
+      if (!result?.ok) throw new Error(result?.message || 'Не удалось открыть папку');
+      toast(currentLanguage === 'en' ? 'Game folder opened.' : 'Папка игры открыта.');
+    } catch (error) { toast(error.message || 'Не удалось открыть папку игры.'); }
+  });
+  const openLogButton = $('#open-update-log');
+  if (openLogButton) openLogButton.addEventListener('click', async () => {
+    try {
+      if (!window.pywebview?.api?.open_update_log) { toast(currentLanguage === 'en' ? 'Available in the desktop launcher.' : 'Доступно в настольном лаунчере.'); return; }
+      const result = await window.pywebview.api.open_update_log();
+      if (!result?.ok) throw new Error(result?.message || 'Не удалось открыть журнал');
+      toast(currentLanguage === 'en' ? 'Update log opened.' : 'Журнал обновлений открыт.');
+    } catch (error) { toast(error.message || 'Не удалось открыть журнал.'); }
+  });
+
   function showPage(name) {
     $$('.page').forEach(p => p.classList.toggle('active', p.id === `page-${name}`));
     $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === name));
@@ -451,7 +498,7 @@
   if (localStorage.getItem('skyrealm_greeting') === 'false') $('.hero-copy').style.display = 'none';
   const STATIC_COPY = {
     ru: {
-      '.side-version':'SKYREALM <b>v0.9.8</b> · 2D ПРОТОТИП', '.sidebar-label':'ПРОЕКТ', '.nav-item[data-page="home"] span:nth-child(2)':'Главная', '.nav-item[data-page="news"] span:nth-child(2)':'Новости', '.nav-item[data-page="shop"] span:nth-child(2)':'Магазин', '.nav-item[data-page="community"] span:nth-child(2)':'Сообщество', '.nav-item[data-page="settings"] span:nth-child(2)':'Настройки', '.nav-item[data-page="shop"] .nav-soon':'СКОРО', '.sidebar-help':'<span>?</span> Помощь и ответы', '.sidebar-status small':'Облачная авторизация',
+      '.side-version':'SKYREALM <b>v1.0.0</b> · ИГРОВОЙ ЦЕНТР', '.sidebar-label':'ПРОЕКТ', '.nav-item[data-page="home"] span:nth-child(2)':'Главная', '.nav-item[data-page="news"] span:nth-child(2)':'Новости', '.nav-item[data-page="shop"] span:nth-child(2)':'Магазин', '.nav-item[data-page="community"] span:nth-child(2)':'Сообщество', '.nav-item[data-page="settings"] span:nth-child(2)':'Настройки', '.nav-item[data-page="shop"] .nav-soon':'СКОРО', '.sidebar-help':'<span>?</span> Помощь и ответы', '.sidebar-status small':'Облачная авторизация',
       '#top-create-account':'<span>＋</span> Создать аккаунт', '.home-intro .eyebrow':'<span class="eyebrow-spark">✦</span> ТВОЯ ИСТОРИЯ НАЧИНАЕТСЯ ЗДЕСЬ', '.home-intro h1':'Добро пожаловать в <span>SkyRealm</span>', '.home-intro p':'Создай аккаунт, подтверди почту и подготовься к путешествию по фэнтезийному миру.', '.hero-kicker':'<span class="live-dot"></span> ФЭНТЕЗИ-ПРОЕКТ В РАЗРАБОТКЕ', '.hero-tagline':'ТВОЙ МИР. ТВОИ ПРАВИЛА.', '.hero-copy':'Исследуй загадочные земли, открывай древние тайны и однажды создай собственную историю за горизонтом.', '.feature-row':'<span>✦ Исследование</span><span>⚔ Приключения</span><span>⌁ Развитие</span>', '#play-game':'<span class="play-button-icon">▶</span> Играть <span>→</span>', '#hero-create-account':'Создать аккаунт <span>→</span>', '#hero-login':'Уже есть аккаунт? <b>Войти</b>', '#play-note':'<span class="play-lock">◈</span> Первая версия игры: лёгкая 2D-карта и герой. При первом запуске файлы установятся автоматически.',
       '.auth-panel-top .section-kicker':'АККАУНТ ИГРОКА', '.auth-tab[data-auth="login"]':'Войти', '.auth-tab[data-auth="register"]':'Создать аккаунт', '#email-field > .field-label':'Электронная почта', '.field-hint':'На эту почту придёт код подтверждения.', '.auth-options .check-wrap':'<input type="checkbox" id="remember" checked><span class="check-custom"></span>Оставаться в системе', '#forgot':'Забыли пароль?', '#show-password':'◉', '#show-password|title':'Показать или скрыть пароль', '.verification-view .section-kicker':'ПОСЛЕДНИЙ ШАГ', '.verification-view h3':'Подтверди почту', '.verification-view .field-label':'Код подтверждения', '.verify-submit':'Подтвердить почту <span>→</span>', '#resend-code':'Отправить код повторно', '#back-to-register':'← Назад к регистрации', '.profile-view .section-kicker':'ПРОФИЛЬ SKYREALM', '.verified-badge':'<span>✓</span> Почта подтверждена', '.profile-note':'Твой аккаунт готов к будущим игровым приключениям.', '#logout':'Выйти из аккаунта',
       '#steps-title':'Начни с трёх шагов', '.steps-section .section-heading .section-kicker':'ВСЁ ПРОСТО', '.heading-note':'Профиль создаётся бесплатно', '.step-card:nth-child(1) h3':'Создай аккаунт', '.step-card:nth-child(1) p':'Укажи имя игрока, электронную почту и придумай пароль.', '.step-card:nth-child(1) button':'Создать профиль <span>→</span>', '.step-card:nth-child(2) h3':'Подтверди почту', '.step-card:nth-child(2) p':'Введи одноразовый код из письма, чтобы завершить регистрацию.', '.step-card:nth-child(2) button':'К форме регистрации <span>→</span>', '.step-card:nth-child(3) h3':'Следи за развитием', '.step-card:nth-child(3) p':'Новости и новые возможности появятся по мере создания игры.', '.step-card:nth-child(3) button':'Новости проекта <span>→</span>',
@@ -463,7 +510,7 @@
       '#install-title':'Готовим твой мир к запуску', '#install-description':'Проверяем установку и готовим файлы игры для первого запуска.', '#install-stage':'Загрузка: проверка файлов…', '#install-detail':'Подготавливаем папку игры', '#install-file-1':'✓ Проверка версии', '#install-file-2':'◌ Установка карты', '#install-file-3':'◌ Подготовка персонажа', '#install-footnote':'Первый запуск устанавливает лёгкий игровой пакет на этот компьютер. Интернет нужен только для аккаунта и будущих обновлений.', '#install-cancel':'Отмена'
     },
     en: {
-      '.side-version':'SKYREALM <b>v0.9.8</b> · 2D PROTOTYPE', '.sidebar-label':'PROJECT', '.nav-item[data-page="home"] span:nth-child(2)':'Home', '.nav-item[data-page="news"] span:nth-child(2)':'News', '.nav-item[data-page="shop"] span:nth-child(2)':'Shop', '.nav-item[data-page="community"] span:nth-child(2)':'Community', '.nav-item[data-page="settings"] span:nth-child(2)':'Settings', '.nav-item[data-page="shop"] .nav-soon':'SOON', '.sidebar-help':'<span>?</span> Help & FAQ', '.sidebar-status small':'Cloud authentication',
+      '.side-version':'SKYREALM <b>v1.0.0</b> · GAME CENTER', '.sidebar-label':'PROJECT', '.nav-item[data-page="home"] span:nth-child(2)':'Home', '.nav-item[data-page="news"] span:nth-child(2)':'News', '.nav-item[data-page="shop"] span:nth-child(2)':'Shop', '.nav-item[data-page="community"] span:nth-child(2)':'Community', '.nav-item[data-page="settings"] span:nth-child(2)':'Settings', '.nav-item[data-page="shop"] .nav-soon':'SOON', '.sidebar-help':'<span>?</span> Help & FAQ', '.sidebar-status small':'Cloud authentication',
       '#top-create-account':'<span>＋</span> Create account', '.home-intro .eyebrow':'<span class="eyebrow-spark">✦</span> YOUR STORY STARTS HERE', '.home-intro h1':'Welcome to <span>SkyRealm</span>', '.home-intro p':'Create an account, verify your email, and prepare for a journey through a fantasy world.', '.hero-kicker':'<span class="live-dot"></span> FANTASY PROJECT IN DEVELOPMENT', '.hero-tagline':'YOUR WORLD. YOUR RULES.', '.hero-copy':'Explore mysterious lands, uncover ancient secrets, and one day write your own story beyond the horizon.', '.feature-row':'<span>✦ Exploration</span><span>⚔ Adventure</span><span>⌁ Progression</span>', '#play-game':'<span class="play-button-icon">▶</span> Play <span>→</span>', '#hero-create-account':'Create account <span>→</span>', '#hero-login':'Already have an account? <b>Sign in</b>', '#play-note':'<span class="play-lock">◈</span> First playable build: a lightweight 2D map and hero. Files are installed automatically on first launch.',
       '.auth-panel-top .section-kicker':'PLAYER ACCOUNT', '.auth-tab[data-auth="login"]':'Sign in', '.auth-tab[data-auth="register"]':'Create account', '#email-field > .field-label':'Email address', '.field-hint':'A verification code will be sent to this address.', '.auth-options .check-wrap':'<input type="checkbox" id="remember" checked><span class="check-custom"></span>Keep me signed in', '#forgot':'Forgot password?', '#show-password':'◉', '#show-password|title':'Show or hide password', '.verification-view .section-kicker':'ONE LAST STEP', '.verification-view h3':'Verify your email', '.verification-view .field-label':'Verification code', '.verify-submit':'Verify email <span>→</span>', '#resend-code':'Send a new code', '#back-to-register':'← Back to registration', '.profile-view .section-kicker':'SKYREALM PROFILE', '.verified-badge':'<span>✓</span> Email verified', '.profile-note':'Your account is ready for future adventures.', '#logout':'Sign out',
       '#steps-title':'Start in three steps', '.steps-section .section-heading .section-kicker':'IT’S EASY', '.heading-note':'Profiles are free', '.step-card:nth-child(1) h3':'Create an account', '.step-card:nth-child(1) p':'Choose a player name, enter your email, and create a password.', '.step-card:nth-child(1) button':'Create profile <span>→</span>', '.step-card:nth-child(2) h3':'Verify your email', '.step-card:nth-child(2) p':'Enter the one-time code from your email to finish registration.', '.step-card:nth-child(2) button':'Open registration <span>→</span>', '.step-card:nth-child(3) h3':'Follow development', '.step-card:nth-child(3) p':'News and new features will appear as the game grows.', '.step-card:nth-child(3) button':'Project news <span>→</span>',
