@@ -45,3 +45,17 @@
 
 /* Game preferences in launcher */
 .settings-subheading{display:flex;align-items:center;gap:11px;padding:20px 0 7px;border-bottom:1px solid var(--line);margin-top:5px}.settings-subheading-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#1b3153;color:#a9c0ff;font-size:16px;flex:none}.settings-subheading b,.settings-subheading small{display:block}.settings-subheading b{font-size:12px}.settings-subheading small{font-size:10px;color:#8198ba;margin-top:4px;line-height:1.5}.setting-row select{min-width:190px;max-width:260px;width:auto;min-height:38px;padding:0 34px 0 12px;border:1px solid #344d70;border-radius:9px;background:#101f34;color:#deebff;font:inherit;font-size:11px;outline:none;cursor:pointer}.setting-row select:focus{border-color:#7f9eff;box-shadow:0 0 0 3px #6688ff22}.setting-row select option{background:#101f34;color:#deebff}@media(max-width:700px){.setting-row select{min-width:150px;max-width:52%;font-size:10px}.settings-subheading{padding-top:16px}}
+
+/* Launcher 1.0.0: release notes, project hub and repair tools */
+.release-feature{padding:24px;margin:4px 0 22px;background:radial-gradient(ellipse at 100% 0%,#35568a55,transparent 52%),linear-gradient(145deg,#14243a,#0b1728);border:1px solid #3a5379;border-radius:16px}
+.release-kicker{display:flex;align-items:center;gap:8px;color:#9db8ff;font-size:9px;font-weight:900;letter-spacing:1.8px}
+.release-feature h2{font-size:24px;letter-spacing:-.6px;margin:12px 0 8px}.release-feature p{max-width:680px;color:#a5b8d6;font-size:12px;line-height:1.8}
+.release-bullets{display:flex;flex-wrap:wrap;gap:8px 15px;color:#9ce3cf;font-size:10px;margin:16px 0}.release-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.release-actions a,.community-link,.story-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.release-actions .primary-btn,.release-actions .secondary-btn,.shop-honesty-note+.secondary-btn{min-height:38px;padding:0 13px;font-size:10px}
+.story-link,.community-link{margin-top:13px;color:#a9c5ff;font-size:11px;font-weight:800}
+.showcase-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:18px}.showcase-card{padding:15px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,#13243a,#0a1626)}
+.showcase-card h2{font-size:15px;margin:8px 0}.showcase-card p{font-size:11px;color:var(--muted);line-height:1.65;min-height:38px}
+.showcase-art{display:grid;place-items:center;height:125px;margin-bottom:14px;border-radius:10px;font-size:48px;background:radial-gradient(circle at 50% 35%,#537bbd,#172a49 55%,#0b1627)}
+.showcase-crystal{color:#a7f2e4;text-shadow:0 0 28px #64e2d7}.showcase-crown{color:#e7d19a;text-shadow:0 0 28px #d7ad55}.showcase-star{color:#c6b5ff;text-shadow:0 0 28px #a18aff}
+.shop-honesty-note{margin:16px 0}.diagnostics-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.diagnostics-actions button{margin:0}.diagnostics-result{padding:12px;border:1px solid #304968;border-radius:10px;background:#091728;color:#a9c0e1;font-size:10px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 15px}.diagnostics-result.diagnostics-error{border-color:#9b5968;color:#ffb5bf}
+@media(max-width:760px){.showcase-grid{grid-template-columns:1fr}.showcase-art{height:90px}.release-feature{padding:17px}.release-feature h2{font-size:20px}.release-actions{flex-direction:column}.release-actions a{width:100%}}
