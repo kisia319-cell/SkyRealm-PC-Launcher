@@ -26,4 +26,32 @@ assert.equal(recoveryResponse.status, 400, "password recovery should reject malf
 const recovery = await recoveryResponse.json();
 assert.equal(recovery?.detail?.code, "INVALID_EMAIL");
 
+
+const invalidEmailResponse = await fetch(url("/api/auth/register"), {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ username: "valid_player", email: "not-an-email", password: "correct-horse-battery" }),
+});
+assert.equal(invalidEmailResponse.status, 400, "registration should reject malformed email");
+const invalidEmail = await invalidEmailResponse.json();
+assert.equal(invalidEmail?.detail?.code, "INVALID_EMAIL");
+
+const invalidPasswordResponse = await fetch(url("/api/auth/register"), {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ username: "valid_player", email: "player@example.com", password: "short" }),
+});
+assert.equal(invalidPasswordResponse.status, 400, "registration should reject a short password");
+const invalidPassword = await invalidPasswordResponse.json();
+assert.equal(invalidPassword?.detail?.code, "INVALID_PASSWORD");
+
+const invalidCodeResponse = await fetch(url("/api/auth/verify"), {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ email: "player@example.com", code: "abc" }),
+});
+assert.equal(invalidCodeResponse.status, 400, "verification should reject a malformed code");
+const invalidCode = await invalidCodeResponse.json();
+assert.equal(invalidCode?.detail?.code, "INVALID_CODE");
+
 console.log("SkyRealm auth smoke tests passed.");
