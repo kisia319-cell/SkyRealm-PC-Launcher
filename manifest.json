@@ -1,9 +1,9 @@
 {
-  "sha256": "7c24774744c62354843c27219cf7827de4e9944899c31c9227e6d482ba2b6695",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "game_version": "0.17.0",
   "version": "1.0.0",
-  "notes": "SkyRealm Launcher 1.0.0 + Game 0.17.0: launcher diagnostics, game file verification/repair, update log access, functional project/news links and cosmetic showcase; portable world backup export/import; visible save errors and manual save control; save when the window closes or is backgrounded; corrected expanded map dimensions; five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates.",
-  "game_sha256": "363191cb53d2fcaf617dbcdc97bd84f8459a3a8446f10ebef38a190273a0390f",
-  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "sha256": "01e133e14a9e6f76353be9d5a0fc16486d71d7cd7fc28944766302a56a7eb585",
+  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
+  "notes": "SkyRealm Launcher 1.0.0 + Game 0.18.0: launcher diagnostics, game file verification/repair, update log access, functional project/news links and cosmetic showcase; portable world backup export/import; visible save errors and manual save control; save when the window closes or is backgrounded; corrected expanded map dimensions; five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates.",
+  "game_version": "0.18.0",
+  "game_sha256": "426eb1bfad2b8fd6a519b6bc527aa4f2302f59fc81e919fc3cba267a2cf369dc"
 }
