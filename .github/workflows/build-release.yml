@@ -59,17 +59,26 @@ jobs:
           python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" launcher.py
           if (-not (Test-Path "dist/SkyRealm.exe")) { throw "SkyRealm.exe was not created" }
 
-      - name: Prepare update archive and manifest
+      - name: Prepare update archives and manifest
         shell: pwsh
         run: |
           $version = (Get-Content launcher_version.txt -Raw).Trim()
           if (-not $version) { throw "launcher_version.txt is empty" }
           New-Item -ItemType Directory -Force update_release | Out-Null
+
+          # The updater consumes this small manifest+EXE archive.
           Compress-Archive -Path "dist/SkyRealm.exe","launcher_version.txt" -DestinationPath "update_release/SkyRealm_Update.zip" -Force
           $hash = (Get-FileHash "update_release/SkyRealm_Update.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+
+          # Publish both a directly downloadable executable and a convenient portable ZIP.
+          Copy-Item "dist/SkyRealm.exe" "update_release/SkyRealm.exe" -Force
+          Copy-Item "launcher_version.txt" "update_release/launcher_version.txt" -Force
+          Copy-Item "README.md" "update_release/README.txt" -Force
+          Compress-Archive -Path "update_release/SkyRealm.exe","update_release/launcher_version.txt","update_release/README.txt" -DestinationPath "update_release/SkyRealm_Windows.zip" -Force
+
           $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
           if (-not $gameVersion) { throw "game/version.txt is empty" }
-          Compress-Archive -Path "game\*" -DestinationPath "update_release/SkyRealm_Game.zip" -Force
+          Compress-Archive -Path "game\\*" -DestinationPath "update_release/SkyRealm_Game.zip" -Force
           $gameHash = (Get-FileHash "update_release/SkyRealm_Game.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
           $manifest = @{
             version = $version
@@ -91,13 +100,20 @@ jobs:
           $tag = "${{ github.ref_name }}"
           if ($tag -eq "main" -or $tag -eq "") { $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() }
           $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
-          $notes = "Автоматическая сборка SkyRealm Launcher для Windows."
+          $notes = "Windows EXE, portable Windows ZIP, launcher auto-update archive and game update archive."
+          $assets = @(
+            "dist/SkyRealm.exe",
+            "update_release/SkyRealm_Windows.zip",
+            "update_release/SkyRealm_Update.zip",
+            "update_release/SkyRealm_Game.zip",
+            "update_release/manifest.json"
+          )
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag update_release/SkyRealm_Update.zip update_release/SkyRealm_Game.zip update_release/manifest.json --clobber
+            gh release upload $tag $assets --clobber
             gh release edit $tag --title $title --notes $notes
           } else {
-            gh release create $tag update_release/SkyRealm_Update.zip update_release/SkyRealm_Game.zip update_release/manifest.json --title $title --notes $notes --latest
+            gh release create $tag $assets --title $title --notes $notes --latest
           }
 
       - name: Commit updated manifest
