@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SkyRealm — эмблема</title>
+  <desc id="desc">Парящий остров с горой, сияющей звездой и водопадом в сине-бирюзовой гамме.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9cecff"/><stop offset=".48" stop-color="#4f91ff"/><stop offset="1" stop-color="#263b9c"/></linearGradient>
+    <linearGradient id="rock" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#527bd0"/><stop offset=".52" stop-color="#1a3268"/><stop offset="1" stop-color="#09172e"/></linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e2ffff"/><stop offset=".3" stop-color="#55f0f0"/><stop offset="1" stop-color="#2484ff"/></linearGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <circle cx="128" cy="128" r="104" fill="#0b1b35" stroke="#4169bd" stroke-width="2"/>
+  <circle cx="128" cy="128" r="91" fill="none" stroke="#52d9ef" stroke-opacity=".62" stroke-width="2"/>
+  <path d="M30 145 Q50 124 70 145 M186 145 Q207 124 226 145" fill="none" stroke="#9cecff" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+  <path d="M55 146 91 83 111 111 139 51 178 119 194 146 161 133 129 147 95 132Z" fill="url(#sky)" stroke="#d2f7ff" stroke-width="2" stroke-linejoin="round"/>
+  <path d="m91 83 20 28 28-60-2 48-18 23-13-13-10 20-20-5Z" fill="#effcff"/>
+  <path d="m110 111 29-60 2 48-18 23Z" fill="#76caff"/>
+  <path d="M128 18 134 37 153 43 134 49 128 68 122 49 103 43 122 37Z" fill="#e6ffff" filter="url(#glow)"/>
+  <path d="M47 151 73 135 99 145 128 136 156 145 183 134 210 151 187 178 166 193 145 205 128 231 111 205 88 193 67 178Z" fill="url(#rock)" stroke="#6598ef" stroke-width="2" stroke-linejoin="round"/>
+  <path d="m73 135 26 10 29-9-14 16-28-2Z" fill="#55d8bf"/>
+  <path d="m156 145 27-11-8 16-28 0Z" fill="#55d8bf"/>
+  <path d="M123 153 128 224 133 153 128 143Z" fill="url(#water)" filter="url(#glow)"/>
+  <path d="M64 165 86 174 108 171 128 182 148 171 171 174 192 164" fill="none" stroke="#85baff" stroke-width="2" opacity=".75"/>
+  <path d="M81 132 84 119 89 132 M169 132 173 117 178 132" fill="none" stroke="#b8f7ee" stroke-width="3" stroke-linecap="round"/>
+  <path d="M46 118 Q26 126 40 141 M210 118 Q230 126 216 141" fill="none" stroke="#6dceef" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+</svg>
