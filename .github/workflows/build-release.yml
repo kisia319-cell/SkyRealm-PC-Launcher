@@ -84,7 +84,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version; SkyRealm Game $gameVersion: Impossible difficulty, stronger night monsters and extreme death penalties."
+            notes = "SkyRealm Launcher $version; SkyRealm Game $($gameVersion): Impossible difficulty, stronger night monsters and extreme death penalties."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
