@@ -84,7 +84,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version"
+            notes = "SkyRealm Launcher $version; SkyRealm Game $gameVersion: Impossible difficulty, stronger night monsters and extreme death penalties."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
@@ -100,7 +100,7 @@ jobs:
           $tag = "${{ github.ref_name }}"
           if ($tag -eq "main" -or $tag -eq "") { $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() }
           $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
-          $notes = "Windows EXE, portable Windows ZIP, launcher auto-update archive and game update archive."
+          $notes = "SkyRealm Launcher 0.9.7 + Game 0.9.3. NEW: Impossible difficulty, 180x130 world, 8500 HP boss, stronger monsters from the first night, seven extra chests and extreme death penalties. Includes Windows EXE and automatic game-update archive."
           $assets = @(
             "dist/SkyRealm.exe",
             "update_release/SkyRealm_Windows.zip",
