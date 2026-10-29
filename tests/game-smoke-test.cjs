@@ -48,6 +48,9 @@ for (const feature of [
   'function updateBiomeBosses',
   'function updateWorldEvents',
   'function updateWolfAndDog',
+  'function drawVillageElder',
+  'function talkToVillageElder',
+  'function commandDog',
   'function enchantWeapon',
 ]) {
   assert.ok(game.includes(feature), 'Missing expected gameplay feature: ' + feature);
@@ -78,5 +81,7 @@ assert.ok(game.includes("function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS
 assert.ok(gameHtml.includes('id="anvil-enchant-weapon"'), 'Enchanting button must exist in game UI');
 assert.ok(game.includes("getElementById('anvil-enchant-weapon')"), 'Enchanting button must be wired');
 assert.ok(game.includes('weaponEnchantments'), 'Weapon enchantments must be persisted');
+assert.ok(game.includes("weatherMode==='snow'") && game.includes("weatherMode==='storm'"), 'Snow and storm weather must be rendered');
+assert.ok(game.includes('villageQuestStage') && game.includes('dogBehavior'), 'Village quest chain and dog commands must persist');
 
 console.log('SkyRealm smoke tests passed for game ' + version + ' (' + recipeKeys.length + ' unique recipes).');
