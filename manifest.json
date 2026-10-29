@@ -1,9 +1,9 @@
 {
-  "game_version": "0.13.0",
-  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
+  "notes": "SkyRealm Launcher 1.0.0 + Game 0.13.0: launcher diagnostics, game file verification/repair, update log access, functional project/news links and cosmetic showcase; portable world backup export/import; visible save errors and manual save control; save when the window closes or is backgrounded; corrected expanded map dimensions; five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates.",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "game_sha256": "8cbb442f3eace3ee74ee3064bfb1fd56a6edaf7eed0cc493f93e879b7927a36f",
-  "sha256": "ee1ea35813cb7d05467e3904fff62bbc676a295538754d526a44b60935bfd39c",
-  "version": "0.9.9",
-  "notes": "SkyRealm Game 0.13.0: portable world backup export/import; visible save errors and manual save control; save when the window closes or is backgrounded; corrected expanded map dimensions; five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates."
+  "game_sha256": "ca284152c25abec5dc8f4ebb3fdccaf9948ddecb2a8ec110c4bbb78ec9c041aa",
+  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
+  "sha256": "d75ca77e9b785394a12883869c1f39fda6ef0cbc4b39630cbc37ba0361539774",
+  "game_version": "0.13.0",
+  "version": "1.0.0"
 }
