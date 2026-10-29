@@ -348,8 +348,27 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str) -> str:
     except OSError:
         pass
 
+    def write_update_log(message):
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with (root / "update.log").open("a", encoding="utf-8") as log:
+                log.write(time.strftime("%Y-%m-%d %H:%M:%S") + " | " + message + "\n")
+        except OSError:
+            pass
+
     def fallback_version():
-        return installed_version or bundled_version
+        installed_tuple = _skyrealm_version_tuple(installed_version)
+        bundled_tuple = _skyrealm_version_tuple(bundled_version)
+        # Never keep an older installed game when this EXE already contains a newer one.
+        if bundled_tuple and (not installed_tuple or bundled_tuple > installed_tuple):
+            selected = bundled_version
+        else:
+            selected = installed_version or bundled_version
+        write_update_log(
+            f"game update fallback: installed={installed_version or 'missing'}, "
+            f"bundled={bundled_version}, selected={selected}"
+        )
+        return selected
 
     stage = install_dir.with_name("game.update-staging")
     backup = install_dir.with_name("game.previous")
@@ -375,6 +394,7 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str) -> str:
         game_ok = (install_dir / "index.html").is_file() and (install_dir / "game.js").is_file()
         installed_tuple = _skyrealm_version_tuple(installed_version)
         if game_ok and installed_tuple and installed_tuple >= latest_tuple:
+            write_update_log(f"game update already current: installed={installed_version}, latest={latest}")
             return installed_version
 
         download_url = str(manifest.get("game_download_url", "")).strip()
@@ -442,6 +462,7 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str) -> str:
             raise
         shutil.rmtree(backup, ignore_errors=True)
         archive_path.unlink(missing_ok=True)
+        write_update_log(f"game update installed successfully: {installed_version or 'missing'} -> {latest}")
         return latest
     except Exception as exc:
         try:
