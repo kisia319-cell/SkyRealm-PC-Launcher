@@ -130,6 +130,21 @@
             <p class="profile-note">Твой аккаунт готов к будущим игровым приключениям.</p>
             <button class="secondary-btn" id="logout" type="button">Выйти из аккаунта</button>
           </div>
+          <div class="verification-view" id="reset-password-view" hidden>
+            <div class="verify-illustration">🔐</div>
+            <div class="section-kicker">ВОССТАНОВЛЕНИЕ АККАУНТА</div>
+            <h3>Придумай новый пароль</h3>
+            <p class="verify-copy">Ссылка действительна ограниченное время. Не передавай её другим людям.</p>
+            <form id="reset-password-form" autocomplete="on">
+              <label class="field-label" for="reset-password">Новый пароль</label>
+              <div class="field-wrap"><span class="field-icon" aria-hidden="true">▣</span><input id="reset-password" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="Не менее 8 символов" required></div>
+              <label class="field-label" for="reset-password-confirm">Повтори новый пароль</label>
+              <div class="field-wrap"><span class="field-icon" aria-hidden="true">▣</span><input id="reset-password-confirm" name="confirm-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="Повтори пароль" required></div>
+              <button class="primary-btn submit-btn" type="submit">Сохранить новый пароль <span>→</span></button>
+            </form>
+            <p class="auth-message" id="reset-password-message" role="status" aria-live="polite"></p>
+            <button class="text-btn" id="cancel-password-reset" type="button">Вернуться ко входу</button>
+          </div>
           <div class="auth-foot" id="auth-foot"><span class="shield">⬡</span> Не передавай пароль и код подтверждения другим людям.</div>
         </article>
       </section>
