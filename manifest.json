@@ -1,9 +1,9 @@
 {
-  "game_version": "0.9.6",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
   "version": "0.9.8",
-  "game_sha256": "b656becd1a815a4820ff680c9dee49ef481e5f6be8147d99c698a63e15fa8283",
-  "notes": "SkyRealm Game 0.9.6: animated Werewolf with sound and tree collision, fewer forest trees, a locked dog cage and boss-dropped key, plus persistent world saves.",
+  "game_sha256": "03df1c10b5f7217eedb980ece120a67445ac086c1e76dc80b60b3a7a2c65d88b",
+  "notes": "SkyRealm Game 0.9.7: animated Werewolf with sound and tree collision, fewer forest trees, a locked dog cage and boss-dropped key, plus persistent world saves.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "sha256": "db8d2d56d8fa177ce28a8fc3efe3b47303cf9ba47d2e1cb6e3b02acb4b9f205a"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "sha256": "2d826fd62b6332e0c71af4241989fb5882781256fabc5e642b734e3f73b6c40a",
+  "game_version": "0.9.7"
 }
