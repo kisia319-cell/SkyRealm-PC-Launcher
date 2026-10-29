@@ -1,0 +1,5 @@
+{
+  "manifest_url": "https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json",
+  "channel": "stable",
+  "check_on_startup": true
+}
