@@ -1,9 +1,9 @@
 {
-  "game_version": "0.9.3",
-  "game_sha256": "b310c41f863c069f90711486bc29484b3a7a80413fd96758e729e15bbca5b492",
-  "version": "0.9.7",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "sha256": "261b4fbec57bcef9473f08658770eae34f289a8cccc7e512df8349e7d5bd5e57",
+  "game_sha256": "6153b94a3a1f07a17155e120c9db42024e5395beae3d92faf234c65275067f25",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "notes": "SkyRealm Launcher 0.9.7; SkyRealm Game 0.9.3: Impossible difficulty, stronger night monsters and extreme death penalties.",
-  "sha256": "462b138714ecfa269db244d244becf9527025460c5610e0d76be19119b07217c"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "version": "0.9.8",
+  "notes": "SkyRealm Launcher 0.9.8; SkyRealm Game 0.9.4: reliable game auto-update, Impossible difficulty, stronger night monsters and extreme survival penalties.",
+  "game_version": "0.9.4"
 }
