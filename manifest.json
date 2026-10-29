@@ -1,9 +1,9 @@
 {
-  "game_version": "0.11.0",
-  "version": "0.9.8",
-  "sha256": "e7b3cc71130f692f456e66c3fd58335a92bb328d40d9653c64d02565270eea8b",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "notes": "SkyRealm Game 0.12.0: five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "game_sha256": "8d53d635a8618b359b7dd0fcefa2f5c435a878703b50ef01154d396b2b77ec3a",
-  "notes": "SkyRealm Game 0.11.0: five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); new trophies and rewards. Existing world saves continue to persist across game updates."
+  "version": "0.9.8",
+  "game_version": "0.12.0",
+  "game_sha256": "d95a9a0c217b6a83768a21c8f68350af7ea2cba7c1857489e1e56905b5c870a6",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "sha256": "c00e8ed0bf9393ef10558cec178e5f367f606d3b468ba191c9349792e4f91c05"
 }
