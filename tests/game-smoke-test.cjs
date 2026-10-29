@@ -31,6 +31,20 @@ const missingRecipes = [...html.matchAll(/data-craft="([^"]+)"/g)]
   .map(m => m[1]).filter(key => !recipeKeys.includes(key));
 assert.deepEqual(missingRecipes, [], 'Every data-craft button must reference a recipe');
 
+const expectedMapSizes = {
+  easy: [180, 140],
+  medium: [220, 164],
+  hard: [260, 192],
+  hell: [300, 220],
+  impossible: [360, 260],
+};
+for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
+  const line = game.split('\\n').find(row => row.includes(difficulty + ":{id:'" + difficulty + "'"));
+  assert.ok(line, 'Missing map size for difficulty: ' + difficulty);
+  assert.ok(line.includes('cols:' + cols + ',rows:' + rows), 'Incorrect doubled map size for difficulty: ' + difficulty);
+}
+assert.ok(game.includes("function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)"), 'Biome regions must scale with the larger map');
+
 assert.ok(html.includes('id="anvil-enchant-weapon"'), 'Enchanting button must exist in game UI');
 assert.ok(game.includes("getElementById('anvil-enchant-weapon')"), 'Enchanting button must be wired');
 assert.ok(game.includes('weaponEnchantments'), 'Weapon enchantments must be persisted');
