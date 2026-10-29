@@ -194,7 +194,7 @@
       if (h > .53 && h < .552) world.flowers.push({x:x*TILE+hash(x,y+10)*25+3,y:y*TILE+hash(x+3,y)*26+3,c:Math.floor(hash(y+7,x)*4)});
       if (h > .79 && h < .792) world.fireflies.push({x:x*TILE+hash(x+19,y)*TILE,y:y*TILE+hash(x,y+19)*TILE,phase:hash(x+1,y+3)*6.28});
     }
-    for(let fy=Math.max(ROWS-26,3);fy<ROWS-3;fy+=2)for(let fx=Math.max(COLS-31,3);fx<COLS-3;fx+=2){if(!nearPath(fx,fy)&&!waterAt(fx+.5,fy+.5)&&hash(fx+401,fy+809)>.22)world.trees.push({x:fx*TILE+16,y:fy*TILE+17,size:.9+hash(fy+90,fx+70)*.5,tint:Math.floor(hash(fx+44,fy+99)*3)});}
+    for(let fy=Math.max(ROWS-26,3);fy<ROWS-3;fy+=2)for(let fx=Math.max(COLS-31,3);fx<COLS-3;fx+=2){if(!nearPath(fx,fy)&&!waterAt(fx+.5,fy+.5)&&Math.abs(fy-(ROWS-13))>2&&Math.hypot(fx-(COLS-14),fy-(ROWS-13))>4&&hash(fx+401,fy+809)>.22)world.trees.push({x:fx*TILE+16,y:fy*TILE+17,size:.9+hash(fy+90,fx+70)*.5,tint:Math.floor(hash(fx+44,fy+99)*3)});}
     world.signs.push({ x: 34*TILE+16, y: 22*TILE+12 });
     // A tiny village fence around a cabin.
     for (let x=34;x<=39;x++) { world.fences.push({x:x*TILE+16,y:17*TILE+16}); world.fences.push({x:x*TILE+16,y:21*TILE+16}); }
@@ -666,6 +666,7 @@
       const dx=player.x-mob.x,dy=player.y-mob.y,dist=Math.hypot(dx,dy)||1;
       if(dist>25){const speed=mob.speed||43,nx=mob.x+dx/dist*speed*dt,ny=mob.y+dy/dist*speed*dt;if(!blocked(nx,mob.y))mob.x=nx;if(!blocked(mob.x,ny))mob.y=ny;}
       const currentDistance=Math.hypot(player.x-mob.x,player.y-mob.y);
+      if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(wolfCompanionX()-mob.x,wolfCompanionY()-mob.y)<30){mob.dogBiteCooldown=Math.max(0,(mob.dogBiteCooldown||0)-dt);if(mob.dogBiteCooldown<=0){wolfCompanionHp=Math.max(0,wolfCompanionHp-8*difficultyConfig().monsterDamage);mob.dogBiteCooldown=1.1;if(wolfCompanionHp<=0)onWolfDogDeath();}}
       if(mob.type==='bomb'){
         if(!mob.fuseStarted&&currentDistance<145){mob.fuseStarted=true;mob.fuseTime=1.45;toast('Бомбочка зажгла фитиль! Убегай — взрыв опасен.');}
         if(mob.fuseStarted){mob.fuseTime-=dt;if(mob.fuseTime<=0){mob.exploding=true;mob.explosionTimer=.42;if(!immortal&&dodgeTimer<=0&&Math.hypot(player.x-mob.x,player.y-mob.y)<=116){const bombDamage=Math.round(30*difficultyConfig().monsterDamage);player.hp=Math.max(0,player.hp-bombDamage);updateVitals();toast('Взрыв бомбочки! −'+bombDamage+' здоровья.');if(player.hp<=0)respawnPlayerAfterDefeat();}else toast('Бомбочка взорвалась! Ты успел убежать.');dropMonsterLoot(mob);playSound('hit');}continue;}
