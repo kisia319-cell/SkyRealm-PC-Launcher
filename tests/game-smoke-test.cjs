@@ -57,7 +57,7 @@ const recipeMatch = game.match(/const recipes=\{([\s\S]*?)\};/);
 assert.ok(recipeMatch, 'Crafting recipe table must exist');
 const recipeKeys = [...recipeMatch[1].matchAll(/([A-Za-z]\w*):\{name:/g)].map(m => m[1]);
 assert.equal(new Set(recipeKeys).size, recipeKeys.length, 'Crafting recipe keys must be unique');
-const missingRecipes = [...html.matchAll(/data-craft="([^"]+)"/g)]
+const missingRecipes = [...gameHtml.matchAll(/data-craft="([^"]+)"/g)]
   .map(m => m[1]).filter(key => !recipeKeys.includes(key));
 assert.deepEqual(missingRecipes, [], 'Every data-craft button must reference a recipe');
 
@@ -75,7 +75,7 @@ for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
 }
 assert.ok(game.includes("function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)"), 'Biome regions must scale with the larger map');
 
-assert.ok(html.includes('id="anvil-enchant-weapon"'), 'Enchanting button must exist in game UI');
+assert.ok(gameHtml.includes('id="anvil-enchant-weapon"'), 'Enchanting button must exist in game UI');
 assert.ok(game.includes("getElementById('anvil-enchant-weapon')"), 'Enchanting button must be wired');
 assert.ok(game.includes('weaponEnchantments'), 'Weapon enchantments must be persisted');
 
