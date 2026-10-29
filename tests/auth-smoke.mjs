@@ -54,4 +54,14 @@ assert.equal(invalidCodeResponse.status, 400, "verification should reject a malf
 const invalidCode = await invalidCodeResponse.json();
 assert.equal(invalidCode?.detail?.code, "INVALID_CODE");
 
+
+const shortResetResponse = await fetch(url("/api/auth/reset-password"), {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ password: "short" }),
+});
+assert.equal(shortResetResponse.status, 400, "password reset should reject a short password before requiring a token");
+const shortReset = await shortResetResponse.json();
+assert.equal(shortReset?.detail?.code, "INVALID_PASSWORD");
+
 console.log("SkyRealm auth smoke tests passed.");
