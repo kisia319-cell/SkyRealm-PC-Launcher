@@ -43,6 +43,7 @@ jobs:
             Write-Error ("Missing project files: " + ($missing -join ", "))
           }
           python -m py_compile launcher.py update_helper.py
+          node --check game/game.js
 
       - name: Install build tools
         run: python -m pip install --upgrade pip pywebview pyinstaller
@@ -84,7 +85,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version; SkyRealm Game $($gameVersion): reliable game auto-update, Impossible difficulty, stronger night monsters and extreme survival penalties."
+            notes = "SkyRealm Game $($gameVersion): Blood Moon event, 15-slot storage chests, forest biome, Werewolf boss, tameable companion dog, and world-save preservation across updates."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
@@ -100,7 +101,7 @@ jobs:
           $tag = "${{ github.ref_name }}"
           if ($tag -eq "main" -or $tag -eq "") { $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() }
           $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
-          $notes = "SkyRealm Launcher 0.9.8 + Game 0.9.4. Fix: game update now falls back to the newest bundled game if download fails, with clear update logging. NEW: Impossible difficulty, 180x130 world, 8500 HP boss and stronger monsters from the first night."
+          $notes = "SkyRealm Launcher 0.9.8 + Game 0.9.5. NEW: Blood Moon every fifth night with dawn rewards; craftable 15-slot storage chests; a forest biome with the Werewolf boss; defeat the boss to tame a 300 HP dog companion. The dog follows you, attacks for 15-35 damage based on difficulty, and heals with sheep meat. World saves are stored independently from game files and persist across updates."
           $assets = @(
             "dist/SkyRealm.exe",
             "update_release/SkyRealm_Windows.zip",
