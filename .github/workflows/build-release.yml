@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: skyrealm-windows-build
+  group: skyrealm-windows-build-v2
   cancel-in-progress: true
 
 jobs:
