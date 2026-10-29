@@ -1,7 +1,7 @@
 (() => {
   const canvas = document.getElementById('world');
   const ctx = canvas.getContext('2d', { alpha: false });
-  const TILE = 32; let COLS = 90, ROWS = 70;
+  const TILE = 32; let COLS = 220, ROWS = 164;
   let width = 0, height = 0, dpr = 1, last = performance.now(), paused = true;
   let inMainMenu = true;
   let settingsOpenedFromMainMenu = false;
@@ -15,11 +15,11 @@
   function applyAppearanceData(source,target=playerAppearance){if(!source||typeof source!=='object')return;for(const k of ['skin','hair','armor','accent','eye'])if(/^#[0-9a-f]{6}$/i.test(source[k]||''))target[k]=source[k];if(['normal','smile','stern','visor','mask'].includes(source.face))target.face=source.face;if(['short','long','mohawk','curly','hood'].includes(source.hairStyle))target.hairStyle=source.hairStyle;}
   try { applyAppearanceData(JSON.parse(localStorage.getItem('skyrealm_character_v1')||'{}')); } catch(_) {}
   const DIFFICULTIES = {
-    easy:{id:'easy',name:'Легко',rank:1,cols:90,rows:70,bossHp:500,bossDamage:30,bossInterval:1.5,bossSpeed:18,monsterHp:.72,monsterDamage:.62,monsterSpawn:1.15,shop:{buy:{Камень:300,Уголь:900,Железо:2400},sell:{wood:125,leaves:50,meat:90}},chests:{crystal:.25,potion:.28}},
-    medium:{id:'medium',name:'Средняя',rank:2,cols:110,rows:82,bossHp:1000,bossDamage:45,bossInterval:1.25,bossSpeed:22,monsterHp:1,monsterDamage:1,monsterSpawn:1,shop:{buy:{Камень:450,Уголь:1200,Железо:3600},sell:{wood:175,leaves:75,meat:125}},chests:{crystal:.35,potion:.25}},
-    hard:{id:'hard',name:'Сложно',rank:3,cols:130,rows:96,bossHp:2000,bossDamage:65,bossInterval:1.05,bossSpeed:28,monsterHp:1.4,monsterDamage:1.45,monsterSpawn:.82,shop:{buy:{Камень:700,Уголь:1800,Железо:5200},sell:{wood:225,leaves:100,meat:175}},chests:{crystal:.45,potion:.22}},
-    hell:{id:'hell',name:'Жар',rank:4,cols:150,rows:110,bossHp:4000,bossDamage:90,bossInterval:.85,bossSpeed:34,monsterHp:1.9,monsterDamage:2,monsterSpawn:.68,shop:{buy:{Камень:1000,Уголь:2600,Железо:8000},sell:{wood:275,leaves:125,meat:225}},chests:{crystal:.55,potion:.2}},
-    impossible:{id:'impossible',name:'Невозможно',rank:5,cols:180,rows:130,bossHp:8500,bossDamage:125,bossInterval:.62,bossSpeed:42,monsterHp:2.65,monsterDamage:2.8,monsterSpawn:.45,shop:{buy:{Камень:1500,Уголь:4000,Железо:12000},sell:{wood:300,leaves:140,meat:250}},chests:{crystal:.65,potion:.12}}
+    easy:{id:'easy',name:'Легко',rank:1,cols:180,rows:140,bossHp:500,bossDamage:30,bossInterval:1.5,bossSpeed:18,monsterHp:.72,monsterDamage:.62,monsterSpawn:1.15,shop:{buy:{Камень:300,Уголь:900,Железо:2400},sell:{wood:125,leaves:50,meat:90}},chests:{crystal:.25,potion:.28}},
+    medium:{id:'medium',name:'Средняя',rank:2,cols:220,rows:164,bossHp:1000,bossDamage:45,bossInterval:1.25,bossSpeed:22,monsterHp:1,monsterDamage:1,monsterSpawn:1,shop:{buy:{Камень:450,Уголь:1200,Железо:3600},sell:{wood:175,leaves:75,meat:125}},chests:{crystal:.35,potion:.25}},
+    hard:{id:'hard',name:'Сложно',rank:3,cols:260,rows:192,bossHp:2000,bossDamage:65,bossInterval:1.05,bossSpeed:28,monsterHp:1.4,monsterDamage:1.45,monsterSpawn:.82,shop:{buy:{Камень:700,Уголь:1800,Железо:5200},sell:{wood:225,leaves:100,meat:175}},chests:{crystal:.45,potion:.22}},
+    hell:{id:'hell',name:'Жар',rank:4,cols:300,rows:220,bossHp:4000,bossDamage:90,bossInterval:.85,bossSpeed:34,monsterHp:1.9,monsterDamage:2,monsterSpawn:.68,shop:{buy:{Камень:1000,Уголь:2600,Железо:8000},sell:{wood:275,leaves:125,meat:225}},chests:{crystal:.55,potion:.2}},
+    impossible:{id:'impossible',name:'Невозможно',rank:5,cols:360,rows:260,bossHp:8500,bossDamage:125,bossInterval:.62,bossSpeed:42,monsterHp:2.65,monsterDamage:2.8,monsterSpawn:.45,shop:{buy:{Камень:1500,Уголь:4000,Железо:12000},sell:{wood:300,leaves:140,meat:250}},chests:{crystal:.65,potion:.12}}
   };
   let currentDifficulty='medium',pendingWorldId=null,difficultyMigrationPending=false;
   let bedSpawn={x:36*TILE+40,y:15*TILE+154};
@@ -236,7 +236,7 @@
   function roundedRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
   function waterAt(x,y){const cx=52,cy=36,dx=(x-cx)/6.5,dy=(y-cy)/4.3;return dx*dx+dy*dy<1;}
   function pathAt(x,y){if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y; if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;return x>=35&&x<=40&&y>=17&&y<=21;}
-  function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<12)return 'volcano';if(x>65&&y<17)return 'snow';if(x<17&&y>49)return 'desert';if(x>68&&y>45)return 'blight';return 'forest';}
+  function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x>COLS*.59&&y<ROWS*.21)return 'snow';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';return 'forest';}
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли'})[biomeAt(x,y)]||'Лесная долина';}
   function drawGrass(x,y,sx,sy){const h=hash(x,y),biome=biomeAt(x,y);const palettes={forest:['#285b43','#2a6047','#285840','#397451','#306849','#4d8254'],snow:['#b9cbd0','#a7bdc7','#c3d4d8','#d9e7e9','#afc8d1','#f0f6f6'],desert:['#b99a58','#c4a767','#ad8d4d','#d3b875','#b89a5d','#e2c981'],blight:['#3d493c','#354438','#46503a','#52603f','#43523b','#7f8a48'],volcano:['#43352f','#594039','#332c31','#a64b2f','#7d6650','#ff9d4f']};const p=palettes[biome];ctx.fillStyle=h>.5?p[0]:h>.2?p[1]:p[2];ctx.fillRect(sx,sy,TILE,TILE);if(gameSettings.graphicsQuality!=='low'){ctx.fillStyle=p[3];ctx.fillRect(sx+3+(h*9|0),sy+5,TILE*.22,TILE*.12);if(h>.68){ctx.fillStyle=p[5];ctx.fillRect(sx+21,sy+19,2,5);}if(biome==='snow'&&h>.35){ctx.fillStyle='#f5fbff99';ctx.fillRect(sx+5+(h*16|0),sy+7+(h*11|0),3,2);}else if(biome==='desert'&&h>.55){ctx.fillStyle='#e9d49a';ctx.fillRect(sx+6,sy+23,7,2);}else if(biome==='blight'&&h>.72){ctx.fillStyle='#a3bf55';ctx.fillRect(sx+19,sy+8,3,3);}} }
   function drawGround(camX,camY){const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
