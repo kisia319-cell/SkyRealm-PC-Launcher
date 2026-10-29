@@ -7,6 +7,17 @@ const html = fs.readFileSync('game/index.html', 'utf8');
 const version = fs.readFileSync('game/version.txt', 'utf8').trim();
 
 new vm.Script(game, { filename: 'game/game.js' });
+
+const launcher = fs.readFileSync('launcher.py', 'utf8');
+assert.ok(launcher.includes('webview.start(debug=True, private_mode=False, storage_path=str(profile_dir))'),
+  'Game WebView must use a persistent profile so world saves survive updates');
+assert.ok(launcher.includes('"SkyRealm" / "webview-profile"'),
+  'Persistent WebView profile must live outside the replaceable game install directory');
+assert.ok(launcher.includes('ThreadingHTTPServer(("127.0.0.1", 48731), handler)'),
+  'Game server must keep a stable origin for localStorage');
+assert.ok(!launcher.includes('ThreadingHTTPServer(("127.0.0.1", 0), handler)'),
+  'Game server must not silently switch to a random port and hide existing saves');
+
 assert.match(version, /^\d+\.\d+\.\d+$/, 'game/version.txt must be a semantic version');
 assert.ok(html.includes(version), 'game/index.html version label must match game/version.txt');
 
