@@ -7,7 +7,7 @@ const html = fs.readFileSync('game/index.html', 'utf8');
 const version = fs.readFileSync('game/version.txt', 'utf8').trim();
 
 new vm.Script(game, { filename: 'game/game.js' });
-assert.match(version, /^\\d+\\.\\d+\\.\\d+$/, 'game/version.txt must be a semantic version');
+assert.match(version, /^\d+\.\d+\.\d+$/, 'game/version.txt must be a semantic version');
 assert.ok(html.includes(version), 'game/index.html version label must match game/version.txt');
 
 for (const feature of [
@@ -23,9 +23,9 @@ for (const feature of [
   assert.ok(game.includes(feature), 'Missing expected gameplay feature: ' + feature);
 }
 
-const recipeMatch = game.match(/const recipes=\\{([\\s\\S]*?)\\};/);
+const recipeMatch = game.match(/const recipes=\{([\s\S]*?)\};/);
 assert.ok(recipeMatch, 'Crafting recipe table must exist');
-const recipeKeys = [...recipeMatch[1].matchAll(/([A-Za-z]\\w*):\\{name:/g)].map(m => m[1]);
+const recipeKeys = [...recipeMatch[1].matchAll(/([A-Za-z]\w*):\{name:/g)].map(m => m[1]);
 assert.equal(new Set(recipeKeys).size, recipeKeys.length, 'Crafting recipe keys must be unique');
 const missingRecipes = [...html.matchAll(/data-craft="([^"]+)"/g)]
   .map(m => m[1]).filter(key => !recipeKeys.includes(key));
