@@ -1,9 +1,9 @@
 {
-  "game_sha256": "c5a79f36e3ac9ed19874af386bb6a1a887821124c150d65c475c6b0b0e5ae692",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "notes": "SkyRealm Launcher 0.9.6",
-  "game_version": "0.9.2",
-  "sha256": "fe92b915def47e66c6f2fee1fda4ba354e82a64c42f51510525e2881d967fc15",
+  "sha256": "2c97f1098417105a466d5930c965110fdbf6621c60775797cd0196c3caa5eb7c",
+  "notes": "SkyRealm Launcher 0.9.7",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "version": "0.9.6"
+  "game_sha256": "3b23a91023ab48754c7fef04acdd26073fa4455b7e2f17f47f2bc3cb2e00da8d",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "version": "0.9.7",
+  "game_version": "0.9.2"
 }
