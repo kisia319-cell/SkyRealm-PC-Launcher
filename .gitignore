@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+build_game_runner/
+game_runner_dist/
+build_updater/
+updater_dist/
+*.spec
+build_log.txt
+update_release/
+.env
