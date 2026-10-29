@@ -103,7 +103,7 @@ jobs:
           if ($tag -eq "main" -or $tag -eq "") { $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() }
           $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
           $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
-          $notes = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. NEW in 0.12.0: five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); new trophies and rewards. Existing world saves continue to persist across game updates."
+          $notes = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. NEW in 0.12.0: five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates."
           $assets = @(
             "dist/SkyRealm.exe",
             "update_release/SkyRealm_Windows.zip",
