@@ -9,6 +9,8 @@ const version = fs.readFileSync('game/version.txt', 'utf8').trim();
 new vm.Script(game, { filename: 'game/game.js' });
 
 const launcher = fs.readFileSync('launcher.py', 'utf8');
+const app = fs.readFileSync('app.js', 'utf8');
+const py = launcher;
 assert.ok(launcher.includes('webview.start(debug=True, private_mode=False, storage_path=str(profile_dir))'),
   'Game WebView must use a persistent profile so world saves survive updates');
 assert.ok(launcher.includes('"SkyRealm" / "webview-profile"'),
