@@ -408,6 +408,8 @@ def _skyrealm_startup_update():
     if len(sys.argv) >= 3 and sys.argv[1] == "--skyrealm-game":
         run_game_window(sys.argv[2])
     else:
+        if _skyrealm_startup_update():
+            raise SystemExit(0)
         html = Path(resource_path("index.html")).resolve().as_uri()
         api = LauncherApi()
         window = webview.create_window(
