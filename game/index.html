@@ -109,6 +109,33 @@
 @keyframes sr-load{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
 @media(prefers-reduced-motion:reduce){.sr-sword,.sr-logo,.sr-title,.sr-subtitle,#skyrealm-intro:before,.sr-loading span{animation:none!important;opacity:1;transform:none}}
 
+
+/* SkyRealm living sky: decorative menu-only floating islands and gentle scene transitions */
+.main-menu-shade{isolation:isolate;overflow:hidden;transition:opacity .42s ease,background-color .42s ease}
+.main-menu-sky{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:-1;background:radial-gradient(ellipse at 50% 8%,#234f74aa 0,transparent 48%),linear-gradient(180deg,#07172c55,#020711bb)}
+.main-menu-sky:before,.main-menu-sky:after{content:"";position:absolute;display:block;bottom:-42px;width:230px;height:130px;background:linear-gradient(160deg,#345d72,#132c43 70%);clip-path:polygon(0 0,18% 14%,32% 8%,48% 21%,67% 9%,82% 18%,100% 0,88% 46%,74% 54%,63% 100%,30% 88%,18% 50%,6% 38%);filter:drop-shadow(0 0 22px #59d4aa22);opacity:.62;animation:sky-island-drift 17s ease-in-out infinite alternate}
+.main-menu-sky:before{left:-36px;transform:scale(.8);animation-duration:21s}
+.main-menu-sky:after{right:-30px;bottom:4%;transform:scale(.62);animation-delay:-8s;animation-duration:25s}
+.sky-island{position:absolute;width:150px;height:90px;background:linear-gradient(160deg,#426d7d,#17364c 68%);clip-path:polygon(0 0,20% 13%,35% 5%,54% 19%,76% 7%,100% 0,88% 42%,72% 51%,62% 100%,35% 83%,20% 52%,7% 37%);opacity:.54;filter:drop-shadow(0 8px 22px #0005);animation:sky-island-drift 13s ease-in-out infinite alternate}
+.sky-island:after{content:"";position:absolute;left:48%;top:43%;width:5px;height:55px;background:linear-gradient(#56e2c1aa,transparent);filter:blur(3px)}
+.sky-island.one{left:7%;top:13%;transform:scale(.8);animation-delay:-5s}
+.sky-island.two{right:7%;top:18%;transform:scale(.54);animation-delay:-9s}
+.sky-island.three{left:41%;bottom:3%;transform:scale(.42);animation-delay:-3s}
+.sky-starfield{position:absolute;inset:0;opacity:.5;background-image:radial-gradient(2px 2px at 12% 22%,#d7f7ff 45%,transparent 70%),radial-gradient(1px 1px at 35% 17%,#d7f7ff 45%,transparent 70%),radial-gradient(2px 2px at 74% 26%,#b6e8ff 45%,transparent 70%),radial-gradient(1px 1px at 88% 48%,#fff 45%,transparent 70%),radial-gradient(1px 1px at 61% 72%,#d7f7ff 45%,transparent 70%);animation:sky-stars 8s ease-in-out infinite alternate}
+.main-menu-window{z-index:1;animation:menu-window-enter .65s cubic-bezier(.2,.75,.25,1) both}
+.main-menu-action,.action,.pause-button,.game-settings-tab{transition:transform .18s ease,filter .18s ease,border-color .22s ease,background-color .22s ease}
+.main-menu-action:active,.action:active,.pause-button:active{transform:scale(.985)}
+.shade:not([hidden]){animation:shade-enter .28s ease both}
+.main-menu-sound-toggle{position:absolute;right:22px;bottom:18px;z-index:3;display:flex;align-items:center;gap:8px;border:1px solid #54769b;border-radius:999px;padding:9px 13px;background:#071629d9;color:#d7e8ff;font:inherit;font-size:10px;font-weight:800;cursor:pointer;backdrop-filter:blur(10px);box-shadow:0 6px 20px #0004}
+.main-menu-sound-toggle:hover{border-color:#79dfc0;background:#10283a}
+.main-menu-sound-toggle[aria-pressed="true"]{border-color:#59d4aa;color:#aaf4dc;box-shadow:0 0 22px #59d4aa20}
+@keyframes sky-island-drift{from{translate:0 0}to{translate:0 -17px}}
+@keyframes sky-stars{from{opacity:.28;transform:translateY(0)}to{opacity:.68;transform:translateY(-5px)}}
+@keyframes menu-window-enter{from{opacity:0;transform:translateY(15px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes shade-enter{from{opacity:0}to{opacity:1}}
+@media(max-width:700px){.main-menu-sound-toggle{right:12px;bottom:10px}.sky-island.two{right:-40px}.main-menu-sky:before{left:-80px}}
+@media(prefers-reduced-motion:reduce){.main-menu-window,.main-menu-sky:before,.main-menu-sky:after,.sky-island,.sky-starfield,.shade:not([hidden]){animation:none!important;transition:none!important}}
+
 </style>
 <style>.world-import-row{display:flex;justify-content:flex-end;margin:10px 0 2px}.world-import-button{border:1px solid #45638f;border-radius:9px;padding:9px 12px;background:#10233d;color:#cfe0ff;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.world-import-button:hover{border-color:#8eaeff;background:#172f50}.world-export-button{white-space:nowrap}@media(max-width:760px){.world-import-row{justify-content:stretch}.world-import-button{width:100%}}</style></head>
 <body>
@@ -159,6 +186,8 @@
   <button class="pause-button" id="pause" title="Пауза" aria-label="Пауза">Ⅱ</button>
   <div class="hint" id="hint">Нажми E, чтобы прочитать знак.</div>
   <div class="shade main-menu-shade" id="main-menu-shade" role="dialog" aria-modal="true" aria-label="Главное меню SkyRealm">
+    <div class="main-menu-sky" aria-hidden="true"><span class="sky-starfield"></span><span class="sky-island one"></span><span class="sky-island two"></span><span class="sky-island three"></span></div>
+    <button class="main-menu-sound-toggle" id="menu-music-toggle" type="button" aria-pressed="false" title="Включить или выключить фоновую музыку">♫ <span>Музыка: выкл.</span></button>
     <div class="main-menu-window">
       <header class="main-menu-hero">
         <div class="main-menu-emblem">✦</div>
