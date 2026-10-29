@@ -1,9 +1,9 @@
 {
-  "sha256": "261b4fbec57bcef9473f08658770eae34f289a8cccc7e512df8349e7d5bd5e57",
-  "game_sha256": "6153b94a3a1f07a17155e120c9db42024e5395beae3d92faf234c65275067f25",
-  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
+  "sha256": "a242cb8f664bc1b1493178ba8e25daa451de0cb1f89fa3c3007922d08684abb1",
+  "notes": "SkyRealm Game 0.9.5: Blood Moon event, 15-slot storage chests, forest biome, Werewolf boss, tameable companion dog, and world-save preservation across updates.",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "game_version": "0.9.5",
+  "game_sha256": "a07fcba31372012d3fbdd436c0ea21e999fea09b2f8303fb423d77a842268e4b",
   "version": "0.9.8",
-  "notes": "SkyRealm Launcher 0.9.8; SkyRealm Game 0.9.4: reliable game auto-update, Impossible difficulty, stronger night monsters and extreme survival penalties.",
-  "game_version": "0.9.4"
+  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
 }
