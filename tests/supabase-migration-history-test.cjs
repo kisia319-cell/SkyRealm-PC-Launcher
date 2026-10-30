@@ -45,5 +45,5 @@ assert.ok(read(expected[16]).includes('commit_co_op_world_action'));
 assert.ok(read(expected[17]).includes('co-op service role manages world actions'));
 assert.ok(read(expected[18]).includes('co_op_world_actions_room_action_uidx'));
 assert.ok(read(expected[19]).includes('commit_co_op_farm_action'));
-assert.ok(read(expected[20]).includes('co_op_world_action_processed_by_idx'));
+assert.ok(read(expected[20]).includes('co_op_world_actions_processed_by_idx'));
 console.log('SkyRealm Supabase migration history tests passed.');
