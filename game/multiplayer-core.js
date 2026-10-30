@@ -67,14 +67,29 @@
   }
 
   function sanitizeWorldAction(actionType,input){
-    if(actionType!=='place_structure'||!input||typeof input!=='object'||Array.isArray(input))return null;
-    if(Object.keys(input).some(key=>!['type','x','y'].includes(key)))return null;
-    const types=['furnace','house','torch','coal','storage','farmplot'];
+    if(typeof actionType!=='string'||!input||typeof input!=='object'||Array.isArray(input))return null;
+    const keys=Object.keys(input);
+    let allowed=[];
+    if(actionType==='place_structure')allowed=['type','x','y'];
+    else if(actionType==='farm_plant')allowed=['x','y','crop_id'];
+    else if(['farm_water','farm_compost','farm_fertilize','farm_harvest'].includes(actionType))allowed=['x','y'];
+    else return null;
+    if(keys.some(key=>!allowed.includes(key))||keys.length!==allowed.length)return null;
     const x=Number(input.x),y=Number(input.y);
-    if(!types.includes(input.type)||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>12000||y<0||y>10000)return null;
+    if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>12000||y<0||y>10000)return null;
     const gx=Math.round((x-16)/32)*32+16,gy=Math.round((y-16)/32)*32+16;
     if(Math.abs(x-gx)>1||Math.abs(y-gy)>1)return null;
-    return {type:input.type,x:gx,y:gy};
+    if(actionType==='place_structure'){
+      const types=['furnace','house','torch','coal','storage','farmplot'];
+      if(!types.includes(input.type))return null;
+      return {type:input.type,x:gx,y:gy};
+    }
+    if(actionType==='farm_plant'){
+      const crops=['wheat','carrot','potato','tomato','corn','pumpkin','strawberry'];
+      if(!crops.includes(input.crop_id))return null;
+      return {x:gx,y:gy,crop_id:input.crop_id};
+    }
+    return {x:gx,y:gy};
   }
   function sanitizeWorldClock(input){
     if(!input||typeof input!=='object'||Array.isArray(input))return null;
