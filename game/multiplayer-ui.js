@@ -44,7 +44,7 @@ async function refresh(silent=false){
       });
     }
     if(!silent&&!room)setMessage('Создай комнату или введи код приглашения.');
-    if(room&&room.status==='running')await client.recoverOwner(room.id).catch(()=>{});
+    if(room&&['lobby','running'].includes(room.status))await client.recoverOwner(room.id).catch(()=>{});
   }catch(error){if(!silent)setMessage(error.message||String(error),true);}
 }
 async function action(fn,successMessage){
@@ -63,7 +63,7 @@ async function open(){
   if(pollHandle)clearInterval(pollHandle);
   if(heartbeatHandle)clearInterval(heartbeatHandle);
   pollHandle=setInterval(()=>refresh(true),5000);
-  heartbeatHandle=setInterval(async()=>{if(!room)return;await client.heartbeat(room.id).catch(()=>{});if(room.status==='running')await client.recoverOwner(room.id).catch(()=>{});await refresh(true);},12000);
+  heartbeatHandle=setInterval(async()=>{if(!room)return;await client.heartbeat(room.id).catch(()=>{});if(['lobby','running'].includes(room.status))await client.recoverOwner(room.id).catch(()=>{});await refresh(true);},12000);
 }
 function close(){shade.hidden=true;shade.setAttribute('aria-hidden','true');}
 $('menu-coop').addEventListener('click',open);$('coop-close').addEventListener('click',close);

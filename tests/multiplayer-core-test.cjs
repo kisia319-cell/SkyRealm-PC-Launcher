@@ -36,10 +36,3 @@ assert.equal(safePosition.name,'bBad/b');
 assert.equal(safePosition.appearance.skin,'#e8b88c');
 assert.equal(safePosition.appearance.hair,'#112233');
 console.log('SkyRealm multiplayer core tests passed.');
-
-const safeClock=m.sanitizeWorldClock({minute_total:1300.12345,survived_nights:4,blood_moon_active:true});
-assert.deepEqual(safeClock,{minute_total:1300.123,survived_nights:4,blood_moon_active:true});
-assert.equal(m.sanitizeWorldClock({minute_total:-1,survived_nights:0,blood_moon_active:false}),null);
-assert.equal(m.sanitizeWorldClock({minute_total:1e9,survived_nights:0,blood_moon_active:false}),null);
-assert.equal(m.sanitizeWorldClock({minute_total:1,survived_nights:-1,blood_moon_active:false}),null);
-assert.equal(m.sanitizeWorldClock({minute_total:1,survived_nights:0,blood_moon_active:1}),null);

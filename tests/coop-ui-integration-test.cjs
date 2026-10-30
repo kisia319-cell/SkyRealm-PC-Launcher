@@ -29,6 +29,8 @@ assert.ok(html.indexOf('<script src="game.js">') < coreAt, 'Game engine should l
 assert.match(ui,/coop-start/);
 assert.match(ui,/coop-difficulty/);
 assert.match(client,/getWorldSession\(\)/);
+assert.match(client,/getRoomState\(\)/);
+assert.match(game,/coopRoomPaused/);
 assert.match(client,/sendPosition/);
 assert.match(game,/skyrealm_coop_save_v1_/);
 assert.match(game,/drawRemotePlayers\(camX,camY\)/);

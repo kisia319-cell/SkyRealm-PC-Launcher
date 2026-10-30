@@ -65,13 +65,5 @@
       name,appearance
     };
   }
-  function sanitizeWorldClock(input){
-    if(!input||typeof input!=='object'||Array.isArray(input))return null;
-    const minute=Number(input.minute_total),nights=Number(input.survived_nights);
-    if(!Number.isFinite(minute)||minute<0||minute>100000000)return null;
-    if(!Number.isSafeInteger(nights)||nights<0||nights>1000000)return null;
-    if(typeof input.blood_moon_active!=='boolean')return null;
-    return {minute_total:Math.round(minute*1000)/1000,survived_nights:nights,blood_moon_active:input.blood_moon_active};
-  }
-  return Object.freeze({MAX_PLAYERS,ROOM_STATES,normalizeInviteCode,isValidInviteCode,canJoinRoom,canResumeRoom,canChangePvp,makeRoomTopic,shouldPauseOnOwnerDeparture,sanitizePlayerInput,sanitizePlayerPosition,sanitizeWorldClock});
+  return Object.freeze({MAX_PLAYERS,ROOM_STATES,normalizeInviteCode,isValidInviteCode,canJoinRoom,canResumeRoom,canChangePvp,makeRoomTopic,shouldPauseOnOwnerDeparture,sanitizePlayerInput,sanitizePlayerPosition});
 });

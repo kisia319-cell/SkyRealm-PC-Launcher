@@ -135,6 +135,7 @@ window.SkyRealmCoopClient=Object.freeze({
     }
     return result;
   },
+  getRoomState(){return currentRoom?{id:currentRoom.id,status:currentRoom.status,owner_id:currentRoom.owner_id,paused_from_status:currentRoom.paused_from_status||null}:null;},
   getWorldSession(){if(!currentRoom||currentRoom.status!=='running')return null;return {id:currentRoom.id,world_difficulty:currentRoom.world_difficulty||'medium'};},
   getWorldClock(){
     if(!currentRoom||!Number.isFinite(Number(currentRoom.world_clock_minute)))return null;

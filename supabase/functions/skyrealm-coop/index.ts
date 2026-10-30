@@ -88,8 +88,6 @@ async function rpc(name: string, args: Record<string, unknown>) {
     if (message.includes("ALREADY_IN_ROOM")) throw new ApiError(409, "ALREADY_IN_ROOM", "Сначала выйди из текущей активной комнаты.");
     if (message.includes("ROOM_NOT_PAUSED")) throw new ApiError(409, "ROOM_NOT_PAUSED", "Комната сейчас не находится на паузе.");
     if (message.includes("ROOM_NOT_IN_LOBBY")) throw new ApiError(409, "ROOM_NOT_IN_LOBBY", "Комната уже запущена или находится на паузе.");
-    if (message.includes("ROOM_NOT_RUNNING")) throw new ApiError(409, "ROOM_NOT_RUNNING", "Игровая сессия сейчас не запущена.");
-    if (message.includes("INVALID_WORLD_CLOCK")) throw new ApiError(400, "INVALID_WORLD_CLOCK", "Некорректное время игрового мира.");
     if (message.includes("INVALID_WORLD_DIFFICULTY")) throw new ApiError(400, "INVALID_WORLD_DIFFICULTY", "Выбрана неизвестная сложность мира.");
     if (message.includes("NOT_A_MEMBER")) throw new ApiError(403, "NOT_A_MEMBER", "Ты больше не состоишь в этой комнате.");
     if (message.includes("ROOM_NOT_FOUND")) throw new ApiError(404, "ROOM_NOT_FOUND", "Комната не найдена.");
@@ -141,18 +139,6 @@ Deno.serve(async (req: Request) => {
     if (route === "/api/coop/start" && req.method === "POST") {
       const result = await rpc("start_co_op_room", { p_user_id: user.id, p_room_id: roomId(body.room_id) });
       return reply({ room: result });
-    }
-    if (route === "/api/coop/clock" && req.method === "POST") {
-      const minute = Number(body.minute_total);
-      const nights = Number(body.survived_nights);
-      if (!Number.isFinite(minute) || !Number.isSafeInteger(nights) || typeof body.blood_moon_active !== "boolean") {
-        throw new ApiError(400,"INVALID_WORLD_CLOCK","Некорректное время игрового мира.");
-      }
-      const clock = await rpc("set_co_op_world_clock", {
-        p_user_id:user.id,p_room_id:roomId(body.room_id),
-        p_minute_total:minute,p_survived_nights:nights,p_blood_moon_active:body.blood_moon_active
-      });
-      return reply({ clock });
     }
     if (route === "/api/coop/current" && req.method === "GET") {
       const room = await rpc("get_my_co_op_room", { p_user_id: user.id });
