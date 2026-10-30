@@ -48,7 +48,7 @@ assert.equal(m.sanitizeWorldClock({minute_total:10,survived_nights:1.5,blood_moo
 assert.equal(m.sanitizeWorldClock({minute_total:10,survived_nights:1,blood_moon_active:1}),null);
 assert.deepEqual(m.sanitizeWorldAction('place_structure',{type:'farmplot',x:112,y:144}),{type:'farmplot',x:112,y:144});
 assert.equal(m.sanitizeWorldAction('place_structure',{type:'unknown',x:112,y:144}),null);
-assert.equal(m.sanitizeWorldAction('place_structure',{type:'torch',x:113,y:144}),null);
+assert.equal(m.sanitizeWorldAction('place_structure',{type:'torch',x:114,y:144}),null);
 assert.equal(m.sanitizeWorldAction('place_structure',{type:'torch',x:112,y:144,actor_id:'bad'}),null);
 assert.equal(m.sanitizeWorldAction('give_gold',{amount:999}),null);
 const sharedSnapshot=m.sanitizeSharedWorldSnapshot({
