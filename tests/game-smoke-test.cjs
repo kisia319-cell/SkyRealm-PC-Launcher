@@ -147,8 +147,8 @@ assert.ok(game.includes("drawTree(t,camX,camY)") && game.includes("const snowy=b
 
 const gameHtml = fs.readFileSync('game/index.html', 'utf8');
 const gameVersion = fs.readFileSync('game/version.txt', 'utf8').trim();
-assert.equal(gameVersion, '0.19.7', 'Game version must be bumped when a hotfix changes game files');
-assert.ok(gameHtml.includes('content="0.19.7"') && gameHtml.includes('2D SURVIVAL · 0.19.7'), 'Visible and metadata game versions must match the packaged version');
+assert.equal(gameVersion, '0.20.0', 'Game version must be bumped when a hotfix changes game files');
+assert.ok(gameHtml.includes('content="0.20.0"') && gameHtml.includes('2D SURVIVAL · 0.20.0'), 'Visible and metadata game versions must match the packaged version');
 const treeFn = game.slice(game.indexOf('function drawTree'), game.indexOf('function drawRock'));
 assert.ok(treeFn.indexOf("const snowy=") >= 0 && treeFn.indexOf("const snowy=") < treeFn.indexOf("ctx.fillStyle=snowy?"), 'Snowy tree state must be initialized before use');
 
@@ -159,7 +159,7 @@ assert.ok(drawFn.includes("drawTradeShop(SELL_SHOP") && drawFn.includes("drawTra
 assert.ok(game.includes("if(!tradeWorldMode){toast('Лавки лесника и рудокопа находятся в Мире торговли."), 'T must direct home players to the trade world');
 assert.ok(!game.includes('HOME_SELL_SHOP') && !game.includes('HOME_BUY_SHOP'), 'Home shop locations must not exist');
 assert.ok(game.includes("tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16)"), 'E shop interaction must be trade-world-only');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.19.8', 'Game version bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.0', 'Game version bumped');
 
 for (const crop of ['Пшеница','Морковь','Картофель','Томат','Кукуруза','Тыква','Клубника']) assert.ok(game.includes("product:'"+crop+"'"), 'Farm crop '+crop+' must exist');
 assert.ok(game.includes("farmer:[") && game.includes("Семена клубники"), 'Farmer shop has broad tool and seed catalog');
