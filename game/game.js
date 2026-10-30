@@ -1843,7 +1843,6 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       shovelSnowAt(screenX+camX,screenY+camY);return;
     }
     if(!mineMode&&placeSelectedStructure(ev))return;if(!mineMode)return;
-    const selectedItem=selectedInventoryItem();
     if(!selectedItem||!['Кирка','Улучшенная кирка','Кирка мастера'].includes(selectedItem.name)){toast('Для добычи выбери кирку в инвентаре.');return;}
     const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;let target=null,bd=38;
     for(const r of mineRocks){if(r.hp<=0)continue;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;target=r;}}
