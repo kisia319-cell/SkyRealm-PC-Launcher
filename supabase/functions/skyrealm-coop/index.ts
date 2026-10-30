@@ -89,15 +89,30 @@ function actionId(value: unknown): string {
   return value;
 }
 function sanitizeWorldAction(actionType: unknown, value: unknown): Record<string, unknown> {
-  if (actionType !== "place_structure" || !value || typeof value !== "object" || Array.isArray(value)) throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимое действие общего мира.");
-  const item = value as Record<string, unknown>;
-  if (Object.keys(item).some(key => !["type","x","y"].includes(key))) throw new ApiError(400,"INVALID_WORLD_ACTION","В действии есть лишние поля.");
-  const type = typeof item.type === "string" ? item.type : "";
-  const x = Number(item.x), y = Number(item.y);
-  if (!["furnace","house","torch","coal","storage","farmplot"].includes(type) || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 12000 || y < 0 || y > 10000) throw new ApiError(400,"INVALID_WORLD_ACTION","Проверь тип постройки и координаты.");
-  const gx = Math.round((x - 16) / 32) * 32 + 16, gy = Math.round((y - 16) / 32) * 32 + 16;
-  if (Math.abs(x - gx) > 1 || Math.abs(y - gy) > 1) throw new ApiError(400,"INVALID_WORLD_ACTION","Постройка должна находиться на сетке мира.");
-  return { type, x: gx, y: gy };
+  if (typeof actionType !== "string" || !value || typeof value !== "object" || Array.isArray(value)) throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимое действие общего мира.");
+  const item=value as Record<string,unknown>;
+  const keys=Object.keys(item);
+  let allowed:string[]=[];
+  if(actionType==="place_structure")allowed=["type","x","y"];
+  else if(actionType==="farm_plant")allowed=["x","y","crop_id"];
+  else if(["farm_water","farm_compost","farm_fertilize","farm_harvest"].includes(actionType))allowed=["x","y"];
+  else throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимое действие общего мира.");
+  if(keys.length!==allowed.length||keys.some(key=>!allowed.includes(key)))throw new ApiError(400,"INVALID_WORLD_ACTION","В действии есть лишние или отсутствующие поля.");
+  const x=Number(item.x),y=Number(item.y);
+  if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>12000||y<0||y>10000)throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимые координаты.");
+  const gx=Math.round((x-16)/32)*32+16,gy=Math.round((y-16)/32)*32+16;
+  if(Math.abs(x-gx)>1||Math.abs(y-gy)>1)throw new ApiError(400,"INVALID_WORLD_ACTION","Действие должно находиться на сетке мира.");
+  if(actionType==="place_structure"){
+    const type=typeof item.type==="string"?item.type:"";
+    if(!["furnace","house","torch","coal","storage","farmplot"].includes(type))throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимый тип постройки.");
+    return {type,x:gx,y:gy};
+  }
+  if(actionType==="farm_plant"){
+    const crop=typeof item.crop_id==="string"?item.crop_id:"";
+    if(!["wheat","carrot","potato","tomato","corn","pumpkin","strawberry"].includes(crop))throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимая культура.");
+    return {x:gx,y:gy,crop_id:crop};
+  }
+  return {x:gx,y:gy};
 }
 async function rpc(name: string, args: Record<string, unknown>) {
   const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + name, {
@@ -127,6 +142,11 @@ async function rpc(name: string, args: Record<string, unknown>) {
     if (message.includes("ROOM_NOT_RUNNING")) throw new ApiError(409, "ROOM_NOT_RUNNING", "Игровая сессия сейчас не запущена.");
     if (message.includes("INVALID_WORLD_OBJECT")) throw new ApiError(400, "INVALID_WORLD_OBJECT", "Некорректный объект общего мира.");
     if(message.includes("INVALID_WORLD_ACTION"))throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимое действие общего мира.");
+    if(message.includes("INVALID_FARM_ACTION_COMMIT")||message.includes("INVALID_FARM_ACTION_RESULT"))throw new ApiError(400,"INVALID_FARM_ACTION_COMMIT","Некорректное подтверждение фермерского действия.");
+    if(message.includes("FARM_PLOT_RESULT_MISSING"))throw new ApiError(400,"FARM_PLOT_RESULT_MISSING","Грядка не найдена в сохранении.");
+    if(message.includes("WRONG_WORLD_ACTION_TYPE"))throw new ApiError(409,"WRONG_WORLD_ACTION_TYPE","Неверный тип действия.");
+    if(message.includes("WORLD_ACTION_ID_CONFLICT"))throw new ApiError(409,"WORLD_ACTION_ID_CONFLICT","ID запроса уже использован другим игроком.");
+
     if(message.includes("WORLD_ACTION_RATE_LIMITED"))throw new ApiError(429,"WORLD_ACTION_RATE_LIMITED","Слишком много действий. Подожди минуту.");
     if(message.includes("WORLD_ACTION_QUEUE_FULL"))throw new ApiError(409,"WORLD_ACTION_QUEUE_FULL","Очередь комнаты заполнена. Повтори позже.");
     if(message.includes("WORLD_ACTION_NOT_FOUND"))throw new ApiError(404,"WORLD_ACTION_NOT_FOUND","Запрос на действие не найден.");
@@ -190,6 +210,16 @@ Deno.serve(async (req: Request) => {
         p_action_type:body.action_type, p_payload:payload,
       });
       return reply({ action });
+    }
+    if (route === "/api/coop/actions/commit-farm" && req.method === "POST") {
+      const expectedVersion=Number(body.expected_version);
+      if(!Number.isSafeInteger(expectedVersion)||expectedVersion<0)throw new ApiError(400,"INVALID_SNAPSHOT_REQUEST","Некорректная версия снимка.");
+      const payload=sanitizeSharedSnapshot(body.payload);
+      const result=await rpc("commit_co_op_farm_action",{
+        p_user_id:user.id,p_room_id:roomId(body.room_id),p_action_id:actionId(body.action_id),
+        p_expected_version:expectedVersion,p_payload:payload,p_result:body.result||{},
+      });
+      return reply({result});
     }
     if (route === "/api/coop/actions/pending" && req.method === "POST") {
       const limit = body.limit === undefined ? 25 : Number(body.limit);
