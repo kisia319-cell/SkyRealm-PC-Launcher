@@ -1077,7 +1077,41 @@
       if(Math.hypot(player.x-drop.x,player.y-drop.y)<34){spawnVisualBurst(drop.x,drop.y,7,'spark','#ffe28b');changeItem(drop.name,drop.count);playSound('coin');toast('Подобрано: '+drop.name+' ×'+drop.count);lootDrops.splice(i,1);renderInventory();saveGame();}
     }
   }
-  function respawnPlayerAfterDefeat(){
+  let lastAppliedSharedDeathSequence=0,activeCoopDeathRoomId='',coopDeathReportPending=false;
+  function applyCoopSharedDeathEvent(event){
+    const sequence=Number(event?.sequence);
+    if(!Number.isSafeInteger(sequence)||sequence<=lastAppliedSharedDeathSequence)return;
+    const missed=Math.min(10,sequence-lastAppliedSharedDeathSequence);
+    lastAppliedSharedDeathSequence=sequence;
+    for(let i=0;i<missed;i++)respawnPlayerAfterDefeat(true);
+  }
+  function syncCoopSharedDeath(){
+    const network=window.SkyRealmCoopClient;
+    const state=network?.getRoomState?.();
+    if(!state){activeCoopDeathRoomId='';lastAppliedSharedDeathSequence=0;return;}
+    if(activeCoopDeathRoomId!==state.id){
+      activeCoopDeathRoomId=state.id;
+      lastAppliedSharedDeathSequence=Number(network.getSharedDeathSequence?.())||0;
+    }
+    if(state.status!=='running')return;
+    const event=network.getSharedDeathEvent?.();
+    if(event)applyCoopSharedDeathEvent(event);
+  }
+  function respawnPlayerAfterDefeat(sharedCoopEvent=false){
+    if(!sharedCoopEvent){
+      const network=window.SkyRealmCoopClient;
+      if(network?.getWorldSession?.()&&typeof network.reportSharedDeath==='function'){
+        if(coopDeathReportPending)return;
+        coopDeathReportPending=true;
+        network.reportSharedDeath().then(event=>applyCoopSharedDeathEvent(event)).catch(error=>{
+          console.warn('[SkyRealm shared death]',error);
+          toast('Сервер не ответил на общую смерть. Применён личный штраф.');
+          const nextSequence=(Number(network.getSharedDeathSequence?.())||lastAppliedSharedDeathSequence)+1;
+          applyCoopSharedDeathEvent({sequence:nextSequence});
+        }).finally(()=>{coopDeathReportPending=false;});
+        return;
+      }
+    }
     const penalties={easy:{gold:200,hunger:10,items:0,dropChance:0},medium:{gold:500,hunger:20,items:2,dropChance:.65},hard:{gold:1500,hunger:35,items:4,dropChance:.8},hell:{gold:3000,hunger:55,items:999,dropChance:.72},impossible:{gold:5000,hunger:70,items:999,dropChance:.9}};
     const cfg=penalties[currentDifficulty]||penalties.medium,deathX=player.x,deathY=player.y;let dropped=0;
     walletCents=Math.max(0,walletCents-cfg.gold);hunger=Math.max(0,hunger-cfg.hunger);
@@ -1465,6 +1499,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   function updateCoopPosition(dt){
     const network=window.SkyRealmCoopClient;
     if(!network||!currentWorldId||inMainMenu||paused)return;
+    syncCoopSharedDeath();
     if(network.isRoomOwner&&typeof network.setWorldClock==='function'){
       coopClockSendTimer-=dt;
       if(coopClockSendTimer<=0){

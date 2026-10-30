@@ -57,3 +57,7 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 - Validate all player inputs server-side; never trust client balances, inventory or whole-world snapshots.
 - Keep service-role key in Supabase Edge Function secrets only.
 - Keep single-player as the default path and run its regression tests before merging.
+
+## Shared death and room bootstrap
+- A death by an active member records a server-side room sequence. All active clients apply their existing difficulty-specific death/respawn penalty once for each unseen sequence. Reports arriving inside a four-second incident window are deduplicated.
+- Room state and shared events are polled after the game loads and every five seconds, even while the lobby is hidden; a 12-second heartbeat allows stale-owner recovery. If the death API is unavailable, the dying client applies its local penalty as fallback, but the room event may not propagate.

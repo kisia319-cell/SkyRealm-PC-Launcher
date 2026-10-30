@@ -137,6 +137,22 @@ window.SkyRealmCoopClient=Object.freeze({
   },
   getRoomState(){return currentRoom?{id:currentRoom.id,status:currentRoom.status,owner_id:currentRoom.owner_id,paused_from_status:currentRoom.paused_from_status||null}:null;},
   getWorldSession(){if(!currentRoom||currentRoom.status!=='running')return null;return {id:currentRoom.id,world_difficulty:currentRoom.world_difficulty||'medium'};},
+  getSharedDeathSequence(){return Number(currentRoom?.world_death_sequence)||0;},
+  getSharedDeathEvent(){
+    if(!currentRoom||!Number(currentRoom.world_death_sequence))return null;
+    return {sequence:Number(currentRoom.world_death_sequence),by_user_id:currentRoom.world_death_by||null,
+      occurred_at:currentRoom.world_death_at||null};
+  },
+  async reportSharedDeath(){
+    if(!currentRoom||currentRoom.status!=='running')throw new Error('Общая сессия не запущена.');
+    const data=await request('/api/coop/death','POST',{room_id:currentRoom.id});
+    if(data.death&&currentRoom&&currentRoom.id===data.death.room_id){
+      currentRoom.world_death_sequence=data.death.sequence;
+      currentRoom.world_death_by=data.death.by_user_id;
+      currentRoom.world_death_at=data.death.occurred_at;
+    }
+    return data.death;
+  },
   getWorldClock(){
     if(!currentRoom||!Number.isFinite(Number(currentRoom.world_clock_minute)))return null;
     return {minute_total:Number(currentRoom.world_clock_minute),survived_nights:Number(currentRoom.world_survived_nights)||0,

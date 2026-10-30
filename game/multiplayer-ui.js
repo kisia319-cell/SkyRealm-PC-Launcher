@@ -56,14 +56,20 @@ async function action(fn,successMessage){
   }catch(error){setMessage(error.message||String(error),true);}
   finally{busy=false;}
 }
+function startMonitors(){
+  if(!pollHandle)pollHandle=setInterval(()=>refresh(true),5000);
+  if(!heartbeatHandle)heartbeatHandle=setInterval(async()=>{
+    if(!room)return;
+    await client.heartbeat(room.id).catch(()=>{});
+    if(['lobby','running'].includes(room.status))await client.recoverOwner(room.id).catch(()=>{});
+    await refresh(true);
+  },12000);
+}
 async function open(){
   shade.hidden=false;shade.setAttribute('aria-hidden','false');$('coop-code').value='';
-  setMessage('Подключаемся к сервису комнат…');await refresh();
-  clearInterval(pollHandle);clearInterval(heartbeatHandle);
-  if(pollHandle)clearInterval(pollHandle);
-  if(heartbeatHandle)clearInterval(heartbeatHandle);
-  pollHandle=setInterval(()=>refresh(true),5000);
-  heartbeatHandle=setInterval(async()=>{if(!room)return;await client.heartbeat(room.id).catch(()=>{});if(['lobby','running'].includes(room.status))await client.recoverOwner(room.id).catch(()=>{});await refresh(true);},12000);
+  setMessage('Подключаемся к сервису комнат…');
+  await refresh();
+  startMonitors();
 }
 function close(){shade.hidden=true;shade.setAttribute('aria-hidden','true');}
 $('menu-coop').addEventListener('click',open);$('coop-close').addEventListener('click',close);
@@ -77,4 +83,7 @@ $('coop-pvp').addEventListener('change',event=>action(()=>client.setPvp(room.id,
 $('coop-copy').addEventListener('click',async()=>{if(!inviteCode)return;try{await navigator.clipboard.writeText(inviteCode);setMessage('Код приглашения скопирован.');}catch(_){const code=$('coop-invite-code'),range=document.createRange();range.selectNodeContents(code);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);setMessage('Код выделен — нажми Ctrl+C.');}});
 $('coop-code').addEventListener('input',event=>{event.target.value=event.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9-]/g,'').slice(0,10);});
 shade.addEventListener('click',event=>{if(event.target===shade)close();});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!shade.hidden)close();});
+startMonitors();
+refresh(true);
+window.addEventListener('pywebviewready',()=>refresh(true),{once:true});
 })();
