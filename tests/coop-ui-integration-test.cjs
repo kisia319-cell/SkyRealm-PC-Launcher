@@ -5,6 +5,7 @@ const html = fs.readFileSync('game/index.html','utf8');
 const ui = fs.readFileSync('game/multiplayer-ui.js','utf8');
 const client = fs.readFileSync('game/multiplayer-client.js','utf8');
 const game = fs.readFileSync('game/game.js','utf8');
+const edge = fs.readFileSync('supabase/functions/skyrealm-coop/index.ts','utf8');
 
 const requiredIds = [
   'menu-coop','coop-shade','coop-title','coop-message','coop-no-room',
@@ -36,10 +37,16 @@ assert.match(game,/skyrealm_coop_save_v1_/);
 assert.match(game,/drawRemotePlayers\(camX,camY\)/);
 assert.match(game,/updateCoopPosition\(dt\)/);
 assert.match(game,/saveKey=coopSession\?\([^)]*\):worldSaveKey\(record\.id\)/);
-assert.match(edge,/route === "\/api\/coop\/clock"/);
-assert.match(edge,/route === "\/api\/coop\/death"/);
 assert.match(client,/reportSharedDeath/);
 assert.match(client,/setWorldClock/);
 assert.match(game,/syncCoopSharedDeath/);
 assert.match(ui,/refresh\(true\);/);
+
+assert.ok(edge.includes('route === "/api/coop/clock"'));
+assert.ok(edge.includes('route === "/api/coop/death"'));
+assert.ok(client.includes('reportSharedDeath'));
+assert.ok(client.includes('setWorldClock'));
+assert.ok(game.includes('syncCoopSharedDeath'));
+assert.ok(ui.includes('startMonitors();') && ui.includes('window.addEventListener'));
+
 console.log('SkyRealm co-op UI integration checks passed.');
