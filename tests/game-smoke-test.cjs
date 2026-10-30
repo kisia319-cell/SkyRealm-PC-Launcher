@@ -159,7 +159,10 @@ const treeFn = game.slice(game.indexOf('function drawTree'), game.indexOf('funct
 assert.ok(treeFn.indexOf("const snowy=") >= 0 && treeFn.indexOf("const snowy=") < treeFn.indexOf("ctx.fillStyle=snowy?"), 'Snowy tree state must be initialized before use');
 
 const drawFn = game.slice(game.indexOf('function draw(dt,time)'), game.indexOf('function placeSelectedStructure'));
-const normalWorldDraw = drawFn.slice(drawFn.indexOf('}else{'), drawFn.indexOf('for(const rock of world.rocks)'));
+const worldTradeRenderStart = drawFn.indexOf('if(tradeWorldMode){', drawFn.indexOf('if(tradeWorldMode){') + 1);
+const worldNormalBranchStart = drawFn.indexOf('}else{', worldTradeRenderStart);
+const worldRocksStart = drawFn.indexOf('for(const rock of world.rocks)', worldNormalBranchStart);
+const normalWorldDraw = drawFn.slice(worldNormalBranchStart, worldRocksStart);
 assert.ok(!normalWorldDraw.includes('ЛАВКА ЛЕСНИКА') && !normalWorldDraw.includes('ЛАВКА РУДОКОПА'), 'Shops must not render in the normal world');
 assert.ok(drawFn.includes("drawTradeShop(SELL_SHOP") && drawFn.includes("drawTradeShop(BUY_SHOP"), 'Both shops must render in the trade world');
 assert.ok(game.includes("if(!tradeWorldMode){toast('Лавки лесника и рудокопа находятся в Мире торговли."), 'T must direct home players to the trade world');
@@ -181,11 +184,12 @@ assert.ok(game.includes("Math.round(unit*(1+Math.min(.25,villageReputation*.005)
 
 
 const activeTradeDraw = game.slice(game.indexOf('function draw(dt,time)'), game.indexOf('function mineRockScreenPosition'));
-const tradeBranchStart = activeTradeDraw.indexOf('if(tradeWorldMode){');
+const tradeBranchStart = activeTradeDraw.indexOf('if(tradeWorldMode){', activeTradeDraw.indexOf('if(tradeWorldMode){') + 1);
 const tradeBranchEnd = activeTradeDraw.indexOf('}else{', tradeBranchStart);
-assert.ok(tradeBranchStart >= 0 && tradeBranchEnd > tradeBranchStart, 'Main renderer must separate Trade World from the normal world');
+const tradeNormalEnd = activeTradeDraw.indexOf('for(const rock of world.rocks)', tradeBranchEnd);
+assert.ok(tradeBranchStart >= 0 && tradeBranchEnd > tradeBranchStart && tradeNormalEnd > tradeBranchEnd, 'Main renderer must separate Trade World from the normal world');
 const tradeBranch = activeTradeDraw.slice(tradeBranchStart, tradeBranchEnd);
-const normalBranch = activeTradeDraw.slice(tradeBranchEnd);
+const normalBranch = activeTradeDraw.slice(tradeBranchEnd, tradeNormalEnd);
 assert.ok(tradeBranch.includes('drawTradeShop(SELL_SHOP') && tradeBranch.includes('drawTradeShop(BUY_SHOP'), 'Both market stalls must exist only in Trade World');
 assert.ok(!normalBranch.includes('drawTradeShop(') && normalBranch.includes('drawCabin('), 'The normal snow world must not render either market stall');
 assert.ok(game.includes('function drawTradeGround(camX,camY)') && game.includes('drawTradeGround(camX,camY)'), 'Trade World must use its own market ground renderer');
