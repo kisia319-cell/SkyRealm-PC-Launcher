@@ -369,7 +369,7 @@
     }
   }
   function drawPond(camX,camY){const px=52*TILE-camX,py=36*TILE-camY;const grad=ctx.createRadialGradient(px,py,30,px,py,260);grad.addColorStop(0,'#246b85');grad.addColorStop(.75,'#1a4f70');grad.addColorStop(1,'#153c5b');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(px,py,210,138,-.18,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#71bac0';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(px-8,py-5,209,135,-.18,0,Math.PI*2);ctx.stroke();ctx.lineWidth=1;if(gameSettings.graphicsQuality!=='low')for(let i=0;i<(gameSettings.graphicsQuality==='high'?30:18);i++){const x=px-140+hash(i,2)*280,y=py-95+hash(4,i)*190;if((x-px)**2/39000+(y-py)**2/19000<.72){ctx.strokeStyle='#69b6c5aa';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+12+hash(i,1)*18,y);ctx.stroke();}}}
-  function drawTree(t,camX,camY){const x=t.x-camX,y=t.y-camY,s=t.size;ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.fillStyle='#142e2a66';ctx.beginPath();ctx.ellipse(2,16,24,10,0,0,Math.PI*2);ctx.fill();const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow';ctx.fillStyle=snowy?'#756b61':'#61462f';ctx.fillRect(-5,-3,10,24);ctx.fillStyle=snowy?'#a9a39a':'#7b5937';ctx.fillRect(-2,1,3,15);const colors=snowy?[['#536f7b','#a9c5d0','#edf7fa'],['#617d89','#b9d0d8','#f5fbff'],['#4c6877','#9fbcc9','#e3f2f7']][t.tint]:[['#174536','#20583f','#2c704c'],['#23503b','#2b6645','#438050'],['#1d493b','#28664d','#367e5a']][t.tint];ctx.fillStyle=colors[0];ctx.beginPath();ctx.moveTo(0,-39);ctx.lineTo(-23,-2);ctx.lineTo(-15,2);ctx.lineTo(-28,12);ctx.lineTo(27,12);ctx.lineTo(15,-1);ctx.lineTo(23,-6);ctx.closePath();ctx.fill();ctx.fillStyle=colors[1];ctx.beginPath();ctx.moveTo(0,-35);ctx.lineTo(-17,-4);ctx.lineTo(-7,-4);ctx.lineTo(-17,6);ctx.lineTo(17,6);ctx.lineTo(7,-7);ctx.closePath();ctx.fill();ctx.fillStyle=colors[2];ctx.beginPath();ctx.moveTo(0,-29);ctx.lineTo(-7,-6);ctx.lineTo(3,-8);ctx.lineTo(12,0);ctx.lineTo(5,-16);ctx.closePath();ctx.fill();ctx.restore();}
+  function drawTree(t,camX,camY){const x=t.x-camX,y=t.y-camY,s=t.size;ctx.save();ctx.translate(x,y);ctx.scale(s,s);const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow';ctx.fillStyle=snowy?'#756b61':'#61462f';ctx.fillRect(-5,-3,10,24);ctx.fillStyle=snowy?'#a9a39a':'#7b5937';ctx.fillRect(-2,1,3,15);const colors=snowy?[['#536f7b','#a9c5d0','#edf7fa'],['#617d89','#b9d0d8','#f5fbff'],['#4c6877','#9fbcc9','#e3f2f7']][t.tint]:[['#174536','#20583f','#2c704c'],['#23503b','#2b6645','#438050'],['#1d493b','#28664d','#367e5a']][t.tint];ctx.fillStyle=colors[0];ctx.beginPath();ctx.moveTo(0,-39);ctx.lineTo(-23,-2);ctx.lineTo(-15,2);ctx.lineTo(-28,12);ctx.lineTo(27,12);ctx.lineTo(15,-1);ctx.lineTo(23,-6);ctx.closePath();ctx.fill();ctx.fillStyle=colors[1];ctx.beginPath();ctx.moveTo(0,-35);ctx.lineTo(-17,-4);ctx.lineTo(-7,-4);ctx.lineTo(-17,6);ctx.lineTo(17,6);ctx.lineTo(7,-7);ctx.closePath();ctx.fill();ctx.fillStyle=colors[2];ctx.beginPath();ctx.moveTo(0,-29);ctx.lineTo(-7,-6);ctx.lineTo(3,-8);ctx.lineTo(12,0);ctx.lineTo(5,-16);ctx.closePath();ctx.fill();ctx.restore();}
   function drawRock(r,camX,camY){const x=r.x-camX,y=r.y-camY,s=r.s;ctx.fillStyle='#132e3766';ctx.beginPath();ctx.ellipse(x,y+8,14*s,7*s,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#657777';ctx.beginPath();ctx.moveTo(x-12*s,y+5*s);ctx.lineTo(x-10*s,y-5*s);ctx.lineTo(x-2*s,y-13*s);ctx.lineTo(x+8*s,y-10*s);ctx.lineTo(x+14*s,y+3*s);ctx.closePath();ctx.fill();ctx.fillStyle='#98aaa0';ctx.beginPath();ctx.moveTo(x-9*s,y-4*s);ctx.lineTo(x-1*s,y-11*s);ctx.lineTo(x+4*s,y-6*s);ctx.lineTo(x-1*s,y+1*s);ctx.closePath();ctx.fill();}
   function drawFlowers(camX,camY,t){for(const f of world.flowers){const x=f.x-camX,y=f.y-camY;if(x<-20||x>width+20||y<-20||y>height+20)continue;ctx.fillStyle='#22523a';ctx.fillRect(x,y,2,6);ctx.fillStyle=['#f4d77a','#d9b9ff','#f7d4d6','#a8e1ff'][f.c];ctx.fillRect(x-2,y-2,4,4);ctx.fillStyle='#fff5d5';ctx.fillRect(x,y-1,1,1);}}
   function drawCabin(camX,camY){
@@ -509,24 +509,59 @@
   const NPC_VISUALS={merchant:{skin:'#efc49a',hair:'#5b3826',coat:'#a85d32',trim:'#f4c56d',pants:'#35465e',beard:'#6a4128',hat:'#bd873d',prop:'coin'},alchemist:{skin:'#e9bdad',hair:'#a95c85',coat:'#7052a5',trim:'#e6a9e4',pants:'#3e3457',hood:'#8b68bc',prop:'potion'},hunter:{skin:'#d9a77e',hair:'#44332c',coat:'#4e7654',trim:'#b7c77b',pants:'#354a3b',scarf:'#a23f38',prop:'bow'},farmer:{skin:'#f0c9a0',hair:'#8a542e',coat:'#c48a45',trim:'#f3d88c',pants:'#536a46',hat:'#d7ad62',prop:'wheat'},miner:{skin:'#c99470',hair:'#3b3030',coat:'#596b7a',trim:'#e0b85e',pants:'#38414c',beard:'#423332',helmet:'#b8a36c',prop:'pickaxe'},builder:{skin:'#e3b38d',hair:'#65402b',coat:'#a86e48',trim:'#f0c68b',pants:'#46576b',cap:'#b9783e',prop:'hammer'},mage:{skin:'#dfb5d7',hair:'#c9b4e9',coat:'#3d3d82',trim:'#8fe7ff',pants:'#29294f',hood:'#5655a7',prop:'staff'},guard:{skin:'#d4a27d',hair:'#342d35',coat:'#52677d',trim:'#d8b66f',pants:'#354254',helmet:'#8299b4',prop:'spear'}};
   function setupVillageNpcs(){villageCenters=tradeVillageLayouts().map(v=>({...v}));const specs=[];for(const v of villageCenters)v.houses.forEach((id,i)=>{const offsets=v.houses.length===1?[[0,2]]:[[-2,2],[2,2]];const o=offsets[i]||[0,4+i*2],x=(v.x+o[0])*TILE+16,y=(v.y+o[1])*TILE+22;specs.push({id,x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:specs.length*1.37,color:NPC_COLORS[id],villageId:v.id,activity:'home',scheduleSlot:-1,moveTimer:0,walkPhase:0});});const farmer=specs.find(n=>n.id==='farmer');if(farmer){farmer.x=farmer.homeX=farmer.targetX=FARMER_SHOP.x*TILE+16;farmer.y=farmer.homeY=farmer.targetY=(FARMER_SHOP.y-3)*TILE+16;farmer.activity='at market';farmer.moveTimer=0;}const names=['Артём','Ника','Марк','Лея','Тимур','Соня','Егор','Мила','Роман','Ася','Даня','Вера','Илья','Зоя','Лука'];for(let i=0;i<names.length;i++){const v=villageCenters[i%villageCenters.length],angle=(i*2.399)%(Math.PI*2),radius=78+(i%3)*26,x=v.x*TILE+16+Math.cos(angle)*radius,y=v.y*TILE+22+Math.sin(angle)*radius;specs.push({id:'citizen',name:names[i],x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:i*1.91,color:'#9ab6a2',villageId:v.id,activity:'wandering',scheduleSlot:-1,moveTimer:0,walkPhase:0});}villageNpcs=specs;}
   function drawNpcCharacter(npc,x,y,time){const v=NPC_VISUALS[npc.id]||NPC_VISUALS.merchant,step=Math.sin(time/105+npc.phase)*1.3;ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.28,1.28);ctx.fillStyle='rgba(4,10,18,.38)';ctx.beginPath();ctx.ellipse(0,14,12,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=v.pants;ctx.fillRect(-7,5+step,6,10);ctx.fillRect(1,5-step,6,10);ctx.fillStyle='#302d35';ctx.fillRect(-8,14+step,7,3);ctx.fillRect(1,14-step,7,3);ctx.fillStyle=v.coat;ctx.beginPath();ctx.roundRect(-10,-5,20,15,4);ctx.fill();ctx.fillStyle=v.trim;ctx.fillRect(-8,-3,3,7);ctx.fillRect(5,-3,3,7);ctx.fillStyle=v.trim;ctx.fillRect(-2,-4,4,12);ctx.fillRect(-8,0,3,5);ctx.fillRect(5,0,3,5);ctx.fillStyle=v.skin;ctx.fillRect(-12,-3,4,10);ctx.fillRect(8,-3,4,10);ctx.fillStyle=v.coat;ctx.fillRect(-12,4,4,4);ctx.fillRect(8,4,4,4);ctx.fillStyle=v.skin;ctx.beginPath();ctx.roundRect(-6,-20,12,13,3);ctx.fill();ctx.fillStyle=v.hair;ctx.fillRect(-7,-22,14,5);ctx.fillRect(-8,-18,3,5);ctx.fillRect(5,-18,3,5);ctx.fillStyle='#263247';ctx.fillRect(-3,-14,2,2);ctx.fillRect(2,-14,2,2);ctx.fillStyle='#fff';ctx.fillRect(-3,-15,1,1);ctx.fillRect(2,-15,1,1);ctx.fillStyle='#9b5e54';ctx.fillRect(-1,-9,3,1);ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(-5,-19,3,2);if(v.beard){ctx.fillStyle=v.beard;ctx.fillRect(-4,-9,8,4);}const hat=v.hat||v.helmet||v.hood||v.cap;if(hat){ctx.fillStyle=hat;ctx.fillRect(-9,-25,18,5);ctx.fillRect(-7,-28,14,5);}if(v.scarf){ctx.fillStyle=v.scarf;ctx.fillRect(-8,-7,16,4);}if(v.prop==='coin'){ctx.fillStyle='#ffd35a';ctx.beginPath();ctx.arc(12,-2,3,0,Math.PI*2);ctx.fill();}if(v.prop==='potion'){ctx.fillStyle='#8fe7ff';ctx.fillRect(11,-4,4,7);}if(['pickaxe','hammer','spear','staff','bow'].includes(v.prop)){ctx.strokeStyle=v.prop==='staff'?'#9beaff':'#9b774d';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(12,10);ctx.lineTo(14,-22);ctx.stroke();if(v.prop==='pickaxe'){ctx.strokeStyle='#c8d4df';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(8,-18);ctx.lineTo(19,-22);ctx.stroke();}if(v.prop==='hammer'){ctx.fillStyle='#b7c4d1';ctx.fillRect(10,-22,9,5);}if(v.prop==='spear'){ctx.fillStyle='#dce7f2';ctx.fillRect(12,-27,4,7);}if(v.prop==='staff'){ctx.fillStyle='#7deaff';ctx.shadowColor='#65dfff';ctx.shadowBlur=9;ctx.beginPath();ctx.arc(14,-23,4,0,Math.PI*2);ctx.fill();}if(v.prop==='bow'){ctx.strokeStyle='#c89b55';ctx.beginPath();ctx.arc(14,-8,8,-1.2,1.2);ctx.stroke();}}ctx.restore();}
-  function drawVillageSettlements(camX,camY,time){const pal={forest:['#79543a','#bd8957','#513c34'],snow:['#526b7d','#9fb9c5','#344a60'],desert:['#a47a48','#d9b36d','#755236'],volcano:['#4e3937','#8c4d3b','#30282d'],blight:['#46503d','#788451','#343d32']};for(const c of villageCenters){const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;if(x<-260||x>width+260||y<-190||y>height+190)continue;const p=pal[c.biome]||pal.forest;ctx.save();ctx.fillStyle='rgba(5,12,18,.28)';ctx.beginPath();ctx.ellipse(x,y+44,118,45,0,0,Math.PI*2);ctx.fill();const homes=c.houses.length===1?[{x:-48,y:-24},{x:48,y:-20}]:[{x:-60,y:-25},{x:60,y:-22},{x:0,y:45}];for(const h of homes){ctx.fillStyle=p[0];ctx.fillRect(x+h.x-22,y+h.y-2,44,34);ctx.fillStyle=p[1];ctx.fillRect(x+h.x-18,y+h.y+2,36,27);ctx.fillStyle=p[2];ctx.beginPath();ctx.moveTo(x+h.x-29,y+h.y+2);ctx.lineTo(x+h.x,y+h.y-22);ctx.lineTo(x+h.x+29,y+h.y+2);ctx.closePath();ctx.fill();ctx.fillStyle='#e8c98c';ctx.fillRect(x+h.x-4,y+h.y+13,8,16);ctx.fillStyle='#b6d9e9';ctx.fillRect(x+h.x-15,y+h.y+10,7,7);}ctx.fillStyle='#f2e6c9';ctx.font='900 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#07111d';ctx.shadowBlur=6;ctx.fillText(c.name,x,y-77);ctx.restore();}for(const npc of villageNpcs){const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-55||x>width+55||y<-90||y>height+80)continue;drawNpcCharacter(npc,x,y,time);ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(npc.id==='citizen'?(npc.name+' · ЖИТЕЛЬ'):(NPC_NAMES[npc.id]+' · '+NPC_LABELS[npc.id]),x,y-34);ctx.fillStyle='#d9eaff';ctx.font='bold 8px Segoe UI';ctx.fillText('E · ЗАДАНИЕ   T · ЛАВКА',x,y+29);ctx.restore();}}
-
   function drawVillageSettlements(camX,camY,time){
-    // Eight large, upright cottages per settlement. The 500px radius gives
-    // roughly eight tiles of clear ground between neighboring house footprints.
-    const houseCount=8, radius=500;
-    const housePositions=[];
-    for(let i=0;i<houseCount;i++){
-      const a=(i/houseCount)*Math.PI*2-Math.PI/8;
-      housePositions.push({x:Math.cos(a)*radius,y:Math.sin(a)*radius,style:i});
-    }
-    const roofs=['#2865bd','#b83d32','#7d4930','#477b50','#7860a9','#bd7938','#a94b48','#547e9b'];
-    const walls=['#c79a64','#d5b27c','#a87951','#c8c0a0','#b88969','#d4c18d','#c69a70','#b6aa8c'];
-    const darks=['#543b31','#49332d','#604332','#3f4838','#43364d','#65442d','#563c37','#3b4d57'];
+    // Irregular settlement plan: staggered clusters, not a circular ring.
+    const housePositions=[
+      {x:-430,y:-300,style:0},{x:-5,y:-390,style:1},{x:420,y:-285,style:2},
+      {x:-505,y:85,style:3},{x:-65,y:35,style:4},{x:470,y:105,style:5},
+      {x:-410,y:475,style:6},{x:35,y:510,style:7},{x:455,y:455,style:8}
+    ];
+    const roofs=['#2865bd','#b83d32','#7d4930','#477b50','#7860a9','#bd7938','#a94b48','#547e9b','#a45b36'];
+    const walls=['#c79a64','#d5b27c','#a87951','#c8c0a0','#b88969','#d4c18d','#c69a70','#b6aa8c','#d0a36e'];
+    const darks=['#543b31','#49332d','#604332','#3f4838','#43364d','#65442d','#563c37','#3b4d57','#64422f'];
     for(const c of villageCenters){
       const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;
-      if(x<-650||x>width+650||y<-650||y>height+650)continue;
+      if(x<-1000||x>width+1000||y<-1000||y>height+1000)continue;
       ctx.save();
+      // Dirt lanes with gentle bends connect houses to a shared village square.
+      ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.strokeStyle='#806747';ctx.lineWidth=38;
+      ctx.beginPath();ctx.moveTo(x-590,y+115);ctx.quadraticCurveTo(x-180,y-35,x+5,y+65);ctx.quadraticCurveTo(x+260,y+165,x+600,y+80);ctx.stroke();
+      ctx.strokeStyle='#a1845b';ctx.lineWidth=25;
+      ctx.beginPath();ctx.moveTo(x-590,y+115);ctx.quadraticCurveTo(x-180,y-35,x+5,y+65);ctx.quadraticCurveTo(x+260,y+165,x+600,y+80);ctx.stroke();
+      for(const h of housePositions){
+        ctx.strokeStyle='#8b704c';ctx.lineWidth=23;ctx.beginPath();ctx.moveTo(x+h.x,y+h.y+110);ctx.lineTo(x+h.x*.76,y+h.y*.68+65);ctx.stroke();
+        ctx.strokeStyle='#b19367';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(x+h.x,y+h.y+110);ctx.lineTo(x+h.x*.76,y+h.y*.68+65);ctx.stroke();
+      }
+      // Small fenced crop plots beside homes.
+      for(let gi=0;gi<6;gi++){
+        const h=housePositions[gi],gx=x+h.x+(gi%2?112:-116),gy=y+h.y+78;
+        ctx.fillStyle='#5c4933';ctx.fillRect(gx-48,gy-29,96,58);
+        ctx.fillStyle='#6f5132';ctx.fillRect(gx-44,gy-25,88,50);
+        ctx.strokeStyle='#c09b64';ctx.lineWidth=3;ctx.strokeRect(gx-48,gy-29,96,58);
+        for(let row=0;row<3;row++)for(let col=0;col<5;col++){
+          const px=gx-34+col*17,py=gy-16+row*16;
+          ctx.fillStyle='#4b6e36';ctx.fillRect(px,py,4,11);
+          ctx.fillStyle=(gi+row+col)%3===0?'#e1bd54':'#8aa64b';ctx.fillRect(px-3,py-3,10,4);
+        }
+      }
+      // Trees and bushes around the settlement perimeter.
+      const treeSpots=[[-620,-210],[-230,-520],[225,-520],[650,-210],[-670,300],[675,340],[-190,660],[230,675],[-575,-5],[585,-5],[-600,520],[610,560]];
+      for(let ti=0;ti<treeSpots.length;ti++){
+        const tx=x+treeSpots[ti][0],ty=y+treeSpots[ti][1];
+        if(tx<-70||tx>width+70||ty<-80||ty>height+80)continue;
+        drawTree({x:tx+camX,y:ty+camY,size:1.12+(ti%3)*.12,tint:ti%3},camX,camY);
+      }
+      // Warm lanterns and soft pools of light along the lanes.
+      for(const [lx,ly] of [[-300,55],[0,95],[310,110],[-80,-130],[120,300]]){
+        const px=x+lx,py=y+ly;
+        ctx.fillStyle='#493b2b';ctx.fillRect(px-3,py-5,6,22);
+        ctx.fillStyle='#c6a16b';ctx.fillRect(px-6,py-13,12,10);
+        ctx.fillStyle='#ffe19a';ctx.fillRect(px-3,py-11,6,6);
+        const glow=ctx.createRadialGradient(px,py-8,2,px,py-8,48);
+        glow.addColorStop(0,'rgba(255,198,94,.22)');glow.addColorStop(1,'rgba(255,198,94,0)');
+        ctx.fillStyle=glow;ctx.beginPath();ctx.arc(px,py-8,48,0,Math.PI*2);ctx.fill();
+      }
       for(const h of housePositions){
         const hx=x+h.x,hy=y+h.y,variant=h.style%roofs.length;
         const roof=roofs[variant],wall=walls[variant],dark=darks[variant];
@@ -579,8 +614,9 @@
         }
         ctx.restore();
       }
+
       ctx.fillStyle='#f2e4c2';ctx.font='900 14px Segoe UI';ctx.textAlign='center';
-      ctx.shadowColor='#101820';ctx.shadowBlur=6;ctx.fillText(c.name,x,y-590);
+      ctx.shadowColor='#101820';ctx.shadowBlur=6;ctx.fillText(c.name,x,y-625);
       ctx.restore();
     }
     for(const npc of villageNpcs){
