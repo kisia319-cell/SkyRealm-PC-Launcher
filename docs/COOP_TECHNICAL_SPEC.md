@@ -8,7 +8,7 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 - Invitation code is generated with Web Crypto, displayed once to the owner, and only its SHA-256 hash is stored.
 - A user may occupy one active/offline room membership at a time. Room membership changes are transactional.
 - Join attempts are limited to 8 per 15 minutes per account.
-- Explicit owner leave pauses the room and marks the owner offline; the owner can resume. During a running room, members check owner heartbeat; >30 seconds stale causes a pause.
+- Explicit owner leave pauses the room and marks the owner offline; the previous state (lobby/running) is saved so resume restores the correct state. During a running room, members check owner heartbeat; >30 seconds stale causes a pause.
 - PvP is a persisted owner-only setting, defaults OFF.
 - Shared death is stored as \`shared\`; the existing difficulty-specific death rules must be wired into the shared simulation phase.
 
@@ -28,11 +28,12 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 - View room status and member roster, refresh automatically, leave, resume as owner, and change the saved PvP setting as owner.
 - In the desktop runner, launcher Auth session is passed through the child process environment and exposed to the game once via the PyWebView API. It is not put in query parameters or saved to disk.
 - Browser preview uses the same-origin session/local storage token.
+- Optional Supabase Realtime Presence connects to a private `skyrealm:room:<uuid>` channel; the room roster falls back to authenticated polling every 5 seconds. Presence is only the online indicator, not an authority for game state.
 
 ## Not yet playable as a shared-world game
 - Current room UI is a lobby/control surface only. There is no shared player movement, remote avatars, shared world map, enemy state, loot, inventory, crafting or combat synchronization.
 - The snapshot table is scaffolding only and currently starts with an empty JSON payload. A world serializer and save/restore protocol are not implemented.
-- Realtime presence/broadcast client subscription is not wired; the roster refreshes through the authenticated room API every 5 seconds.
+- Realtime Presence is wired for online state. Broadcast is subscribed for future room events, but no client movement/action events are published. The roster still refreshes from the authenticated API every 5 seconds for durable membership names.
 - PvP preference is stored and owner-gated, but does not yet gate damage because combat is still local. Do not advertise PvP combat as working.
 - Kick/revoke-code management, owner handoff, rate limits by IP, and eight-player load testing remain for later hardening.
 - No release is published and main is unchanged.

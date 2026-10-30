@@ -5,17 +5,19 @@ const PUBLIC_KEY='sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL';
 let token='',tokenPromise=null,userId='';
 async function getToken(){
   if(token)return token;
-  try{token=sessionStorage.getItem('skyrealm_token')||localStorage.getItem('skyrealm_token')||'';}catch(_){}
-  if(token)return token;
   if(tokenPromise)return tokenPromise;
   tokenPromise=(async()=>{
+    // Prefer the fresh launcher session passed through the desktop bridge.
+    try{if(window.pywebview?.api?.get_auth_session){const session=await window.pywebview.api.get_auth_session();if(typeof session?.token==='string'&&session.token){token=session.token;return token;}}}catch(_){}
+    try{token=sessionStorage.getItem('skyrealm_token')||localStorage.getItem('skyrealm_token')||'';}catch(_){}
+    if(token)return token;
     if(!window.pywebview?.api?.get_auth_session){
       await Promise.race([
         new Promise(resolve=>window.addEventListener('pywebviewready',resolve,{once:true})),
         new Promise(resolve=>setTimeout(resolve,2500))
       ]);
+      try{if(window.pywebview?.api?.get_auth_session){const session=await window.pywebview.api.get_auth_session();if(typeof session?.token==='string')token=session.token;}}catch(_){}
     }
-    try{if(window.pywebview?.api?.get_auth_session){const session=await window.pywebview.api.get_auth_session();if(typeof session?.token==='string')token=session.token;}}catch(_){}
     return token;
   })();
   try{return await tokenPromise;}finally{tokenPromise=null;}
@@ -32,8 +34,69 @@ async function request(route,method='GET',body=null){
   if(data.user_id)userId=data.user_id;
   return data;
 }
+
+let realtimeClient=null,realtimeChannel=null,realtimeRoomId='',realtimeSdkPromise=null;
+function loadRealtimeSdk(){
+  if(window.supabase?.createClient)return Promise.resolve(window.supabase);
+  if(realtimeSdkPromise)return realtimeSdkPromise;
+  realtimeSdkPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0';
+    script.async=true;
+    script.onload=()=>window.supabase?.createClient?resolve(window.supabase):reject(new Error('Supabase Realtime SDK did not initialise.'));
+    script.onerror=()=>reject(new Error('Не удалось загрузить модуль сетевого присутствия.'));
+    document.head.appendChild(script);
+  });
+  return realtimeSdkPromise;
+}
+async function disconnectRealtime(){
+  const oldClient=realtimeClient,oldChannel=realtimeChannel;
+  realtimeClient=null;realtimeChannel=null;realtimeRoomId='';
+  if(oldClient&&oldChannel){try{await oldClient.removeChannel(oldChannel);}catch(_){}}
+}
+async function connectRealtime(room,handlers={}){
+  if(!room?.id)throw new Error('Room ID is required.');
+  if(realtimeRoomId===room.id&&realtimeChannel)return {connected:true};
+  await disconnectRealtime();
+  const accessToken=await getToken();
+  if(!accessToken)throw new Error('Нет авторизованной сессии.');
+  const sdk=await loadRealtimeSdk();
+  const supabaseClient=sdk.createClient('https://jaaguprbfrzrcwuusher.supabase.co',PUBLIC_KEY,{
+    auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+    realtime:{params:{log_level:'error'}}
+  });
+  await supabaseClient.realtime.setAuth(accessToken);
+  const channel=supabaseClient.channel('skyrealm:room:'+room.id,{
+    config:{private:true,presence:{key:userId},broadcast:{ack:true,self:false}}
+  });
+  channel.on('presence',{event:'sync'},()=>handlers.onPresence?.(channel.presenceState()));
+  channel.on('presence',{event:'join'},payload=>handlers.onPresenceChange?.('join',payload));
+  channel.on('presence',{event:'leave'},payload=>handlers.onPresenceChange?.('leave',payload));
+  channel.on('broadcast',{event:'room-event'},payload=>handlers.onBroadcast?.(payload));
+  const joined=await new Promise((resolve,reject)=>{
+    let settled=false;
+    channel.subscribe(async status=>{
+      handlers.onStatus?.(status);
+      if(status==='SUBSCRIBED'&&!settled){
+        settled=true;
+        try{
+          await channel.track({user_id:userId,online_at:new Date().toISOString()});
+          resolve(true);
+        }catch(error){reject(error);}
+      }else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&!settled){
+        settled=true;reject(new Error('Не удалось подключиться к приватному каналу комнаты ('+status+').'));
+      }
+    });
+  });
+  if(joined){realtimeClient=supabaseClient;realtimeChannel=channel;realtimeRoomId=room.id;}
+  else await supabaseClient.removeChannel(channel);
+  return {connected:!!joined};
+}
+
 window.SkyRealmCoopClient=Object.freeze({
   get userId(){return userId;},
+  connectRealtime,
+  disconnectRealtime,
   async current(){const data=await request('/api/coop/current');return data.room||null;},
   async create(){const data=await request('/api/coop/create','POST',{});return {room:data.room,inviteCode:data.invite_code};},
   async join(code){const data=await request('/api/coop/join','POST',{invite_code:code});return data.room;},
