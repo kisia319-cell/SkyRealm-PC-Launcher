@@ -91,6 +91,12 @@ assert.ok(game.includes('function drawExplorer') && game.includes('function talk
 for (const feature of ['function setupVillageNpcs','function drawVillageSettlements','function talkToVillageNpc','function buyNpcItem','function updateVillageRaid']) {
   assert.ok(game.includes(feature), 'Missing village feature: ' + feature);
 }
+assert.ok(game.includes('function tradeVillageLayouts()') && game.includes("biome:'snow'") && game.includes("biome:'desert'") && game.includes("biome:'volcano'") && game.includes("biome:'blight'"), 'Trade villages must be distributed across distinct biomes');
+assert.ok(game.includes('function drawNpcCharacter') && game.includes('NPC_VISUALS') && game.includes("ctx.fillRect(-3,-14,2,2)"), 'NPCs must use detailed character sprites with visible eyes');
+assert.ok(game.includes('if(!tradeWorldMode||mineMode||inHouse||caveMode||dungeonMode)return null'), 'NPCs must only be interactable in the Trade World');
+assert.ok(game.includes('function openNpcQuestDialog') && game.includes('function renderNpcQuestDialog') && game.includes('function closeNpcQuestDialog'), 'NPC tasks must open a dedicated quest board');
+assert.ok(gameHtml.includes('id="npc-quest-shade"') && gameHtml.includes('id="npc-quest-items"') && gameHtml.includes('id="npc-quest-reward"'), 'Dedicated NPC quest board UI must exist');
+assert.ok(game.includes("if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;const day="), 'Village raids must only occur in the Trade World');
 assert.ok(game.includes("'Меч титана':100") && game.includes("'Меч дракона':130") && game.includes("'Меч пустоты':170"), 'Legendary sword base damage must be 100/130/170');
 assert.ok(game.includes('SWORD_DIFFICULTY_MULTIPLIER'), 'Legendary sword damage must scale with difficulty');
 assert.ok(game.includes('const NPC_SELL_PRICES=') && game.includes('function sellNpcItem'), 'NPC shops must support selling resources');
