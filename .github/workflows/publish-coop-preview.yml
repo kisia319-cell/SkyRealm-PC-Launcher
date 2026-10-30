@@ -53,7 +53,7 @@ jobs:
           path = Path("manifest.json")
           manifest = json.loads(path.read_text(encoding="utf-8"))
           manifest["game_version"] = "0.20.8"
-          manifest["game_download_url"] = f"https://github.com/${{ github.repository }}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
+manifest["game_download_url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
           manifest["game_sha256"] = os.environ["GAME_SHA256"]
           manifest["notes"] = "SkyRealm 0.20.8 Co-op Preview: up to 8 players, invite-code rooms, shared death, owner pause, PvP toggle, and six character skill branches. Preview build; some multiplayer systems still require end-to-end validation."
           path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
