@@ -76,6 +76,14 @@
          !['Кирка','Улучшенная кирка','Кирка мастера'].includes(tool))return null;
       return {rock_index:rockIndex,tool};
     }
+    if(actionType==='chop_tree'){
+      if(keys.length!==3||keys.some(key=>!['x','y','tool'].includes(key))||input.tool!=='Топор')return null;
+      const x=Number(input.x),y=Number(input.y);
+      if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>12000||y<0||y>10000)return null;
+      const gx=Math.round((x-16)/32)*32+16,gy=Math.round((y-16)/32)*32+16;
+      if(Math.abs(x-gx)>1||Math.abs(y-gy)>1)return null;
+      return {x:gx,y:gy,tool:'Топор'};
+    }
     let allowed=[];
     if(actionType==='place_structure')allowed=['type','x','y'];
     else if(actionType==='farm_plant')allowed=['x','y','crop_id'];
@@ -107,7 +115,7 @@
     if(typeof input.blood_moon_active!=='boolean')return null;
     return {minute_total:Math.round(minute*1000)/1000,survived_nights:nights,blood_moon_active:input.blood_moon_active};
   }
-  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay"]);
+  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","treeChops","felledTrees","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay"]);
   function sanitizeSharedWorldSnapshot(input){
     if(!input||typeof input!=='object'||Array.isArray(input))return null;
     const output={};
