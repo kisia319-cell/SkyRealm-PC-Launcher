@@ -1,5 +1,6 @@
 'use strict';
 const assert = require('node:assert/strict');
+const vm = require('node:vm');
 const fs = require('node:fs');
 const html = fs.readFileSync('game/index.html','utf8');
 const ui = fs.readFileSync('game/multiplayer-ui.js','utf8');
@@ -49,4 +50,15 @@ assert.ok(client.includes('setWorldClock'));
 assert.ok(game.includes('syncCoopSharedDeath'));
 assert.ok(ui.includes('startMonitors();') && ui.includes('window.addEventListener'));
 
+
+assert.ok(client.includes("const root=typeof globalThis!=='undefined'?globalThis:window;"), 'Client adapter must define its global root');
+assert.ok(client.includes('const safeClock=root.SkyRealmMultiplayerCore?.sanitizeWorldClock;'), 'Client must bind the world-clock sanitizer');
+const core = require('../game/multiplayer-core.js');
+const sandbox = { Map, URL, Promise, setTimeout, clearTimeout, console };
+sandbox.window = sandbox;
+sandbox.globalThis = sandbox;
+sandbox.SkyRealmMultiplayerCore = core;
+vm.runInNewContext(client, sandbox, { filename: 'game/multiplayer-client.js' });
+assert.ok(sandbox.SkyRealmCoopClient, 'Client adapter must initialize at runtime');
+assert.equal(typeof sandbox.SkyRealmCoopClient.setWorldClock, 'function');
 console.log('SkyRealm co-op UI integration checks passed.');

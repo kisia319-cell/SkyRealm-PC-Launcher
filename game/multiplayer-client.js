@@ -1,5 +1,6 @@
 (() => {
 'use strict';
+const root=typeof globalThis!=='undefined'?globalThis:window;
 const API_URL='https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-coop';
 const PUBLIC_KEY='sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL';
 let token='',tokenPromise=null,userId='',currentRoom=null,clockReceivedAt=0,clockWriteInFlight=false;
@@ -38,6 +39,7 @@ async function request(route,method='GET',body=null){
 let realtimeClient=null,realtimeChannel=null,realtimeRoomId='',realtimeSdkPromise=null;
 const remotePlayers=new Map();
 const safePosition=root.SkyRealmMultiplayerCore?.sanitizePlayerPosition;
+const safeClock=root.SkyRealmMultiplayerCore?.sanitizeWorldClock;
 function loadRealtimeSdk(){
   if(window.supabase?.createClient)return Promise.resolve(window.supabase);
   if(realtimeSdkPromise)return realtimeSdkPromise;
