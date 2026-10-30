@@ -21,6 +21,7 @@ assert.ok(launcher.includes('ThreadingHTTPServer(("127.0.0.1", 48731), handler)'
 assert.ok(!launcher.includes('ThreadingHTTPServer(("127.0.0.1", 0), handler)'),
   'Game server must not silently switch to a random port and hide existing saves');
 assert.ok(game.includes('function downloadWorldBackup(id)'), 'Worlds must support exporting a portable backup');
+assert.ok(game.includes('gameVersion:GAME_VERSION'), 'World backups must record the currently embedded game version');
 assert.ok(game.includes('function importWorldBackupFile(file)'), 'Worlds must support restoring a portable backup');
 assert.ok(game.includes("backup.format!=='skyrealm-world-backup'"), 'Imported backups must be validated before use');
 assert.ok(game.includes('Не удалось сохранить мир'), 'Save failures must not be silently swallowed');
@@ -41,6 +42,12 @@ assert.match(version, /^\d+\.\d+\.\d+$/, 'game/version.txt must be a semantic ve
 assert.ok(gameHtml.includes(version), 'game/index.html version label must match game/version.txt');
 
 for (const feature of [
+  'function findWorldEventPoint',
+  'function updateWorldEvents',
+  'function drawWorldEventCamp',
+  'function drawWorldEventTraveler',
+  'function collectWorldEventCamp',
+  'function collectWorldEventTraveler',
   'function generateMineStock',
   'function craftEquipment',
   'function enterDungeon',
@@ -85,6 +92,9 @@ assert.ok(gameHtml.includes('id="anvil-enchant-weapon"'), 'Enchanting button mus
 assert.ok(game.includes("getElementById('anvil-enchant-weapon')"), 'Enchanting button must be wired');
 assert.ok(game.includes('weaponEnchantments'), 'Weapon enchantments must be persisted');
 assert.ok(game.includes("weatherMode==='snow'") && game.includes("weatherMode==='storm'"), 'Snow and storm weather must be rendered');
+assert.ok(game.includes('const WORLD_EVENT_CHANCES') && game.includes("meteor:.12") && game.includes("nightHorde:.07") && game.includes("abandonedCamp:.10") && game.includes("traveler:.08"), 'Random world events must have distinct configured chances');
+assert.ok(game.includes('lastWorldMeteorNight') && game.includes('lastWorldHordeNight') && game.includes('lastWorldCampDay') && game.includes('lastWorldTravelerDay'), 'World events must use persisted cooldown markers');
+assert.ok(game.includes('worldEventCamp:worldEventCamp?') && game.includes('worldEventTraveler:worldEventTraveler?'), 'World event locations must be saved with the world');
 assert.ok(game.includes('villageQuestStage') && game.includes('dogBehavior'), 'Village quest chain and dog commands must persist');
 assert.ok(game.includes('function drawBlacksmith') && game.includes('function talkToBlacksmith'), 'Blacksmith NPC and multi-stage quest chain must exist');
 assert.ok(game.includes('function drawExplorer') && game.includes('function talkToExplorer'), 'Explorer NPC and multi-stage quest chain must exist');
@@ -129,7 +139,7 @@ assert.ok(game.includes("ctx.scale(1.28,1.28)"), 'Trade NPC sprites must be enla
 
 const updater = fs.readFileSync('update_helper.py', 'utf8');
 const launcherVersion = fs.readFileSync('launcher_version.txt', 'utf8').trim();
-assert.match(launcherVersion, /^\\d+\\.\\d+\\.\\d+$/, 'launcher_version.txt must be a semantic version');
+assert.match(launcherVersion, /^\d+\.\d+\.\d+$/, 'launcher_version.txt must be a semantic version');
 assert.ok(py.includes('def _skyrealm_startup_update():') && py.includes('if _skyrealm_startup_update():') && py.lastIndexOf('if _skyrealm_startup_update():') < py.lastIndexOf('html = Path(resource_path(\"index.html\"))'), 'Launcher must check and apply its own update before showing the UI');
 assert.ok(py.includes('manifest.get("version"') && py.includes('manifest.get("download_url"') && py.includes('manifest.get("sha256"'), 'Launcher self-updater must use the published manifest and checksum');
 assert.ok(py.includes('bin/SkyRealmUpdater.exe') && py.includes('os.getpid()'), 'Launcher must hand off replacement to the separate updater helper');
@@ -142,21 +152,23 @@ assert.ok(game.includes("if(hits>=3)") && game.includes("snowShovelHits") && gam
 assert.ok(game.includes("selectedInventoryItem()?.name==='Лопата'") && game.includes("shovelSnowAt(screenX+camX,screenY+camY)"), 'The shovel must work with Space and clicking a snow tile');
 assert.ok(game.includes("drawTree(t,camX,camY)") && game.includes("const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow'"), 'Trees in the winter biome must have snow-covered branches');
 
-const gameHtml = fs.readFileSync('game/index.html', 'utf8');
-const gameVersion = fs.readFileSync('game/version.txt', 'utf8').trim();
-assert.equal(gameVersion, '0.20.2', 'Game version must be bumped when a hotfix changes game files');
-assert.ok(gameHtml.includes('content="0.20.2"') && gameHtml.includes('2D SURVIVAL · 0.20.2'), 'Visible and metadata game versions must match the packaged version');
+const gameVersion = version;
+assert.equal(gameVersion, version, 'Game version must match the packaged version file');
+assert.ok(gameHtml.includes('content="'+version+'"') && gameHtml.includes('2D SURVIVAL · '+version), 'Visible and metadata game versions must match the packaged version');
 const treeFn = game.slice(game.indexOf('function drawTree'), game.indexOf('function drawRock'));
 assert.ok(treeFn.indexOf("const snowy=") >= 0 && treeFn.indexOf("const snowy=") < treeFn.indexOf("ctx.fillStyle=snowy?"), 'Snowy tree state must be initialized before use');
 
 const drawFn = game.slice(game.indexOf('function draw(dt,time)'), game.indexOf('function placeSelectedStructure'));
-const normalWorldDraw = drawFn.slice(drawFn.indexOf('}else{'), drawFn.indexOf('for(const rock of world.rocks)'));
+const worldTradeRenderStart = drawFn.indexOf('if(tradeWorldMode){', drawFn.indexOf('if(tradeWorldMode){') + 1);
+const worldNormalBranchStart = drawFn.indexOf('}else{', worldTradeRenderStart);
+const worldRocksStart = drawFn.indexOf('for(const rock of world.rocks)', worldNormalBranchStart);
+const normalWorldDraw = drawFn.slice(worldNormalBranchStart, worldRocksStart);
 assert.ok(!normalWorldDraw.includes('ЛАВКА ЛЕСНИКА') && !normalWorldDraw.includes('ЛАВКА РУДОКОПА'), 'Shops must not render in the normal world');
 assert.ok(drawFn.includes("drawTradeShop(SELL_SHOP") && drawFn.includes("drawTradeShop(BUY_SHOP"), 'Both shops must render in the trade world');
 assert.ok(game.includes("if(!tradeWorldMode){toast('Лавки лесника и рудокопа находятся в Мире торговли."), 'T must direct home players to the trade world');
 assert.ok(!game.includes('HOME_SELL_SHOP') && !game.includes('HOME_BUY_SHOP'), 'Home shop locations must not exist');
 assert.ok(game.includes("tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16)"), 'E shop interaction must be trade-world-only');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.2', 'Game version bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), version, 'Game version bumped');
 
 for (const crop of ['Пшеница','Морковь','Картофель','Томат','Кукуруза','Тыква','Клубника']) assert.ok(game.includes("product:'"+crop+"'"), 'Farm crop '+crop+' must exist');
 assert.ok(game.includes("farmer:[") && game.includes("Семена клубники"), 'Farmer shop has broad tool and seed catalog');
@@ -164,7 +176,7 @@ assert.ok(game.includes("selected?.name==='Лейка'") && game.includes("selec
 assert.ok(game.includes("farmCropSellPrice(name)") && game.includes("farmCropBuyPrice(name)"), 'Crop sale and purchase prices use the agreed crop balance');
 assert.ok(game.includes("function interactFarmPlot") && game.includes("plot.crop=crop.id"), 'Seeds can be planted and harvested per crop');
 assert.ok(game.includes("crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null"), 'Crop state is restored from saves');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.2', 'Farm update version must be bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), version, 'Farm update version must be bumped');
 
 assert.ok(game.includes('const FARM_CROP_TRADE_PRICES={Пшеница:{buy:30,sell:50}') && game.includes('Клубника:{buy:123,sell:200}'), 'Crop trading prices must match the agreed cents-per-item balance');
 assert.ok(game.includes('function farmCropBuyPrice(name)') && game.includes('farmCropBuyPrice(name)||item.price'), 'Farmer must sell harvested crops at the agreed buy prices');
@@ -172,11 +184,12 @@ assert.ok(game.includes("Math.round(unit*(1+Math.min(.25,villageReputation*.005)
 
 
 const activeTradeDraw = game.slice(game.indexOf('function draw(dt,time)'), game.indexOf('function mineRockScreenPosition'));
-const tradeBranchStart = activeTradeDraw.indexOf('if(tradeWorldMode){');
+const tradeBranchStart = activeTradeDraw.indexOf('if(tradeWorldMode){', activeTradeDraw.indexOf('if(tradeWorldMode){') + 1);
 const tradeBranchEnd = activeTradeDraw.indexOf('}else{', tradeBranchStart);
-assert.ok(tradeBranchStart >= 0 && tradeBranchEnd > tradeBranchStart, 'Main renderer must separate Trade World from the normal world');
+const tradeNormalEnd = activeTradeDraw.indexOf('for(const rock of world.rocks)', tradeBranchEnd);
+assert.ok(tradeBranchStart >= 0 && tradeBranchEnd > tradeBranchStart && tradeNormalEnd > tradeBranchEnd, 'Main renderer must separate Trade World from the normal world');
 const tradeBranch = activeTradeDraw.slice(tradeBranchStart, tradeBranchEnd);
-const normalBranch = activeTradeDraw.slice(tradeBranchEnd);
+const normalBranch = activeTradeDraw.slice(tradeBranchEnd, tradeNormalEnd);
 assert.ok(tradeBranch.includes('drawTradeShop(SELL_SHOP') && tradeBranch.includes('drawTradeShop(BUY_SHOP'), 'Both market stalls must exist only in Trade World');
 assert.ok(!normalBranch.includes('drawTradeShop(') && normalBranch.includes('drawCabin('), 'The normal snow world must not render either market stall');
 assert.ok(game.includes('function drawTradeGround(camX,camY)') && game.includes('drawTradeGround(camX,camY)'), 'Trade World must use its own market ground renderer');
