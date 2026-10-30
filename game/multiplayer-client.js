@@ -244,6 +244,16 @@ window.SkyRealmCoopClient=Object.freeze({
     if(data.result&&currentRoom)snapshotVersion=Number(data.result.version)||snapshotVersion;
     return data.result||false;
   },
+  async commitMineAction(actionId,payload,result={}){
+    if(!this.isRoomOwner||!currentRoom||currentRoom.status!=='running')return false;
+    const safe=typeof safeSharedSnapshot==='function'?safeSharedSnapshot(payload):null;
+    if(!safe||!Object.keys(safe).length)return false;
+    const data=await request('/api/coop/actions/commit-mine','POST',{
+      room_id:currentRoom.id,action_id:actionId,expected_version:snapshotVersion,payload:safe,result
+    });
+    if(data.result&&currentRoom)snapshotVersion=Number(data.result.version)||snapshotVersion;
+    return data.result||false;
+  },
   async rejectWorldAction(actionId,reason='invalid'){
     if(!this.isRoomOwner||!currentRoom?.id)return false;
     const data=await request('/api/coop/actions/reject','POST',{room_id:currentRoom.id,action_id:actionId,reason:String(reason).slice(0,120)});
