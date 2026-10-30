@@ -107,7 +107,7 @@ const core = require('../game/multiplayer-core.js');
   const pvpSend=calls.find(call=>call.realtime?.payload?.kind==='player-hit');
   assert.deepEqual(JSON.parse(JSON.stringify(pvpSend.realtime.payload)),{kind:'player-hit',attacker_user_id:'user-1',target_user_id:'user-2',damage:15});
   broadcastHandlers[0]({payload:{kind:'player-hit',attacker_user_id:'user-2',target_user_id:'user-1',damage:15}});
-  assert.deepEqual(client.drainPvpHits().map(hit=>({attacker_user_id:hit.attacker_user_id,damage:hit.damage})),[{attacker_user_id:'user-2',damage:15}]);
+  assert.deepEqual(JSON.parse(JSON.stringify(client.drainPvpHits().map(hit=>({attacker_user_id:hit.attacker_user_id,damage:hit.damage})))),[{attacker_user_id:'user-2',damage:15}]);
   await client.disconnectRealtime();
 
   const claim = await client.claimWorldObject('treasure_chest', 'forest');
