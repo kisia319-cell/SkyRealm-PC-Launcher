@@ -33,5 +33,5 @@ assert.match(client,/sendPosition/);
 assert.match(game,/skyrealm_coop_save_v1_/);
 assert.match(game,/drawRemotePlayers\(camX,camY\)/);
 assert.match(game,/updateCoopPosition\(dt\)/);
-assert.match(game,/saveKey=coopSession\?\([^:]+:\)worldSaveKey\(record\.id\)/);
+assert.match(game,/saveKey=coopSession\?\([^)]*\):worldSaveKey\(record\.id\)/);
 console.log('SkyRealm co-op UI integration checks passed.');
