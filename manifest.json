@@ -1,9 +1,9 @@
 {
-  "version": "1.0.0",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "sha256": "01e133e14a9e6f76353be9d5a0fc16486d71d7cd7fc28944766302a56a7eb585",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "notes": "SkyRealm Launcher 1.0.0 + Game 0.18.0: launcher diagnostics, game file verification/repair, update log access, functional project/news links and cosmetic showcase; portable world backup export/import; visible save errors and manual save control; save when the window closes or is backgrounded; corrected expanded map dimensions; five-room Ancient Ruins dungeon and Archon boss; Frost Titan, King Scorpion and Blight Guardian; volcanic biome with Ember Elementals; meteor showers; three temporary combat tonics; persistent weapon rune enchantments (+15% damage); world map doubled in width and height on every difficulty; new trophies and rewards. Existing world saves continue to persist across game updates.",
-  "game_version": "0.18.0",
-  "game_sha256": "426eb1bfad2b8fd6a519b6bc527aa4f2302f59fc81e919fc3cba267a2cf369dc"
+  "game_version": "0.19.0",
+  "version": "1.0.0",
+  "notes": "SkyRealm Launcher 1.0.0 + Game 0.19.0: two settlements with eight resident NPCs, staffed shops, daily delivery quests and reputation discounts; night raids with rewards; three legendary swords with 100/130/170 base damage that scale with difficulty; new recipes and trading. Existing worlds and saves remain compatible.",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "sha256": "26954c9ad95dd898401d99eb95ba9f3620c127e7248481a157625848d6cee5b8",
+  "game_sha256": "2fe135be6ac06d5fc7e7d0ad07636b8d9092ffe6baa3cd4846421c4f1d3ec701"
 }
