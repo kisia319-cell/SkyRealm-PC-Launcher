@@ -151,3 +151,12 @@ assert.equal(gameVersion, '0.19.7', 'Game version must be bumped when a hotfix c
 assert.ok(gameHtml.includes('content="0.19.7"') && gameHtml.includes('2D SURVIVAL · 0.19.7'), 'Visible and metadata game versions must match the packaged version');
 const treeFn = game.slice(game.indexOf('function drawTree'), game.indexOf('function drawRock'));
 assert.ok(treeFn.indexOf("const snowy=") >= 0 && treeFn.indexOf("const snowy=") < treeFn.indexOf("ctx.fillStyle=snowy?"), 'Snowy tree state must be initialized before use');
+
+const drawFn = game.slice(game.indexOf('function draw(dt,time)'), game.indexOf('function placeSelectedStructure'));
+const normalWorldDraw = drawFn.slice(drawFn.indexOf('}else{'), drawFn.indexOf('for(const rock of world.rocks)'));
+assert.ok(!normalWorldDraw.includes('ЛАВКА ЛЕСНИКА') && !normalWorldDraw.includes('ЛАВКА РУДОКОПА'), 'Shops must not render in the normal world');
+assert.ok(drawFn.includes("drawTradeShop(SELL_SHOP") && drawFn.includes("drawTradeShop(BUY_SHOP"), 'Both shops must render in the trade world');
+assert.ok(game.includes("if(!tradeWorldMode){toast('Лавки лесника и рудокопа находятся в Мире торговли."), 'T must direct home players to the trade world');
+assert.ok(!game.includes('HOME_SELL_SHOP') && !game.includes('HOME_BUY_SHOP'), 'Home shop locations must not exist');
+assert.ok(game.includes("tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16)"), 'E shop interaction must be trade-world-only');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.19.8', 'Game version bumped');
