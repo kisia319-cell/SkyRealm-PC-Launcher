@@ -11,7 +11,7 @@ assert.ok(renderer.includes('i<6') && renderer.includes('i<12'), 'Each village m
 assert.ok(renderer.includes('r=124') && renderer.includes('r=222'), 'Houses must be spread around the village without excessive separation');
 assert.ok(renderer.includes("const roofs=['#2865bd','#b83d32"), 'Houses must have varied roof colors');
 assert.ok(renderer.includes('Large pitched roof') && renderer.includes('Windows, shutters'), 'Houses must have detailed roofs, windows and facades');
-assert.ok(renderer.includes('286,238'), 'Village settlement footprint must cover the larger layout');
+assert.ok(renderer.includes('Math.cos(angle)*r') && renderer.includes('Math.sin(angle)*r*.82'), 'House positions must use staggered, spaced radial coordinates');
 
 const updateStart = rendererEnd;
 const updateEnd = game.indexOf('function nearestVillageNpc()', updateStart);
@@ -22,4 +22,4 @@ assert.ok(update.includes("npc.activity==='working'?50:72"), 'Residents must mov
 assert.ok(update.includes('slot===1?48:slot===0?72:9'), 'Residents must have larger daily walking areas');
 assert.ok(game.includes('updateVillageNpcs(dt);'), 'Main game loop must update residents');
 assert.ok(game.includes("'Лука'"), 'Ordinary resident population must remain initialized');
-console.log('SkyRealm single-player village tests passed: 18 varied, spaced houses per village and active, faster residents.');
+console.log('SkyRealm single-player village tests passed: 18 varied, oriented houses per village and active, faster residents.');
