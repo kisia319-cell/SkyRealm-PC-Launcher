@@ -524,21 +524,25 @@
   function setupVillageNpcs(){villageCenters=tradeVillageLayouts().map(v=>({...v}));const specs=[];for(const v of villageCenters)v.houses.forEach((id,i)=>{const offsets=v.houses.length===1?[[0,2]]:[[-2,2],[2,2]];const o=offsets[i]||[0,4+i*2],x=(v.x+o[0])*TILE+16,y=(v.y+o[1])*TILE+22;specs.push({id,x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:specs.length*1.37,color:NPC_COLORS[id],villageId:v.id,activity:'home',scheduleSlot:-1,moveTimer:0,walkPhase:0});});const farmer=specs.find(n=>n.id==='farmer');if(farmer){farmer.x=farmer.homeX=farmer.targetX=FARMER_SHOP.x*TILE+16;farmer.y=farmer.homeY=farmer.targetY=(FARMER_SHOP.y-3)*TILE+16;farmer.activity='at market';farmer.moveTimer=0;}const names=['Артём','Ника','Марк','Лея','Тимур','Соня','Егор','Мила','Роман','Ася','Даня','Вера','Илья','Зоя','Лука'];for(let i=0;i<names.length;i++){const v=villageCenters[i%villageCenters.length],angle=(i*2.399)%(Math.PI*2),radius=78+(i%3)*26,x=v.x*TILE+16+Math.cos(angle)*radius,y=v.y*TILE+22+Math.sin(angle)*radius;specs.push({id:'citizen',name:names[i],x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:i*1.91,color:'#9ab6a2',villageId:v.id,activity:'wandering',scheduleSlot:-1,moveTimer:0,walkPhase:0});}villageNpcs=specs;}
   function drawNpcCharacter(npc,x,y,time){const v=NPC_VISUALS[npc.id]||NPC_VISUALS.merchant,step=Math.sin(time/105+npc.phase)*1.3;ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.28,1.28);ctx.fillStyle='rgba(4,10,18,.38)';ctx.beginPath();ctx.ellipse(0,14,12,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=v.pants;ctx.fillRect(-7,5+step,6,10);ctx.fillRect(1,5-step,6,10);ctx.fillStyle='#302d35';ctx.fillRect(-8,14+step,7,3);ctx.fillRect(1,14-step,7,3);ctx.fillStyle=v.coat;ctx.beginPath();ctx.roundRect(-10,-5,20,15,4);ctx.fill();ctx.fillStyle=v.trim;ctx.fillRect(-8,-3,3,7);ctx.fillRect(5,-3,3,7);ctx.fillStyle=v.trim;ctx.fillRect(-2,-4,4,12);ctx.fillRect(-8,0,3,5);ctx.fillRect(5,0,3,5);ctx.fillStyle=v.skin;ctx.fillRect(-12,-3,4,10);ctx.fillRect(8,-3,4,10);ctx.fillStyle=v.coat;ctx.fillRect(-12,4,4,4);ctx.fillRect(8,4,4,4);ctx.fillStyle=v.skin;ctx.beginPath();ctx.roundRect(-6,-20,12,13,3);ctx.fill();ctx.fillStyle=v.hair;ctx.fillRect(-7,-22,14,5);ctx.fillRect(-8,-18,3,5);ctx.fillRect(5,-18,3,5);ctx.fillStyle='#263247';ctx.fillRect(-3,-14,2,2);ctx.fillRect(2,-14,2,2);ctx.fillStyle='#fff';ctx.fillRect(-3,-15,1,1);ctx.fillRect(2,-15,1,1);ctx.fillStyle='#9b5e54';ctx.fillRect(-1,-9,3,1);ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(-5,-19,3,2);if(v.beard){ctx.fillStyle=v.beard;ctx.fillRect(-4,-9,8,4);}const hat=v.hat||v.helmet||v.hood||v.cap;if(hat){ctx.fillStyle=hat;ctx.fillRect(-9,-25,18,5);ctx.fillRect(-7,-28,14,5);}if(v.scarf){ctx.fillStyle=v.scarf;ctx.fillRect(-8,-7,16,4);}if(v.prop==='coin'){ctx.fillStyle='#ffd35a';ctx.beginPath();ctx.arc(12,-2,3,0,Math.PI*2);ctx.fill();}if(v.prop==='potion'){ctx.fillStyle='#8fe7ff';ctx.fillRect(11,-4,4,7);}if(['pickaxe','hammer','spear','staff','bow'].includes(v.prop)){ctx.strokeStyle=v.prop==='staff'?'#9beaff':'#9b774d';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(12,10);ctx.lineTo(14,-22);ctx.stroke();if(v.prop==='pickaxe'){ctx.strokeStyle='#c8d4df';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(8,-18);ctx.lineTo(19,-22);ctx.stroke();}if(v.prop==='hammer'){ctx.fillStyle='#b7c4d1';ctx.fillRect(10,-22,9,5);}if(v.prop==='spear'){ctx.fillStyle='#dce7f2';ctx.fillRect(12,-27,4,7);}if(v.prop==='staff'){ctx.fillStyle='#7deaff';ctx.shadowColor='#65dfff';ctx.shadowBlur=9;ctx.beginPath();ctx.arc(14,-23,4,0,Math.PI*2);ctx.fill();}if(v.prop==='bow'){ctx.strokeStyle='#c89b55';ctx.beginPath();ctx.arc(14,-8,8,-1.2,1.2);ctx.stroke();}}ctx.restore();}
   function drawVillageSettlements(camX,camY,time){
-    // Each settlement has its own scattered, asymmetrical street plan.
-    // Homes fill the village interior instead of forming a ring around an empty center.
-    const villagePlans={
-      forest:[[-430,-310],[-65,-390],[285,-275],[-510,-35],[-175,115],[185,-45],[455,155],[-345,350],[75,405]],
-      snow:[[-365,-390],[45,-315],[405,-245],[-490,-65],[-90,65],[315,25],[465,300],[-390,330],[5,415]],
-      desert:[[-470,-275],[-120,-405],[300,-340],[-520,90],[-210,-10],[160,135],[460,45],[-340,395],[100,355]],
-      volcano:[[-410,-400],[-35,-290],[370,-385],[-500,-70],[-160,110],[250,-45],[470,205],[-310,360],[115,420]],
-      blight:[[-480,-345],[-95,-400],[330,-265],[-420,30],[-65,120],[370,35],[500,310],[-355,390],[65,440]]
-    };
+    // Eighteen houses per village: six on a compact inner ring and twelve on a staggered outer ring.
+    // Every village gets a slight angle offset so the settlements do not look copied.
+    const seedByVillage={forest:0,snow:1,desert:2,volcano:3,blight:4};
     const roofs=['#2865bd','#b83d32','#7d4930','#477b50','#7860a9','#bd7938','#a94b48','#547e9b','#a45b36'];
     const walls=['#c79a64','#d5b27c','#a87951','#c8c0a0','#b88969','#d4c18d','#b6aa8c','#b6aa8c','#d0a36e'];
     const darks=['#543b31','#49332d','#604332','#3f4838','#43364d','#65442d','#563c37','#3b4d57','#64422f'];
     for(const c of villageCenters){
-      const coords=villagePlans[c.id]||villagePlans.forest;
-      const housePositions=coords.map((p,i)=>({x:p[0],y:p[1],style:i}));
+      const seed=seedByVillage[c.id]||0;
+      const housePositions=[];
+      for(let i=0;i<6;i++){
+        const angle=(Math.PI*2*i)/6+seed*.24;
+        const r=124+(i%2)*18;
+        housePositions.push({x:Math.cos(angle)*r,y:Math.sin(angle)*r*.82,style:i,angle,rotation:angle+Math.PI/2});
+      }
+      for(let i=0;i<12;i++){
+        const angle=(Math.PI*2*i)/12+Math.PI/12+seed*.17;
+        const r=222+(i%3)*32;
+        housePositions.push({x:Math.cos(angle)*r,y:Math.sin(angle)*r*.82,style:i+6,angle,rotation:angle+Math.PI/2});
+      }
       const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;
       if(x<-1000||x>width+1000||y<-1000||y>height+1000)continue;
       ctx.save();
@@ -558,7 +562,7 @@
       }
       for(const h of housePositions){
         const laneY=h.y<-220?-185:h.y<210?95:340;
-        const doorX=x+h.x,doorY=y+h.y+110,joinY=y+laneY;
+        const doorX=x+h.x-Math.cos(h.angle)*70,doorY=y+h.y-Math.sin(h.angle)*70,joinY=y+laneY;
         ctx.strokeStyle='#8b704c';ctx.lineWidth=20;ctx.beginPath();
         ctx.moveTo(doorX,doorY);ctx.quadraticCurveTo(doorX+((h.style%3)-1)*24,(doorY+joinY)/2,doorX,joinY);ctx.stroke();
         ctx.strokeStyle='#b19367';ctx.lineWidth=11;ctx.stroke();
@@ -598,6 +602,7 @@
         const w=92+(h.style%3)*5,bodyH=58+(h.style%2)*5;
         ctx.save();
         ctx.translate(hx,hy);
+        ctx.rotate(h.rotation);
         ctx.scale(1.32,1.32);
         // Broad, level foundations and a visible side wall give the cottage depth.
         ctx.fillStyle='#665744';ctx.fillRect(-w/2-5,5,w+10,bodyH+12);
@@ -605,7 +610,7 @@
         ctx.fillStyle=wall;ctx.fillRect(-w/2,0,w,bodyH);
         ctx.fillStyle=dark;ctx.fillRect(-w/2,0,w,6);ctx.fillRect(-w/2,bodyH-6,w,6);
         ctx.fillRect(-w/2+8,5,5,bodyH-10);ctx.fillRect(w/2-13,5,5,bodyH-10);
-        // Roof is deliberately drawn without rotation: every house faces the same way.
+        // Large pitched roof with eaves and varied ridge height keeps each cottage readable.
         ctx.fillStyle=dark;ctx.beginPath();ctx.moveTo(-w/2-15,9);ctx.lineTo(0,-43-(h.style%3)*3);ctx.lineTo(w/2+15,9);ctx.lineTo(w/2+9,25);ctx.lineTo(-w/2-9,25);ctx.closePath();ctx.fill();
         ctx.fillStyle=roof;ctx.beginPath();ctx.moveTo(-w/2-11,6);ctx.lineTo(0,-39-(h.style%3)*3);ctx.lineTo(w/2+11,6);ctx.lineTo(w/2+4,18);ctx.lineTo(-w/2-4,18);ctx.closePath();ctx.fill();
         ctx.strokeStyle='rgba(255,220,160,.38)';ctx.lineWidth=2;
@@ -617,7 +622,7 @@
         ctx.fillStyle='#8e6543';ctx.fillRect(-8,bodyH-31,16,31);
         ctx.fillStyle='#d9b879';ctx.fillRect(-8,bodyH-31,16,3);
         ctx.fillStyle='#f0cb70';ctx.beginPath();ctx.arc(5,bodyH-16,2,0,Math.PI*2);ctx.fill();
-        // Two framed glass windows with crossbars and shutters.
+        // Windows, shutters and crossbars vary with the house style.
         for(const wx of [-w*.31,w*.31]){
           ctx.fillStyle='#4b342b';ctx.fillRect(wx-10,17,20,23);
           ctx.fillStyle=(h.style%4===0)?'#f4c96e':'#80b8ca';ctx.fillRect(wx-7,20,14,17);
