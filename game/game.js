@@ -1470,7 +1470,7 @@
     if(pending.length>=20){toast('Сначала дождись обработки предыдущих действий.');return true;}
     pending.push({action_id:actionId,action_type:'mine_rock',reserved_item:null});
     try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){toast('Не удалось сохранить очередь добычи.');return true;}
-    network.enqueueWorldAction('mine_rock',{rock_index:rockIndex,tool},actionId).then(action=>{
+    network.enqueueWorldAction('mine_rock',{rock_index:rockIndex,tool,player_class:playerClass,miner_skill_level:skills.miner},actionId).then(action=>{
       if(!action?.action_id)throw new Error('Сервер не вернул ID запроса.');
       toast('Удар киркой отправлен владельцу мира.');
     }).catch(error=>{
@@ -1485,7 +1485,7 @@
   function interactFarmPlot(plot){const selected=selectedInventoryItem();
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
     if(room&&!network.isRoomOwner){
-      if(plot.stage>=3){queueGuestFarmAction(plot,'farm_harvest');return;}
+      if(plot.stage>=3){queueGuestFarmAction(plot,'farm_harvest',{player_class:playerClass,farmer_skill_level:skills.farmer,has_sickle:selected?.name==='Серп'});return;}
       if(!plot.crop){
         const crop=FARM_CROPS.find(c=>c.seed===selected?.name);
         if(!crop){toast('Выбери семена и нажми E у пустой грядки.');return;}
@@ -1908,8 +1908,10 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
           target.hp=Math.max(0,target.hp-(tool==='Кирка мастера'||tool==='Улучшенная кирка'?2:1));
           const resultPayload={};
           if(target.hp===0){
+            const minerSkill=Math.max(0,Math.min(5,Number(payload.miner_skill_level)||0));
+            const minerChance=Math.min(.6,minerSkill*.08+(payload.player_class==='miner'?0.2:0));
             resultPayload.reward_name=target.ore;
-            resultPayload.reward_amount=1;
+            resultPayload.reward_amount=Math.random()<minerChance?2:1;
             if(target.ore!=='Камень'&&target.ore!=='Кристалл'){
               resultPayload.bonus_name='Камень';resultPayload.bonus_amount=1;
             }
@@ -1968,7 +1970,9 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
           const crop=farmCropById(plot.crop);
           if(!crop||Number(plot.stage)<3){valid=false;}
           else{
-            const amount=crop.yield+(plot.fertilized?2:0)+(Math.random()<.25?1:0);
+            const farmerSkill=Math.max(0,Math.min(5,Number(payload.farmer_skill_level)||0));
+            const baseAmount=crop.yield+(plot.fertilized?2:0)+(payload.has_sickle===true?1:0)+(Math.random()<.25?1:0);
+            const amount=Math.max(1,Math.round(baseAmount*(1+farmerSkill*.08+(payload.player_class==='farmer'?0.2:0))));
             resultPayload.reward_name=crop.product;resultPayload.reward_amount=amount;
             plot.stage=0;plot.growSeconds=0;plot.crop=null;plot.moisture=0;plot.fertilized=false;
           }
