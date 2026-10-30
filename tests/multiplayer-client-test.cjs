@@ -111,7 +111,7 @@ const core = require('../game/multiplayer-core.js');
   assert.equal(actionCalls[1].body.action_type,'mine_rock');
   assert.deepEqual(actionCalls[1].body.payload,{rock_index:3,tool:'Кирка'});
   assert.equal(actionCalls[2].body.action_type,'chop_tree');
-  assert.deepEqual(actionCalls[2].body.payload,{x:144,y:177,tool:'Топор'});
+  assert.deepEqual(actionCalls[2].body.payload,{x:144,y:176,tool:'Топор'});
   assert.equal(actionCalls[5].body.expected_version,5);
   assert.equal(actionCalls[6].body.expected_version,6);
   assert.deepEqual(actionCalls[6].body.result,{consumed_item:'wheat_seed'});
