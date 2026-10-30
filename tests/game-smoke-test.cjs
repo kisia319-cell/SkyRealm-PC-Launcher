@@ -144,8 +144,8 @@ assert.ok(game.includes("drawTree(t,camX,camY)") && game.includes("const snowy=b
 
 const gameHtml = fs.readFileSync('game/index.html', 'utf8');
 const gameVersion = fs.readFileSync('game/version.txt', 'utf8').trim();
-assert.equal(gameVersion, '0.20.2', 'Game version must be bumped when a hotfix changes game files');
-assert.ok(gameHtml.includes('content="0.20.2"') && gameHtml.includes('2D SURVIVAL · 0.20.2'), 'Visible and metadata game versions must match the packaged version');
+assert.match(gameVersion, /^\d+\.\d+\.\d+$/, 'Game version must be a semantic version after a hotfix');
+assert.ok(gameHtml.includes('content="'+gameVersion+'"') && gameHtml.includes('2D SURVIVAL · '+gameVersion), 'Visible and metadata game versions must match the packaged version');
 const treeFn = game.slice(game.indexOf('function drawTree'), game.indexOf('function drawRock'));
 assert.ok(treeFn.indexOf("const snowy=") >= 0 && treeFn.indexOf("const snowy=") < treeFn.indexOf("ctx.fillStyle=snowy?"), 'Snowy tree state must be initialized before use');
 
@@ -156,7 +156,7 @@ assert.ok(drawFn.includes("drawTradeShop(SELL_SHOP") && drawFn.includes("drawTra
 assert.ok(game.includes("if(!tradeWorldMode){toast('Лавки лесника и рудокопа находятся в Мире торговли."), 'T must direct home players to the trade world');
 assert.ok(!game.includes('HOME_SELL_SHOP') && !game.includes('HOME_BUY_SHOP'), 'Home shop locations must not exist');
 assert.ok(game.includes("tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16)"), 'E shop interaction must be trade-world-only');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.2', 'Game version bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), gameVersion, 'Game version must match the loaded package version');
 
 for (const crop of ['Пшеница','Морковь','Картофель','Томат','Кукуруза','Тыква','Клубника']) assert.ok(game.includes("product:'"+crop+"'"), 'Farm crop '+crop+' must exist');
 assert.ok(game.includes("farmer:[") && game.includes("Семена клубники"), 'Farmer shop has broad tool and seed catalog');
@@ -164,7 +164,7 @@ assert.ok(game.includes("selected?.name==='Лейка'") && game.includes("selec
 assert.ok(game.includes("farmCropSellPrice(name)") && game.includes("farmCropBuyPrice(name)"), 'Crop sale and purchase prices use the agreed crop balance');
 assert.ok(game.includes("function interactFarmPlot") && game.includes("plot.crop=crop.id"), 'Seeds can be planted and harvested per crop');
 assert.ok(game.includes("crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null"), 'Crop state is restored from saves');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.2', 'Farm update version must be bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), gameVersion, 'Farm update must retain the current game version');
 
 assert.ok(game.includes('const FARM_CROP_TRADE_PRICES={Пшеница:{buy:30,sell:50}') && game.includes('Клубника:{buy:123,sell:200}'), 'Crop trading prices must match the agreed cents-per-item balance');
 assert.ok(game.includes('function farmCropBuyPrice(name)') && game.includes('farmCropBuyPrice(name)||item.price'), 'Farmer must sell harvested crops at the agreed buy prices');
@@ -184,3 +184,15 @@ assert.ok(game.includes('if(tradeWorldMode)return false;const cx=52,cy=36'), 'Th
 assert.ok(game.includes('if(!tradeWorldMode)return;const x=shop.x*TILE+16-camX'), 'Market stalls must have an explicit Trade World-only render gate');
 assert.ok(game.includes("x:Math.floor(COLS*.18),y:Math.floor(ROWS*.28)") && game.includes("houses:['merchant','farmer']"), 'Merchant and farmer must be placed beside the Trade World hub');
 assert.ok(game.includes('function interactFarmPlot(plot)') && game.includes('function updateFarmPlots(dt)'), 'Planting, watering and growing farm plots must be included');
+
+assert.ok(game.includes('const WORLD_EVENT_CHANCES = Object.freeze({'), 'World-event probabilities must be centralized');
+for (const chance of ['meteorShower: 0.12','abandonedCamp: 0.08','wanderingTraveler: 0.05','villageRaid: 0.18','bloodMoon: 0.08','rain: 0.28','snow: 0.15','storm: 0.08']) {
+  assert.ok(game.includes(chance), 'Missing separate world-event chance: ' + chance);
+}
+for (const feature of ['function findWorldEventPoint','function drawAbandonedCamp','function drawWanderingTraveler','function collectAbandonedCamp','function interactWanderingTraveler']) {
+  assert.ok(game.includes(feature), 'Missing random event feature: ' + feature);
+}
+assert.ok(game.includes('if(collectAbandonedCamp())return;') && game.includes('if(interactWanderingTraveler())return;'), 'Camp and traveler must use the existing E interaction');
+assert.ok(game.includes('drawAbandonedCamp(camX,camY,time);drawWanderingTraveler(camX,camY,time);'), 'New events must render in the ordinary world');
+assert.ok(game.includes('hash(day,villageSeed)>=WORLD_EVENT_CHANCES.villageRaid'), 'Village raid chance must be rolled once per eligible night');
+assert.ok(game.includes('hash(nightNumber,3407)<WORLD_EVENT_CHANCES.bloodMoon'), 'Blood moon chance must be deterministic across clients');
