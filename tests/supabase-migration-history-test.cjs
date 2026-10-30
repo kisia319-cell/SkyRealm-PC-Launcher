@@ -23,7 +23,9 @@ const expected = [
   '20261030070348_co_op_extended_world_chest_claims.sql',
   '20261030071818_co_op_guest_world_action_queue.sql',
   '20261030071834_co_op_guest_world_action_rls_policies.sql',
-  '20261030073436_co_op_world_action_room_uuid_unique.sql'
+  '20261030073436_co_op_world_action_room_uuid_unique.sql',
+  '20261030074001_co_op_guest_farm_actions.sql',
+  '20261030075039_co_op_world_action_processed_by_idx.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
@@ -42,4 +44,6 @@ assert.ok(read(expected[16]).includes('enqueue_co_op_world_action'));
 assert.ok(read(expected[16]).includes('commit_co_op_world_action'));
 assert.ok(read(expected[17]).includes('co-op service role manages world actions'));
 assert.ok(read(expected[18]).includes('co_op_world_actions_room_action_uidx'));
+assert.ok(read(expected[19]).includes('commit_co_op_farm_action'));
+assert.ok(read(expected[20]).includes('co_op_world_action_processed_by_idx'));
 console.log('SkyRealm Supabase migration history tests passed.');
