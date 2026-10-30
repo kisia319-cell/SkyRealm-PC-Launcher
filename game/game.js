@@ -512,15 +512,20 @@
   function drawVillageSettlements(camX,camY,time){const pal={forest:['#79543a','#bd8957','#513c34'],snow:['#526b7d','#9fb9c5','#344a60'],desert:['#a47a48','#d9b36d','#755236'],volcano:['#4e3937','#8c4d3b','#30282d'],blight:['#46503d','#788451','#343d32']};for(const c of villageCenters){const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;if(x<-260||x>width+260||y<-190||y>height+190)continue;const p=pal[c.biome]||pal.forest;ctx.save();ctx.fillStyle='rgba(5,12,18,.28)';ctx.beginPath();ctx.ellipse(x,y+44,118,45,0,0,Math.PI*2);ctx.fill();const homes=c.houses.length===1?[{x:-48,y:-24},{x:48,y:-20}]:[{x:-60,y:-25},{x:60,y:-22},{x:0,y:45}];for(const h of homes){ctx.fillStyle=p[0];ctx.fillRect(x+h.x-22,y+h.y-2,44,34);ctx.fillStyle=p[1];ctx.fillRect(x+h.x-18,y+h.y+2,36,27);ctx.fillStyle=p[2];ctx.beginPath();ctx.moveTo(x+h.x-29,y+h.y+2);ctx.lineTo(x+h.x,y+h.y-22);ctx.lineTo(x+h.x+29,y+h.y+2);ctx.closePath();ctx.fill();ctx.fillStyle='#e8c98c';ctx.fillRect(x+h.x-4,y+h.y+13,8,16);ctx.fillStyle='#b6d9e9';ctx.fillRect(x+h.x-15,y+h.y+10,7,7);}ctx.fillStyle='#f2e6c9';ctx.font='900 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#07111d';ctx.shadowBlur=6;ctx.fillText(c.name,x,y-77);ctx.restore();}for(const npc of villageNpcs){const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-55||x>width+55||y<-90||y>height+80)continue;drawNpcCharacter(npc,x,y,time);ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(npc.id==='citizen'?(npc.name+' · ЖИТЕЛЬ'):(NPC_NAMES[npc.id]+' · '+NPC_LABELS[npc.id]),x,y-34);ctx.fillStyle='#d9eaff';ctx.font='bold 8px Segoe UI';ctx.fillText('E · ЗАДАНИЕ   T · ЛАВКА',x,y+29);ctx.restore();}}
 
   function drawVillageSettlements(camX,camY,time){
+    const housePositions=[
+      {x:-112,y:-100},{x:0,y:-100},{x:112,y:-100},
+      {x:-112,y:0},{x:0,y:0},{x:112,y:0},
+      {x:-112,y:100},{x:0,y:100},{x:112,y:100}
+    ];
     for(const c of villageCenters){
-      const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;if(x<-240||x>width+240||y<-180||y>height+180)continue;
-      ctx.save();ctx.fillStyle='rgba(8,24,22,.24)';ctx.beginPath();ctx.ellipse(x,y+40,150,62,0,0,Math.PI*2);ctx.fill();
-      for(const h of [{x:-112,y:-72},{x:0,y:-86},{x:112,y:-70},{x:-112,y:54},{x:0,y:68},{x:112,y:54}]){
+      const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;if(x<-240||x>width+240||y<-220||y>height+220)continue;
+      ctx.save();ctx.fillStyle='rgba(8,24,22,.24)';ctx.beginPath();ctx.ellipse(x,y+8,166,132,0,0,Math.PI*2);ctx.fill();
+      for(const h of housePositions){
         ctx.fillStyle='#73513b';ctx.fillRect(x+h.x-25,y+h.y,50,40);ctx.fillStyle='#a8754d';ctx.fillRect(x+h.x-21,y+h.y+5,42,32);
         ctx.fillStyle='#583b39';ctx.beginPath();ctx.moveTo(x+h.x-31,y+h.y+4);ctx.lineTo(x+h.x,y+h.y-20);ctx.lineTo(x+h.x+31,y+h.y+4);ctx.closePath();ctx.fill();
         ctx.fillStyle='#e4c17c';ctx.fillRect(x+h.x-5,y+h.y+18,10,19);
       }
-      ctx.fillStyle='#e6d5ad';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=5;ctx.fillText(c.name,x,y-102);ctx.restore();
+      ctx.fillStyle='#e6d5ad';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=5;ctx.fillText(c.name,x,y-150);ctx.restore();
     }
     for(const npc of villageNpcs){
       const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-75||x>width+75||y<-100||y>height+80)continue;
@@ -530,13 +535,13 @@
     }
   }
   function updateVillageNpcs(dt){
-    if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
+    if(inHouse||mineMode||caveMode||dungeonMode)return;
     const minute=minuteOfDay(),night=minute>=21*60||minute<6*60,working=minute>=8*60&&minute<18*60;
     for(const npc of villageNpcs){
       const slot=night?2:working?1:0;
       if(npc.scheduleSlot!==slot||npc.moveTimer<=0){
         npc.scheduleSlot=slot;
-        const radius=slot===1?24:slot===0?42:9;
+        const radius=slot===1?48:slot===0?72:9;
         const angle=(npc.phase+(slot===1?1.2:slot===0?2.7:0))% (Math.PI*2);
         const distance=slot===2?0:radius*(.35+Math.random()*.65);
         npc.targetX=npc.homeX+Math.cos(angle)*distance;
@@ -547,7 +552,7 @@
       npc.moveTimer-=dt;
       const dx=npc.targetX-npc.x,dy=npc.targetY-npc.y,distance=Math.hypot(dx,dy);
       if(distance>2){
-        const step=Math.min(distance,dt*(npc.activity==='working'?24:34));
+        const step=Math.min(distance,dt*(npc.activity==='working'?50:72));
         const nx=npc.x+dx/distance*step,ny=npc.y+dy/distance*step;
         if(!blocked(nx,ny)){npc.x=nx;npc.y=ny;}
         else {npc.targetX=npc.homeX+(Math.random()-.5)*12;npc.targetY=npc.homeY+(Math.random()-.5)*12;npc.moveTimer=0;}

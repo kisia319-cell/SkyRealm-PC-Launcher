@@ -1,7 +1,7 @@
 name: Publish co-op preview for launcher
 on:
   push:
-    branches: [feature/co-op-foundation]
+    branches: [main]
     paths:
       - "game/**"
       - ".github/workflows/publish-coop-preview.yml"
@@ -11,14 +11,14 @@ jobs:
   build-and-publish-preview:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout co-op branch
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: feature/co-op-foundation
+          ref: main
           fetch-depth: 0
       - name: Validate game package
         run: |
-          test "$(tr -d '\r\n' < game/version.txt)" = "0.20.9"
+          test "$(tr -d '\r\n' < game/version.txt)" = "0.20.10"
           test -f game/index.html
           test -f game/game.js
           node --check game/game.js
@@ -30,12 +30,12 @@ jobs:
           cd ..
           HASH="$(sha256sum SkyRealm_Game.zip | cut -d ' ' -f 1)"
           echo "sha256=$HASH" >> "$GITHUB_OUTPUT"
-          echo "tag=coop-preview-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "tag=singleplayer-village-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
       - name: Publish preview release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.package.outputs.tag }}
-          name: SkyRealm 0.20.9 Update
+          name: SkyRealm 0.20.10 Update
           prerelease: true
           token: ${{ github.token }}
           generate_release_notes: true
@@ -53,10 +53,10 @@ jobs:
           from pathlib import Path
           path = Path("manifest.json")
           manifest = json.loads(path.read_text(encoding="utf-8"))
-          manifest["game_version"] = "0.20.9"
+          manifest["game_version"] = "0.20.10"
           manifest["game_download_url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
           manifest["game_sha256"] = os.environ["GAME_SHA256"]
-          manifest["notes"] = "SkyRealm 0.20.9: expanded villages, ordinary residents, six selectable free classes with bonuses, and FPS Boost. Class bonuses are wired for solo and supported co-op actions. Co-op remains a preview and still needs multi-client end-to-end testing."
+          manifest["notes"] = "SkyRealm 0.20.10: nine houses in each of five villages, faster ordinary residents in single-player and Trade World. Existing worlds and saves remain compatible. Co-op remains a preview."
           path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
           git config user.name "github-actions[bot]"

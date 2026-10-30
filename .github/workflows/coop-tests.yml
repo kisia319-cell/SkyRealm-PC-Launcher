@@ -19,6 +19,7 @@ jobs:
       - run: node tests/multiplayer-client-test.cjs
       - run: node tests/supabase-migration-history-test.cjs
       - run: node tests/coop-ui-integration-test.cjs
+      - run: node tests/singleplayer-village-test.cjs
       - run: node --check game/multiplayer-core.js
       - run: node --check game/multiplayer-client.js
       - run: node --check game/multiplayer-ui.js
