@@ -1796,7 +1796,11 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
           const rockIndex=Number(payload.rock_index),tool=payload.tool;
           const target=Number.isSafeInteger(rockIndex)?mineRocks[rockIndex]:null;
           const actor=(network.getRemotePlayers?.()||[]).find(other=>other.user_id===action.actor_id);
-          if(!actor||Date.now()-(actor.received_at||0)>1800)continue;
+          const actionAge=Date.now()-Date.parse(action.created_at||'');
+          if(!actor||Date.now()-(actor.received_at||0)>1800){
+            if(Number.isFinite(actionAge)&&actionAge>10000){try{await network.rejectWorldAction(action.action_id,'player_position_timeout');}catch(_){}}
+            continue;
+          }
           const allowedTools=['Кирка','Улучшенная кирка','Кирка мастера'];
           const actorX=Number(actor.x)*width,actorY=Number(actor.y)*height;
           const targetPosition=target?mineRockScreenPosition(target):null;
@@ -1930,7 +1934,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
           }else if(status?.status==='rejected'){
             const reserved=receipt.reserved_item||receipt.item_name;
             if(reserved)changeItem(reserved,1);
-            saveGame();renderInventory();toast('Владелец отклонил действие. Предмет возвращён.');
+            saveGame();renderInventory();toast(reserved?'Владелец отклонил действие. Предмет возвращён.':'Действие в общем мире отклонено. Попробуй ещё раз.');
           }else remaining.push(receipt);
         }catch(error){
           if(error?.code==='WORLD_ACTION_NOT_FOUND'){
@@ -2274,7 +2278,10 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     inMainMenu=false;paused=true;settingsOpenedFromMainMenu=false;keys.clear();canvas.focus();last=performance.now();openCharacterEditor(true);renderWorldList();
   }
   function returnToMainMenu(){
-    if(currentWorldId)saveGame();inMainMenu=true;paused=true;keys.clear();document.getElementById('main-menu-shade').hidden=false;document.getElementById('main-menu-shade').setAttribute('aria-hidden','false');document.getElementById('pause-shade').hidden=true;document.getElementById('pause-settings-view').hidden=true;document.getElementById('pause-main-view').hidden=false;renderWorldList();drawMinimap();
+    if(currentWorldId)saveGame();
+    const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
+    if(network?.isRoomOwner&&room?.status==='running')network.pauseRoom().catch(error=>console.warn('[SkyRealm co-op host pause]',error));
+    inMainMenu=true;paused=true;keys.clear();document.getElementById('main-menu-shade').hidden=false;document.getElementById('main-menu-shade').setAttribute('aria-hidden','false');document.getElementById('pause-shade').hidden=true;document.getElementById('pause-settings-view').hidden=true;document.getElementById('pause-main-view').hidden=false;renderWorldList();drawMinimap();
   }
   function openSettingsFromMainMenu(){
     settingsOpenedFromMainMenu=true;paused=true;keys.clear();document.getElementById('pause-shade').hidden=false;document.getElementById('pause-main-view').hidden=true;document.getElementById('pause-settings-view').hidden=false;syncSettingsControls();
