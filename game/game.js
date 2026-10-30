@@ -101,7 +101,7 @@
   const PLAYER_CLASSES={swordsman:{name:'Мечник',icon:'⚔️',desc:'Мечи создаются на 20% дешевле, урон мечей +10%.'},farmer:{name:'Фермер',icon:'🌾',desc:'Урожай с грядок +20%, фермерские товары дешевле на 10%.'},ordinary:{name:'Обычный',icon:'🧭',desc:'Сбалансированный класс без штрафов и +5% к опыту.'},archer:{name:'Лучник',icon:'🏹',desc:'Урон копья +20%, скорость передвижения +5%.'},mage:{name:'Маг',icon:'🔮',desc:'Урон ледяного посоха +20%.'},miner:{name:'Шахтёр',icon:'⛏️',desc:'Кирки создаются на 15% дешевле, шанс дополнительной руды +20%.'},rich:{name:'Богач',icon:'💰',desc:'Платный класс · 150 ₽. Оплата пока не подключена.',price:150,locked:true}};
   let playerClass='ordinary';try{const savedClass=localStorage.getItem('skyrealm_player_class_v1');if(savedClass&&PLAYER_CLASSES[savedClass]&&!PLAYER_CLASSES[savedClass].locked)playerClass=savedClass;}catch(_){}
   function classHas(id){return playerClass===id;}
-  function classCraftCost(name,amount){const sword=['Железный меч','Огненный меч','Стальной меч','Меч титана','Меч дракона','Меч пустоты'].includes(name);const pick=['Улучшенная кирка','Кирка мастера'].includes(name);const discount=classHas('swordsman')&&sword?.8:classHas('miner')&&pick?.85:1;return Math.max(1,Math.ceil(amount*discount));}
+  function classCraftCost(name,amount){const sword=['Железный меч','Огненный меч','Стальной меч','Меч титана','Меч дракона','Меч пустоты'].includes(name);const pick=['Улучшенная кирка','Кирка мастера'].includes(name);const discount=(classHas('swordsman')&&sword)?0.8:(classHas('miner')&&pick)?0.85:1;return Math.max(1,Math.ceil(amount*discount));}
   let adventureQuestProgress={hunt:0,mining:0,harvest:0};
   let activeStorageStructure=null, storageDialogOpen=false, avatarEntryMode=false;
   let playerLevel=1, playerXP=0, dodgeTimer=0, dodgeCooldown=0, dodgeVX=0, dodgeVY=0, dodgeFacing='down';
@@ -405,7 +405,7 @@
   function drawSign(s,camX,camY){const x=s.x-camX,y=s.y-camY;ctx.fillStyle='#533c2b';ctx.fillRect(x-3,y-4,6,25);ctx.fillStyle='#9d7547';ctx.fillRect(x-15,y-13,30,15);ctx.fillStyle='#dec08b';ctx.fillRect(x-12,y-10,24,9);ctx.fillStyle='#806447';ctx.fillRect(x-7,y-7,13,2);ctx.fillRect(x-4,y-3,8,2);}
   function xpForNextLevel(level=playerLevel){return 100+Math.max(0,level-1)*75;}
   function awardXP(amount,reason=''){
-    const gained=Math.max(0,Math.floor((Number(amount)||0)*(1+skills.crafter*.05)));if(!gained)return;playerXP+=gained;let leveled=false;
+    const gained=Math.max(0,Math.floor((Number(amount)||0)*(1+skills.crafter*.05+(classHas('ordinary')?.05:0))));if(!gained)return;playerXP+=gained;let leveled=false;
     while(playerXP>=xpForNextLevel()){playerXP-=xpForNextLevel();playerLevel++;skillPoints++;leveled=true;player.hp=Math.min(100,player.hp+8);player.stamina=Math.min(100,player.stamina+12);}
     updateProgressHud();if(leveled){updateVitals();spawnVisualBurst(player.x,player.y,24,'spark','#8be9ff');playSound('craft');toast('НОВЫЙ УРОВЕНЬ '+playerLevel+'! +8 здоровья и +12 выносливости.');}else if(reason)toast('+'+gained+' опыта · '+reason);saveGame();
   }
@@ -1495,7 +1495,7 @@
       if(selected?.name==='Компост'){queueGuestFarmAction(plot,'farm_compost',{},'Компост');return;}
       if(selected?.name==='Удобрение'){queueGuestFarmAction(plot,'farm_fertilize',{},'Удобрение');return;}
       toast('Выбери лейку, компост или удобрение для этой грядки.');return;
-    }if(plot.stage>=3){const crop=farmCropById(plot.crop),product=crop?crop.product:'Урожай',amount=Math.max(1,Math.floor(((crop?crop.yield:3)+(plot.fertilized?2:0)+(selected?.name==='Серп'?1:0)+(Math.random()<.25?1:0))*(1+skills.farmer*.08)));changeItem(product,amount);plot.stage=0;plot.growSeconds=0;plot.crop=null;plot.moisture=0;plot.fertilized=false;trackAdventureQuest('harvest',1);spawnVisualBurst(plot.x,plot.y,12,'leaf','#e5c85c');renderInventory();saveGame();playSound('coin');toast('Собрано: '+product+' ×'+amount+'. Грядка свободна.');return;}
+    }if(plot.stage>=3){const crop=farmCropById(plot.crop),product=crop?crop.product:'Урожай',amount=Math.max(1,Math.floor(((crop?crop.yield:3)+(plot.fertilized?2:0)+(selected?.name==='Серп'?1:0)+(Math.random()<.25?1:0))*(1+skills.farmer*.08+(classHas('farmer')?.2:0))));changeItem(product,amount);plot.stage=0;plot.growSeconds=0;plot.crop=null;plot.moisture=0;plot.fertilized=false;trackAdventureQuest('harvest',1);spawnVisualBurst(plot.x,plot.y,12,'leaf','#e5c85c');renderInventory();saveGame();playSound('coin');toast('Собрано: '+product+' ×'+amount+'. Грядка свободна.');return;}
     if(!plot.crop){const crop=FARM_CROPS.find(c=>c.seed===selected?.name);if(!crop){toast('Выбери семена и нажми E у пустой грядки.');return;}changeItem(crop.seed,-1);plot.crop=crop.id;plot.stage=0;plot.growSeconds=0;plot.moisture=0;plot.fertilized=false;renderInventory();saveGame();playSound('craft');toast('Посажено: '+crop.product+'. Полей грядку лейкой.');return;}
     if(selected?.name==='Лейка'){plot.moisture=Math.min(100,(Number(plot.moisture)||0)+65);saveGame();playSound('water');toast('Грядка полита: '+Math.round(plot.moisture)+'% влаги.');return;}
     if(selected?.name==='Компост'){if(!changeItem('Компост',-1))return;plot.growSeconds=(plot.growSeconds||0)+(farmCropById(plot.crop)?.growth||70)*.25;plot.moisture=Math.max(plot.moisture||0,25);renderInventory();saveGame();toast('Компост ускорил рост на 25%.');return;}
@@ -2441,6 +2441,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;if(paused){keys.clear();showPauseMain();}else{keys.clear();canvas.focus();}}
   function syncSettingsControls(){
     document.getElementById('game-quality-select').value=gameSettings.graphicsQuality;
+    const performanceSelect=document.getElementById('game-performance-select');if(performanceSelect)performanceSelect.value=gameSettings.performanceMode;
     document.getElementById('game-resolution-select').value=gameSettings.resolution;
     document.getElementById('game-window-mode-select').value=gameSettings.windowMode;
     document.getElementById('game-ui-scale-select').value=gameSettings.uiScale;
@@ -2490,6 +2491,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     gameSettings=normalizeGameSettings({
       ...gameSettings,
       graphicsQuality:document.getElementById('game-quality-select').value,
+      performanceMode:document.getElementById('game-performance-select')?.value||'balanced',
       resolution:document.getElementById('game-resolution-select').value,
       windowMode:document.getElementById('game-window-mode-select').value,
       uiScale:document.getElementById('game-ui-scale-select').value,
@@ -2639,7 +2641,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   const avatarShade=document.getElementById('character-editor-shade');
   function syncAvatarPreview(){const doll=document.getElementById('avatar-doll');if(!doll)return;doll.style.setProperty('--skin',document.getElementById('avatar-skin').value);doll.style.setProperty('--hair',document.getElementById('avatar-hair').value);doll.style.setProperty('--armor',document.getElementById('avatar-armor').value);doll.style.setProperty('--accent',document.getElementById('avatar-accent').value);doll.style.setProperty('--eye',document.getElementById('avatar-eye').value);doll.dataset.face=document.getElementById('avatar-face').value;doll.dataset.hair=document.getElementById('avatar-hairStyle').value;}
   function openCharacterEditor(onEntry=false){avatarEntryMode=!!onEntry;if(avatarEntryMode){paused=true;keys.clear();}for(const k of Object.keys(DEFAULT_PLAYER_APPEARANCE)){const el=document.getElementById('avatar-'+k);if(el)el.value=playerAppearance[k]||DEFAULT_PLAYER_APPEARANCE[k];}syncAvatarPreview();const title=document.getElementById('character-editor-title'),desc=avatarShade.querySelector('p'),save=document.getElementById('avatar-save'),close=document.getElementById('avatar-close');if(avatarEntryMode){title.textContent='Настрой персонажа перед путешествием';desc.textContent='Перед входом в мир выбери скин. Образ можно будет изменить позже через меню персонажа.';save.textContent='Сохранить и войти в мир';close.textContent='Войти без изменений';}else{title.textContent='Редактор персонажа';desc.textContent='Настрой внешний вид героя. Изменения сохраняются на этом компьютере и применяются во всех мирах.';save.textContent='Сохранить образ';close.textContent='Закрыть';}avatarShade.hidden=false;avatarShade.setAttribute('aria-hidden','false');}
-  function finishCharacterEditor(saveChanges){if(saveChanges){for(const k of Object.keys(DEFAULT_PLAYER_APPEARANCE))playerAppearance[k]=document.getElementById('avatar-'+k).value;localStorage.setItem('skyrealm_character_v1',JSON.stringify(playerAppearance));saveGame();draw(0,performance.now());}avatarShade.hidden=true;avatarShade.setAttribute('aria-hidden','true');const wasEntry=avatarEntryMode;avatarEntryMode=false;if(wasEntry){paused=false;last=performance.now();canvas.focus();if(!localStorage.getItem('skyrealm_tutorial_seen_v1'))setTimeout(()=>{if(!inMainMenu&&!paused)openTutorial();},220);}if(saveChanges)toast('Образ персонажа сохранён!');}
+  function finishCharacterEditor(saveChanges){if(saveChanges){for(const k of Object.keys(DEFAULT_PLAYER_APPEARANCE))playerAppearance[k]=document.getElementById('avatar-'+k).value;localStorage.setItem('skyrealm_character_v1',JSON.stringify(playerAppearance));saveGame();draw(0,performance.now());}avatarShade.hidden=true;avatarShade.setAttribute('aria-hidden','true');const wasEntry=avatarEntryMode;avatarEntryMode=false;if(wasEntry){paused=false;last=performance.now();canvas.focus();if(!localStorage.getItem('skyrealm_tutorial_seen_v1'))setTimeout(()=>{if(!inMainMenu&&!paused)openTutorial();},220);else if(!localStorage.getItem('skyrealm_player_class_v1'))setTimeout(()=>{if(!inMainMenu&&!paused)openClassSelection(true);},300);}if(saveChanges)toast('Образ персонажа сохранён!');}
   ['skin','hair','armor','accent','eye','face','hairStyle'].forEach(k=>document.getElementById('avatar-'+k).addEventListener('change',syncAvatarPreview));
   document.getElementById('menu-character').addEventListener('click',()=>openCharacterEditor(false));
   document.getElementById('inventory-tab-equipment').addEventListener('click',()=>{inventoryTab='equipment';renderInventoryTab();});
@@ -2692,7 +2694,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     document.getElementById('graphics-settings-panel').hidden=btn.dataset.settingsTab!=='graphics';
     document.getElementById('interface-settings-panel').hidden=btn.dataset.settingsTab!=='interface';
   }));
-  ['game-quality-select','game-resolution-select','game-window-mode-select','game-ui-scale-select','show-vitals-toggle','show-quest-toggle','show-controls-toggle','show-inventory-toggle','show-minimap-toggle','hud-layout-select'].forEach(id=>document.getElementById(id).addEventListener('change',()=>applyAndSaveSettings(false)));
+  ['game-quality-select','game-performance-select','game-resolution-select','game-window-mode-select','game-ui-scale-select','show-vitals-toggle','show-quest-toggle','show-controls-toggle','show-inventory-toggle','show-minimap-toggle','hud-layout-select'].forEach(id=>document.getElementById(id).addEventListener('change',()=>applyAndSaveSettings(false)));
   document.getElementById('apply-game-settings').addEventListener('click',()=>applyAndSaveSettings(true));
   document.getElementById('toggle-hud-move').addEventListener('click',()=>{if(!hudMoveMode){setHudMoveMode(true);document.getElementById('pause-shade').hidden=true;paused=false;keys.clear();canvas.focus();}else finishHudMoveMode();});
   document.getElementById('save-world-now').addEventListener('click',()=>{if(saveGame())toast('Мир успешно сохранён.');});
