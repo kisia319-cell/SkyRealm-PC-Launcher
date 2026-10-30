@@ -1,9 +1,9 @@
 {
-  "game_version": "0.20.8",
+  "game_version": "0.20.9",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "sha256": "e43f9fb8048e324f1fc8b733c7edef972f00db2c5922a7c1c22e4801339fa534",
-  "game_sha256": "b2b7b44cd46e83e41762126f7937ca64946139f75d47354be4a67e9a1a706e68",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-d72a58c/SkyRealm_Game.zip",
-  "notes": "SkyRealm 0.20.8 Co-op Preview: up to 8 players, invite-code rooms, shared death, owner pause, PvP toggle, and six character skill branches. Preview build; some multiplayer systems still require end-to-end validation.",
+  "game_sha256": "ff321bf53851e70c326fea596634e89f4206571929d356a4b55dfeee94dc8974",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-a0fbf22/SkyRealm_Game.zip",
+  "notes": "SkyRealm 0.20.9: expanded villages, ordinary residents, six selectable free classes with bonuses, and FPS Boost. Class bonuses are wired for solo and supported co-op actions. Co-op remains a preview and still needs multi-client end-to-end testing.",
   "version": "1.0.2"
 }
