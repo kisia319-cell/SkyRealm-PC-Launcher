@@ -5,6 +5,14 @@ const core = require('../game/multiplayer-core.js');
 
 (async () => {
   const calls = [];
+  const broadcastHandlers=[];
+  const fakeChannel={
+    on(type,filter,handler){if(type==='broadcast')broadcastHandlers.push(handler);return this;},
+    subscribe(callback){queueMicrotask(()=>callback('SUBSCRIBED'));return this;},
+    track:async()=>{},
+    send:async(message)=>{calls.push({realtime:message});return 'ok';}
+  };
+  const fakeSupabase={createClient:()=>({realtime:{setAuth:async()=>{}},channel:()=>fakeChannel,removeChannel:async()=>{}})};
   const roomId = '123e4567-e89b-12d3-a456-426614174000';
   const sandbox = {
     Map, URL, Promise, setTimeout, clearTimeout, console,
@@ -15,6 +23,7 @@ const core = require('../game/multiplayer-core.js');
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   sandbox.SkyRealmMultiplayerCore = core;
+  sandbox.supabase=fakeSupabase;
   sandbox.fetch = async (url, options = {}) => {
     const route = new URL(String(url)).searchParams.get('route');
     const body = options.body ? JSON.parse(options.body) : null;
@@ -23,7 +32,7 @@ const core = require('../game/multiplayer-core.js');
     if (route === '/api/coop/current') {
       payload = {
         user_id: 'user-1',
-        room: { id: roomId, owner_id: 'user-1', status: 'running', world_difficulty: 'medium' }
+        room: { id: roomId, owner_id: 'user-1', status: 'running', world_difficulty: 'medium', pvp_enabled: true }
       };
     } else if (route === '/api/coop/snapshot/get') {
       payload = { snapshot: { room_id: roomId, version: 4, payload: { placedStructures: [] } } };
@@ -33,6 +42,7 @@ const core = require('../game/multiplayer-core.js');
     else if(route==='/api/coop/actions/pending') payload={actions:[{action_id:'123e4567-e89b-42d3-a456-426614174099',action_type:'place_structure',payload:{type:'torch',x:112,y:144}}]};
     else if(route==='/api/coop/actions/status') payload={action:{action_id:body.action_id,status:'applied',result:{reward_name:'Пшеница',reward_amount:4}}};
     else if(route==='/api/coop/actions/commit') payload={result:{action_id:body.action_id,status:'applied',version:6}};
+    else if(route==='/api/coop/actions/commit-farm') payload={result:{action_id:body.action_id,status:'applied',version:7,result:body.result}};
     else if(route==='/api/coop/actions/reject') payload={result:{action_id:body.action_id,status:'rejected'}};
     else if (route === '/api/coop/claim') {
       payload = { claim: { claimed: true, room_id: roomId, object_kind: 'treasure_chest', object_id: 'forest' } };
@@ -49,6 +59,7 @@ const core = require('../game/multiplayer-core.js');
   assert.ok(client, 'Co-op client must initialize');
   await client.current();
   assert.equal(client.isRoomOwner, true);
+  assert.equal(client.getRoomState().pvp_enabled,true,'Room state must expose the owner PvP toggle.');
 
   const snapshot = await client.getWorldSnapshot();
   assert.equal(snapshot.version, 4);
@@ -80,13 +91,24 @@ const core = require('../game/multiplayer-core.js');
   assert.deepEqual(status.result,{reward_name:'Пшеница',reward_amount:4},'Guest action receipt must include the committed reward payload');
   const commit=await client.commitWorldAction('123e4567-e89b-42d3-a456-426614174099',{placedStructures:[{type:'torch',x:112,y:144}]});
   assert.equal(commit.version,6);
+  const farmCommit=await client.commitFarmAction('123e4567-e89b-42d3-a456-426614174099',{farmCrops:[]},{consumed_item:'wheat_seed'});
+  assert.equal(farmCommit.version,7,'Farm actions must use the dedicated backend commit route.');
   const rejected=await client.rejectWorldAction('123e4567-e89b-42d3-a456-426614174099','invalid');
   assert.equal(rejected.status,'rejected');
   const actionCalls=calls.filter(call=>call.route.startsWith('/api/coop/actions/'));
-  assert.deepEqual(actionCalls.map(call=>call.route),['/api/coop/actions/enqueue','/api/coop/actions/pending','/api/coop/actions/status','/api/coop/actions/commit','/api/coop/actions/reject']);
+  assert.deepEqual(actionCalls.map(call=>call.route),['/api/coop/actions/enqueue','/api/coop/actions/pending','/api/coop/actions/status','/api/coop/actions/commit','/api/coop/actions/commit-farm','/api/coop/actions/reject']);
   assert.equal(actionCalls[0].body.action_id,'123e4567-e89b-42d3-a456-426614174099');
   assert.equal(actionCalls[3].body.expected_version,5);
+  assert.equal(actionCalls[4].body.expected_version,6);
+  assert.deepEqual(actionCalls[4].body.result,{consumed_item:'wheat_seed'});
   assert.equal(actionCalls.every(call=>call.headers.Authorization==='Bearer test-access-token'),true);
+  await client.connectRealtime(await client.current());
+  assert.equal(await client.sendPvpHit('user-2',15),true,'Enabled PvP must send a hit to the private room channel.');
+  const pvpSend=calls.find(call=>call.realtime?.payload?.kind==='player-hit');
+  assert.deepEqual(pvpSend.realtime.payload,{kind:'player-hit',attacker_user_id:'user-1',target_user_id:'user-2',damage:15});
+  broadcastHandlers[0]({payload:{kind:'player-hit',attacker_user_id:'user-2',target_user_id:'user-1',damage:15}});
+  assert.deepEqual(client.drainPvpHits().map(hit=>({attacker_user_id:hit.attacker_user_id,damage:hit.damage})),[{attacker_user_id:'user-2',damage:15}]);
+  await client.disconnectRealtime();
 
   const claim = await client.claimWorldObject('treasure_chest', 'forest');
   assert.equal(claim.claimed, true);
