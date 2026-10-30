@@ -84,6 +84,21 @@ function roomId(value: unknown): string {
   if (typeof value !== "string" || !UUID_PATTERN.test(value)) throw new ApiError(400, "INVALID_ROOM_ID", "Некорректный ID комнаты.");
   return value;
 }
+function actionId(value: unknown): string {
+  if (typeof value !== "string" || !UUID_PATTERN.test(value)) throw new ApiError(400, "INVALID_ACTION_ID", "Некорректный ID действия.");
+  return value;
+}
+function sanitizeWorldAction(actionType: unknown, value: unknown): Record<string, unknown> {
+  if (actionType !== "place_structure" || !value || typeof value !== "object" || Array.isArray(value)) throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимое действие общего мира.");
+  const item = value as Record<string, unknown>;
+  if (Object.keys(item).some(key => !["type","x","y"].includes(key))) throw new ApiError(400,"INVALID_WORLD_ACTION","В действии есть лишние поля.");
+  const type = typeof item.type === "string" ? item.type : "";
+  const x = Number(item.x), y = Number(item.y);
+  if (!["furnace","house","torch","coal","storage","farmplot"].includes(type) || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 12000 || y < 0 || y > 10000) throw new ApiError(400,"INVALID_WORLD_ACTION","Проверь тип постройки и координаты.");
+  const gx = Math.round((x - 16) / 32) * 32 + 16, gy = Math.round((y - 16) / 32) * 32 + 16;
+  if (Math.abs(x - gx) > 1 || Math.abs(y - gy) > 1) throw new ApiError(400,"INVALID_WORLD_ACTION","Постройка должна находиться на сетке мира.");
+  return { type, x: gx, y: gy };
+}
 async function rpc(name: string, args: Record<string, unknown>) {
   const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + name, {
     method: "POST",
@@ -111,6 +126,14 @@ async function rpc(name: string, args: Record<string, unknown>) {
     if (message.includes("ROOM_NOT_IN_LOBBY")) throw new ApiError(409, "ROOM_NOT_IN_LOBBY", "Комната уже запущена или находится на паузе.");
     if (message.includes("ROOM_NOT_RUNNING")) throw new ApiError(409, "ROOM_NOT_RUNNING", "Игровая сессия сейчас не запущена.");
     if (message.includes("INVALID_WORLD_OBJECT")) throw new ApiError(400, "INVALID_WORLD_OBJECT", "Некорректный объект общего мира.");
+    if(message.includes("INVALID_WORLD_ACTION"))throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимое действие общего мира.");
+    if(message.includes("WORLD_ACTION_RATE_LIMITED"))throw new ApiError(429,"WORLD_ACTION_RATE_LIMITED","Слишком много действий. Подожди минуту.");
+    if(message.includes("WORLD_ACTION_QUEUE_FULL"))throw new ApiError(409,"WORLD_ACTION_QUEUE_FULL","Очередь комнаты заполнена. Повтори позже.");
+    if(message.includes("WORLD_ACTION_NOT_FOUND"))throw new ApiError(404,"WORLD_ACTION_NOT_FOUND","Запрос на действие не найден.");
+    if(message.includes("WORLD_ACTION_NOT_PENDING"))throw new ApiError(409,"WORLD_ACTION_NOT_PENDING","Действие уже обработано.");
+    if(message.includes("WORLD_ACTION_RESULT_MISSING"))throw new ApiError(400,"WORLD_ACTION_RESULT_MISSING","В снимке нет подтверждённой постройки.");
+    if(message.includes("NOT_A_GUEST_MEMBER"))throw new ApiError(403,"NOT_A_GUEST_MEMBER","Только участники-гости могут отправлять запросы на постройки.");
+    if(message.includes("INVALID_WORLD_ACTION_COMMIT"))throw new ApiError(400,"INVALID_WORLD_ACTION_COMMIT","Некорректное подтверждение действия.");
     if (message.includes("INVALID_WORLD_CLOCK")) throw new ApiError(400, "INVALID_WORLD_CLOCK", "Некорректное время игрового мира.");
     if (message.includes("INVALID_WORLD_DIFFICULTY")) throw new ApiError(400, "INVALID_WORLD_DIFFICULTY", "Выбрана неизвестная сложность мира.");
     if (message.includes("NOT_A_MEMBER")) throw new ApiError(403, "NOT_A_MEMBER", "Ты больше не состоишь в этой комнате.");
@@ -139,7 +162,7 @@ Deno.serve(async (req: Request) => {
   }
   try {
     const user = await authenticate(req);
-    const body = req.method === "POST" ? await parseBody(req, route.startsWith('/api/coop/snapshot/') ? 80_000 : 12_000) : {};
+    const body = req.method === "POST" ? await parseBody(req, (route.startsWith('/api/coop/snapshot/') || route === '/api/coop/actions/commit') ? 80_000 : 12_000) : {};
     if (route === "/api/coop/create" && req.method === "POST") {
       const inviteCode = newInviteCode();
       const difficulty = typeof body.world_difficulty === "string" ? body.world_difficulty : "medium";
@@ -159,6 +182,45 @@ Deno.serve(async (req: Request) => {
         p_code_hash: await sha256(code),
       });
       return reply({ room });
+    }
+    if (route === "/api/coop/actions/enqueue" && req.method === "POST") {
+      const payload = sanitizeWorldAction(body.action_type, body.payload);
+      const action = await rpc("enqueue_co_op_world_action", {
+        p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id),
+        p_action_type:body.action_type, p_payload:payload,
+      });
+      return reply({ action });
+    }
+    if (route === "/api/coop/actions/pending" && req.method === "POST") {
+      const limit = body.limit === undefined ? 25 : Number(body.limit);
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new ApiError(400,"INVALID_ACTION_LIMIT","Некорректный размер очереди.");
+      const actions = await rpc("get_pending_co_op_world_actions", {
+        p_user_id:user.id, p_room_id:roomId(body.room_id), p_limit:limit,
+      });
+      return reply({ actions });
+    }
+    if (route === "/api/coop/actions/status" && req.method === "POST") {
+      const action = await rpc("get_co_op_world_action_status", {
+        p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id),
+      });
+      return reply({ action });
+    }
+    if (route === "/api/coop/actions/commit" && req.method === "POST") {
+      const expectedVersion = Number(body.expected_version);
+      if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) throw new ApiError(400,"INVALID_SNAPSHOT_REQUEST","Некорректная версия снимка.");
+      const payload = sanitizeSharedSnapshot(body.payload);
+      const result = await rpc("commit_co_op_world_action", {
+        p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id),
+        p_expected_version:expectedVersion, p_payload:payload,
+      });
+      return reply({ result });
+    }
+    if (route === "/api/coop/actions/reject" && req.method === "POST") {
+      const reason = typeof body.reason === "string" ? body.reason.slice(0,120) : "rejected";
+      const result = await rpc("reject_co_op_world_action", {
+        p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id), p_reason:reason,
+      });
+      return reply({ result });
     }
     if (route === "/api/coop/start" && req.method === "POST") {
       const result = await rpc("start_co_op_room", { p_user_id: user.id, p_room_id: roomId(body.room_id) });
