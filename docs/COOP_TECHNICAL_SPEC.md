@@ -25,7 +25,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - Routes: `/health`, `/api/coop/create`, `/api/coop/join`, `/api/coop/start`, `/api/coop/current`, `/api/coop/leave`, `/api/coop/resume`, `/api/coop/pvp`, `/api/coop/heartbeat`, `/api/coop/recover-owner`, `/api/coop/clock`, `/api/coop/death`, `/api/coop/snapshot/get`, `/api/coop/snapshot/save`.
 - The function validates the bearer session with Supabase Auth; the service-role key stays server-side.
 - New tables: `co_op_rooms`, `co_op_members`, `co_op_world_snapshots`, `co_op_audit_events`, and private rate-limit table `private.co_op_join_limits`.
-- RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data.
+- RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data. The world-death actor foreign key is indexed.
 - Private Realtime channel authorization policies are defined on `realtime.messages` for topic `skyrealm:room:<uuid>`. The project-wide “Allow public access” setting has not yet been verified OFF in the dashboard and remains a release check.
 - GitHub Actions verifies core rules, client adapter initialization in a VM, client-to-Edge-Function route parity, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated requests.
 
@@ -55,7 +55,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 5. Add kick/code rotation, reconnect, resilience/load/exploit tests, and then release opt-in.
 
 ## Security and release checklist
-- Disable Realtime public-channel access at project level before subscribing to private channels.
+- Verify that Realtime project-wide “Allow public access” is OFF before release. Security Advisor also reports leaked-password protection is disabled in Supabase Auth; enable after reviewing the existing sign-up policy. It reports `public.profiles` as RLS-enabled with no policies (currently inaccessible through direct API, but confirm the intended app access model).
 - Validate all player inputs server-side; never trust client balances, inventory or whole-world snapshots.
 - Keep service-role key in Supabase Edge Function secrets only.
 - Keep single-player as the default path and run its regression tests before merging.
