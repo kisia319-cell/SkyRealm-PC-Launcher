@@ -1,9 +1,9 @@
 {
-  "game_sha256": "2c1bcab1b3a82370b4618eae1befabb03685f9ae36d9cf6e5614985f2be706cd",
-  "notes": "SkyRealm Launcher 1.0.0 + Game 0.20.1: two settlements with eight resident NPCs, staffed shops, daily delivery quests and reputation discounts; night raids with rewards; three legendary swords with 100/130/170 base damage that scale with difficulty; new recipes and trading. Existing worlds and saves remain compatible.",
-  "sha256": "9e3384626b085a4738a0c85fc23b13247e0b9c6f691dbbe32b220e7ff92b2431",
+  "version": "1.0.2",
+  "game_sha256": "58b982c4c8c42ffa1b6d0ed9bad7e5fdbf8e75e9679f614b530cea4fc498936a",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "version": "1.0.1",
-  "game_version": "0.20.1",
-  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
+  "game_version": "0.20.2",
+  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
+  "sha256": "c2f93f04b25d660f7dbf38e21511a07d4f7004062084b40d4d3cfacd2d7e36ba",
+  "notes": "SkyRealm Launcher 1.0.2 + Game 0.20.2: separate Trade World with two market stalls, five settlements and eight NPCs; complete farming with seven crops, seeds, beds, watering, compost and fertilizer; fixed crop buy/sell balance; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible."
 }
