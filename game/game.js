@@ -79,6 +79,19 @@
   let playerAttackCooldown = 0;
   let attackAnimTimer=0, combatAbilityCooldown=0, weatherMode='clear', weatherTimer=75, weatherFlash=0, ambientTime=0;
   let strengthPotionTimer=0, wardPotionTimer=0, speedPotionTimer=0, eventRollTimer=74, meteorShowerTimer=0, meteorPoint=null;
+  // Independent chances per world-event check (75 real seconds), eligible night, or weather roll.
+  const WORLD_EVENT_CHANCES = Object.freeze({
+    meteorShower: 0.12,
+    abandonedCamp: 0.08,
+    wanderingTraveler: 0.05,
+    villageRaid: 0.18,
+    bloodMoon: 0.08,
+    rain: 0.28,
+    snow: 0.15,
+    storm: 0.08
+  });
+  let abandonedCampPoint=null, abandonedCampTimer=0;
+  let wanderingTravelerPoint=null, wanderingTravelerTimer=0;
   const visualParticles=[];
   let sprintExhaustionToast=0;
   let inHouse = false;
@@ -445,7 +458,7 @@
   function updateVisualEffects(dt){
     attackAnimTimer=Math.max(0,attackAnimTimer-dt);weatherFlash=Math.max(0,weatherFlash-dt);if(weatherMode==='storm'&&Math.random()<dt*.18)weatherFlash=.18+Math.random()*.16;
     for(let i=visualParticles.length-1;i>=0;i--){const p=visualParticles[i];p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.kind==='dust'?12:42;p.vx*=Math.max(0,1-dt*1.4);if(p.life<=0)visualParticles.splice(i,1);}
-    if(!paused&&!inMainMenu&&!inHouse&&!mineMode){weatherTimer-=dt;if(weatherTimer<=0){const roll=Math.random();weatherMode=weatherMode==='clear'?(roll<.28?'rain':roll<.43?'snow':roll<.51?'storm':'clear'):'clear';weatherTimer=weatherMode==='clear'?65+Math.random()*100:35+Math.random()*45;if(weatherMode==='rain')toast('Погода изменилась: начинается дождь.');else if(weatherMode==='snow')toast('Начался снегопад. Снег укрывает долину.');else if(weatherMode==='storm')toast('ГРОЗА! Молнии освещают небо.');else toast('Погода прояснилась.');}}
+    if(!paused&&!inMainMenu&&!inHouse&&!mineMode){weatherTimer-=dt;if(weatherTimer<=0){const roll=Math.random();weatherMode=weatherMode==='clear'?(roll<WORLD_EVENT_CHANCES.rain?'rain':roll<WORLD_EVENT_CHANCES.rain+WORLD_EVENT_CHANCES.snow?'snow':roll<WORLD_EVENT_CHANCES.rain+WORLD_EVENT_CHANCES.snow+WORLD_EVENT_CHANCES.storm?'storm':'clear'):'clear';weatherTimer=weatherMode==='clear'?65+Math.random()*100:35+Math.random()*45;if(weatherMode==='rain')toast('Погода изменилась: начинается дождь.');else if(weatherMode==='snow')toast('Начался снегопад. Снег укрывает долину.');else if(weatherMode==='storm')toast('ГРОЗА! Молнии освещают небо.');else toast('Погода прояснилась.');}}
   }
   function drawVisualEffects(camX,camY,time){
     for(const p of visualParticles){const x=p.x-camX,y=p.y-camY;if(x<-20||x>width+20||y<-20||y>height+20)continue;ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,p.life/Math.min(.35,p.maxLife)));ctx.translate(x,y);if(p.kind==='leaf'){ctx.rotate(p.rot+time/250);ctx.fillStyle=p.color;ctx.beginPath();ctx.ellipse(0,0,p.size*1.6,p.size*.7,.4,0,Math.PI*2);ctx.fill();}else if(p.kind==='dust'){ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(0,0,p.size*(.5+p.life),0,Math.PI*2);ctx.fill();}else{ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=7;ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);}ctx.restore();}
@@ -699,8 +712,12 @@
     if(!isNightTime()||day<1||lastVillageRaidDay===day)return;
     const center=villageCenters.map(c=>({x:c.x*TILE+16,y:c.y*TILE+16})).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
     if(!center||Math.hypot(center.x-player.x,center.y-player.y)>620)return;
-    lastVillageRaidDay=day;villageRaidActive=true;villageRaidTimer=95;villageRaidKills=0;
-    for(let i=0;i<3;i++)if(spawnMonster(i===2?'brute':null)){monsters[monsters.length-1].villageRaid=true;monsters[monsters.length-1].adminSpawned=true;villageRaidKills++;}
+    lastVillageRaidDay=day;
+    const villageSeed=Math.round(center.x/TILE)*1009+Math.round(center.y/TILE);
+    if(hash(day,villageSeed)>=WORLD_EVENT_CHANCES.villageRaid)return;
+    villageRaidActive=true;villageRaidTimer=95;villageRaidKills=0;
+    const raidCount=2+Math.floor(hash(day,villageSeed+31)*3);
+    for(let i=0;i<raidCount;i++)if(spawnMonster(i===raidCount-1?'brute':null)){monsters[monsters.length-1].villageRaid=true;monsters[monsters.length-1].adminSpawned=true;villageRaidKills++;}
     if(villageRaidKills===0){villageRaidActive=false;return;}
     toast('ТРЕВОГА! На деревню напали монстры. Победи '+villageRaidKills+' врагов, чтобы получить награду!');
     const warning=document.getElementById('night-warning');if(warning){warning.hidden=false;const label=document.getElementById('night-warning-text');if(label)label.textContent='НАПАДЕНИЕ НА ДЕРЕВНЮ · ЗАЩИТИ ЖИТЕЛЕЙ';}
@@ -891,10 +908,123 @@
   }
   function drawDungeonInterior(dt,time){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#090c18';ctx.fillRect(0,0,width,height);const g=ctx.createLinearGradient(0,0,width,height);g.addColorStop(0,'#2a263c');g.addColorStop(1,'#111522');ctx.fillStyle=g;ctx.fillRect(18,18,width-36,height-36);ctx.strokeStyle='#716783';ctx.lineWidth=12;ctx.strokeRect(26,26,width-52,height-52);for(let y=42;y<height-42;y+=43)for(let x=42;x<width-42;x+=43){ctx.strokeStyle='#4d4a5e66';ctx.strokeRect(x,y,40,40);}for(let i=0;i<9;i++){const x=width*(.16+i*.085),y=height*(.18+(i%3)*.27);ctx.fillStyle='#666176';ctx.fillRect(x-6,y-12,12,32);ctx.fillStyle='#9992a9';ctx.fillRect(x-8,y-16,16,5);}const left=width*.12,mid=height*.52,right=width*.88;ctx.fillStyle='#12101b';ctx.fillRect(left-18,mid-42,36,84);ctx.strokeStyle='#c2a1ef';ctx.lineWidth=3;ctx.strokeRect(left-18,mid-42,36,84);ctx.fillStyle=dungeonRoomCleared()?'#3f7c71':'#6d4a72';ctx.fillRect(right-18,mid-42,36,84);ctx.strokeStyle='#d0b4ff';ctx.strokeRect(right-18,mid-42,36,84);ctx.fillStyle='#fff0bd';ctx.font='bold 12px Segoe UI';ctx.textAlign='center';ctx.fillText('ВЫХОД',left,mid-55);ctx.fillText('КОМНАТА '+dungeonRoom+'/5',width/2,48);ctx.fillText(dungeonRoom===5?'АРХОНТ РУИН':'СТРАЖ '+dungeonRoom,right,mid-55);if(dungeonRoom===3){const tx=width*.43,ty=height*.5;ctx.fillStyle='#8b362c';ctx.fillRect(tx-32,ty-24,64,48);ctx.strokeStyle='#ffb06e';ctx.lineWidth=2;ctx.strokeRect(tx-32,ty-24,64,48);ctx.fillStyle='#ffcf9b';ctx.font='bold 10px Segoe UI';ctx.fillText('ЛОВУШКА',tx,ty+4);}if(dungeonRoom===5){ctx.fillStyle=dungeonRoomCleared(5)?'#b88737':'#533d63';ctx.fillRect(width*.82-22,height*.48-8,44,27);ctx.fillStyle='#f7d36f';ctx.fillRect(width*.82-22,height*.48-15,44,10);}if(!dungeonRoomCleared()){const x=dungeonEnemyX||width*.65,y=dungeonEnemyY||height*.47;ctx.save();ctx.translate(x,y);ctx.fillStyle='#11101b99';ctx.beginPath();ctx.ellipse(0,16,28,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=dungeonRoom===5?'#bd75d8':'#8c91ac';ctx.fillRect(-20,-17,40,32);ctx.fillRect(-15,-28,30,16);ctx.fillStyle=dungeonRoom===5?'#ffb3ec':'#ff6f9f';ctx.fillRect(-12,-20,6,4);ctx.fillRect(6,-20,6,4);ctx.restore();ctx.fillStyle='#251d32';ctx.fillRect(width*.5-74,70,148,7);ctx.fillStyle=dungeonRoom===5?'#da7ced':'#aabce8';ctx.fillRect(width*.5-74,70,148*Math.max(0,dungeonEnemyHp/dungeonEnemyMaxHp()),7);ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.fillText((dungeonRoom===5?'АРХОНТ':'СТРАЖ')+' · '+Math.ceil(dungeonEnemyHp)+' HP',width*.5,65);}else{ctx.fillStyle='#a4f1d3';ctx.font='bold 13px Segoe UI';ctx.fillText(dungeonRoom===5?'Победа! E у сундука справа.':'Комната очищена · E у двери справа.',width/2,height-42);}const px=player.x,py=player.y;ctx.fillStyle='#10101a99';ctx.beginPath();ctx.ellipse(px,py+12,15,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=playerAppearance.armor||'#526fba';ctx.fillRect(px-9,py-4,18,17);ctx.fillStyle=playerAppearance.skin||'#e8b88c';ctx.fillRect(px-6,py-19,12,14);ctx.fillStyle=playerAppearance.hair||'#352d3d';ctx.fillRect(px-7,py-23,14,6);ctx.fillStyle='#e9efff';ctx.font='bold 11px Segoe UI';ctx.fillText('WASD · Space атака · E взаимодействие',width/2,height-20);ctx.textAlign='left';drawRemotePlayers(0,0);}
   function useBuffPotion(){const choices=[{name:'Настой силы',timer:'strengthPotionTimer',label:'урон +30%'},{name:'Зелье защиты',timer:'wardPotionTimer',label:'защита +20%'},{name:'Зелье скорости',timer:'speedPotionTimer',label:'скорость +25%'}];const pick=choices.find(v=>itemCount(v.name)>0);if(!pick){toast('Нет боевых настоев. Создай их на верстаке.');return;}changeItem(pick.name,-1);if(pick.timer==='strengthPotionTimer')strengthPotionTimer=30;else if(pick.timer==='wardPotionTimer')wardPotionTimer=30;else speedPotionTimer=30;playSound('craft');renderInventory();saveGame();toast(pick.name+' действует 30 секунд: '+pick.label+'.');}
-  function updateWorldEvents(dt){if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode)return;eventRollTimer+=dt;if(meteorPoint){meteorShowerTimer=Math.max(0,meteorShowerTimer-dt);if(meteorShowerTimer<=0)meteorPoint=null;}if(eventRollTimer>=75){eventRollTimer=0;if(isNightTime()&&!meteorPoint&&Math.random()<.34){const a=Math.random()*Math.PI*2,dist=260+Math.random()*260;let x=Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,player.x+Math.cos(a)*dist)),y=Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,player.y+Math.sin(a)*dist));if(waterAt(x/TILE,y/TILE)||blocked(x,y)){x=Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,player.x+220));y=Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,player.y-180));}meteorPoint={x,y};meteorShowerTimer=22;toast('МЕТЕОРИТНЫЙ ДОЖДЬ! Найди светящийся кратер и нажми E рядом.');playSound('portal');}}}
+  function findWorldEventPoint(minDistance=250,maxDistance=430){
+    for(let attempt=0;attempt<16;attempt++){
+      const angle=Math.random()*Math.PI*2;
+      const distance=minDistance+Math.random()*(maxDistance-minDistance);
+      const x=Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,player.x+Math.cos(angle)*distance));
+      const y=Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,player.y+Math.sin(angle)*distance));
+      if(!waterAt(x/TILE,y/TILE)&&!blocked(x,y))return {x,y};
+    }
+    return null;
+  }
+  function updateWorldEvents(dt){
+    if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode)return;
+    eventRollTimer+=dt;
+    if(meteorPoint){
+      meteorShowerTimer=Math.max(0,meteorShowerTimer-dt);
+      if(meteorShowerTimer<=0)meteorPoint=null;
+    }
+    if(abandonedCampPoint){
+      abandonedCampTimer=Math.max(0,abandonedCampTimer-dt);
+      if(abandonedCampTimer<=0){abandonedCampPoint=null;toast('Следы старого лагеря затерялись.');}
+    }
+    if(wanderingTravelerPoint){
+      wanderingTravelerTimer=Math.max(0,wanderingTravelerTimer-dt);
+      if(wanderingTravelerTimer<=0){wanderingTravelerPoint=null;toast('Путник ушёл дальше по дороге.');}
+    }
+    if(eventRollTimer<75)return;
+    eventRollTimer=0;
+    // Only one temporary point of interest is active at a time.
+    if(meteorPoint||abandonedCampPoint||wanderingTravelerPoint)return;
+    const night=isNightTime();
+    const roll=Math.random();
+    const meteorLimit=night?WORLD_EVENT_CHANCES.meteorShower:0;
+    const campLimit=meteorLimit+WORLD_EVENT_CHANCES.abandonedCamp;
+    const travelerLimit=campLimit+(!night?WORLD_EVENT_CHANCES.wanderingTraveler:0);
+    if(roll<meteorLimit){
+      const point=findWorldEventPoint(260,520);
+      if(!point)return;
+      meteorPoint=point;
+      meteorShowerTimer=50;
+      toast('МЕТЕОРИТНЫЙ ДОЖДЬ! Найди светящийся кратер и нажми E рядом.');
+      playSound('portal');
+    }else if(roll<campLimit){
+      const point=findWorldEventPoint(220,390);
+      if(!point)return;
+      abandonedCampPoint=point;
+      abandonedCampTimer=115;
+      toast('НАЙДЕН ЗАБРОШЕННЫЙ ЛАГЕРЬ! Осмотри припасы клавишей E.');
+      playSound('craft');
+    }else if(!night&&roll<travelerLimit){
+      const point=findWorldEventPoint(200,360);
+      if(!point)return;
+      wanderingTravelerPoint=point;
+      wanderingTravelerTimer=90;
+      toast('ПУТНИК В ДОЛИНЕ! Подойди и нажми E, пока он не ушёл.');
+      playSound('portal');
+    }
+  }
   function drawMeteorPoint(camX,camY,time){if(!meteorPoint)return;const x=meteorPoint.x-camX,y=meteorPoint.y-camY;if(x<-45||x>width+45||y<-45||y>height+45)return;ctx.save();ctx.fillStyle='#1d1725aa';ctx.beginPath();ctx.ellipse(x,y+8,27,14,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ff9b52';ctx.lineWidth=3;ctx.shadowColor='#ff6c43';ctx.shadowBlur=18+Math.sin(time/75)*8;ctx.beginPath();ctx.arc(x,y,18+Math.sin(time/110)*2,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#ffbd72';ctx.beginPath();ctx.moveTo(x-6,y+4);ctx.lineTo(x-2,y-11);ctx.lineTo(x+5,y-4);ctx.lineTo(x+9,y+6);ctx.closePath();ctx.fill();ctx.fillStyle='#fff1c0';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('МЕТЕОРИТ · E',x,y-28);ctx.restore();}
   function collectMeteor(){if(!meteorPoint||Math.hypot(player.x-meteorPoint.x,player.y-meteorPoint.y)>105)return false;const count=1+Math.floor(Math.random()*3);changeItem('Метеоритный осколок',count);if(Math.random()<.18)changeItem('Мифрил',1);if(Math.random()<.34)changeItem('Уран',1);spawnVisualBurst(meteorPoint.x,meteorPoint.y,25,'spark','#ff9b52');meteorPoint=null;meteorShowerTimer=0;renderInventory();saveGame();toast('Метеорит собран! Получено осколков: '+count+'.');return true;}
-
+  function drawAbandonedCamp(camX,camY,time){
+    if(!abandonedCampPoint)return;
+    const x=abandonedCampPoint.x-camX,y=abandonedCampPoint.y-camY;
+    if(x<-75||x>width+75||y<-75||y>height+75)return;
+    ctx.save();
+    ctx.fillStyle='rgba(4,10,18,.45)';ctx.beginPath();ctx.ellipse(x,y+14,35,12,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#8b6745';ctx.lineWidth=5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x-19,y+8);ctx.lineTo(x+17,y-3);ctx.moveTo(x-17,y-4);ctx.lineTo(x+18,y+10);ctx.stroke();
+    ctx.fillStyle='#ff8a36';ctx.shadowColor='#ff7933';ctx.shadowBlur=16;
+    ctx.beginPath();ctx.moveTo(x-5,y+9);ctx.quadraticCurveTo(x-15,y-6,x-2,y-18);ctx.quadraticCurveTo(x+2,y-7,x+8,y-13);ctx.quadraticCurveTo(x+16,y+2,x+4,y+10);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#ffe7a0';ctx.beginPath();ctx.moveTo(x,y+6);ctx.quadraticCurveTo(x-5,y-3,x+2,y-10);ctx.quadraticCurveTo(x+10,y+1,x,y+6);ctx.fill();
+    ctx.shadowBlur=0;ctx.fillStyle='#fff0cf';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';
+    ctx.fillText('ЗАБРОШЕННЫЙ ЛАГЕРЬ · E',x,y-31);
+    ctx.restore();
+  }
+  function drawWanderingTraveler(camX,camY,time){
+    if(!wanderingTravelerPoint)return;
+    const x=wanderingTravelerPoint.x-camX,y=wanderingTravelerPoint.y-camY;
+    if(x<-55||x>width+55||y<-65||y>height+45)return;
+    ctx.save();ctx.translate(Math.round(x),Math.round(y)+Math.sin(time/260)*1.3);
+    ctx.fillStyle='rgba(4,10,18,.4)';ctx.beginPath();ctx.ellipse(0,13,14,6,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#476b75';ctx.fillRect(-9,-3,18,16);
+    ctx.fillStyle='#c89a68';ctx.fillRect(-7,-18,14,14);
+    ctx.fillStyle='#273e50';ctx.beginPath();ctx.moveTo(-10,-15);ctx.lineTo(-5,-24);ctx.lineTo(7,-24);ctx.lineTo(11,-13);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#8a6548';ctx.fillRect(7,-4,8,13);
+    ctx.fillStyle='#d6bd88';ctx.fillRect(-7,11,5,5);ctx.fillRect(3,11,5,5);
+    ctx.fillStyle='#fff1c0';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';
+    ctx.fillText('ПУТНИК · E',0,-32);
+    ctx.restore();
+  }
+  function collectAbandonedCamp(){
+    if(!abandonedCampPoint||Math.hypot(player.x-abandonedCampPoint.x,player.y-abandonedCampPoint.y)>105)return false;
+    const roll=Math.random();
+    let reward='';
+    if(roll<.45){const count=1+Math.floor(Math.random()*3);changeItem('Железо',count);reward='Железо ×'+count;}
+    else if(roll<.75){const count=1+Math.floor(Math.random()*2);changeItem('Лечебная трава',count);reward='Лечебная трава ×'+count;}
+    else if(roll<.94){changeItem('Малое зелье',1);reward='Малое зелье ×1';}
+    else{changeItem('Кристалл',1);reward='Кристалл ×1';}
+    const point=abandonedCampPoint;abandonedCampPoint=null;abandonedCampTimer=0;
+    spawnVisualBurst(point.x,point.y,18,'spark','#e9bd75');
+    renderInventory();saveGame();awardXP(18,'найденный лагерь');
+    toast('Припасы найдены: '+reward+'.');
+    return true;
+  }
+  function interactWanderingTraveler(){
+    if(!wanderingTravelerPoint||Math.hypot(player.x-wanderingTravelerPoint.x,player.y-wanderingTravelerPoint.y)>105)return false;
+    const roll=Math.random();
+    let reward='';
+    if(roll<.55){const count=1+Math.floor(Math.random()*2);changeItem('Лечебная трава',count);reward='Лечебная трава ×'+count;}
+    else if(roll<.82){changeItem('Малое зелье',1);reward='Малое зелье ×1';}
+    else if(roll<.97){walletCents+=250;reward='2,50 золота';}
+    else{changeItem('Кристалл',1);reward='Кристалл ×1';}
+    const point=wanderingTravelerPoint;wanderingTravelerPoint=null;wanderingTravelerTimer=0;
+    spawnVisualBurst(point.x,point.y,14,'spark','#9bd6d2');
+    renderInventory();updateWalletHud();saveGame();awardXP(12,'помощь путнику');
+    toast('Путник поделился припасами: '+reward+'.');
+    return true;
+  }
 
   function drawRemotePlayers(camX,camY){
     const network=window.SkyRealmCoopClient;
@@ -944,7 +1074,7 @@
       drawCabin(camX,camY); drawFences(camX,camY); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
       for(const rock of world.rocks){const x=rock.x-camX,y=rock.y-camY;if(x>-30&&x<width+30&&y>-30&&y<height+30)drawRock(rock,camX,camY);}
       for(const tree of world.trees){const x=tree.x-camX,y=tree.y-camY;if(x>-60&&x<width+60&&y>-70&&y<height+40)drawTree(tree,camX,camY);}
-      world.signs.forEach(s=>drawSign(s,camX,camY));drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawWolfCage(camX,camY,time);drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);drawWolfCompanion(camX,camY,time);const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
+      world.signs.forEach(s=>drawSign(s,camX,camY));drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawAbandonedCamp(camX,camY,time);drawWanderingTraveler(camX,camY,time);drawWolfCage(camX,camY,time);drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);drawWolfCompanion(camX,camY,time);const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
     }
     if(gameSettings.graphicsQuality==='high'){
       const px=player.x-camX,py=player.y-camY;
@@ -1140,7 +1270,7 @@
     lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
     const nightNow=isNightTime();
     if(nightNow&&!wasNightBefore){
-      const nightNumber=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY)+1;bloodMoonActive=nightNumber%5===0;bloodMoonRewardPending=bloodMoonActive;lastBloodMoonNight=bloodMoonActive?nightNumber:lastBloodMoonNight;
+      const nightNumber=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY)+1;bloodMoonActive=(nightNumber-lastBloodMoonNight>=3)&&hash(nightNumber,3407)<WORLD_EVENT_CHANCES.bloodMoon;bloodMoonRewardPending=bloodMoonActive;lastBloodMoonNight=bloodMoonActive?nightNumber:lastBloodMoonNight;
       if(bloodMoonActive){toast('КРОВАВАЯ ЛУНА! Монстры сильнее. Выживи до рассвета за награду!');saveGame();}
       else if(survivedNights>=3)toast('Четвёртая ночь… Тени выходят из леса!');
       else toast('Наступила ночь '+(survivedNights+1)+'. До появления монстров: '+(3-survivedNights)+'.');
@@ -1736,6 +1866,8 @@
   async function interact(){
     if(dungeonMode){interactDungeon();return;}
     if(collectMeteor())return;
+    if(collectAbandonedCamp())return;
+    if(interactWanderingTraveler())return;
     if(caveMode){if(Math.hypot(player.x-width*.73,player.y-height*.48)<95){if(!caveBossDefeated){toast('Сундук запечатан Каменным стражем. Сначала победи босса!');return;}if(!caveChestOpened){
       const claim=await claimCoopChest('cave_chest','cave');
       if(claim.coop&&!claim.claimed){if(!claim.error){caveChestOpened=true;saveGame();}return;}
@@ -2295,7 +2427,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     requestAnimationFrame(tick);
   }
   function resetWorldState(){
-    dungeonMode=false;dungeonReturn={x:player.x,y:player.y};dungeonRoom=1;dungeonClearedRooms=[];dungeonEnemyHp=0;dungeonEnemyX=0;dungeonEnemyY=0;dungeonChestOpened=false;dungeonTrapCooldown=0;biomeBosses=makeBiomeBossState();strengthPotionTimer=0;wardPotionTimer=0;speedPotionTimer=0;eventRollTimer=74;meteorShowerTimer=0;meteorPoint=null;
+    dungeonMode=false;dungeonReturn={x:player.x,y:player.y};dungeonRoom=1;dungeonClearedRooms=[];dungeonEnemyHp=0;dungeonEnemyX=0;dungeonEnemyY=0;dungeonChestOpened=false;dungeonTrapCooldown=0;biomeBosses=makeBiomeBossState();strengthPotionTimer=0;wardPotionTimer=0;speedPotionTimer=0;eventRollTimer=74;meteorShowerTimer=0;meteorPoint=null;abandonedCampPoint=null;abandonedCampTimer=0;wanderingTravelerPoint=null;wanderingTravelerTimer=0;
     bloodMoonActive=false;bloodMoonRewardPending=false;lastBloodMoonNight=-1;wolfBossActive=false;wolfBossHp=0;wolfBossKeyDropped=false;wolfCageOpen=false;wolfDogCaged=true;wolfBossX=0;wolfBossY=0;wolfBossFlash=0;wolfBossAttackTimer=1.2;wolfBossDefeated=false;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfCompanionAttackTimer=.5;wolfCompanionRevivals=0;wolfDogDeathHandled=false;wolfCompanionOffsetX=20;wolfCompanionOffsetY=24;dogBehavior='follow';villageQuestStage=0;blacksmithQuestStage=0;explorerQuestStage=0;npcQuestState={};villageReputation=0;villageRaidActive=false;villageRaidKills=0;villageRaidTimer=0;lastVillageRaidDay=-1;
     player.x=21*TILE;player.y=26*TILE;player.vx=player.vy=0;player.face='down';player.frame=0;player.hp=100;player.stamina=84;
     discovered=false;clearedSnowTiles=new Set();snowShovelHits={};treeChops=[];felledTrees=[];worldEarlyMonsters=false;tradeWorldMode=false;walletCents=0;playerLevel=1;playerXP=0;skillPoints=0;skills={warrior:0,miner:0,scout:0,farmer:0,survivor:0,crafter:0};equipment={weapon:'Деревянный меч',armor:'',helmet:'',boots:'',amulet:''};weaponUpgrades={};armorUpgrade=0;anvilCrafted=false;adventureQuestProgress={hunt:0,mining:0,harvest:0};farmCrops=[];caveBossDefeated=false;caveBossHp=bossMaxHp();caveBossAttackTimer=2.5;caveMode=false;caveChestOpened=false;treasureChests.forEach(c=>c.opened=false);dodgeTimer=0;dodgeCooldown=0;placedStructures=[];lootDrops.length=0;enteredPlacedHouse=null;tradeEntranceX=17;tradeEntranceY=47;mineLevel=1;houseLevel=1;furnaceCrafted=false;mineMode=false;mineHoverIndex=-1;workbenchDialogOpen=false;exploredCells=new Set();selectedSlot=1;questStage=0;workbenchUsed=false;sheepSpawnTimer=0;inHouse=false;sleeping=false;sleepSeconds=0;playerAttackCooldown=0;gameMinuteTotal=8*60;survivedNights=0;immortal=false;hunger=100;hungerElapsedMinutes=0;skipDayRealSeconds=300;sheepSpawned=false;sheep.length=0;inventoryItems.forEach(item=>{const base=starterItemCounts.find(v=>v.name===item.name);item.count=base?base.count:0;});

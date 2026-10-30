@@ -1,0 +1,22 @@
+name: SkyRealm game smoke tests
+on:
+  push:
+    branches:
+      - "fix/**"
+  pull_request:
+    branches:
+      - main
+jobs:
+  game-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check game JavaScript syntax
+        run: node --check game/game.js
+      - name: Run game smoke tests
+        run: node tests/game-smoke-test.cjs
