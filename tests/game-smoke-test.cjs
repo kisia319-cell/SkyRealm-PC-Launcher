@@ -93,6 +93,8 @@ for (const feature of ['function setupVillageNpcs','function drawVillageSettleme
 }
 assert.ok(game.includes("'Меч титана':100") && game.includes("'Меч дракона':130") && game.includes("'Меч пустоты':170"), 'Legendary sword base damage must be 100/130/170');
 assert.ok(game.includes('SWORD_DIFFICULTY_MULTIPLIER'), 'Legendary sword damage must scale with difficulty');
+assert.ok(game.includes('const NPC_SELL_PRICES=') && game.includes('function sellNpcItem'), 'NPC shops must support selling resources');
+assert.ok(game.includes('adminSpawned=true;villageRaidKills++'), 'Village raid enemies must persist on early nights');
 assert.ok(game.includes('blacksmithQuestStage'), 'Blacksmith quest progress must persist');
 assert.ok(game.includes('function useCombatAbility()') && game.includes("k === 'r'"), 'R must trigger the new weapon-specific combat ability');
 assert.ok(game.includes('combatAbilityCooldown'), 'Combat ability cooldown must be tracked');
