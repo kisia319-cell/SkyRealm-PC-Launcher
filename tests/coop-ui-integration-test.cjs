@@ -43,7 +43,7 @@ assert.match(client,/setWorldClock/);
 assert.match(game,/syncCoopSharedDeath/);
 assert.match(ui,/refresh\(true\);/);
 
-const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim'];
+const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim','actions/enqueue','actions/pending','actions/status','actions/commit','actions/reject'];
 for (const route of coopRoutes) {
   assert.ok(client.includes("'/api/coop/" + route + "'"), 'Client calls an unrecognised route: ' + route);
   assert.ok(edge.includes('route === "/api/coop/' + route + '"'), 'Edge Function is missing route: ' + route);
@@ -73,4 +73,9 @@ sandbox.SkyRealmMultiplayerCore = core;
 vm.runInNewContext(client, sandbox, { filename: 'game/multiplayer-client.js' });
 assert.ok(sandbox.SkyRealmCoopClient, 'Client adapter must initialize at runtime');
 assert.equal(typeof sandbox.SkyRealmCoopClient.setWorldClock, 'function');
+assert.equal(typeof sandbox.SkyRealmCoopClient.enqueueWorldAction, 'function');
+assert.equal(typeof sandbox.SkyRealmCoopClient.getPendingWorldActions, 'function');
+assert.equal(typeof sandbox.SkyRealmCoopClient.commitWorldAction, 'function');
+assert.match(game,/syncCoopWorldActions/);
+assert.match(game,/queueGuestStructurePlacement/);
 console.log('SkyRealm co-op UI integration checks passed.');
