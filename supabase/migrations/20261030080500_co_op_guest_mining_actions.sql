@@ -31,7 +31,7 @@ begin
   if p_action_type='mine_rock' then
     if jsonb_object_length(p_payload)<>2
        or exists(select 1 from jsonb_object_keys(p_payload) as provided(key)
-         where provided.key<>all(array['rock_index','tool']::text[])
+         where provided.key<>all(array['rock_index','tool']::text[]))
        or jsonb_typeof(p_payload->'rock_index') is distinct from 'number'
        or jsonb_typeof(p_payload->'tool') is distinct from 'string' then
       raise exception using message='INVALID_WORLD_ACTION';
