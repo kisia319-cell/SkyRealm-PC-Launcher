@@ -119,3 +119,12 @@ assert.ok(game.includes("ctx.scale(1.28,1.28)"), 'Trade NPC sprites must be enla
 assert.ok(game.includes('HOME_SELL_SHOP={x:33,y:25}') && game.includes('drawTradeShop(HOME_SELL_SHOP'), 'First world must show stalls near home');
 assert.ok(game.includes('drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);'), 'Trade World must render chests, drops and monsters');
 assert.ok(game.includes('Подойди к торговцу или к вывеске лавки и нажми T.'), 'T must open nearby trader or stall');
+
+assert.ok(py.includes('allow_game_update=True') && py.includes('allow_update=allow_game_update is not False'), 'The player update choice must reach the game updater');
+assert.ok(py.includes('selected = installed_version if game_ok and installed_version else bundled_version'), 'Declining an update must keep the installed game when it is usable');
+assert.ok(launcherHtml.includes('id="game-update-overlay"') && launcherHtml.includes('Внимание! Вышло обновление игры') && launcherHtml.includes('id="game-update-yes"') && launcherHtml.includes('id="game-update-no"'), 'Launcher must show a Yes/No game update prompt');
+assert.ok(app.includes("fetch('https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json?check='") && app.includes("$('#game-update-yes').addEventListener('click'") && app.includes("$('#game-update-no').addEventListener('click'"), 'Update prompt must fetch manifest and wire both choices');
+assert.ok(game.includes("HOME_SELL_SHOP={x:33,y:25}") && game.includes("drawTradeShop(HOME_SELL_SHOP"), 'First world must show market stalls near home');
+assert.ok(game.includes("drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);"), 'Trade World must render treasure chests and drops');
+assert.ok(game.includes("Подойди к торговцу или к вывеске лавки и нажми T."), 'T must open a nearby trader or stall');
+assert.ok(game.includes("ctx.scale(1.28,1.28)"), 'Trade NPC sprites must be enlarged');
