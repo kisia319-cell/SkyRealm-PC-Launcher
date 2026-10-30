@@ -95,16 +95,20 @@ function sanitizeWorldAction(actionType: unknown, value: unknown): Record<string
   const item = value as Record<string, unknown>;
   const keys = Object.keys(item);
   if (actionType === "mine_rock") {
-    if (keys.length !== 2 || keys.some(key => !["rock_index","tool"].includes(key))) {
+    if (keys.some(key => !["rock_index","tool","player_class","miner_skill_level"].includes(key)) || !["rock_index","tool"].every(key => keys.includes(key))) {
       throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный запрос добычи.");
     }
     const rockIndex = Number(item.rock_index);
     const tool = typeof item.tool === "string" ? item.tool : "";
+    const playerClass = item.player_class;
+    const minerSkill = item.miner_skill_level;
+    if (playerClass !== undefined && !["swordsman","farmer","ordinary","archer","mage","miner"].includes(String(playerClass))) throw new ApiError(400,"INVALID_WORLD_ACTION","Неизвестный класс персонажа.");
+    if (minerSkill !== undefined && (!Number.isSafeInteger(minerSkill) || Number(minerSkill) < 0 || Number(minerSkill) > 5)) throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный уровень навыка шахтёра.");
     if (!Number.isSafeInteger(rockIndex) || rockIndex < 0 || rockIndex > 64 ||
         !["Кирка","Улучшенная кирка","Кирка мастера"].includes(tool)) {
       throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректная кирка или залежь.");
     }
-    return { rock_index: rockIndex, tool };
+    return { rock_index: rockIndex, tool, ...(playerClass ? { player_class: playerClass } : {}), ...(minerSkill !== undefined ? { miner_skill_level: minerSkill } : {}) };
   }
   if (actionType === "chop_tree") {
     if (keys.length !== 3 || keys.some(key => !["x","y","tool"].includes(key)) || item.tool !== "Топор") {
@@ -148,11 +152,20 @@ function sanitizeWorldAction(actionType: unknown, value: unknown): Record<string
     }
     return { x: gx, y: gy, crop_id: crop };
   }
-  if (["farm_water","farm_compost","farm_fertilize","farm_harvest"].includes(String(actionType))) {
+  if (["farm_water","farm_compost","farm_fertilize"].includes(String(actionType))) {
     if (keys.length !== 2 || keys.some(key => !["x","y"].includes(key))) {
       throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректное фермерское действие.");
     }
     return { x: gx, y: gy };
+  }
+  if (actionType === "farm_harvest") {
+    if (keys.some(key => !["x","y","player_class","farmer_skill_level","has_sickle"].includes(key)) || !["x","y"].every(key => keys.includes(key))) throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный запрос сбора урожая.");
+    const playerClass = item.player_class;
+    const farmerSkill = item.farmer_skill_level;
+    if (playerClass !== undefined && !["swordsman","farmer","ordinary","archer","mage","miner"].includes(String(playerClass))) throw new ApiError(400,"INVALID_WORLD_ACTION","Неизвестный класс персонажа.");
+    if (farmerSkill !== undefined && (!Number.isSafeInteger(farmerSkill) || Number(farmerSkill) < 0 || Number(farmerSkill) > 5)) throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный уровень навыка фермера.");
+    if (item.has_sickle !== undefined && typeof item.has_sickle !== "boolean") throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный инструмент сбора.");
+    return { x: gx, y: gy, ...(playerClass ? { player_class: playerClass } : {}), ...(farmerSkill !== undefined ? { farmer_skill_level: farmerSkill } : {}), ...(item.has_sickle !== undefined ? { has_sickle: item.has_sickle } : {}) };
   }
   throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимое действие общего мира.");
 }
