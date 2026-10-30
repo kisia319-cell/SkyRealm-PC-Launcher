@@ -147,8 +147,8 @@ assert.ok(game.includes("drawTree(t,camX,camY)") && game.includes("const snowy=b
 
 const gameHtml = fs.readFileSync('game/index.html', 'utf8');
 const gameVersion = fs.readFileSync('game/version.txt', 'utf8').trim();
-assert.equal(gameVersion, '0.20.0', 'Game version must be bumped when a hotfix changes game files');
-assert.ok(gameHtml.includes('content="0.20.0"') && gameHtml.includes('2D SURVIVAL · 0.20.0'), 'Visible and metadata game versions must match the packaged version');
+assert.equal(gameVersion, '0.20.1', 'Game version must be bumped when a hotfix changes game files');
+assert.ok(gameHtml.includes('content="0.20.1"') && gameHtml.includes('2D SURVIVAL · 0.20.1'), 'Visible and metadata game versions must match the packaged version');
 const treeFn = game.slice(game.indexOf('function drawTree'), game.indexOf('function drawRock'));
 assert.ok(treeFn.indexOf("const snowy=") >= 0 && treeFn.indexOf("const snowy=") < treeFn.indexOf("ctx.fillStyle=snowy?"), 'Snowy tree state must be initialized before use');
 
@@ -159,7 +159,7 @@ assert.ok(drawFn.includes("drawTradeShop(SELL_SHOP") && drawFn.includes("drawTra
 assert.ok(game.includes("if(!tradeWorldMode){toast('Лавки лесника и рудокопа находятся в Мире торговли."), 'T must direct home players to the trade world');
 assert.ok(!game.includes('HOME_SELL_SHOP') && !game.includes('HOME_BUY_SHOP'), 'Home shop locations must not exist');
 assert.ok(game.includes("tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16)"), 'E shop interaction must be trade-world-only');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.0', 'Game version bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.1', 'Game version bumped');
 
 for (const crop of ['Пшеница','Морковь','Картофель','Томат','Кукуруза','Тыква','Клубника']) assert.ok(game.includes("product:'"+crop+"'"), 'Farm crop '+crop+' must exist');
 assert.ok(game.includes("farmer:[") && game.includes("Семена клубники"), 'Farmer shop has broad tool and seed catalog');
@@ -167,4 +167,8 @@ assert.ok(game.includes("selected?.name==='Лейка'") && game.includes("selec
 assert.ok(game.includes("farmCropSellPrice(name)") && game.includes("farmEconomy().sell"), 'Crop sale prices scale with difficulty');
 assert.ok(game.includes("function interactFarmPlot") && game.includes("plot.crop=crop.id"), 'Seeds can be planted and harvested per crop');
 assert.ok(game.includes("crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null"), 'Crop state is restored from saves');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.0', 'Farm update version must be bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.1', 'Farm update version must be bumped');
+
+assert.ok(game.includes('const FARM_CROP_TRADE_PRICES={Пшеница:{buy:30,sell:50}') && game.includes('Клубника:{buy:123,sell:200}'), 'Crop trading prices must match the agreed cents-per-item balance');
+assert.ok(game.includes('function farmCropBuyPrice(name)') && game.includes('farmCropBuyPrice(name)||item.price'), 'Farmer must sell harvested crops at the agreed buy prices');
+assert.ok(game.includes("Math.round(unit*(1+Math.min(.25,villageReputation*.005)))") && !game.includes("(id==='farmer'?(farmCropSellPrice(name)||unit):unit)"), 'Crop sale totals must use the correct NPC id and per-item price');
