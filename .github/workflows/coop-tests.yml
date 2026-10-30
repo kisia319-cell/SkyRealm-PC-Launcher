@@ -72,5 +72,18 @@ jobs:
             payload: { farmCrops: [] },
             result: { consumed_item: 'Семена пшеницы' }
           });
-          console.log('Co-op health is OK; current, snapshot, world-claim and guest-action routes reject missing sessions.');
+          await assertProtected('/api/coop/actions/enqueue', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174098',
+            action_type: 'mine_rock',
+            payload: { rock_index: 3, tool: 'Кирка' }
+          });
+          await assertProtected('/api/coop/actions/commit-mine', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174098',
+            expected_version: 0,
+            payload: { mineRocks: [] },
+            result: {}
+          });
+          console.log('Co-op health is OK; current, snapshot, world-claim, farm and mining routes reject missing sessions.');
           NODE
