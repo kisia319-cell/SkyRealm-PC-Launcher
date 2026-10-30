@@ -57,6 +57,8 @@ assert.equal(m.sanitizeWorldAction('give_gold',{amount:999}),null);
 assert.deepEqual(m.sanitizeWorldAction('mine_rock',{rock_index:3,tool:'Кирка'}),{rock_index:3,tool:'Кирка'});
 assert.equal(m.sanitizeWorldAction('mine_rock',{rock_index:3.5,tool:'Кирка'}),null);
 assert.equal(m.sanitizeWorldAction('mine_rock',{rock_index:3,tool:'Палка'}),null);
+assert.deepEqual(m.sanitizeWorldAction('chop_tree',{x:144,y:177,tool:'Топор'}),{x:144,y:176,tool:'Топор'});
+assert.equal(m.sanitizeWorldAction('chop_tree',{x:144,y:177,tool:'Кирка'}),null);
 assert.deepEqual(m.sanitizeWorldAction('farm_plant',{x:112,y:144,crop_id:'wheat'}),{x:112,y:144,crop_id:'wheat'});
 assert.deepEqual(m.sanitizeWorldAction('farm_water',{x:112,y:144}),{x:112,y:144});
 assert.equal(m.sanitizeWorldAction('farm_plant',{x:112,y:144,crop_id:'unknown'}),null);
