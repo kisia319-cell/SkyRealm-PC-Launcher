@@ -58,6 +58,8 @@ assert.ok(client.includes('commitFarmAction') && edge.includes('commit_co_op_far
 assert.ok(client.includes('commitMineAction') && edge.includes('commit_co_op_mine_action'),'Mining commits must be wired from the client to the server RPC.');
 assert.ok(client.includes('commitTreeAction') && edge.includes('commit_co_op_tree_action'),'Tree chopping commits must be wired from the client to the server RPC.');
 assert.ok(edge.includes('actionType === "chop_tree"') && game.includes('queueGuestTreeChop') && game.includes('network.commitTreeAction'),'Guest tree chopping must be owner-mediated.');
+assert.ok(game.includes('treeChops') && game.includes('felledTrees') && game.includes('markTreeFelled'),'Tree damage and felling must persist in the shared world state.');
+assert.ok(game.includes("actor.world_mode!=='surface'") && game.includes("Math.hypot(tree.x-Number(actor.x),tree.y-Number(actor.y))>86"),'The owner must validate the lumberjack position and reach.');
 assert.ok(edge.includes('actionType === "mine_rock"'),'Edge Function must validate guest mining requests.');
 assert.ok(game.includes('queueGuestMineAction') && game.includes('network.commitMineAction'),'Guest mine clicks must be processed by the room owner.');
 assert.ok(game.includes('saveKey.startsWith(\'skyrealm_coop_save_v1_\')&&network?.isRoomOwner') && game.includes('network.pauseRoom()'),'Returning from a co-op world as owner must pause only that shared room.');
