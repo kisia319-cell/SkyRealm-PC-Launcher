@@ -202,6 +202,15 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </main>
 
+  <div class="game-update-overlay" id="game-update-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="game-update-title">
+    <div class="game-update-dialog">
+      <div class="game-update-icon">✦</div><div class="game-update-kicker">SKYREALM · ОБНОВЛЕНИЕ</div>
+      <h2 id="game-update-title">Внимание! Вышло обновление игры</h2>
+      <p>Доступна новая версия <b id="game-update-version">—</b>. Сейчас установлена версия <span id="game-update-current">—</span>.</p>
+      <p>Хотите скачать и установить обновление перед запуском?</p>
+      <div class="game-update-actions"><button class="game-update-yes" id="game-update-yes" type="button">Да</button><button class="game-update-no" id="game-update-no" type="button">Нет</button></div>
+    </div>
+  </div>
   <div class="install-overlay" id="install-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="install-title">
     <div class="install-dialog">
       <div class="install-topline"><span class="install-logo">✦</span><span class="install-kicker" id="install-kicker">SKYREALM GAME CLIENT</span><span class="install-version">v0.2.0</span></div>
