@@ -160,3 +160,11 @@ assert.ok(game.includes("if(!tradeWorldMode){toast('Лавки лесника и
 assert.ok(!game.includes('HOME_SELL_SHOP') && !game.includes('HOME_BUY_SHOP'), 'Home shop locations must not exist');
 assert.ok(game.includes("tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16)"), 'E shop interaction must be trade-world-only');
 assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.19.8', 'Game version bumped');
+
+for (const crop of ['Пшеница','Морковь','Картофель','Томат','Кукуруза','Тыква','Клубника']) assert.ok(game.includes("product:'"+crop+"'"), 'Farm crop '+crop+' must exist');
+assert.ok(game.includes("farmer:[") && game.includes("Семена клубники"), 'Farmer shop has broad tool and seed catalog');
+assert.ok(game.includes("selected?.name==='Лейка'") && game.includes("selected?.name==='Компост'") && game.includes("selected?.name==='Удобрение'"), 'Watering and soil-care tools work');
+assert.ok(game.includes("farmCropSellPrice(name)") && game.includes("farmEconomy().sell"), 'Crop sale prices scale with difficulty');
+assert.ok(game.includes("function interactFarmPlot") && game.includes("plot.crop=crop.id"), 'Seeds can be planted and harvested per crop');
+assert.ok(game.includes("crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null"), 'Crop state is restored from saves');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.0', 'Farm update version must be bumped');
