@@ -1,9 +1,9 @@
 {
-  "game_version": "0.20.3",
+  "game_version": "0.20.8",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "sha256": "e43f9fb8048e324f1fc8b733c7edef972f00db2c5922a7c1c22e4801339fa534",
-  "game_sha256": "fb23fc1b432a4ef66fca0b5fcf472ae929e66f7aea7d6d4c201dbc556aeca5cd",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "notes": "SkyRealm Launcher 1.0.2 + Game 0.20.3: separate Trade World with two market stalls, five settlements and eight NPCs; complete farming with seven crops, seeds, beds, watering, compost and fertilizer; fixed crop buy/sell balance; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible.",
+  "game_sha256": "073f6081769b953d8479304a02621a4df5be5413ae9e043a20a925da6adfda58",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-de3e10e/SkyRealm_Game.zip",
+  "notes": "SkyRealm 0.20.8 Co-op Preview: up to 8 players, invite-code rooms, shared death, owner pause, PvP toggle, and six character skill branches. Preview build; some multiplayer systems still require end-to-end validation.",
   "version": "1.0.2"
 }
