@@ -409,7 +409,7 @@
     while(playerXP>=xpForNextLevel()){playerXP-=xpForNextLevel();playerLevel++;skillPoints++;leveled=true;player.hp=Math.min(100,player.hp+8);player.stamina=Math.min(100,player.stamina+12);}
     updateProgressHud();if(leveled){updateVitals();spawnVisualBurst(player.x,player.y,24,'spark','#8be9ff');playSound('craft');toast('НОВЫЙ УРОВЕНЬ '+playerLevel+'! +8 здоровья и +12 выносливости.');}else if(reason)toast('+'+gained+' опыта · '+reason);saveGame();
   }
-  function updateProgressHud(){const el=document.getElementById('progress-hud');if(el)el.textContent='УРОВЕНЬ '+playerLevel+' · XP '+playerXP+'/'+xpForNextLevel()+' · ✦ '+skillPoints;}
+  function updateProgressHud(){const el=document.getElementById('progress-hud');if(el)el.textContent='УРОВЕНЬ '+playerLevel+' · '+(PLAYER_CLASSES[playerClass]?.name||'Обычный')+' · XP '+playerXP+'/'+xpForNextLevel()+' · ✦ '+skillPoints;}
   async function claimCoopChest(objectKind,objectId){
     const network=window.SkyRealmCoopClient,roomState=network?.getRoomState?.();
     if(!roomState)return {coop:false,claimed:true};
@@ -1603,7 +1603,7 @@
   const WEAPON_BASE_DAMAGE={'Деревянный меч':20,'Железный меч':35,'Огненный меч':50,'Стальной меч':62,'Меч титана':100,'Меч дракона':130,'Меч пустоты':170,'Ледяной посох':28,'Молниеносное копьё':46};
   const LEGENDARY_SWORDS=new Set(['Меч титана','Меч дракона','Меч пустоты']);
   const SWORD_DIFFICULTY_MULTIPLIER={easy:1,medium:1.25,hard:1.6,hell:2.1,impossible:2.75};
-  function weaponDamage(name=equipment.weapon){const base=(WEAPON_BASE_DAMAGE[name]||20)+(Math.max(0,Math.min(5,Number(weaponUpgrades[name])||0))*8);const difficultyBonus=LEGENDARY_SWORDS.has(name)?(SWORD_DIFFICULTY_MULTIPLIER[currentDifficulty]||1):1;const classBonus=classHas('swordsman')&&/меч/.test(name)?1.1:classHas('archer')&&name==='Молниеносное копьё'?1.2:classHas('mage')&&name==='Ледяной посох'?1.2:1;return Math.round(base*difficultyBonus*classBonus*(name==='Ледяной посох'?1.15:1)*(weaponEnchantments[name]?1.15:1)*(strengthPotionTimer>0?1.3:1));}
+  function weaponDamage(name=equipment.weapon){const base=(WEAPON_BASE_DAMAGE[name]||20)+(Math.max(0,Math.min(5,Number(weaponUpgrades[name])||0))*8);const difficultyBonus=LEGENDARY_SWORDS.has(name)?(SWORD_DIFFICULTY_MULTIPLIER[currentDifficulty]||1):1;const classBonus=classHas('swordsman')&&String(name).toLowerCase().includes('меч')?1.1:classHas('archer')&&name==='Молниеносное копьё'?1.2:classHas('mage')&&name==='Ледяной посох'?1.2:1;return Math.round(base*difficultyBonus*classBonus*(name==='Ледяной посох'?1.15:1)*(weaponEnchantments[name]?1.15:1)*(strengthPotionTimer>0?1.3:1));}
   function weaponRange(name=equipment.weapon){return name==='Ледяной посох'?230:name==='Молниеносное копьё'?125:82;}
   function armorReduction(){let r=equipment.armor==='Кожаная броня'?.4:equipment.armor==='Броня стража'?.52:equipment.armor==='Мантия мага'?.25:0;if(equipment.armor)r+=armorUpgrade*.035;r+=(equipment.helmet==='Шлем лесника'?.15:0)+(equipment.amulet==='Амулет стража'?.1:0)+(wardPotionTimer>0?.2:0);return Math.min(.82,r);}
   function itemCount(name){const i=inventoryItems.find(v=>v.name===name);return i?i.count:0;}
