@@ -862,8 +862,54 @@
       ctx.restore();
     }
   }
-  function canPlaceAt(x,y){const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<2||ty<2||tx>=COLS-2||ty>=ROWS-2||waterAt(tx+.5,ty+.5))return false;if(tradeWorldMode)return false;const hx=36*TILE-120,hy=15*TILE-120;if(x>hx-45&&x<hx+365&&y>hy-45&&y<hy+330)return false;if(world.trees.some(t=>Math.hypot(t.x-x,t.y-y)<48)||world.rocks.some(r=>Math.hypot(r.x-x,r.y-y)<35))return false;if(placedStructures.some(s=>Math.hypot(s.x-x,s.y-y)<(s.type==='house'||s.type==='furnace'?60:30)))return false;return Math.hypot(player.x-x,player.y-y)>65;}
-  function placeSelectedStructure(ev){if(inMainMenu||paused||inHouse||mineMode||tradeWorldMode||inventoryDialogOpen||shopDialogOpen||workbenchDialogOpen)return false;const item=inventoryItems.filter(i=>i.count>0)[selectedSlot-1];const types={'Печь':'furnace','Комплект дома':'house','Факел':'torch','Угольный блок':'coal','Сундук-хранилище':'storage','Грядка с семенами':'farmplot'};if(!item||!types[item.name])return false;const rect=canvas.getBoundingClientRect(),sx=ev.clientX-rect.left,sy=ev.clientY-rect.top;const camX=Math.max(0,Math.min(COLS*TILE-width,player.x-width/2)),camY=Math.max(0,Math.min(ROWS*TILE-height,player.y-height/2));const x=Math.round((sx+camX)/TILE)*TILE+16,y=Math.round((sy+camY)/TILE)*TILE+16;if(!canPlaceAt(x,y)){toast('Здесь нельзя строить. Выбери свободное место подальше от воды, деревьев и дома.');return true;}placedStructures.push({type:types[item.name],x,y,stage:0,growSeconds:0,contents:{},crop:null,moisture:0,fertilized:false});item.count--;playSound('craft');renderInventory();saveGame();drawMinimap();toast(item.name+' установлен!');return true;}
+  function canPlaceAt(x,y,ignorePlayerDistance=false){const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<2||ty<2||tx>=COLS-2||ty>=ROWS-2||waterAt(tx+.5,ty+.5))return false;if(tradeWorldMode)return false;const hx=36*TILE-120,hy=15*TILE-120;if(x>hx-45&&x<hx+365&&y>hy-45&&y<hy+330)return false;if(world.trees.some(t=>Math.hypot(t.x-x,t.y-y)<48)||world.rocks.some(r=>Math.hypot(r.x-x,r.y-y)<35))return false;if(placedStructures.some(s=>Math.hypot(s.x-x,s.y-y)<(s.type==='house'||s.type==='furnace'?60:30)))return false;return ignorePlayerDistance||Math.hypot(player.x-x,player.y-y)>65;}
+  function queueGuestStructurePlacement(type,x,y,item){
+    const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
+    if(!room||room.status!=='running'){toast('Сначала дождись запуска комнаты.');return true;}
+    if(typeof network.enqueueWorldAction!=='function'){toast('Очередь построек пока недоступна.');return true;}
+    if(item.count<1){toast('Не хватает предметов для постройки.');return true;}
+    const actionId=window.crypto?.randomUUID?.();
+    if(!actionId){toast('Не удалось безопасно подготовить запрос.');return true;}
+    const key=saveKey+'_coop_pending_world_actions';let pending=[];
+    try{const value=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(value))pending=value;}catch(_){}
+    if(pending.length>=20){toast('Сначала дождись обработки предыдущих построек.');return true;}
+    pending.push({action_id:actionId,item_name:item.name});
+    try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){toast('Не удалось сохранить очередь действий на этом устройстве.');return true;}
+    item.count--;renderInventory();
+    if(!saveGame()){
+      item.count++;pending=pending.filter(entry=>entry.action_id!==actionId);
+      try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){}
+      renderInventory();return true;
+    }
+    network.enqueueWorldAction('place_structure',{type,x,y},actionId).then(action=>{
+      if(!action?.action_id)throw new Error('Сервер не вернул ID запроса.');
+      toast('Запрос на постройку отправлен владельцу. Предмет временно зарезервирован.');
+    }).catch(error=>{
+      if(error?.code&&!['INTERNAL_ERROR','COOP_BACKEND_ERROR'].includes(error.code)){
+        const itemToReturn=inventoryItems.find(entry=>entry.name===item.name);
+        if(itemToReturn)itemToReturn.count++;
+        const left=pending.filter(entry=>entry.action_id!==actionId);
+        try{localStorage.setItem(key,JSON.stringify(left));}catch(_){}
+        renderInventory();saveGame();
+      }
+      toast(error?.message||'Не удалось отправить запрос. Проверяю его статус перед возвратом предмета.');
+    });
+    return true;
+  }
+  function placeSelectedStructure(ev){
+    if(inMainMenu||paused||inHouse||mineMode||tradeWorldMode||inventoryDialogOpen||shopDialogOpen||workbenchDialogOpen)return false;
+    const item=inventoryItems.filter(i=>i.count>0)[selectedSlot-1];
+    const types={'Печь':'furnace','Комплект дома':'house','Факел':'torch','Угольный блок':'coal','Сундук-хранилище':'storage','Грядка с семенами':'farmplot'};
+    if(!item||!types[item.name])return false;
+    const rect=canvas.getBoundingClientRect(),sx=ev.clientX-rect.left,sy=ev.clientY-rect.top;
+    const camX=Math.max(0,Math.min(COLS*TILE-width,player.x-width/2)),camY=Math.max(0,Math.min(ROWS*TILE-height,player.y-height/2));
+    const x=Math.round((sx+camX)/TILE)*TILE+16,y=Math.round((sy+camY)/TILE)*TILE+16;
+    if(!canPlaceAt(x,y)){toast('Здесь нельзя строить. Выбери свободное место подальше от воды, деревьев и дома.');return true;}
+    const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
+    if(room&&!network.isRoomOwner)return queueGuestStructurePlacement(types[item.name],x,y,item);
+    placedStructures.push({type:types[item.name],x,y,stage:0,growSeconds:0,contents:{},crop:null,moisture:0,fertilized:false});
+    item.count--;playSound('craft');renderInventory();saveGame();drawMinimap();toast(item.name+' установлен!');return true;
+  }
   function drawTradeShop(shop,camX,camY,title,subtitle,accent){if(!tradeWorldMode)return;const x=shop.x*TILE+16-camX,y=shop.y*TILE+16-camY;if(x<-150||x>width+150||y<-150||y>height+150)return;ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(4,13,18,.35)';ctx.beginPath();ctx.ellipse(0,22,49,17,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#6f4a2d';ctx.fillRect(-42,-16,84,43);ctx.fillStyle='#c18b4d';ctx.fillRect(-37,-11,74,31);ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(-49,-17);ctx.lineTo(-35,-42);ctx.lineTo(35,-42);ctx.lineTo(49,-17);ctx.closePath();ctx.fill();ctx.fillStyle='#4b3024';ctx.fillRect(-13,-6,26,33);ctx.fillStyle='#ffedb0';ctx.fillRect(-31,-5,12,11);ctx.fillRect(19,-5,12,11);ctx.fillStyle='#fff0b8';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText(title,0,-50);ctx.shadowBlur=0;ctx.font='bold 10px Segoe UI';ctx.fillStyle='#fff8df';ctx.fillText(subtitle,0,42);ctx.textAlign='left';ctx.restore();
   }
   function updateWalletHud(){const el=document.getElementById('wallet-value');if(el)el.textContent=formatMoney(walletCents);const wrap=document.getElementById('wallet-hud');if(wrap)wrap.hidden=!currentWorldId;}
@@ -1558,6 +1604,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   // The previous guard covered draw() only, so an error earlier in tick could leave the canvas black.
 
   let coopPositionSendTimer=0,coopClockSendTimer=0,coopSnapshotTimer=0,coopSnapshotSyncPending=false,coopSnapshotRoomId='',lastAppliedCoopSnapshotVersion=0,lastCoopSnapshotSignature='';
+  let coopWorldActionPollTimer=0,coopWorldActionSyncPending=false,coopGuestReceiptTimer=0,coopGuestReceiptSyncPending=false;
   function applyCoopSnapshot(snapshot){
     const network=window.SkyRealmCoopClient;
     if(!snapshot||!network?.getRoomState?.()||!currentWorldId||!saveKey.startsWith('skyrealm_coop_save_v1_'))return false;
@@ -1608,10 +1655,84 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     }catch(error){console.warn('[SkyRealm co-op snapshot]',error);}
     finally{coopSnapshotSyncPending=false;}
   }
+  async function syncCoopWorldActions(){
+    const network=window.SkyRealmCoopClient,state=network?.getRoomState?.();
+    if(!network?.isRoomOwner||!state||state.status!=='running'||!currentWorldId||coopWorldActionSyncPending||coopSnapshotSyncPending)return;
+    coopWorldActionSyncPending=true;coopSnapshotSyncPending=true;
+    try{
+      const snapshot=await network.getWorldSnapshot();
+      if(snapshot&&Number(snapshot.version)>lastAppliedCoopSnapshotVersion)applyCoopSnapshot(snapshot);
+      const actions=await network.getPendingWorldActions(20);
+      for(const action of actions){
+        if(!action?.action_id||action.action_type!=='place_structure')continue;
+        const payload=action.payload||{},type=payload.type,x=Number(payload.x),y=Number(payload.y);
+        const types=['furnace','house','torch','coal','storage','farmplot'];
+        const gx=Math.round((x-16)/TILE)*TILE+16,gy=Math.round((y-16)/TILE)*TILE+16;
+        if(!types.includes(type)||!Number.isFinite(x)||!Number.isFinite(y)||Math.abs(x-gx)>1||Math.abs(y-gy)>1||
+           placedStructures.length>=250||!canPlaceAt(x,y,true)){
+          try{await network.rejectWorldAction(action.action_id,'placement_invalid');}catch(error){console.warn('[SkyRealm co-op action reject]',error);}
+          continue;
+        }
+        const structure={type,x:gx,y:gy,stage:0,growSeconds:0,contents:{},crop:null,moisture:0,fertilized:false};
+        placedStructures.push(structure);
+        if(!saveGame()){
+          const at=placedStructures.indexOf(structure);if(at>=0)placedStructures.splice(at,1);
+          try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}
+          continue;
+        }
+        let localSave=null;try{localSave=JSON.parse(localStorage.getItem(saveKey)||'null');}catch(_){}
+        const safe=window.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot?.(localSave);
+        if(!safe){placedStructures.pop();saveGame();try{await network.rejectWorldAction(action.action_id,'snapshot_invalid');}catch(_){}continue;}
+        try{
+          const result=await network.commitWorldAction(action.action_id,safe);
+          if(!result||result.status!=='applied')throw new Error('Не удалось подтвердить постройку в общей версии мира.');
+          lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(result.version)||0);
+          lastCoopSnapshotSignature=JSON.stringify(safe);drawMinimap();
+          toast('Участник построил объект. Постройка добавлена в общий мир.');
+        }catch(error){
+          const at=placedStructures.indexOf(structure);if(at>=0)placedStructures.splice(at,1);
+          saveGame();console.warn('[SkyRealm co-op action commit]',error);break;
+        }
+      }
+    }catch(error){console.warn('[SkyRealm co-op action queue]',error);}
+    finally{coopSnapshotSyncPending=false;coopWorldActionSyncPending=false;}
+  }
+  async function syncCoopGuestActionReceipts(){
+    const network=window.SkyRealmCoopClient,state=network?.getRoomState?.();
+    if(!network||!state||!currentWorldId||network.isRoomOwner||coopGuestReceiptSyncPending)return;
+    const key=saveKey+'_coop_pending_world_actions';let pending=[];
+    try{const value=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(value))pending=value;}catch(_){}
+    if(!pending.length)return;
+    coopGuestReceiptSyncPending=true;
+    try{
+      const remaining=[];
+      for(const receipt of pending.slice(0,20)){
+        try{
+          const status=await network.getWorldActionStatus(receipt.action_id);
+          if(status?.status==='applied')toast('Владелец подтвердил постройку в общем мире.');
+          else if(status?.status==='rejected'){
+            const item=inventoryItems.find(entry=>entry.name===receipt.item_name);
+            if(item)item.count++;
+            saveGame();renderInventory();toast('Владелец отклонил постройку. Предмет возвращён.');
+          }else remaining.push(receipt);
+        }catch(error){
+          if(error?.code==='WORLD_ACTION_NOT_FOUND'){
+            const item=inventoryItems.find(entry=>entry.name===receipt.item_name);
+            if(item)item.count++;
+            saveGame();renderInventory();
+          }else remaining.push(receipt);
+        }
+      }
+      localStorage.setItem(key,JSON.stringify(remaining));
+    }finally{coopGuestReceiptSyncPending=false;}
+  }
   function updateCoopPosition(dt){
     const network=window.SkyRealmCoopClient;
     if(!network||!currentWorldId||inMainMenu||paused)return;
     syncCoopSharedDeath();
+    coopWorldActionPollTimer-=dt;
+    if(network.isRoomOwner&&coopWorldActionPollTimer<=0){coopWorldActionPollTimer=1.0;syncCoopWorldActions();}
+    else if(!network.isRoomOwner){coopGuestReceiptTimer-=dt;if(coopGuestReceiptTimer<=0){coopGuestReceiptTimer=2.0;syncCoopGuestActionReceipts();}}
     coopSnapshotTimer-=dt;
     if(coopSnapshotTimer<=0){coopSnapshotTimer=5;syncCoopWorldSnapshot();}
     if(network.isRoomOwner&&typeof network.setWorldClock==='function'){
