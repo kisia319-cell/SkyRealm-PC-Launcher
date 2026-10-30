@@ -34,7 +34,7 @@ assert.ok(launcherHtml.includes('Никаких скрытых покупок'),
 assert.ok(app.includes('function runGameDiagnostics()'), 'Launcher diagnostics button must be wired');
 assert.ok(py.includes('def get_diagnostics(self):') && py.includes('def open_update_log(self):'), 'Desktop launcher must provide diagnostics and log actions');
 assert.ok(py.includes('installed_files_ok'), 'Play flow must repair missing or size-mismatched installed files');
-assert.ok(launcherHtml.includes('v1.0.0'), 'Launcher UI version must match the release');
+assert.ok(launcherHtml.includes('v1.0.2'), 'Launcher UI version must match the release');
 assert.ok(gameHtml.includes('360 × 260') && !gameHtml.includes('180 × 130 · Босс 8500 HP'), 'Difficulty picker must show actual expanded map dimensions');
 
 assert.match(version, /^\d+\.\d+\.\d+$/, 'game/version.txt must be a semantic version');
@@ -116,7 +116,6 @@ assert.ok(game.includes("drawNpcCharacter(npc,x,y,time)") && game.includes("npc.
 assert.ok(!game.includes("ctx.fillRect(-22,-23,44,25)"), 'The active village renderer must not use placeholder NPC sprites');
 
 assert.ok(game.includes("ctx.scale(1.28,1.28)"), 'Trade NPC sprites must be enlarged');
-assert.ok(game.includes('HOME_SELL_SHOP={x:33,y:25}') && game.includes('drawTradeShop(HOME_SELL_SHOP'), 'First world must show stalls near home');
 assert.ok(game.includes('drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);'), 'Trade World must render chests, drops and monsters');
 assert.ok(game.includes('Подойди к торговцу или к вывеске лавки и нажми T.'), 'T must open nearby trader or stall');
 
@@ -124,7 +123,6 @@ assert.ok(py.includes('allow_game_update=True') && py.includes('allow_update=all
 assert.ok(py.includes('selected = installed_version if game_ok and installed_version else bundled_version'), 'Declining an update must keep the installed game when it is usable');
 assert.ok(launcherHtml.includes('id="game-update-overlay"') && launcherHtml.includes('Внимание! Вышло обновление игры') && launcherHtml.includes('id="game-update-yes"') && launcherHtml.includes('id="game-update-no"'), 'Launcher must show a Yes/No game update prompt');
 assert.ok(app.includes("fetch('https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json?check='") && app.includes("$('#game-update-yes').addEventListener('click'") && app.includes("$('#game-update-no').addEventListener('click'"), 'Update prompt must fetch manifest and wire both choices');
-assert.ok(game.includes("HOME_SELL_SHOP={x:33,y:25}") && game.includes("drawTradeShop(HOME_SELL_SHOP"), 'First world must show market stalls near home');
 assert.ok(game.includes("drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);"), 'Trade World must render treasure chests and drops');
 assert.ok(game.includes("Подойди к торговцу или к вывеске лавки и нажми T."), 'T must open a nearby trader or stall');
 assert.ok(game.includes("ctx.scale(1.28,1.28)"), 'Trade NPC sprites must be enlarged');
@@ -138,7 +136,6 @@ assert.ok(py.includes('bin/SkyRealmUpdater.exe') && py.includes('os.getpid()'), 
 assert.ok(updater.includes('expected_version') && updater.includes('launcher_version.txt') && updater.includes('relaunched.poll()'), 'Updater helper must verify the package version and roll back if the new launcher fails to start');
 
 assert.ok(game.includes("return 'snow';"), 'The default world biome must be winter');
-assert.ok(game.includes("drawCabin(camX,camY); drawTradeShop") && !game.includes("drawCabin(camX,camY); drawBlacksmith(camX,camY,time)"), 'Old starter-base NPCs must no longer be rendered');
 assert.ok(!game.includes("talkToBlacksmith();return") && !game.includes("talkToVillageElder();return") && !game.includes("talkToExplorer();return"), 'Old starter-base NPC interactions must be disabled');
 assert.ok(game.includes("name: 'Лопата', icon: '🪏', count: 1"), 'A shovel must be available from the start');
 assert.ok(game.includes("if(hits>=3)") && game.includes("snowShovelHits") && game.includes("clearedSnowTiles"), 'Snow must take three shovel hits and persist its cleared state');
@@ -147,8 +144,8 @@ assert.ok(game.includes("drawTree(t,camX,camY)") && game.includes("const snowy=b
 
 const gameHtml = fs.readFileSync('game/index.html', 'utf8');
 const gameVersion = fs.readFileSync('game/version.txt', 'utf8').trim();
-assert.equal(gameVersion, '0.20.1', 'Game version must be bumped when a hotfix changes game files');
-assert.ok(gameHtml.includes('content="0.20.1"') && gameHtml.includes('2D SURVIVAL · 0.20.1'), 'Visible and metadata game versions must match the packaged version');
+assert.equal(gameVersion, '0.20.2', 'Game version must be bumped when a hotfix changes game files');
+assert.ok(gameHtml.includes('content="0.20.2"') && gameHtml.includes('2D SURVIVAL · 0.20.2'), 'Visible and metadata game versions must match the packaged version');
 const treeFn = game.slice(game.indexOf('function drawTree'), game.indexOf('function drawRock'));
 assert.ok(treeFn.indexOf("const snowy=") >= 0 && treeFn.indexOf("const snowy=") < treeFn.indexOf("ctx.fillStyle=snowy?"), 'Snowy tree state must be initialized before use');
 
@@ -159,7 +156,7 @@ assert.ok(drawFn.includes("drawTradeShop(SELL_SHOP") && drawFn.includes("drawTra
 assert.ok(game.includes("if(!tradeWorldMode){toast('Лавки лесника и рудокопа находятся в Мире торговли."), 'T must direct home players to the trade world');
 assert.ok(!game.includes('HOME_SELL_SHOP') && !game.includes('HOME_BUY_SHOP'), 'Home shop locations must not exist');
 assert.ok(game.includes("tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16)"), 'E shop interaction must be trade-world-only');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.1', 'Game version bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.2', 'Game version bumped');
 
 for (const crop of ['Пшеница','Морковь','Картофель','Томат','Кукуруза','Тыква','Клубника']) assert.ok(game.includes("product:'"+crop+"'"), 'Farm crop '+crop+' must exist');
 assert.ok(game.includes("farmer:[") && game.includes("Семена клубники"), 'Farmer shop has broad tool and seed catalog');
@@ -167,8 +164,23 @@ assert.ok(game.includes("selected?.name==='Лейка'") && game.includes("selec
 assert.ok(game.includes("farmCropSellPrice(name)") && game.includes("farmCropBuyPrice(name)"), 'Crop sale and purchase prices use the agreed crop balance');
 assert.ok(game.includes("function interactFarmPlot") && game.includes("plot.crop=crop.id"), 'Seeds can be planted and harvested per crop');
 assert.ok(game.includes("crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null"), 'Crop state is restored from saves');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.1', 'Farm update version must be bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.2', 'Farm update version must be bumped');
 
 assert.ok(game.includes('const FARM_CROP_TRADE_PRICES={Пшеница:{buy:30,sell:50}') && game.includes('Клубника:{buy:123,sell:200}'), 'Crop trading prices must match the agreed cents-per-item balance');
 assert.ok(game.includes('function farmCropBuyPrice(name)') && game.includes('farmCropBuyPrice(name)||item.price'), 'Farmer must sell harvested crops at the agreed buy prices');
 assert.ok(game.includes("Math.round(unit*(1+Math.min(.25,villageReputation*.005)))") && !game.includes("(id==='farmer'?(farmCropSellPrice(name)||unit):unit)"), 'Crop sale totals must use the correct NPC id and per-item price');
+
+
+const activeTradeDraw = game.slice(game.indexOf('function draw(dt,time)'), game.indexOf('function mineRockScreenPosition'));
+const tradeBranchStart = activeTradeDraw.indexOf('if(tradeWorldMode){');
+const tradeBranchEnd = activeTradeDraw.indexOf('}else{', tradeBranchStart);
+assert.ok(tradeBranchStart >= 0 && tradeBranchEnd > tradeBranchStart, 'Main renderer must separate Trade World from the normal world');
+const tradeBranch = activeTradeDraw.slice(tradeBranchStart, tradeBranchEnd);
+const normalBranch = activeTradeDraw.slice(tradeBranchEnd);
+assert.ok(tradeBranch.includes('drawTradeShop(SELL_SHOP') && tradeBranch.includes('drawTradeShop(BUY_SHOP'), 'Both market stalls must exist only in Trade World');
+assert.ok(!normalBranch.includes('drawTradeShop(') && normalBranch.includes('drawCabin('), 'The normal snow world must not render either market stall');
+assert.ok(game.includes('function drawTradeGround(camX,camY)') && game.includes('drawTradeGround(camX,camY)'), 'Trade World must use its own market ground renderer');
+assert.ok(game.includes('if(tradeWorldMode)return false;const cx=52,cy=36'), 'The normal lake must not appear in Trade World');
+assert.ok(game.includes('if(!tradeWorldMode)return;const x=shop.x*TILE+16-camX'), 'Market stalls must have an explicit Trade World-only render gate');
+assert.ok(game.includes("x:Math.floor(COLS*.18),y:Math.floor(ROWS*.28)") && game.includes("houses:['merchant','farmer']"), 'Merchant and farmer must be placed beside the Trade World hub');
+assert.ok(game.includes('function interactFarmPlot(plot)') && game.includes('function updateFarmPlots(dt)'), 'Planting, watering and growing farm plots must be included');
