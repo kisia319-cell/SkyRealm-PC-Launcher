@@ -2,8 +2,8 @@
   "game_version": "0.20.8",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "sha256": "e43f9fb8048e324f1fc8b733c7edef972f00db2c5922a7c1c22e4801339fa534",
-  "game_sha256": "eb8fd69185b854ffb0869355ded2e869cae521891389791a62d0adc57e4777e6",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-91ab060/SkyRealm_Game.zip",
+  "game_sha256": "b2b7b44cd46e83e41762126f7937ca64946139f75d47354be4a67e9a1a706e68",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-d72a58c/SkyRealm_Game.zip",
   "notes": "SkyRealm 0.20.8 Co-op Preview: up to 8 players, invite-code rooms, shared death, owner pause, PvP toggle, and six character skill branches. Preview build; some multiplayer systems still require end-to-end validation.",
   "version": "1.0.2"
 }
