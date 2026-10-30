@@ -1,0 +1,102 @@
+name: Co-op core tests
+on:
+  push:
+    branches: [feature/co-op-foundation]
+  pull_request:
+    branches: [main]
+jobs:
+  multiplayer-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: node tests/multiplayer-core-test.cjs
+      - run: node tests/multiplayer-client-test.cjs
+      - run: node tests/supabase-migration-history-test.cjs
+      - run: node tests/coop-ui-integration-test.cjs
+      - run: node --check game/multiplayer-core.js
+      - run: node --check game/multiplayer-client.js
+      - run: node --check game/multiplayer-ui.js
+      - run: node --check game/game.js
+      - run: python -m py_compile launcher.py
+      - name: Smoke-test deployed co-op API
+        run: |
+          node --input-type=module <<'NODE'
+          const base = 'https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-coop';
+          const healthUrl = new URL(base);
+          healthUrl.searchParams.set('route', '/health');
+          const health = await fetch(healthUrl);
+          const healthBody = await health.json();
+          if (!health.ok || healthBody.status !== 'ok') {
+            throw new Error('Co-op health check failed: ' + JSON.stringify(healthBody));
+          }
+          async function assertProtected(route, method = 'GET', body) {
+            const url = new URL(base);
+            url.searchParams.set('route', route);
+            const response = await fetch(url, {
+              method,
+              headers: {
+                apikey: 'sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL',
+                ...(body ? { 'Content-Type': 'application/json' } : {})
+              },
+              body: body ? JSON.stringify(body) : undefined
+            });
+            const payload = await response.json();
+            if (response.status !== 401 || payload?.error?.code !== 'NO_SESSION') {
+              throw new Error('Unauthenticated route was not rejected: ' + route + ' ' + JSON.stringify(payload));
+            }
+          }
+          await assertProtected('/api/coop/current');
+          await assertProtected('/api/coop/snapshot/get', 'POST', { room_id: '123e4567-e89b-12d3-a456-426614174000' });
+          await assertProtected('/api/coop/claim', 'POST', { room_id: '123e4567-e89b-12d3-a456-426614174000', object_kind: 'treasure_chest', object_id: 'forest' });
+          await assertProtected('/api/coop/snapshot/save', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            expected_version: 0,
+            payload: { placedStructures: [] }
+          });
+          await assertProtected('/api/coop/actions/enqueue', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174099',
+            action_type: 'farm_plant',
+            payload: { x: 112, y: 144, crop_id: 'wheat' }
+          });
+          await assertProtected('/api/coop/actions/commit-farm', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174099',
+            expected_version: 0,
+            payload: { farmCrops: [] },
+            result: { consumed_item: 'Семена пшеницы' }
+          });
+          await assertProtected('/api/coop/actions/enqueue', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174098',
+            action_type: 'mine_rock',
+            payload: { rock_index: 3, tool: 'Кирка' }
+          });
+          await assertProtected('/api/coop/actions/commit-mine', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174098',
+            expected_version: 0,
+            payload: { mineRocks: [] },
+            result: {}
+          });
+          await assertProtected('/api/coop/actions/enqueue', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174097',
+            action_type: 'chop_tree',
+            payload: { x: 144, y: 177, tool: 'Топор' }
+          });
+          await assertProtected('/api/coop/actions/commit-tree', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174097',
+            expected_version: 0,
+            payload: { adventureQuestProgress: { treeChops: [], felledTrees: [] } },
+            result: {}
+          });
+          console.log('Co-op health is OK; current, snapshot, world-claim, farm, mining and tree routes reject missing sessions.');
+          NODE

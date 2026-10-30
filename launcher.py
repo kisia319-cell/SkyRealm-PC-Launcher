@@ -202,7 +202,7 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Ошибка диагностики: " + str(exc)}
 
-    def launch_game(self, settings=None, allow_game_update=True):
+    def launch_game(self, settings=None, allow_game_update=True, session_token=None):
         """Install the bundled prototype into LocalAppData and start it in a new process."""
         try:
             preferences = save_user_settings(settings if isinstance(settings, dict) else read_user_settings())
@@ -293,12 +293,18 @@ class LauncherApi:
                 # Source-mode development still works with the current Python interpreter.
                 command = [sys.executable, str(Path(__file__).resolve()), "--skyrealm-game", str(installed_index)]
             creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) if os.name == "nt" else 0
+            launch_env = os.environ.copy()
+            safe_session_token = session_token.strip() if isinstance(session_token, str) else ""
+            if safe_session_token and len(safe_session_token) <= 4096:
+                launch_env["SKYREALM_SESSION_TOKEN"] = safe_session_token
+            else:
+                launch_env.pop("SKYREALM_SESSION_TOKEN", None)
             subprocess.Popen(
                 command,
                 cwd=str(install_dir),
                 close_fds=True,
                 creationflags=creationflags,
-                env=os.environ.copy(),
+                env=launch_env,
             )
             _js_update(100, "Запускаем SkyRealm…", "Лаунчер закроется через мгновение")
             return {"ok": True, "installed": not already_installed, "version": version}
@@ -307,6 +313,16 @@ class LauncherApi:
 
 
 class GameApi:
+    def __init__(self):
+        # The launcher passes the Auth bearer only through the child process environment.
+        # It is never written to disk, a URL, or an updater log.
+        self._session_token = os.environ.pop("SKYREALM_SESSION_TOKEN", "")
+
+    def get_auth_session(self):
+        token = self._session_token
+        self._session_token = ""
+        return {"token": token}
+
     def close(self):
         try:
             game_window.destroy()
