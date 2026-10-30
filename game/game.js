@@ -1364,8 +1364,7 @@
     if(selectedItem&&selectedItem.name==='Топор'){
       let treeTarget=null;best=86;for(const tree of world.trees){const d=Math.hypot(tree.x-player.x,tree.y-player.y);if(d<best){best=d;treeTarget=tree;}}
       if(treeTarget){
-        const coop=window.SkyRealmCoopClient,room=coop?.getRoomState?.();
-        if(room?.status==='running'&&!coop.isRoomOwner){queueGuestTreeChop(treeTarget.x,treeTarget.y);return;}
+        if(queueGuestTreeChop(treeTarget.x,treeTarget.y))return;
         treeTarget.chops=(treeTarget.chops||0)+1;treeTarget.flash=.18;updateTreeChopRecord(treeTarget);
         spawnVisualBurst(treeTarget.x,treeTarget.y-15,7,'leaf','#78c96d');playSound('wood');
         if(treeTarget.chops>=5){
@@ -1422,6 +1421,31 @@
         renderInventory();saveGame();
       }
       toast(error?.message||'Не удалось отправить действие. Проверяю его статус перед возвратом предмета.');
+    });
+    return true;
+  }
+  function queueGuestTreeChop(x,y){
+    const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
+    if(!saveKey.startsWith('skyrealm_coop_save_v1_')&&!room)return false;
+    if(!room){toast('Нет соединения с комнатой. Рубка временно недоступна.');return true;}
+    if(room.status!=='running'){toast('Общий мир на паузе. Дождись возобновления игры.');return true;}
+    if(network.isRoomOwner)return false;
+    const actionId=window.crypto?.randomUUID?.();
+    if(!actionId){toast('Не удалось безопасно подготовить запрос.');return true;}
+    const key=saveKey+'_coop_pending_world_actions';let pending=[];
+    try{const value=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(value))pending=value;}catch(_){}
+    if(pending.length>=20){toast('Сначала дождись обработки предыдущих действий.');return true;}
+    pending.push({action_id:actionId,action_type:'chop_tree',reserved_item:null});
+    try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){toast('Не удалось сохранить очередь рубки.');return true;}
+    network.enqueueWorldAction('chop_tree',{x,y,tool:'Топор'},actionId).then(action=>{
+      if(!action?.action_id)throw new Error('Сервер не вернул ID запроса.');
+      toast('Удар топором отправлен владельцу мира.');
+    }).catch(error=>{
+      if(error?.code&&!['INTERNAL_ERROR','COOP_BACKEND_ERROR'].includes(error.code)){
+        const left=pending.filter(entry=>entry.action_id!==actionId);
+        try{localStorage.setItem(key,JSON.stringify(left));}catch(_){}
+      }
+      toast(error?.message||'Не удалось отправить рубку. Проверяю её статус.');
     });
     return true;
   }
@@ -1805,6 +1829,55 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
           }
           continue;
         }
+        if(action.action_type==='chop_tree'){
+          const treeX=Number(payload.x),treeY=Number(payload.y),tool=payload.tool;
+          const tree=world.trees.find(item=>Math.abs(Math.round(item.x)-treeX)<=1&&Math.abs(Math.round(item.y)-treeY)<=1);
+          const actor=(network.getRemotePlayers?.()||[]).find(other=>other.user_id===action.actor_id);
+          const actionAge=Date.now()-Date.parse(action.created_at||'');
+          if(!actor||Date.now()-(actor.received_at||0)>1800){
+            if(Number.isFinite(actionAge)&&actionAge>10000){try{await network.rejectWorldAction(action.action_id,'player_position_timeout');}catch(_){}}
+            continue;
+          }
+          if(!tree||tool!=='Топор'||actor.world_mode!=='surface'||actor.difficulty!==currentDifficulty||
+             Math.hypot(tree.x-Number(actor.x),tree.y-Number(actor.y))>86){
+            try{await network.rejectWorldAction(action.action_id,'tree_target_invalid');}catch(_){}continue;
+          }
+          const beforeChops=Number(tree.chops)||0,previousTreeChops=treeChops.map(v=>({...v})),previousFelledTrees=felledTrees.map(v=>({...v}));
+          const previousIndex=world.trees.indexOf(tree);
+          tree.chops=beforeChops+1;tree.flash=.18;updateTreeChopRecord(tree);
+          const resultPayload={};
+          if(tree.chops>=5){
+            markTreeFelled(tree);world.trees.splice(previousIndex,1);
+            resultPayload.reward_name='Древесина';resultPayload.reward_amount=7;
+            resultPayload.bonus_name='Листья';resultPayload.bonus_amount=3;
+            resultPayload.extra_name='Палка';resultPayload.extra_amount=1;
+          }
+          if(!saveGame()){
+            tree.chops=beforeChops;treeChops=previousTreeChops;felledTrees=previousFelledTrees;
+            if(!world.trees.includes(tree))world.trees.splice(Math.max(0,previousIndex),0,tree);
+            try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}continue;
+          }
+          let localSave=null;try{localSave=JSON.parse(localStorage.getItem(saveKey)||'null');}catch(_){}
+          const safe=window.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot?.(localSave);
+          if(!safe){
+            tree.chops=beforeChops;treeChops=previousTreeChops;felledTrees=previousFelledTrees;
+            if(!world.trees.includes(tree))world.trees.splice(Math.max(0,previousIndex),0,tree);
+            saveGame();try{await network.rejectWorldAction(action.action_id,'snapshot_invalid');}catch(_){}continue;
+          }
+          try{
+            const committed=await network.commitTreeAction(action.action_id,safe,resultPayload);
+            if(!committed||committed.status!=='applied')throw new Error('Не удалось сохранить рубку дерева в общем мире.');
+            lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(committed.version)||0);
+            lastCoopSnapshotSignature=JSON.stringify(safe);
+            spawnVisualBurst(tree.x,tree.y-15,7,'leaf','#78c96d');
+            toast(tree.chops>=5?'Дерево срублено в общем мире.':'Участник рубит дерево: '+tree.chops+'/5.');
+          }catch(error){
+            tree.chops=beforeChops;treeChops=previousTreeChops;felledTrees=previousFelledTrees;
+            if(!world.trees.includes(tree))world.trees.splice(Math.max(0,previousIndex),0,tree);
+            saveGame();console.warn('[SkyRealm co-op tree action commit]',error);break;
+          }
+          continue;
+        }
         if(action.action_type==='mine_rock'){
           const rockIndex=Number(payload.rock_index),tool=payload.tool;
           const target=Number.isSafeInteger(rockIndex)?mineRocks[rockIndex]:null;
@@ -1938,6 +2011,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
             const rewards=[];
             if(status.result?.reward_name&&Number(status.result.reward_amount)>0)rewards.push({name:status.result.reward_name,amount:Number(status.result.reward_amount)});
             if(status.result?.bonus_name&&Number(status.result.bonus_amount)>0)rewards.push({name:status.result.bonus_name,amount:Number(status.result.bonus_amount)});
+            if(status.result?.extra_name&&Number(status.result.extra_amount)>0)rewards.push({name:status.result.extra_name,amount:Number(status.result.extra_amount)});
             if(rewards.length){
               for(const reward of rewards)changeItem(reward.name,Math.min(1000,Math.floor(reward.amount)));
               saveGame();renderInventory();
