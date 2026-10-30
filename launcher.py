@@ -469,7 +469,7 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
         game_ok = (install_dir / "index.html").is_file() and (install_dir / "game.js").is_file()
         installed_tuple = _skyrealm_version_tuple(installed_version)
         if not allow_update and latest_tuple > max(_skyrealm_version_tuple(installed_version), _skyrealm_version_tuple(bundled_version)):
-            selected = installed_version if installed_tuple >= _skyrealm_version_tuple(bundled_version) and installed_version else bundled_version
+            selected = installed_version if game_ok and installed_version else bundled_version
             write_update_log(f"game update declined: installed={installed_version or 'missing'}, latest={latest}, selected={selected}")
             return selected
         if game_ok and installed_tuple and installed_tuple >= latest_tuple:
