@@ -31,7 +31,7 @@ const core = require('../game/multiplayer-core.js');
       payload = { snapshot: { room_id: roomId, version: 5 } };
     } else if(route==='/api/coop/actions/enqueue') payload={action:{action_id:body.action_id,status:'pending',duplicate:false}};
     else if(route==='/api/coop/actions/pending') payload={actions:[{action_id:'123e4567-e89b-42d3-a456-426614174099',action_type:'place_structure',payload:{type:'torch',x:112,y:144}}]};
-    else if(route==='/api/coop/actions/status') payload={action:{action_id:body.action_id,status:'applied'}};
+    else if(route==='/api/coop/actions/status') payload={action:{action_id:body.action_id,status:'applied',result:{reward_name:'Пшеница',reward_amount:4}}};
     else if(route==='/api/coop/actions/commit') payload={result:{action_id:body.action_id,status:'applied',version:6}};
     else if(route==='/api/coop/actions/reject') payload={result:{action_id:body.action_id,status:'rejected'}};
     else if (route === '/api/coop/claim') {
