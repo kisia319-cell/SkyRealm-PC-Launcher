@@ -63,7 +63,7 @@ assert.ok(game.includes("actor.world_mode!=='surface'") && game.includes("Math.h
 assert.ok(edge.includes('actionType === "mine_rock"'),'Edge Function must validate guest mining requests.');
 assert.ok(game.includes('queueGuestMineAction') && game.includes('network.commitMineAction'),'Guest mine clicks must be processed by the room owner.');
 assert.ok(game.includes('saveKey.startsWith(\'skyrealm_coop_save_v1_\')&&network?.isRoomOwner') && game.includes('network.pauseRoom()'),'Returning from a co-op world as owner must pause only that shared room.');
-assert.ok(edge.includes('actionType === "farm_plant"') && edge.includes('"farm_water","farm_compost","farm_fertilize","farm_harvest"'),'Edge Function must validate all supported guest farm actions.');
+assert.ok(edge.includes('actionType === "farm_plant"') && edge.includes('actionType === "farm_harvest"') && edge.includes('"farm_water","farm_compost","farm_fertilize"'),'Edge Function must validate all supported guest farm actions, including class-aware harvest.');
 assert.ok(client.includes('sendPvpHit') && game.includes('drainPvpHits') && game.includes('pvp_enabled'),'PvP toggle must gate room combat events.');
 assert.ok(core.sanitizePlayerPosition({user_id:'x',x:100,y:100,face:'down',difficulty:'medium',world_mode:'mine'}),'Mine presence must be accepted.');
 assert.ok(game.includes('coopLocalWorldMode') && game.includes('drawRemotePlayers(0,0)'),'Remote avatars must render inside cave, mine, dungeon and house interiors.');
