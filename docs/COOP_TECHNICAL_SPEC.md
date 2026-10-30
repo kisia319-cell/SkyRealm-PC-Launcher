@@ -1,6 +1,6 @@
 # SkyRealm Co-op Technical Specification
 
-Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase `skyrealm-coop` is deployed as version 9. The backend supports rooms, secure invite codes, shared death and owner-authoritative versioned world snapshots. Automated CI is passing. The feature remains Draft and is not merged into `main`.
+Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase `skyrealm-coop` is deployed as active version 9; the repository source matches the deployed `index.ts` byte-for-byte. The backend supports rooms, secure invite codes, shared death and owner-authoritative versioned world snapshots. Automated CI is passing. The feature remains Draft and is not merged into `main`.
 
 ## Agreed behavior
 - Single-player remains the default and its current save format, localStorage, import/export and simulation loop are not changed.
@@ -22,8 +22,8 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - All three treasure chest types use validated shared-world claims: outdoor chests, the cave vault and the final dungeon chest. Only one active room member can claim each object per room, enforced by a unique database key. Successful claims update the matching canonical snapshot flag; later attempts do not award duplicate loot.
 
 ## Database migration history
-- The repository now tracks all 14 migration versions recorded by the connected Supabase project, in the same order.
-- The initial SkyRealm profile/Auth trigger migrations were restored from the deployed schema and function definition; they intentionally keep profile rows inaccessible through direct client RLS policies.
+- The repository now tracks all 16 migration versions recorded by the connected Supabase project, in the same order (verified against the live migration history on 2026-10-30).
+- The initial SkyRealm profile/Auth trigger migrations were restored from the deployed schema and function definition; they intentionally keep profile rows inaccessible through direct client RLS policies. The co-op public RPC functions were checked in PostgreSQL: `anon` and `authenticated` have no EXECUTE privilege; only `service_role` does. Private Realtime channel RLS checks room membership.
 - The co-op base schema and its RPC/policy objects are split into the matching deployed migration versions. Shared clock, shared death, snapshots and the death-actor index each have their own version-aligned SQL file.
 
 ## Backend delivered
@@ -33,7 +33,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - New tables: `co_op_rooms`, `co_op_members`, `co_op_world_snapshots`, `co_op_audit_events`, and private rate-limit table `private.co_op_join_limits`.
 - RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data. The world-death actor foreign key is indexed.
 - Private Realtime channel authorization policies are defined on `realtime.messages` for topic `skyrealm:room:<uuid>`. The project-wide “Allow public access” setting has not yet been verified OFF in the dashboard and remains a release check.
-- GitHub Actions verifies core rules, owner-only snapshot writes in the client adapter, client-to-Edge-Function route parity, the exact 14-file Supabase migration history, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated snapshot requests.
+- GitHub Actions verifies core rules, owner-only snapshot writes in the client adapter, client-to-Edge-Function route parity, the exact 16-file Supabase migration history, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated snapshot requests. The latest workflow for branch head `72f61d2488e780fd9d14922239a4dc0bc05c5ed9` passed on 2026-10-30: [run 41018102456](https://github.com/kisia319-cell/SkyRealm-PC-Launcher/actions/runs/41018102456).
 
 ## Lobby UI delivered
 - New main-menu entry “Кооператив”.
@@ -59,6 +59,13 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 3. Add a host-authoritative world-action queue so guest edits (building, harvesting, mining, chest/loot claims) are validated by the host and committed to the canonical snapshot.
 4. Move player movement, enemies, loot, day/night, crafting/trading and combat to validated authoritative simulation; enforce PvP and shared death rules server-side.
 5. Add kick/code rotation, reconnect, resilience/load/exploit tests, and then release opt-in.
+
+## Live security audit (2026-10-30)
+- Deployed Edge Function version 9 exactly matches `supabase/functions/skyrealm-coop/index.ts` in this branch.
+- PostgreSQL privilege check confirms `anon=false`, `authenticated=false`, and `service_role=true` for all public co-op mutation/read RPC functions inspected. Private topic helper functions are executable by `authenticated` only so Realtime RLS can call them.
+- `realtime.messages` has separate SELECT and INSERT policies that validate the authenticated user's room membership/status through private helper functions. The SDK requests `config.private=true` and sets the access token before joining.
+- Security Advisor still reports leaked-password protection disabled in Supabase Auth and `public.profiles` with RLS enabled but no policies. These are pre-existing account/auth configuration concerns; do not toggle auth policy without testing the current registration flow. The profile table is intentionally not directly exposed to clients.
+- Performance Advisor currently lists seven co-op indexes as unused; this is expected on an empty/near-empty new feature and should be re-evaluated after test traffic rather than dropped pre-emptively.
 
 ## Security and release checklist
 - Verify that Realtime project-wide “Allow public access” is OFF before release. Security Advisor also reports leaked-password protection is disabled in Supabase Auth; enable after reviewing the existing sign-up policy. It reports `public.profiles` as RLS-enabled with no policies (currently inaccessible through direct API, but confirm the intended app access model).
