@@ -519,12 +519,12 @@
       volcano:[[-410,-400],[-35,-290],[370,-385],[-500,-70],[-160,110],[250,-45],[470,205],[-310,360],[115,420]],
       blight:[[-480,-345],[-95,-400],[330,-265],[-420,30],[-65,120],[370,35],[500,310],[-355,390],[65,440]]
     };
-    const coords=villagePlans[c.id]||villagePlans.forest;
-    const housePositions=coords.map((p,i)=>({x:p[0],y:p[1],style:i}));
     const roofs=['#2865bd','#b83d32','#7d4930','#477b50','#7860a9','#bd7938','#a94b48','#547e9b','#a45b36'];
-    const walls=['#c79a64','#d5b27c','#a87951','#c8c0a0','#b88969','#d4c18d','#c69a70','#b6aa8c','#d0a36e'];
+    const walls=['#c79a64','#d5b27c','#a87951','#c8c0a0','#b88969','#d4c18d','#b6aa8c','#b6aa8c','#d0a36e'];
     const darks=['#543b31','#49332d','#604332','#3f4838','#43364d','#65442d','#563c37','#3b4d57','#64422f'];
     for(const c of villageCenters){
+      const coords=villagePlans[c.id]||villagePlans.forest;
+      const housePositions=coords.map((p,i)=>({x:p[0],y:p[1],style:i}));
       const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;
       if(x<-1000||x>width+1000||y<-1000||y>height+1000)continue;
       ctx.save();
