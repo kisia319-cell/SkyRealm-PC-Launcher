@@ -56,6 +56,8 @@ assert.ok(client.includes('getWorldSnapshot') && client.includes('saveWorldSnaps
 assert.ok(client.includes('commitFarmAction') && edge.includes('commit_co_op_farm_action'),'Farm commits must be wired from the client to the server RPC.');
 assert.ok(edge.includes('actionType === "farm_plant"') && edge.includes('"farm_water","farm_compost","farm_fertilize","farm_harvest"'),'Edge Function must validate all supported guest farm actions.');
 assert.ok(client.includes('sendPvpHit') && game.includes('drainPvpHits') && game.includes('pvp_enabled'),'PvP toggle must gate room combat events.');
+assert.ok(core.sanitizePlayerPosition({user_id:'x',x:100,y:100,face:'down',difficulty:'medium',world_mode:'mine'}),'Mine presence must be accepted.');
+assert.ok(game.includes('coopLocalWorldMode') && game.includes('drawRemotePlayers(0,0)'),'Remote avatars must render inside cave, mine, dungeon and house interiors.');
 assert.ok(game.includes('sanitizeSharedWorldSnapshot') && game.includes('syncCoopWorldSnapshot'));
 assert.ok(game.includes('syncCoopSharedDeath'));
 assert.ok(game.includes("claimCoopChest('treasure_chest'"), 'Outdoor chests must use server claims');
