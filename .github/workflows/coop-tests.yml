@@ -33,14 +33,28 @@ jobs:
           if (!health.ok || healthBody.status !== 'ok') {
             throw new Error('Co-op health check failed: ' + JSON.stringify(healthBody));
           }
-          const protectedUrl = new URL(base);
-          protectedUrl.searchParams.set('route', '/api/coop/current');
-          const protectedResponse = await fetch(protectedUrl, {
-            headers: { apikey: 'sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL' }
-          });
-          const protectedBody = await protectedResponse.json();
-          if (protectedResponse.status !== 401 || protectedBody?.error?.code !== 'NO_SESSION') {
-            throw new Error('Unauthenticated co-op request was not rejected as expected.');
+          async function assertProtected(route, method = 'GET', body) {
+            const url = new URL(base);
+            url.searchParams.set('route', route);
+            const response = await fetch(url, {
+              method,
+              headers: {
+                apikey: 'sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL',
+                ...(body ? { 'Content-Type': 'application/json' } : {})
+              },
+              body: body ? JSON.stringify(body) : undefined
+            });
+            const payload = await response.json();
+            if (response.status !== 401 || payload?.error?.code !== 'NO_SESSION') {
+              throw new Error('Unauthenticated route was not rejected: ' + route + ' ' + JSON.stringify(payload));
+            }
           }
-          console.log('Co-op health is OK; protected routes reject missing sessions.');
+          await assertProtected('/api/coop/current');
+          await assertProtected('/api/coop/snapshot/get', 'POST', { room_id: '123e4567-e89b-12d3-a456-426614174000' });
+          await assertProtected('/api/coop/snapshot/save', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            expected_version: 0,
+            payload: { placedStructures: [] }
+          });
+          console.log('Co-op health is OK; current and snapshot routes reject missing sessions.');
           NODE

@@ -1,6 +1,6 @@
 # SkyRealm Co-op Technical Specification
 
-Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added on \`feature/co-op-foundation\`. Settings: 8 players, invite-code-only access, shared death mode, owner-toggle PvP (default OFF), pause when owner leaves.
+Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase `skyrealm-coop` is deployed as version 7. The backend supports rooms, secure invite codes, shared death and owner-authoritative versioned world snapshots. Automated CI is passing. The feature remains Draft and is not merged into `main`.
 
 ## Agreed behavior
 - Single-player remains the default and its current save format, localStorage, import/export and simulation loop are not changed.
@@ -16,11 +16,13 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 - The room owner chooses one of the existing difficulties before creating the room and explicitly starts the session.
 - Each participant entering a local world while the room is running is forced to the room difficulty and uses a co-op save key scoped to room + account. Original solo save keys and data are not overwritten.
 - Surface geometry is deterministic from tile coordinates and selected difficulty, so matching difficulty produces the same static map layout. The mine layout uses a stable room-scoped identifier.
-- This is not yet shared progression: buildings, resources, inventory, creatures, loot, time and combat still remain local to each participant.
+- Each player has a room-and-account scoped save key; personal inventory, wallet, health, hunger, XP, equipment, appearance and player position are not copied between accounts.
+- The room owner periodically publishes a filtered, versioned world snapshot. It includes supported world-owned state such as structures, farm plots, mine nodes, opened chests, cave/boss progress and world loot. Other members can restore that snapshot into their own co-op save without overwriting personal player data.
+- Snapshot writes are owner-only, limited to 64 KB, restricted to a fixed list of world fields, and protected by optimistic version checks. Reads require active/offline room membership.
 
 ## Backend delivered
 - Dedicated Supabase Edge Function \`skyrealm-coop\`, independent of the existing \`skyrealm-auth\`.
-- Routes: \`/health\`, \`/api/coop/create\`, \`/api/coop/join\`, \`/api/coop/current\`, \`/api/coop/leave\`, \`/api/coop/resume\`, \`/api/coop/pvp\`, \`/api/coop/heartbeat\`, \`/api/coop/recover-owner\`.
+- Routes: `/health`, `/api/coop/create`, `/api/coop/join`, `/api/coop/start`, `/api/coop/current`, `/api/coop/leave`, `/api/coop/resume`, `/api/coop/pvp`, `/api/coop/heartbeat`, `/api/coop/recover-owner`, `/api/coop/clock`, `/api/coop/death`, `/api/coop/snapshot/get`, `/api/coop/snapshot/save`.
 - The function validates the bearer session with Supabase Auth; the service-role key stays server-side.
 - New tables: \`co_op_rooms\`, \`co_op_members\`, \`co_op_world_snapshots\`, \`co_op_audit_events\`, and private rate-limit table \`private.co_op_join_limits\`.
 - RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data.
@@ -38,8 +40,8 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 - A first cosmetic position prototype broadcasts player coordinates at up to 8 updates/second. Remote avatars are drawn for matching difficulty and surface/trade mode; position packets are range-checked and discarded after 6.5 seconds. These client broadcasts are untrusted cosmetic data only and cannot modify world state, inventory, damage or saves.
 
 ## Not yet playable as a shared-world game
-- Player position/avatar exchange is a cosmetic prototype only; there is not yet an authoritative shared world. Local world generation, obstacles, enemy state, loot, inventory, crafting or combat are not synchronized.
-- The snapshot table is scaffolding only and currently starts with an empty JSON payload. A world serializer and save/restore protocol are not implemented.
+- Player position/avatar exchange is still a cosmetic prototype, not authoritative movement. The versioned host snapshot provides persistence/restore for selected world-owned fields, but there is not yet an authoritative action simulation for edits made by every participant. Enemy simulation, loot claims, crafting and combat are not synchronized.
+- The owner-authoritative world snapshot transport and restore path are implemented, but this is not yet a full shared simulation. Only the host's snapshot is authoritative: guest-side edits are not yet submitted as validated world actions to the host, so guest building, harvesting, mining, chest/loot collection and other changes are not consistently merged back into the canonical host state.
 - Realtime Presence is wired for online state and Broadcast carries cosmetic positions. The roster still refreshes from authenticated API every 5 seconds for durable membership names. Movement is not server-authoritative and must not be used for combat or progression.
 - PvP preference is stored and owner-gated, but does not yet gate damage because combat is still local. Do not advertise PvP combat as working.
 - Kick/revoke-code management, owner handoff, rate limits by IP, and eight-player load testing remain for later hardening.
@@ -48,8 +50,8 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 ## Next phases
 1. Prove authenticated two-client create/join/leave/resume flow.
 2. Add private Realtime Presence/Broadcast and test 2 clients; then 4 and 8.
-3. Add authoritative snapshot serialization and shared simulation beginning with remote movement and player presence.
-4. Sync world interactions, mobs, loot, day/night, inventory/crafting/trading and combat; enforce PvP and shared death rules server-side.
+3. Add a host-authoritative world-action queue so guest edits (building, harvesting, mining, chest/loot claims) are validated by the host and committed to the canonical snapshot.
+4. Move player movement, enemies, loot, day/night, crafting/trading and combat to validated authoritative simulation; enforce PvP and shared death rules server-side.
 5. Add kick/code rotation, reconnect, resilience/load/exploit tests, and then release opt-in.
 
 ## Security and release checklist

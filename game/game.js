@@ -1495,7 +1495,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   // Top-level frame guard: an exception in simulation/update code must not stop RAF forever.
   // The previous guard covered draw() only, so an error earlier in tick could leave the canvas black.
 
-  let coopPositionSendTimer=0,coopClockSendTimer=0,coopSnapshotTimer=0,coopSnapshotSyncPending=false,coopSnapshotRoomId='',lastAppliedCoopSnapshotVersion=0;
+  let coopPositionSendTimer=0,coopClockSendTimer=0,coopSnapshotTimer=0,coopSnapshotSyncPending=false,coopSnapshotRoomId='',lastAppliedCoopSnapshotVersion=0,lastCoopSnapshotSignature='';
   function applyCoopSnapshot(snapshot){
     const network=window.SkyRealmCoopClient;
     if(!snapshot||!network?.getRoomState?.()||!currentWorldId||!saveKey.startsWith('skyrealm_coop_save_v1_'))return false;
@@ -1510,6 +1510,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       if(!current||typeof current!=='object')return false;
       localStorage.setItem(saveKey,JSON.stringify({...current,...shared}));
       lastAppliedCoopSnapshotVersion=version;
+      lastCoopSnapshotSignature=JSON.stringify(shared);
       loadGame();renderInventory();drawMinimap();updateVitals();updateWalletHud();
       return true;
     }catch(error){console.warn('[SkyRealm co-op snapshot apply]',error);return false;}
@@ -1518,7 +1519,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     const network=window.SkyRealmCoopClient;
     const state=network?.getRoomState?.();
     if(!state||state.status!=='running'||!currentWorldId||!saveKey.startsWith('skyrealm_coop_save_v1_'))return;
-    if(coopSnapshotRoomId!==state.id){coopSnapshotRoomId=state.id;lastAppliedCoopSnapshotVersion=0;}
+    if(coopSnapshotRoomId!==state.id){coopSnapshotRoomId=state.id;lastAppliedCoopSnapshotVersion=0;lastCoopSnapshotSignature='';}
     if(coopSnapshotSyncPending)return;
     coopSnapshotSyncPending=true;
     try{
@@ -1530,8 +1531,14 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
         try{localSave=JSON.parse(localStorage.getItem(saveKey)||'null');}catch(_){}
         const payload=window.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot?.(localSave);
         if(payload&&Object.keys(payload).length){
-          const saved=await network.saveWorldSnapshot(payload);
-          if(saved)lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(saved.version)||0);
+          const signature=JSON.stringify(payload);
+          if(signature!==lastCoopSnapshotSignature){
+            const saved=await network.saveWorldSnapshot(payload);
+            if(saved){
+              lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(saved.version)||0);
+              lastCoopSnapshotSignature=signature;
+            }
+          }
         }
       }else if(snapshot){
         lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(snapshot.version)||0);
