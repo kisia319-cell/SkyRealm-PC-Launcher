@@ -779,7 +779,8 @@
     const remote=network.getRemotePlayers();
     for(const other of remote){
       if(other.difficulty!==currentDifficulty||other.world_mode!==localMode)continue;
-      const x=other.x-camX,y=other.y-camY;
+      const worldX=mineMode?other.x*width:other.x,worldY=mineMode?other.y*height:other.y;
+      const x=worldX-camX,y=worldY-camY;
       if(x<-40||x>width+40||y<-55||y>height+55)continue;
       const look=other.appearance||{};
       ctx.save();ctx.translate(Math.round(x),Math.round(y));
@@ -1411,6 +1412,34 @@
     });
     return true;
   }
+  function queueGuestMineAction(rockIndex,tool){
+    const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
+    if(!saveKey.startsWith('skyrealm_coop_save_v1_')&&!room)return false;
+    if(!room){toast('Нет соединения с комнатой. Добыча временно недоступна.');return true;}
+    if(room.status!=='running'){toast('Общий мир на паузе. Дождись возобновления игры.');return true;}
+    if(network.isRoomOwner)return false;
+    if(!Number.isSafeInteger(rockIndex)||!['Кирка','Улучшенная кирка','Кирка мастера'].includes(tool)){
+      toast('Не удалось подготовить добычу.');return true;
+    }
+    const actionId=window.crypto?.randomUUID?.();
+    if(!actionId){toast('Не удалось безопасно подготовить запрос.');return true;}
+    const key=saveKey+'_coop_pending_world_actions';let pending=[];
+    try{const value=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(value))pending=value;}catch(_){}
+    if(pending.length>=20){toast('Сначала дождись обработки предыдущих действий.');return true;}
+    pending.push({action_id:actionId,action_type:'mine_rock',reserved_item:null});
+    try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){toast('Не удалось сохранить очередь добычи.');return true;}
+    network.enqueueWorldAction('mine_rock',{rock_index:rockIndex,tool},actionId).then(action=>{
+      if(!action?.action_id)throw new Error('Сервер не вернул ID запроса.');
+      toast('Удар киркой отправлен владельцу мира.');
+    }).catch(error=>{
+      if(error?.code&&!['INTERNAL_ERROR','COOP_BACKEND_ERROR'].includes(error.code)){
+        const left=pending.filter(entry=>entry.action_id!==actionId);
+        try{localStorage.setItem(key,JSON.stringify(left));}catch(_){}
+      }
+      toast(error?.message||'Не удалось отправить добычу. Проверяю её статус.');
+    });
+    return true;
+  }
   function interactFarmPlot(plot){const selected=selectedInventoryItem();
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
     if(room&&!network.isRoomOwner){
@@ -1763,6 +1792,50 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
           }
           continue;
         }
+        if(action.action_type==='mine_rock'){
+          const rockIndex=Number(payload.rock_index),tool=payload.tool;
+          const target=Number.isSafeInteger(rockIndex)?mineRocks[rockIndex]:null;
+          const actor=(network.getRemotePlayers?.()||[]).find(other=>other.user_id===action.actor_id);
+          if(!actor||Date.now()-(actor.received_at||0)>1800)continue;
+          const allowedTools=['Кирка','Улучшенная кирка','Кирка мастера'];
+          const actorX=Number(actor.x)*width,actorY=Number(actor.y)*height;
+          const targetPosition=target?mineRockScreenPosition(target):null;
+          if(!target||target.hp<=0||!allowedTools.includes(tool)||actor.world_mode!=='mine'||
+             actor.difficulty!==currentDifficulty||!Number.isFinite(actorX)||!Number.isFinite(actorY)||
+             Math.hypot(targetPosition.x-actorX,targetPosition.y-actorY)>4*TILE){
+            try{await network.rejectWorldAction(action.action_id,'mine_target_invalid');}catch(_){}
+            continue;
+          }
+          const beforeHp=target.hp;
+          target.hp=Math.max(0,target.hp-(tool==='Кирка мастера'||tool==='Улучшенная кирка'?2:1));
+          const resultPayload={};
+          if(target.hp===0){
+            resultPayload.reward_name=target.ore;
+            resultPayload.reward_amount=1;
+            if(target.ore!=='Камень'&&target.ore!=='Кристалл'){
+              resultPayload.bonus_name='Камень';resultPayload.bonus_amount=1;
+            }
+          }
+          if(!saveGame()){
+            target.hp=beforeHp;try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}continue;
+          }
+          let localSave=null;try{localSave=JSON.parse(localStorage.getItem(saveKey)||'null');}catch(_){}
+          const safe=window.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot?.(localSave);
+          if(!safe){
+            target.hp=beforeHp;saveGame();try{await network.rejectWorldAction(action.action_id,'snapshot_invalid');}catch(_){}continue;
+          }
+          try{
+            const committed=await network.commitMineAction(action.action_id,safe,resultPayload);
+            if(!committed||committed.status!=='applied')throw new Error('Не удалось сохранить добычу в общей шахте.');
+            lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(committed.version)||0);
+            lastCoopSnapshotSignature=JSON.stringify(safe);
+            spawnVisualBurst(targetPosition.x,targetPosition.y,8,'spark','#9ed9ff');
+            toast('Участник добыл залежь в общей шахте.');
+          }catch(error){
+            target.hp=beforeHp;saveGame();console.warn('[SkyRealm co-op mine action commit]',error);break;
+          }
+          continue;
+        }
         const farmTypes=['farm_plant','farm_water','farm_compost','farm_fertilize','farm_harvest'];
         if(!farmTypes.includes(action.action_type))continue;
         const plot=placedStructures.find(v=>v.type==='farmplot'&&Math.abs(Number(v.x)-x)<=1&&Math.abs(Number(v.y)-y)<=1);
@@ -1845,10 +1918,14 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
         try{
           const status=await network.getWorldActionStatus(receipt.action_id);
           if(status?.status==='applied'){
-            if(receipt.action_type&&status.result?.reward_name&&Number(status.result.reward_amount)>0){
-              changeItem(status.result.reward_name,Math.min(1000,Math.floor(Number(status.result.reward_amount))));
+            const rewards=[];
+            if(status.result?.reward_name&&Number(status.result.reward_amount)>0)rewards.push({name:status.result.reward_name,amount:Number(status.result.reward_amount)});
+            if(status.result?.bonus_name&&Number(status.result.bonus_amount)>0)rewards.push({name:status.result.bonus_name,amount:Number(status.result.bonus_amount)});
+            if(rewards.length){
+              for(const reward of rewards)changeItem(reward.name,Math.min(1000,Math.floor(reward.amount)));
               saveGame();renderInventory();
-              toast('Урожай получен: '+status.result.reward_name+' ×'+Math.floor(Number(status.result.reward_amount))+'.');
+              const summary=rewards.map(reward=>reward.name+' ×'+Math.floor(reward.amount)).join(' и ');
+              toast((receipt.action_type==='mine_rock'?'Добыча получена: ':'Урожай получен: ')+summary+'.');
             }else toast('Владелец подтвердил действие в общем мире.');
           }else if(status?.status==='rejected'){
             const reserved=receipt.reserved_item||receipt.item_name;
@@ -1908,7 +1985,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     coopPositionSendTimer=.125;
     let name='';
     try{name=localStorage.getItem('skyrealm_login')||'';}catch(_){}
-    const localPosition=mineMode?{x:minePlayerX,y:minePlayerY||height-108}:{x:player.x,y:player.y};
+    const localPosition=mineMode?{x:minePlayerX/width,y:(minePlayerY||height-108)/height}:{x:player.x,y:player.y};
     network.sendPosition({
       x:localPosition.x,y:localPosition.y,face:player.face,
       difficulty:currentDifficulty,
@@ -2411,6 +2488,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     for(const r of mineRocks){if(r.hp<=0)continue;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;target=r;}}
     if(!target){toast('Наведи курсор прямо на залежь руды или камня.');return;}
     const playerMineY=minePlayerY||height-108; if(Math.hypot(mineRockScreenPosition(target).x-minePlayerX,mineRockScreenPosition(target).y-playerMineY)>4*TILE){toast('Подойди к залежи ближе: дальность кирки — 4 блока.');return;}
+    if(queueGuestMineAction(mineRocks.indexOf(target),selectedItem.name))return;
     target.hp=Math.max(0,target.hp-(selectedItem.name==='Кирка мастера'?2:itemCount('Улучшенная кирка')>0?2:1));
     if(target.hp>0){playSound(target.ore==='Железо'?'iron':target.ore==='Уголь'?'coal':'stone');toast('Удар киркой · осталось '+target.hp+' из 2.');saveGame();return;}
     spawnVisualBurst(target.x,target.y,12,'spark',({'Кристалл':'#9ef5ff','Железо':'#c7d6e6','Медь':'#ffc08a','Олово':'#eef4ff','Серебро':'#ffffff','Золото':'#ffe68a','Рубин':'#ff829a','Сапфир':'#9bc8ff','Обсидиан':'#ad8bdf','Мифрил':'#d1ffff','Уран':'#baff7d','Алмаз':'#ffffff'}[target.ore]||'#d8c6a0'));
