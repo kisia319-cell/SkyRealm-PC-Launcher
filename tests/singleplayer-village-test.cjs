@@ -7,8 +7,11 @@ const rendererStart = game.lastIndexOf('function drawVillageSettlements(camX,cam
 const rendererEnd = game.indexOf('function updateVillageNpcs(dt){', rendererStart);
 assert.ok(rendererStart >= 0 && rendererEnd > rendererStart, 'Village renderer must exist');
 const renderer = game.slice(rendererStart, rendererEnd);
-const houseList = renderer.match(/\{x:-?\d+,y:-?\d+\}/g) || [];
-assert.equal(houseList.length, 9, 'Every village must render nine houses');
+assert.ok(renderer.includes('i<6') && renderer.includes('i<12'), 'Each village must use two staggered house rings');
+assert.ok(renderer.includes('r=124') && renderer.includes('r=222'), 'Houses must be spread around the village without excessive separation');
+assert.ok(renderer.includes("const roofs=['#2865bd','#b83d32"), 'Houses must have varied roof colors');
+assert.ok(renderer.includes('Large pitched roof') && renderer.includes('Windows, shutters'), 'Houses must have detailed roofs, windows and facades');
+assert.ok(renderer.includes('286,238'), 'Village settlement footprint must cover the larger layout');
 
 const updateStart = rendererEnd;
 const updateEnd = game.indexOf('function nearestVillageNpc()', updateStart);
@@ -19,4 +22,4 @@ assert.ok(update.includes("npc.activity==='working'?50:72"), 'Residents must mov
 assert.ok(update.includes('slot===1?48:slot===0?72:9'), 'Residents must have larger daily walking areas');
 assert.ok(game.includes('updateVillageNpcs(dt);'), 'Main game loop must update residents');
 assert.ok(game.includes("'Лука'"), 'Ordinary resident population must remain initialized');
-console.log('SkyRealm single-player village tests passed: nine houses per village and active, faster residents.');
+console.log('SkyRealm single-player village tests passed: 18 varied, spaced houses per village and active, faster residents.');
