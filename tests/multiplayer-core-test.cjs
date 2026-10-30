@@ -30,7 +30,7 @@ assert.deepEqual(m.sanitizePlayerPosition(goodPosition),{
 assert.equal(m.sanitizePlayerPosition({...goodPosition,x:-1}),null);
 assert.equal(m.sanitizePlayerPosition({...goodPosition,y:10001}),null);
 assert.equal(m.sanitizePlayerPosition({...goodPosition,difficulty:'creative'}),null);
-assert.equal(m.sanitizePlayerPosition({...goodPosition,world_mode:'dungeon'}),null);
+assert.equal(m.sanitizePlayerPosition({...goodPosition,world_mode:'dungeon'}).world_mode,'dungeon');
 assert.equal(m.sanitizePlayerPosition({...goodPosition,world_mode:'mine'}).world_mode,'mine');
 assert.equal(m.sanitizePlayerPosition({...goodPosition,world_mode:'cave'}).world_mode,'cave');
 assert.equal(m.sanitizePlayerPosition({...goodPosition,world_mode:'house'}).world_mode,'house');
