@@ -1,6 +1,6 @@
 # SkyRealm Co-op Technical Specification
 
-Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase `skyrealm-coop` is deployed as active version 12; the repository source matches the deployed `index.ts` byte-for-byte. The backend supports rooms, secure invite codes, shared death, versioned snapshots and an owner-mediated guest building queue. Automated CI is passing. The feature remains Draft and is not merged into `main`.
+Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase `skyrealm-coop` is deployed as active version 12; the repository source matches the deployed `index.ts` byte-for-byte. The backend supports rooms, secure invite codes, shared death, versioned snapshots and owner-mediated guest building, farming and mining actions. Automated CI is passing. The feature remains Draft and is not merged into `main`.
 
 ## Agreed behavior
 - Single-player remains the default and its current save format, localStorage, import/export and simulation loop are not changed.
@@ -28,12 +28,12 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 
 ## Backend delivered
 - Dedicated Supabase Edge Function `skyrealm-coop`, independent of the existing `skyrealm-auth`.
-- Routes: `/health`, `/api/coop/create`, `/api/coop/join`, `/api/coop/start`, `/api/coop/current`, `/api/coop/leave`, `/api/coop/resume`, `/api/coop/pvp`, `/api/coop/heartbeat`, `/api/coop/recover-owner`, `/api/coop/clock`, `/api/coop/death`, `/api/coop/snapshot/get`, `/api/coop/snapshot/save`, `/api/coop/claim`, `/api/coop/actions/enqueue`, `/api/coop/actions/pending`, `/api/coop/actions/status`, `/api/coop/actions/commit`, `/api/coop/actions/reject`.
+- Routes: `/health`, `/api/coop/create`, `/api/coop/join`, `/api/coop/start`, `/api/coop/current`, `/api/coop/leave`, `/api/coop/resume`, `/api/coop/pvp`, `/api/coop/heartbeat`, `/api/coop/recover-owner`, `/api/coop/clock`, `/api/coop/death`, `/api/coop/snapshot/get`, `/api/coop/snapshot/save`, `/api/coop/claim`, `/api/coop/actions/enqueue`, `/api/coop/actions/pending`, `/api/coop/actions/status`, `/api/coop/actions/commit`, `/api/coop/actions/commit-farm`, `/api/coop/actions/commit-mine`, `/api/coop/actions/reject`.
 - The function validates the bearer session with Supabase Auth; the service-role key stays server-side.
 - New tables: `co_op_rooms`, `co_op_members`, `co_op_world_snapshots`, `co_op_audit_events`, private rate-limit tables `private.co_op_join_limits` and `private.co_op_world_action_limits`, and `co_op_world_actions`.
 - RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data. The world-death actor foreign key is indexed.
 - Private Realtime channel authorization policies are defined on `realtime.messages` for topic `skyrealm:room:<uuid>`. The project-wide “Allow public access” setting has not yet been verified OFF in the dashboard and remains a release check.
-- GitHub Actions verifies core rules, owner-only snapshot writes in the client adapter, client-to-Edge-Function route parity, the exact 23-file Supabase migration history, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated snapshot requests. Earlier workflow runs passed before the latest farm/PvP integration changes. The latest pre-mining workflow passed all 14 steps; the new mining migration, owner queue and client integration are being rechecked before release.
+- GitHub Actions verifies core rules, owner-only snapshot writes in the client adapter, client-to-Edge-Function route parity, the exact 23-file Supabase migration history, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated snapshot requests. The latest workflow for branch commit `de39dc8f47988fc0ddfd3b133ad1b9dbd0400e3b` passed all 14 steps on 2026-10-30: [run 41024513446](https://github.com/kisia319-cell/SkyRealm-PC-Launcher/actions/runs/41024513446). This run includes the 23-migration history, mining queue/client tests, JavaScript syntax checks and protected API smoke tests.
 
 ## Lobby UI delivered
 - New main-menu entry “Кооператив”.
