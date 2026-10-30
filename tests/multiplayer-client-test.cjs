@@ -62,6 +62,35 @@ const core = require('../game/multiplayer-core.js');
   });
   assert.equal(saveCall.headers.Authorization, 'Bearer test-access-token');
 
+  const guestCalls = [];
+  const guestSandbox = {
+    Map, URL, Promise, setTimeout, clearTimeout, console,
+    sessionStorage: { getItem: () => null },
+    localStorage: { getItem: (key) => key === 'skyrealm_token' ? 'guest-access-token' : null },
+  };
+  guestSandbox.window = guestSandbox;
+  guestSandbox.globalThis = guestSandbox;
+  guestSandbox.SkyRealmMultiplayerCore = core;
+  guestSandbox.fetch = async (url, options = {}) => {
+    const route = new URL(String(url)).searchParams.get('route');
+    guestCalls.push({ route, options });
+    if (route !== '/api/coop/current') throw new Error('Guest must not call mutation route: ' + route);
+    return {
+      ok: true, status: 200,
+      json: async () => ({
+        user_id: 'guest-user',
+        room: { id: roomId, owner_id: 'room-owner', status: 'running', world_difficulty: 'medium' }
+      })
+    };
+  };
+  vm.runInNewContext(clientSource, guestSandbox, { filename: 'game/multiplayer-client-guest.js' });
+  const guestClient = guestSandbox.SkyRealmCoopClient;
+  await guestClient.current();
+  assert.equal(guestClient.isRoomOwner, false);
+  const guestSave = await guestClient.saveWorldSnapshot({ placedStructures: [{ type: 'house', x: 1, y: 2 }] });
+  assert.equal(guestSave, false, 'Non-owner must not save the canonical world snapshot');
+  assert.equal(guestCalls.some(call => call.route === '/api/coop/snapshot/save'), false, 'Non-owner must not even send a snapshot write request');
+
   console.log('SkyRealm multiplayer client snapshot tests passed.');
 })().catch(error => {
   console.error(error);

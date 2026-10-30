@@ -20,6 +20,11 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - The room owner periodically publishes a filtered, versioned world snapshot. It includes supported world-owned state such as structures, farm plots, mine nodes, opened chests, cave/boss progress and world loot. Other members can restore that snapshot into their own co-op save without overwriting personal player data.
 - Snapshot writes are owner-only, limited to 64 KB, restricted to a fixed list of world fields, and protected by optimistic version checks. Reads require active/offline room membership.
 
+## Database migration history
+- The repository now tracks all 14 migration versions recorded by the connected Supabase project, in the same order.
+- The initial SkyRealm profile/Auth trigger migrations were restored from the deployed schema and function definition; they intentionally keep profile rows inaccessible through direct client RLS policies.
+- The co-op base schema and its RPC/policy objects are split into the matching deployed migration versions. Shared clock, shared death, snapshots and the death-actor index each have their own version-aligned SQL file.
+
 ## Backend delivered
 - Dedicated Supabase Edge Function `skyrealm-coop`, independent of the existing `skyrealm-auth`.
 - Routes: `/health`, `/api/coop/create`, `/api/coop/join`, `/api/coop/start`, `/api/coop/current`, `/api/coop/leave`, `/api/coop/resume`, `/api/coop/pvp`, `/api/coop/heartbeat`, `/api/coop/recover-owner`, `/api/coop/clock`, `/api/coop/death`, `/api/coop/snapshot/get`, `/api/coop/snapshot/save`.
@@ -27,7 +32,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - New tables: `co_op_rooms`, `co_op_members`, `co_op_world_snapshots`, `co_op_audit_events`, and private rate-limit table `private.co_op_join_limits`.
 - RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data. The world-death actor foreign key is indexed.
 - Private Realtime channel authorization policies are defined on `realtime.messages` for topic `skyrealm:room:<uuid>`. The project-wide “Allow public access” setting has not yet been verified OFF in the dashboard and remains a release check.
-- GitHub Actions verifies core rules, client adapter initialization in a VM, client-to-Edge-Function route parity, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated requests.
+- GitHub Actions verifies core rules, owner-only snapshot writes in the client adapter, client-to-Edge-Function route parity, the exact 14-file Supabase migration history, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated snapshot requests.
 
 ## Lobby UI delivered
 - New main-menu entry “Кооператив”.
