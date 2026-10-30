@@ -1,9 +1,9 @@
 {
-  "sha256": "4818d5ae50ad4d3f6f17e6626f58f46b580ff8a99d822b228bf8fc1b8cef35f1",
-  "notes": "SkyRealm Launcher 1.0.0 + Game 0.20.0: two settlements with eight resident NPCs, staffed shops, daily delivery quests and reputation discounts; night raids with rewards; three legendary swords with 100/130/170 base damage that scale with difficulty; new recipes and trading. Existing worlds and saves remain compatible.",
-  "game_sha256": "571440773918e5949bfba300810a64d0e57afc452c23563a8cd056dded5a9ddc",
-  "game_version": "0.20.0",
+  "game_sha256": "2c1bcab1b3a82370b4618eae1befabb03685f9ae36d9cf6e5614985f2be706cd",
+  "notes": "SkyRealm Launcher 1.0.0 + Game 0.20.1: two settlements with eight resident NPCs, staffed shops, daily delivery quests and reputation discounts; night raids with rewards; three legendary swords with 100/130/170 base damage that scale with difficulty; new recipes and trading. Existing worlds and saves remain compatible.",
+  "sha256": "9e3384626b085a4738a0c85fc23b13247e0b9c6f691dbbe32b220e7ff92b2431",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "version": "1.0.1"
+  "version": "1.0.1",
+  "game_version": "0.20.1",
+  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
 }
