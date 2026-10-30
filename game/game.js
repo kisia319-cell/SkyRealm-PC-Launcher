@@ -1877,6 +1877,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
         if(!attacker||now-(attacker.received_at||0)>1800||attacker.difficulty!==currentDifficulty||
            attacker.world_mode!==(tradeWorldMode?'trade':'surface')||
            Math.hypot(attacker.x-player.x,attacker.y-player.y)>Math.max(weaponRange()+48,112))continue;
+        if(immortal)continue;
         const damage=Math.max(1,Math.min(80,Math.round(hit.damage)));
         player.hp=Math.max(0,player.hp-damage);updateVitals();
         spawnVisualBurst(player.x,player.y,10,'spark','#ff6d87');
