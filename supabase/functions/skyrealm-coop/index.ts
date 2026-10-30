@@ -133,7 +133,7 @@ Deno.serve(async (req: Request) => {
     }
     if (route === "/api/coop/current" && req.method === "GET") {
       const room = await rpc("get_my_co_op_room", { p_user_id: user.id });
-      return reply({ room });
+      return reply({ room, user_id: user.id });
     }
     if (route === "/api/coop/leave" && req.method === "POST") {
       const result = await rpc("leave_co_op_room", { p_user_id: user.id, p_room_id: roomId(body.room_id) });

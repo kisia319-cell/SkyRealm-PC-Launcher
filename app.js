@@ -734,7 +734,7 @@
     $('#install-description').textContent = currentLanguage === 'en' ? 'The launcher checks the installed files and prepares the game if needed.' : 'Лаунчер проверит игровые файлы и установит игру, если её ещё нет.';
     try {
       if (window.pywebview?.api?.launch_game) {
-        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI(), allowUpdate);
+        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI(), allowUpdate, currentToken());
         if (!result || result.ok === false) throw new Error(result?.message || (currentLanguage === 'en' ? 'Could not start the game.' : 'Не удалось запустить игру.'));
         setGameProgress(100, currentLanguage === 'en' ? 'Launching SkyRealm…' : 'Запускаем SkyRealm…', currentLanguage === 'en' ? 'The launcher will close now' : 'Сейчас лаунчер закроется');
         await new Promise(resolve => setTimeout(resolve, 450));

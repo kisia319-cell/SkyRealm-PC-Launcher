@@ -1,54 +1,51 @@
 # SkyRealm Co-op Technical Specification
 
-Status: Phase 2 backend foundation prepared. Product settings: 8 players, invite-code-only access, shared death rules, owner-controlled PvP (default OFF), pause when owner leaves or times out.
+Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added on \`feature/co-op-foundation\`. Settings: 8 players, invite-code-only access, shared death mode, owner-toggle PvP (default OFF), pause when owner leaves.
 
-## Product requirements
-- Preserve single-player unchanged: local saves, localStorage format, import/export, and existing game loop remain intact. Co-op is a separate, opt-in mode; never auto-migrate solo worlds.
-- Authenticated accounts only. A room has one owner, a cryptographically random 8-character invitation code (only SHA-256 hash stored), max 8 concurrent members, and explicit membership.
-- Owner departure: pause room immediately on explicit leave. For an ungraceful disconnect, other members call the recovery endpoint; if the owner's heartbeat is older than 30 seconds, the room is paused. Only the owner can resume.
-- Owner-only PvP toggle, persisted and initially OFF.
-- Shared death setting is persisted as \`shared\`; applying the existing difficulty-specific death penalty is part of the shared simulation phase.
-- Clients must never write authoritative world/inventory/currency data. Future game actions are validated server-side.
+## Agreed behavior
+- Single-player remains the default and its current save format, localStorage, import/export and simulation loop are not changed.
+- Authenticated accounts only. Rooms are invite-code-only and capped at 8 members.
+- Invitation code is generated with Web Crypto, displayed once to the owner, and only its SHA-256 hash is stored.
+- A user may occupy one active/offline room membership at a time. Room membership changes are transactional.
+- Join attempts are limited to 8 per 15 minutes per account.
+- Explicit owner leave pauses the room and marks the owner offline; the owner can resume. During a running room, members check owner heartbeat; >30 seconds stale causes a pause.
+- PvP is a persisted owner-only setting, defaults OFF.
+- Shared death is stored as \`shared\`; the existing difficulty-specific death rules must be wired into the shared simulation phase.
 
-## Backend architecture
-- Reuse existing Supabase Auth. The co-op function independently validates the bearer access token against \`/auth/v1/user\`.
-- Dedicated function: \`skyrealm-coop\`. Existing \`skyrealm-auth\` is not modified.
-- New tables: \`public.co_op_rooms\`, \`public.co_op_members\`, \`public.co_op_world_snapshots\`, \`public.co_op_audit_events\`, and private rate-limit table \`private.co_op_join_limits\`.
-- RLS enabled on all new tables. No direct client table grants; authoritative operations are exposed through a service-role-only RPC layer invoked by the Edge Function. The service-role key never enters the game client.
-- Invitation codes are returned only once at room creation and never stored in plaintext. Joining is rate-limited to 8 attempts per 15 minutes per authenticated user.
-- Operations prepared: create, join, get current room/roster, leave, resume, set PvP, heartbeat, recover from stale owner heartbeat.
-- Room capacity is locked transactionally in the join RPC. Ninth player is rejected. One active room per account is enforced by a unique index.
-- Private Realtime channel topic: \`skyrealm:room:<uuid>\`. Authorization policies require room membership; writes are denied while the room is paused. Realtime's project-level “Allow public access” setting still must be disabled in the dashboard before shipping private channels.
+## Backend delivered
+- Dedicated Supabase Edge Function \`skyrealm-coop\`, independent of the existing \`skyrealm-auth\`.
+- Routes: \`/health\`, \`/api/coop/create\`, \`/api/coop/join\`, \`/api/coop/current\`, \`/api/coop/leave\`, \`/api/coop/resume\`, \`/api/coop/pvp\`, \`/api/coop/heartbeat\`, \`/api/coop/recover-owner\`.
+- The function validates the bearer session with Supabase Auth; the service-role key stays server-side.
+- New tables: \`co_op_rooms\`, \`co_op_members\`, \`co_op_world_snapshots\`, \`co_op_audit_events\`, and private rate-limit table \`private.co_op_join_limits\`.
+- RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data.
+- Private Realtime channel authorization policies are defined on \`realtime.messages\` for topic \`skyrealm:room:<uuid>\`. Project-wide “Allow public access” must still be switched OFF in dashboard before enabling live Realtime channels.
+- GitHub Actions verifies the core rules, JS parse checks and Python launcher syntax.
 
-## Current data model
-- \`co_op_rooms\`: owner, hashed code, lifecycle, fixed max 8, shared death mode, PvP flag, pause reason, timestamps.
-- \`co_op_members\`: room/user unique key, owner/player role, active/offline/left status, joined and heartbeat timestamps.
-- \`co_op_world_snapshots\`: one versioned JSON snapshot row per room; empty initial payload until world serializer is integrated.
-- \`co_op_audit_events\`: durable room lifecycle and PvP changes.
-- \`private.co_op_join_limits\`: authenticated join attempt window.
+## Lobby UI delivered
+- New main-menu entry “Кооператив”.
+- Create a room and receive a one-time 8-character invite code; copy it to clipboard.
+- Join an existing room by entering its invite code.
+- View room status and member roster, refresh automatically, leave, resume as owner, and change the saved PvP setting as owner.
+- In the desktop runner, launcher Auth session is passed through the child process environment and exposed to the game once via the PyWebView API. It is not put in query parameters or saved to disk.
+- Browser preview uses the same-origin session/local storage token.
 
-## Explicitly not finished yet
-- No client lobby/UI or Realtime client adapter is wired into \`game/index.html\`.
-- No shared world simulation, movement/combat/inventory/crafting sync, or authoritative snapshot serializer exists yet.
-- Snapshot payload currently starts empty; no world state is saved by this phase.
-- PvP setting is stored and owner-gated; attack-level PvP enforcement comes with the combat simulation phase.
-- Kick/revoke-code management is designed but not exposed by this first backend pass.
-- Co-op does not launch from the released game yet. Solo is unaffected.
+## Not yet playable as a shared-world game
+- Current room UI is a lobby/control surface only. There is no shared player movement, remote avatars, shared world map, enemy state, loot, inventory, crafting or combat synchronization.
+- The snapshot table is scaffolding only and currently starts with an empty JSON payload. A world serializer and save/restore protocol are not implemented.
+- Realtime presence/broadcast client subscription is not wired; the roster refreshes through the authenticated room API every 5 seconds.
+- PvP preference is stored and owner-gated, but does not yet gate damage because combat is still local. Do not advertise PvP combat as working.
+- Kick/revoke-code management, owner handoff, rate limits by IP, and eight-player load testing remain for later hardening.
+- No release is published and main is unchanged.
 
-## Delivery phases
-1. Foundation: isolated feature branch, this spec, core helpers and unit tests.
-2. Backend: additive SQL schema, RLS and Realtime membership policies, separate authenticated Edge Function, database audit trail and heartbeat pause recovery.
-3. Lobby/networking: opt-in multiplayer menu, create/join code, player roster, private Realtime Presence and reconnect handling; prove 2-client flow before increasing to 8.
-4. Shared simulation: movement, world interactions, mobs/loot/day-night, inventory/crafting/trading/combat/death and server-enforced PvP.
-5. Reliability/release: snapshots, reconnect, kick/code rotation, 2/4/8-player load tests, latency/packet-loss/dupe testing, opt-in release.
+## Next phases
+1. Prove authenticated two-client create/join/leave/resume flow.
+2. Add private Realtime Presence/Broadcast and test 2 clients; then 4 and 8.
+3. Add authoritative snapshot serialization and shared simulation beginning with remote movement and player presence.
+4. Sync world interactions, mobs, loot, day/night, inventory/crafting/trading and combat; enforce PvP and shared death rules server-side.
+5. Add kick/code rotation, reconnect, resilience/load/exploit tests, and then release opt-in.
 
-## Acceptance criteria
-- Existing solo worlds continue to open/save/export/import unchanged.
-- Two authenticated accounts join one invite-only room; ninth concurrent player is rejected.
-- Invalid, paused, closed or rate-limited invitation codes are rejected without revealing whether a room exists.
-- Non-members cannot subscribe to room channels or access snapshots.
-- Non-owner cannot resume or change PvP.
-- Owner leaves or heartbeat expires, pausing the room; owner can resume.
-- PvP defaults OFF and must be checked by server combat logic before player damage.
-- Death follows the existing selected world difficulty.
-- No client can mint inventory/currency or overwrite the authoritative world state.
+## Security and release checklist
+- Disable Realtime public-channel access at project level before subscribing to private channels.
+- Validate all player inputs server-side; never trust client balances, inventory or whole-world snapshots.
+- Keep service-role key in Supabase Edge Function secrets only.
+- Keep single-player as the default path and run its regression tests before merging.

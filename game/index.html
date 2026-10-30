@@ -198,6 +198,7 @@
       </header>
       <div class="main-menu-content">
         <nav class="main-menu-actions" aria-label="Действия главного меню">
+          <button class="main-menu-action coop-menu-action" id="menu-coop" type="button"><span class="menu-action-icon">♧</span><span><b>Кооператив</b><small>Играть вместе · до 8 игроков</small></span><span class="menu-action-arrow">→</span></button>
           <button class="main-menu-action main-menu-primary" id="menu-create-world" type="button"><span class="menu-action-icon">＋</span><span><b>Создать мир</b><small>Начать новое приключение</small></span><span class="menu-action-arrow">→</span></button>
           <button class="main-menu-action" id="menu-character" type="button"><span class="menu-action-icon avatar-icon">♙</span><span><b>Персонаж</b><small>Внешность и цвета брони</small></span><span class="menu-action-arrow">→</span></button>
           <button class="main-menu-action" id="menu-settings" type="button"><span class="menu-action-icon">⚙</span><span><b>Настройки</b><small>Графика и интерфейс</small></span><span class="menu-action-arrow">→</span></button>
@@ -263,7 +264,59 @@
   <div class="shade custom-modal-shade" id="npc-quest-shade" hidden aria-hidden="true"><div class="dialog npc-quest-dialog" role="dialog" aria-modal="true" aria-labelledby="npc-quest-title"><div class="dialog-mark">📜</div><div class="eyebrow">SKYREALM · ДОСКА ПОРУЧЕНИЙ</div><h1 id="npc-quest-title">Задание жителя</h1><div class="npc-quest-person" id="npc-quest-person">Житель · Мир торговли</div><p id="npc-quest-description">Описание задания</p><div class="npc-quest-panel"><b>Что нужно принести</b><div id="npc-quest-items"></div></div><div class="npc-quest-panel"><b>Статус</b><div class="npc-quest-status" id="npc-quest-status">Новое поручение</div></div><div class="npc-quest-panel"><b>Награда</b><div class="npc-quest-reward" id="npc-quest-reward">Золото и опыт</div></div><button class="action" id="npc-quest-action" type="button">Принять задание</button><button class="action secondary" id="npc-quest-close" type="button">Закрыть · Esc</button></div></div>
   <div class="shade custom-modal-shade" id="skill-tree-shade" hidden aria-hidden="true"><div class="dialog custom-modal skill-tree-dialog" role="dialog" aria-modal="true" aria-labelledby="skill-tree-title"><div class="dialog-mark">✦</div><div class="eyebrow">SKYREALM · РАЗВИТИЕ</div><h1 id="skill-tree-title">Дерево навыков</h1><p id="skill-points" class="settings-feedback">Свободные очки: 0</p><div id="skill-tree-list"></div><button class="action secondary" id="skill-tree-close" type="button">Вернуться в игру</button></div></div>
   <div class="shade custom-modal-shade" id="storage-shade" hidden aria-hidden="true"><div class="dialog custom-modal storage-dialog" role="dialog" aria-modal="true" aria-labelledby="storage-title"><div class="dialog-mark">📦</div><div class="eyebrow">SKYREALM · ХРАНИЛИЩЕ</div><h1 id="storage-title">Сундук-хранилище</h1><p>Переноси предметы между инвентарём и сундуком. Содержимое сохраняется в этом мире.</p><div class="storage-items" id="storage-items"></div><button class="action secondary" id="storage-close" type="button">Закрыть сундук · Esc</button></div></div>
-  <div class="toast" id="toast"></div>
+  <style>
+.coop-menu-action .menu-action-icon{color:#b1d0ff}.coop-shade{z-index:42}
+.coop-dialog{width:min(560px,100%);max-height:min(88vh,760px);overflow:auto;padding:26px;text-align:left}
+.coop-dialog h1{font-size:25px;margin:8px 0}.coop-muted{font-size:11px;color:#91a7c9;line-height:1.6}
+.coop-fields{display:grid;gap:9px;margin:17px 0}
+.coop-input{width:100%;height:43px;padding:0 13px;border:1px solid #3a5680;border-radius:10px;background:#0b1a2d;color:#edf4ff;font:inherit;font-size:13px}
+.coop-input:focus{border-color:#82a5ff;outline:none;box-shadow:0 0 0 3px #82a5ff20}
+.coop-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.coop-actions .action{margin-top:0}
+.coop-status{margin:14px 0;padding:11px 13px;border:1px solid #30496d;background:#0a192b;border-radius:10px;color:#bdd1f3;font-size:11px;line-height:1.6}
+.coop-room-card{border:1px solid #38577f;background:linear-gradient(145deg,#10233b,#0a1728);border-radius:13px;padding:14px;margin:15px 0}
+.coop-room-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.coop-room-id{font-size:10px;color:#87a5d8;overflow-wrap:anywhere}
+.coop-player-list{display:grid;gap:7px;margin:12px 0}
+.coop-player{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid #273f60;background:#0b1a2c;border-radius:9px;font-size:11px;color:#dce8ff}
+.coop-player small{font-size:9px;color:#8fa6ca}.coop-badge{font-size:9px;color:#a9c5ff;border:1px solid #416199;background:#162b4b;padding:4px 7px;border-radius:20px;white-space:nowrap}
+.coop-invite{display:flex;align-items:center;gap:8px;margin-top:11px}
+.coop-invite code{flex:1;padding:11px;border:1px dashed #7397e8;border-radius:9px;color:#fff2b9;text-align:center;font-size:18px;letter-spacing:3px;background:#0b182a}
+.coop-invite button{width:auto;min-width:95px;margin:0}
+.coop-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px;border:1px solid #2c4568;background:#0b1b2d;border-radius:9px;margin-top:10px;color:#dbe8ff;font-size:11px}
+.coop-toggle-row input{width:18px;height:18px;accent-color:#6d91ff}.coop-hidden{display:none!important}
+@media(max-width:520px){.coop-actions{grid-template-columns:1fr}.coop-dialog{padding:20px}.coop-invite{flex-wrap:wrap}.coop-invite code{min-width:100%}}
+</style>
+
+<div class="shade coop-shade" id="coop-shade" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="coop-title">
+  <div class="dialog coop-dialog">
+    <div class="dialog-mark">♧</div><div class="eyebrow">SKYREALM · СОВМЕСТНОЕ ПРИКЛЮЧЕНИЕ</div>
+    <h1 id="coop-title">Кооператив</h1>
+    <p class="coop-muted">Закрытая комната до 8 игроков. Войти можно только по коду приглашения.</p>
+    <div id="coop-message" class="coop-status" role="status">Проверяем аккаунт и состояние комнаты…</div>
+    <section id="coop-no-room">
+      <div class="coop-fields">
+        <button class="action" id="coop-create" type="button">＋ Создать комнату</button>
+        <input class="coop-input" id="coop-code" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="КОД ПРИГЛАШЕНИЯ · 8 СИМВОЛОВ" aria-label="Код приглашения">
+        <button class="action secondary" id="coop-join" type="button">Войти по коду</button>
+      </div>
+    </section>
+    <section id="coop-has-room" class="coop-hidden">
+      <div class="coop-room-card">
+        <div class="coop-room-top"><strong>Твоя комната</strong><span class="coop-badge" id="coop-room-status">Лобби</span></div>
+        <div class="coop-room-id" id="coop-room-id"></div>
+        <div class="coop-invite" id="coop-invite-row" hidden><code id="coop-invite-code"></code><button class="action secondary" id="coop-copy" type="button">Копировать</button></div>
+        <div class="coop-player-list" id="coop-members"></div>
+        <label class="coop-toggle-row" id="coop-pvp-row"><span><b>PvP</b><br><small>Настройка комнаты сохранена; урон между игроками подключится на этапе общей боевой системы</small></span><input type="checkbox" id="coop-pvp"></label>
+      </div>
+      <div class="coop-actions">
+        <button class="action secondary" id="coop-resume" type="button" hidden>▶ Возобновить комнату</button>
+        <button class="action secondary" id="coop-refresh" type="button">↻ Обновить список</button>
+        <button class="action secondary" id="coop-leave" type="button">Покинуть комнату</button>
+      </div>
+    </section>
+    <button class="action secondary" id="coop-close" type="button" style="margin-top:15px">Назад в игру</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
 </div>
 <script>
 (() => {
@@ -280,5 +333,8 @@
 })();
 </script>
 <script src="game.js"></script>
+<script src="multiplayer-core.js"></script>
+<script src="multiplayer-client.js"></script>
+<script src="multiplayer-ui.js"></script>
 </body>
 </html>

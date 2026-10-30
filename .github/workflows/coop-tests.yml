@@ -12,5 +12,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
       - run: node tests/multiplayer-core-test.cjs
       - run: node --check game/multiplayer-core.js
+      - run: node --check game/multiplayer-client.js
+      - run: node --check game/multiplayer-ui.js
+      - run: python -m py_compile launcher.py
