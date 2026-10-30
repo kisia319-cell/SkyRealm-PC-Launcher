@@ -59,3 +59,12 @@
 .showcase-crystal{color:#a7f2e4;text-shadow:0 0 28px #64e2d7}.showcase-crown{color:#e7d19a;text-shadow:0 0 28px #d7ad55}.showcase-star{color:#c6b5ff;text-shadow:0 0 28px #a18aff}
 .shop-honesty-note{margin:16px 0}.diagnostics-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.diagnostics-actions button{margin:0}.diagnostics-result{padding:12px;border:1px solid #304968;border-radius:10px;background:#091728;color:#a9c0e1;font-size:10px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 15px}.diagnostics-result.diagnostics-error{border-color:#9b5968;color:#ffb5bf}
 @media(max-width:760px){.showcase-grid{grid-template-columns:1fr}.showcase-art{height:90px}.release-feature{padding:17px}.release-feature h2{font-size:20px}.release-actions{flex-direction:column}.release-actions a{width:100%}}
+
+.game-update-overlay{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:22px;background:rgba(3,8,18,.78);backdrop-filter:blur(10px)}
+.game-update-overlay[hidden]{display:none}.game-update-dialog{width:min(440px,100%);padding:28px;border:1px solid #536fa1;border-radius:20px;background:radial-gradient(circle at 50% 0%,#294a77 0,transparent 48%),linear-gradient(155deg,#14243c,#091525);box-shadow:0 28px 90px #000a;text-align:center;color:#edf4ff}
+.game-update-icon{width:52px;height:52px;margin:0 auto 14px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(145deg,#b9d0ff,#718de3);color:#10203c;font-size:27px}
+.game-update-kicker{color:#a9c2f3;font-size:9px;font-weight:900;letter-spacing:2px}.game-update-dialog h2{font-size:21px;line-height:1.3;margin:12px 0}
+.game-update-dialog p{font-size:12px;line-height:1.7;color:#b9c8df;margin:8px 0}.game-update-dialog p b{color:#ffe29a}
+.game-update-actions{display:flex;gap:12px;margin-top:22px}.game-update-actions button{flex:1;min-height:44px;border-radius:12px;border:1px solid #627da8;font-weight:900;cursor:pointer}
+.game-update-yes{background:linear-gradient(135deg,#f5d47d,#d79a42);color:#33230d}.game-update-no{background:#172943;color:#e2ebfb}
+.game-update-actions button:hover{filter:brightness(1.1);transform:translateY(-1px)}
