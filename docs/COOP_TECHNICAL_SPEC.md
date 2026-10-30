@@ -1,6 +1,6 @@
 # SkyRealm Co-op Technical Specification
 
-Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase `skyrealm-coop` is deployed as active version 10; the repository source matches the deployed `index.ts` byte-for-byte. The backend supports rooms, secure invite codes, shared death, versioned snapshots and an owner-mediated guest building queue. Automated CI is passing. The feature remains Draft and is not merged into `main`.
+Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase `skyrealm-coop` is deployed as active version 11; the repository source matches the deployed `index.ts` byte-for-byte. The backend supports rooms, secure invite codes, shared death, versioned snapshots and an owner-mediated guest building queue. Automated CI is passing. The feature remains Draft and is not merged into `main`.
 
 ## Agreed behavior
 - Single-player remains the default and its current save format, localStorage, import/export and simulation loop are not changed.
@@ -22,7 +22,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - All three treasure chest types use validated shared-world claims: outdoor chests, the cave vault and the final dungeon chest. Only one active room member can claim each object per room, enforced by a unique database key. Successful claims update the matching canonical snapshot flag; later attempts do not award duplicate loot.
 
 ## Database migration history
-- The repository now tracks all 19 migration versions recorded by the connected Supabase project, in the same order (verified against the live migration history on 2026-10-30).
+- The repository now tracks all 21 migration versions recorded by the connected Supabase project, in the same order (verified against the live migration history on 2026-10-30).
 - The initial SkyRealm profile/Auth trigger migrations were restored from the deployed schema and function definition; they intentionally keep profile rows inaccessible through direct client RLS policies. The co-op public RPC functions were checked in PostgreSQL: `anon` and `authenticated` have no EXECUTE privilege; only `service_role` does. Private Realtime channel RLS checks room membership.
 - The co-op base schema and its RPC/policy objects are split into the matching deployed migration versions. Shared clock, shared death, snapshots and the death-actor index each have their own version-aligned SQL file.
 
@@ -33,7 +33,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - New tables: `co_op_rooms`, `co_op_members`, `co_op_world_snapshots`, `co_op_audit_events`, private rate-limit tables `private.co_op_join_limits` and `private.co_op_world_action_limits`, and `co_op_world_actions`.
 - RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data. The world-death actor foreign key is indexed.
 - Private Realtime channel authorization policies are defined on `realtime.messages` for topic `skyrealm:room:<uuid>`. The project-wide “Allow public access” setting has not yet been verified OFF in the dashboard and remains a release check.
-- GitHub Actions verifies core rules, owner-only snapshot writes in the client adapter, client-to-Edge-Function route parity, the exact 19-file Supabase migration history, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated snapshot requests. The latest workflow for branch head `529eb0017870c34548773e4b4d057e2c2afab3ec` passed on 2026-10-30: [run 41020651461](https://github.com/kisia319-cell/SkyRealm-PC-Launcher/actions/runs/41020651461).
+- GitHub Actions verifies core rules, owner-only snapshot writes in the client adapter, client-to-Edge-Function route parity, the exact 19-file Supabase migration history, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated snapshot requests. Earlier workflow runs passed before the latest farm/PvP integration changes. The branch CI is being rerun against the updated commit before release.
 
 ## Lobby UI delivered
 - New main-menu entry “Кооператив”.
@@ -43,13 +43,13 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - In the desktop runner, launcher Auth session is passed through the child process environment and exposed to the game once via the PyWebView API. It is not put in query parameters or saved to disk.
 - Browser preview uses the same-origin session/local storage token.
 - Supabase Realtime Presence tracks online state on a private `skyrealm:room:<uuid>` channel; roster falls back to authenticated polling every 5 seconds.
-- A first cosmetic position prototype broadcasts player coordinates at up to 8 updates/second. Remote avatars are drawn for matching difficulty and surface/trade mode; position packets are range-checked and discarded after 6.5 seconds. These client broadcasts are untrusted cosmetic data only and cannot modify world state, inventory, damage or saves.
+- A position prototype broadcasts player coordinates at up to 8 updates/second. Remote avatars are drawn for matching difficulty and surface/trade mode; position packets are range-checked and discarded after 6.5 seconds. These client broadcasts are untrusted cosmetic data only and cannot modify world state, inventory, damage or saves.
 
 ## Not yet playable as a shared-world game
 - Player position/avatar exchange is still a cosmetic prototype, not authoritative movement. The versioned host snapshot provides persistence/restore for selected world-owned fields, but there is not yet an authoritative action simulation for edits made by every participant. Enemy simulation, loot claims, crafting and combat are not synchronized.
-- The owner-authoritative world snapshot transport and restore path are implemented, and guest building for the six existing structure types is now submitted as an idempotent request. The owner validates world placement and commits the resulting snapshot with the action status in one transaction. Other guest edits — harvesting, mining, farming interactions, chest/loot collection, crafting and combat — are not yet consistently merged into the canonical host state.
-- Realtime Presence is wired for online state and Broadcast carries cosmetic positions. The roster still refreshes from authenticated API every 5 seconds for durable membership names. Movement is not server-authoritative and must not be used for combat or progression.
-- PvP preference is stored and owner-gated, but does not yet gate damage because combat is still local. Do not advertise PvP combat as working.
+- The owner-authoritative world snapshot transport and restore path are implemented, and guest building for the six existing structure types is now submitted as an idempotent request. The owner validates world placement and commits the resulting snapshot with the action status in one transaction. Other guest edits — mining, general loot collection, crafting and enemy combat — are not yet consistently merged into the canonical host state.
+- Realtime Presence is wired for online state and Broadcast carries cosmetic positions. The roster still refreshes from authenticated API every 5 seconds for durable membership names. Movement is not server-authoritative; PvP hit handling currently checks the latest broadcast position locally and must not be treated as exploit-proof.
+- PvP preference is stored and owner-gated. When enabled, the current prototype sends hit events over the private room channel and the receiving client validates recent attacker position, world mode and weapon range. Damage is still client-validated rather than server-authoritative; treat this as a limited test feature, not anti-cheat-safe competitive PvP.
 - Kick/revoke-code management, owner handoff, rate limits by IP, and eight-player load testing remain for later hardening.
 - No release is published and main is unchanged.
 
@@ -80,8 +80,8 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 
 ## Guest building queue (2026-10-30)
 - Live migration versions `20261030071818_co_op_guest_world_action_queue` and `20261030071834_co_op_guest_world_action_rls_policies` and `20261030073436_co_op_world_action_room_uuid_unique` add `public.co_op_world_actions` and private `private.co_op_world_action_limits`. Both are RLS-enabled and explicitly service-role-only. PostgreSQL privilege checks confirmed that `anon` and `authenticated` cannot execute any of the five queue RPCs.
-- The first supported action is `place_structure` for `furnace`, `house`, `torch`, `coal`, `storage` and `farmplot`. Payloads are restricted to `type,x,y`, grid alignment and world bounds. Each account is limited to 20 requests/minute and each room to 100 pending requests.
+- Supported actions include `place_structure` for `furnace`, `house`, `torch`, `coal`, `storage` and `farmplot`, plus `farm_plant`, `farm_water`, `farm_compost`, `farm_fertilize` and `farm_harvest`. Payloads are restricted to `type,x,y`, grid alignment and world bounds. Each account is limited to 20 requests/minute and each room to 100 pending requests.
 - Requests are UUID-idempotent, with a database unique index on `(room_id, action_id)` to keep owner-side commit lookup unambiguous across different participants. The guest reserves one local build item while pending. The owner checks terrain, trees, rocks, existing structures and the map area before committing the new structure. Commit updates snapshot version and action status in one transaction. Denied or missing requests refund the local item.
 - The guest's resource inventory is still local/client-side; this queue does not yet make resources cheat-proof. Only the host simulation determines whether a structure is valid and appears in the canonical snapshot.
-- Supabase Edge Function version 10 is active; its `index.ts` and `deno.json` were verified against the feature branch. The production endpoint retains its existing bearer-token validation and `verify_jwt=false` setting.
-- Still outstanding: farming and harvesting, mining, general loot, shared enemy movement/AI and combat, damage and PvP simulation, two-account live playtest, and 2/4/8-player load/regression tests.
+- Supabase Edge Function version 11 is active; its `index.ts` and `deno.json` were verified against the feature branch. The production endpoint retains its existing bearer-token validation and `verify_jwt=false` setting.
+- Still outstanding: authoritative mining and general loot, shared enemy movement/AI, server-authoritative damage and PvP, two-account live playtest, and 2/4/8-player load/regression tests.
