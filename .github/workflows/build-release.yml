@@ -115,21 +115,72 @@ jobs:
             "update_release/manifest.json"
           )
           gh release view $tag *> $null
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag $assets --clobber
-            gh release edit $tag --title $title --notes $notes
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title $title --notes $notes --latest
+            if ($LASTEXITCODE -ne 0) { throw "Could not create release $tag" }
           } else {
-            gh release create $tag $assets --title $title --notes $notes --latest
+            gh release edit $tag --title $title --notes $notes
+            if ($LASTEXITCODE -ne 0) { throw "Could not update release metadata for $tag" }
+          }
+
+          # Upload each asset independently. GitHub occasionally returns transient 5xx
+          # responses for large files; retry only the failed asset instead of aborting
+          # the entire release upload batch.
+          foreach ($asset in $assets) {
+            $uploaded = $false
+            for ($attempt = 1; $attempt -le 5; $attempt++) {
+              gh release upload $tag $asset --clobber
+              if ($LASTEXITCODE -eq 0) {
+                $uploaded = $true
+                break
+              }
+              Write-Warning "Upload failed for $asset (attempt $attempt/5); retrying..."
+              Start-Sleep -Seconds (5 * $attempt)
+            }
+            if (-not $uploaded) { throw "Failed to upload release asset after 5 attempts: $asset" }
+          }
+
+          # Verify every expected asset is visible before marking publication complete.
+          $releaseJson = gh release view $tag --json assets | ConvertFrom-Json
+          $publishedNames = @($releaseJson.assets | ForEach-Object { $_.name })
+          foreach ($asset in $assets) {
+            $expectedName = [System.IO.Path]::GetFileName($asset)
+            if ($publishedNames -notcontains $expectedName) {
+              throw "Release asset missing after upload: $expectedName"
+            }
           }
 
       - name: Commit updated manifest
         shell: pwsh
         run: |
-          git fetch origin main
-          git reset --hard origin/main
-          Copy-Item update_release/manifest.json manifest.json -Force
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add manifest.json
-          git commit -m "Update release manifest" || Write-Host "Manifest unchanged"
-          git push origin main
+          $pushed = $false
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            git fetch origin main
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Could not fetch main (attempt $attempt/5)"
+              Start-Sleep -Seconds (5 * $attempt)
+              continue
+            }
+            git reset --hard origin/main
+            if ($LASTEXITCODE -ne 0) { throw "Could not reset to origin/main" }
+            Copy-Item update_release/manifest.json manifest.json -Force
+            git add manifest.json
+            git diff --cached --quiet
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Manifest is already current"
+              $pushed = $true
+              break
+            }
+            git commit -m "Update release manifest"
+            if ($LASTEXITCODE -ne 0) { throw "Could not commit updated manifest" }
+            git push origin main
+            if ($LASTEXITCODE -eq 0) {
+              $pushed = $true
+              break
+            }
+            Write-Warning "Push failed (attempt $attempt/5); refreshing main and retrying..."
+            Start-Sleep -Seconds (5 * $attempt)
+          }
+          if (-not $pushed) { throw "Could not publish manifest to main after 5 attempts" }
