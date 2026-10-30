@@ -527,8 +527,6 @@
       const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;
       if(x<-650||x>width+650||y<-650||y>height+650)continue;
       ctx.save();
-      ctx.fillStyle='rgba(8,24,22,.22)';
-      ctx.beginPath();ctx.ellipse(x,y+12,590,570,0,0,Math.PI*2);ctx.fill();
       for(const h of housePositions){
         const hx=x+h.x,hy=y+h.y,variant=h.style%roofs.length;
         const roof=roofs[variant],wall=walls[variant],dark=darks[variant];
@@ -537,8 +535,6 @@
         ctx.translate(hx,hy);
         ctx.scale(1.32,1.32);
         // Broad, level foundations and a visible side wall give the cottage depth.
-        ctx.fillStyle='rgba(5,10,14,.34)';
-        ctx.beginPath();ctx.ellipse(5,bodyH*.72,w*.72,19,0,0,Math.PI*2);ctx.fill();
         ctx.fillStyle='#665744';ctx.fillRect(-w/2-5,5,w+10,bodyH+12);
         ctx.fillStyle='#8d7152';ctx.beginPath();ctx.moveTo(w/2,5);ctx.lineTo(w/2+13,0);ctx.lineTo(w/2+13,bodyH+5);ctx.lineTo(w/2,bodyH+17);ctx.closePath();ctx.fill();
         ctx.fillStyle=wall;ctx.fillRect(-w/2,0,w,bodyH);
@@ -1718,9 +1714,12 @@
     if(!tradeWorldMode&&Math.hypot(player.x-(74*TILE+16),player.y-(18*TILE+16))<112){caveReturn={x:player.x,y:player.y};caveMode=true;player.x=width*.35;player.y=height*.58;player.vx=player.vy=0;caveBossX=width*.72;caveBossY=height*.30;caveBossAttackTimer=difficultyConfig().bossInterval;caveBossFlash=0;toast(caveBossDefeated?'Ты вернулся в исследованную пещеру.':'В пещере Каменный страж! Победи его, чтобы открыть сокровищницу.');return;}
     if(Math.hypot(player.x-(tradeEntranceX*TILE+16),player.y-(tradeEntranceY*TILE+16))<112){transitionTradeWorld();return;}
     if(Math.hypot(player.x-(mineTileX*TILE+16),player.y-(mineTileY*TILE+16))<112){mineMode=true;mineHoverIndex=-1;minePlayerX=86;minePlayerY=height-108;keys.clear();toast('Ты вошёл в шахту. Выбери кирку и нажми по залежи левой кнопкой 2 раза.');return;}
-    const placedHouse=placedStructures.find(s=>s.type==='house'&&Math.hypot(player.x-s.x,player.y-(s.y+25))<85);if(placedHouse){bedSpawn={x:placedHouse.x,y:placedHouse.y+55};enteredPlacedHouse={x:placedHouse.x,y:placedHouse.y};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;toast('Ты вошёл в свой дом. E у кровати — спать, у верстака — использовать.');saveGame();return;}
+    // Enter a house only when the player deliberately presses E at its doorway.
+    // A broad proximity radius caused accidental transfers while walking past walls.
+    const placedHouse=placedStructures.find(s=>s.type==='house'&&Math.abs(player.x-s.x)<34&&Math.abs(player.y-(s.y+43))<42);
+    if(placedHouse){bedSpawn={x:placedHouse.x,y:placedHouse.y+55};enteredPlacedHouse={x:placedHouse.x,y:placedHouse.y};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;keys.clear();toast('Ты вошёл в свой дом. E у кровати — спать, у верстака — использовать.');saveGame();return;}
     const hx=36*TILE-120,hy=15*TILE-120;
-    if(Math.hypot(player.x-(hx+160),player.y-(hy+274))<115){bedSpawn={x:36*TILE+40,y:15*TILE+154};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;toast('Ты вошёл в дом. E у кровати — спать, у верстака — использовать.');if(questStage<2)questStage=2;saveGame();return;}
+    if(Math.abs(player.x-(hx+160))<42&&Math.abs(player.y-(hy+274))<48){bedSpawn={x:36*TILE+40,y:15*TILE+154};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;keys.clear();toast('Ты вошёл в дом. E у кровати — спать, у верстака — использовать.');if(questStage<2)questStage=2;saveGame();return;}
     const chest=treasureChests.find(c=>Math.hypot(player.x-c.x,player.y-c.y)<100);if(chest){if(chest.opened)toast('Этот сундук уже открыт.');else openTreasureChest(chest);return;}
     const s=world.signs[0];if(Math.hypot(s.x-player.x,s.y-player.y)<118){openSignDialog();questStage=Math.max(questStage,1);}else toast('Подойди к дорожному знаку или двери дома.');
   }
