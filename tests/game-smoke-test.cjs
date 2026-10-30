@@ -144,3 +144,10 @@ assert.ok(game.includes("name: 'Лопата', icon: '🪏', count: 1"), 'A shov
 assert.ok(game.includes("if(hits>=3)") && game.includes("snowShovelHits") && game.includes("clearedSnowTiles"), 'Snow must take three shovel hits and persist its cleared state');
 assert.ok(game.includes("selectedInventoryItem()?.name==='Лопата'") && game.includes("shovelSnowAt(screenX+camX,screenY+camY)"), 'The shovel must work with Space and clicking a snow tile');
 assert.ok(game.includes("drawTree(t,camX,camY)") && game.includes("const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow'"), 'Trees in the winter biome must have snow-covered branches');
+
+const gameHtml = fs.readFileSync('game/index.html', 'utf8');
+const gameVersion = fs.readFileSync('game/version.txt', 'utf8').trim();
+assert.equal(gameVersion, '0.19.7', 'Game version must be bumped when a hotfix changes game files');
+assert.ok(gameHtml.includes('content="0.19.7"') && gameHtml.includes('2D SURVIVAL · 0.19.7'), 'Visible and metadata game versions must match the packaged version');
+const treeFn = game.slice(game.indexOf('function drawTree'), game.indexOf('function drawRock'));
+assert.ok(treeFn.indexOf("const snowy=") >= 0 && treeFn.indexOf("const snowy=") < treeFn.indexOf("ctx.fillStyle=snowy?"), 'Snowy tree state must be initialized before use');
