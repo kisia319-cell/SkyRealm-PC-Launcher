@@ -1828,16 +1828,21 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       for(const receipt of pending.slice(0,20)){
         try{
           const status=await network.getWorldActionStatus(receipt.action_id);
-          if(status?.status==='applied')toast('Владелец подтвердил постройку в общем мире.');
-          else if(status?.status==='rejected'){
-            const item=inventoryItems.find(entry=>entry.name===receipt.item_name);
-            if(item)item.count++;
-            saveGame();renderInventory();toast('Владелец отклонил постройку. Предмет возвращён.');
+          if(status?.status==='applied'){
+            if(receipt.action_type&&status.result?.reward_name&&Number(status.result.reward_amount)>0){
+              changeItem(status.result.reward_name,Math.min(1000,Math.floor(Number(status.result.reward_amount))));
+              saveGame();renderInventory();
+              toast('Урожай получен: '+status.result.reward_name+' ×'+Math.floor(Number(status.result.reward_amount))+'.');
+            }else toast('Владелец подтвердил действие в общем мире.');
+          }else if(status?.status==='rejected'){
+            const reserved=receipt.reserved_item||receipt.item_name;
+            if(reserved)changeItem(reserved,1);
+            saveGame();renderInventory();toast('Владелец отклонил действие. Предмет возвращён.');
           }else remaining.push(receipt);
         }catch(error){
           if(error?.code==='WORLD_ACTION_NOT_FOUND'){
-            const item=inventoryItems.find(entry=>entry.name===receipt.item_name);
-            if(item)item.count++;
+            const reserved=receipt.reserved_item||receipt.item_name;
+            if(reserved)changeItem(reserved,1);
             saveGame();renderInventory();
           }else remaining.push(receipt);
         }
