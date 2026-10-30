@@ -110,6 +110,7 @@ async function rpc(name: string, args: Record<string, unknown>) {
     if (message.includes("ROOM_NOT_PAUSED")) throw new ApiError(409, "ROOM_NOT_PAUSED", "Комната сейчас не находится на паузе.");
     if (message.includes("ROOM_NOT_IN_LOBBY")) throw new ApiError(409, "ROOM_NOT_IN_LOBBY", "Комната уже запущена или находится на паузе.");
     if (message.includes("ROOM_NOT_RUNNING")) throw new ApiError(409, "ROOM_NOT_RUNNING", "Игровая сессия сейчас не запущена.");
+    if (message.includes("INVALID_WORLD_OBJECT")) throw new ApiError(400, "INVALID_WORLD_OBJECT", "Некорректный объект общего мира.");
     if (message.includes("INVALID_WORLD_CLOCK")) throw new ApiError(400, "INVALID_WORLD_CLOCK", "Некорректное время игрового мира.");
     if (message.includes("INVALID_WORLD_DIFFICULTY")) throw new ApiError(400, "INVALID_WORLD_DIFFICULTY", "Выбрана неизвестная сложность мира.");
     if (message.includes("NOT_A_MEMBER")) throw new ApiError(403, "NOT_A_MEMBER", "Ты больше не состоишь в этой комнате.");
@@ -174,6 +175,20 @@ Deno.serve(async (req: Request) => {
     if (route === "/api/coop/death" && req.method === "POST") {
       const death = await rpc("record_co_op_shared_death", { p_user_id:user.id,p_room_id:roomId(body.room_id) });
       return reply({ death });
+    }
+    if (route === "/api/coop/claim" && req.method === "POST") {
+      const objectKind = typeof body.object_kind === "string" ? body.object_kind : "";
+      const objectId = typeof body.object_id === "string" ? body.object_id.trim() : "";
+      if (objectKind !== "treasure_chest" || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(objectId)) {
+        throw new ApiError(400, "INVALID_WORLD_OBJECT", "Некорректный объект общего мира.");
+      }
+      const claim = await rpc("claim_co_op_world_object", {
+        p_user_id: user.id,
+        p_room_id: roomId(body.room_id),
+        p_object_kind: objectKind,
+        p_object_id: objectId,
+      });
+      return reply({ claim });
     }
     if (route === "/api/coop/snapshot/get" && req.method === "POST") {
       const snapshot = await rpc("get_co_op_world_snapshot", {

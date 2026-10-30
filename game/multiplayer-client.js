@@ -178,6 +178,13 @@ window.SkyRealmCoopClient=Object.freeze({
       return true;
     }finally{clockWriteInFlight=false;}
   },
+  async claimWorldObject(objectKind,objectId){
+    if(!currentRoom?.id)throw new Error('Нет активной комнаты.');
+    const data=await request('/api/coop/claim','POST',{
+      room_id:currentRoom.id,object_kind:objectKind,object_id:objectId
+    });
+    return data.claim||null;
+  },
   async getWorldSnapshot(){
     if(!currentRoom?.id)throw new Error('Нет активной комнаты.');
     const data=await request('/api/coop/snapshot/get','POST',{room_id:currentRoom.id});

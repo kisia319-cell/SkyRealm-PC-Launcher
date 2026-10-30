@@ -28,6 +28,8 @@ const core = require('../game/multiplayer-core.js');
       payload = { snapshot: { room_id: roomId, version: 4, payload: { placedStructures: [] } } };
     } else if (route === '/api/coop/snapshot/save') {
       payload = { snapshot: { room_id: roomId, version: 5 } };
+    } else if (route === '/api/coop/claim') {
+      payload = { claim: { claimed: true, room_id: roomId, object_kind: 'treasure_chest', object_id: 'forest' } };
     } else {
       throw new Error('Unexpected route: ' + route);
     }
@@ -61,6 +63,16 @@ const core = require('../game/multiplayer-core.js');
     placedStructures: [{ type: 'house', x: 12, y: 20 }]
   });
   assert.equal(saveCall.headers.Authorization, 'Bearer test-access-token');
+
+  const claim = await client.claimWorldObject('treasure_chest', 'forest');
+  assert.equal(claim.claimed, true);
+  const claimCall = calls.find(call => call.route === '/api/coop/claim');
+  assert.ok(claimCall, 'Client must send the world-object claim request');
+  assert.equal(claimCall.method, 'POST');
+  assert.deepEqual(claimCall.body, {
+    room_id: roomId, object_kind: 'treasure_chest', object_id: 'forest'
+  });
+  assert.equal(claimCall.headers.Authorization, 'Bearer test-access-token');
 
   const guestCalls = [];
   const guestSandbox = {

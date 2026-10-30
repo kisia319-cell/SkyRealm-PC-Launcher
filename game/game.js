@@ -404,7 +404,34 @@
     updateProgressHud();if(leveled){updateVitals();spawnVisualBurst(player.x,player.y,24,'spark','#8be9ff');playSound('craft');toast('НОВЫЙ УРОВЕНЬ '+playerLevel+'! +8 здоровья и +12 выносливости.');}else if(reason)toast('+'+gained+' опыта · '+reason);saveGame();
   }
   function updateProgressHud(){const el=document.getElementById('progress-hud');if(el)el.textContent='УРОВЕНЬ '+playerLevel+' · XP '+playerXP+'/'+xpForNextLevel()+' · ✦ '+skillPoints;}
-  function openTreasureChest(chest){if(!chest||chest.opened)return;chest.opened=true;const cfg=difficultyConfig(),gold=5+Math.floor(Math.random()*11);const rewards=[{name:'Золото',count:gold},{name:'Кристалл',count:1},{name:'Малое зелье',count:1}];const chosen=rewards.filter((r,i)=>i===0||(i===1?Math.random()<cfg.chests.crystal:Math.random()<cfg.chests.potion));for(const r of chosen){if(r.name==='Золото')walletCents+=r.count*100;else changeItem(r.name,r.count);}spawnVisualBurst(chest.x,chest.y,22,'spark','#ffd86b');playSound('coin');renderInventory();saveGame();drawMinimap();awardXP(45,'найден сундук');toast('Сундук открыт! Золото: '+gold+'; '+chosen.filter(r=>r.name!=='Золото').map(r=>r.name+' ×'+r.count).join(', '));}
+  async function openTreasureChest(chest){
+    if(!chest||chest.opened||chest.claimPending)return;
+    const network=window.SkyRealmCoopClient;
+    const session=network?.getWorldSession?.();
+    if(session){
+      if(typeof network.claimWorldObject!=='function'){toast('Сервис общих сундуков недоступен.');return;}
+      chest.claimPending=true;
+      let claim=null;
+      try{
+        claim=await network.claimWorldObject('treasure_chest',String(chest.id||''));
+      }catch(error){
+        toast(error?.message||'Не удалось подтвердить сундук на сервере.');
+        return;
+      }finally{chest.claimPending=false;}
+      if(!claim?.claimed){
+        chest.opened=true;saveGame();drawMinimap();
+        toast('Этот сундук уже забрал другой участник комнаты.');
+        return;
+      }
+    }
+    chest.opened=true;
+    const cfg=difficultyConfig(),gold=5+Math.floor(Math.random()*11);
+    const rewards=[{name:'Золото',count:gold},{name:'Кристалл',count:1},{name:'Малое зелье',count:1}];
+    const chosen=rewards.filter((r,i)=>i===0||(i===1?Math.random()<cfg.chests.crystal:Math.random()<cfg.chests.potion));
+    for(const r of chosen){if(r.name==='Золото')walletCents+=r.count*100;else changeItem(r.name,r.count);}
+    spawnVisualBurst(chest.x,chest.y,22,'spark','#ffd86b');playSound('coin');renderInventory();saveGame();drawMinimap();awardXP(45,'найден сундук');
+    toast('Сундук открыт! Золото: '+gold+'; '+chosen.filter(r=>r.name!=='Золото').map(r=>r.name+' ×'+r.count).join(', '));
+  }
   function startDodge(){if(paused||inMainMenu||workbenchDialogOpen||inventoryDialogOpen||signDialogOpen||dodgeCooldown>0||player.stamina<18||mineMode)return;let dx=0,dy=0;const f=player.face;if(f==='left')dx=-1;else if(f==='right')dx=1;else if(f==='up')dy=-1;else dy=1;dodgeVX=dx;dodgeVY=dy;dodgeFacing=f;dodgeTimer=.24;dodgeCooldown=1.15;player.stamina=Math.max(0,player.stamina-18);spawnVisualBurst(player.x,player.y,10,'dust','#a8d9ff');toast('Перекат!');}
   function spawnVisualBurst(x,y,count=8,kind='spark',color='#ffe29a'){
     for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,sp=kind==='dust'?18+Math.random()*30:35+Math.random()*115;visualParticles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-12,life:.35+Math.random()*.55,maxLife:.9,size:kind==='spark'?2+Math.random()*3:2+Math.random()*4,kind,color,rot:Math.random()*6.28});}

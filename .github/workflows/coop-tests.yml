@@ -53,10 +53,11 @@ jobs:
           }
           await assertProtected('/api/coop/current');
           await assertProtected('/api/coop/snapshot/get', 'POST', { room_id: '123e4567-e89b-12d3-a456-426614174000' });
+          await assertProtected('/api/coop/claim', 'POST', { room_id: '123e4567-e89b-12d3-a456-426614174000', object_kind: 'treasure_chest', object_id: 'forest' });
           await assertProtected('/api/coop/snapshot/save', 'POST', {
             room_id: '123e4567-e89b-12d3-a456-426614174000',
             expected_version: 0,
             payload: { placedStructures: [] }
           });
-          console.log('Co-op health is OK; current and snapshot routes reject missing sessions.');
+          console.log('Co-op health is OK; current, snapshot and world-claim routes reject missing sessions.');
           NODE

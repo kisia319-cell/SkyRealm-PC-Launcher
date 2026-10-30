@@ -43,7 +43,7 @@ assert.match(client,/setWorldClock/);
 assert.match(game,/syncCoopSharedDeath/);
 assert.match(ui,/refresh\(true\);/);
 
-const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save'];
+const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim'];
 for (const route of coopRoutes) {
   assert.ok(client.includes("'/api/coop/" + route + "'"), 'Client calls an unrecognised route: ' + route);
   assert.ok(edge.includes('route === "/api/coop/' + route + '"'), 'Edge Function is missing route: ' + route);
@@ -55,6 +55,7 @@ assert.ok(client.includes('setWorldClock'));
 assert.ok(client.includes('getWorldSnapshot') && client.includes('saveWorldSnapshot'));
 assert.ok(game.includes('sanitizeSharedWorldSnapshot') && game.includes('syncCoopWorldSnapshot'));
 assert.ok(game.includes('syncCoopSharedDeath'));
+assert.ok(game.includes("claimWorldObject('treasure_chest'"), 'Treasure chest rewards must be claimed by the server in co-op');
 assert.ok(ui.includes('startMonitors();') && ui.includes('window.addEventListener'));
 
 

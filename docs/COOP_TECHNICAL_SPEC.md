@@ -1,6 +1,6 @@
 # SkyRealm Co-op Technical Specification
 
-Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase `skyrealm-coop` is deployed as version 7. The backend supports rooms, secure invite codes, shared death and owner-authoritative versioned world snapshots. Automated CI is passing. The feature remains Draft and is not merged into `main`.
+Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase `skyrealm-coop` is deployed as version 8. The backend supports rooms, secure invite codes, shared death and owner-authoritative versioned world snapshots. Automated CI is passing. The feature remains Draft and is not merged into `main`.
 
 ## Agreed behavior
 - Single-player remains the default and its current save format, localStorage, import/export and simulation loop are not changed.
@@ -19,6 +19,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - Each player has a room-and-account scoped save key; personal inventory, wallet, health, hunger, XP, equipment, appearance and player position are not copied between accounts.
 - The room owner periodically publishes a filtered, versioned world snapshot. It includes supported world-owned state such as structures, farm plots, mine nodes, opened chests, cave/boss progress and world loot. Other members can restore that snapshot into their own co-op save without overwriting personal player data.
 - Snapshot writes are owner-only, limited to 64 KB, restricted to a fixed list of world fields, and protected by optimistic version checks. Reads require active/offline room membership.
+- Treasure chest opening is now a validated shared-world action: only one active room member can claim a given chest per room, enforced by a unique database key. The successful claim increments the shared snapshot version and marks the chest open in the canonical payload; later attempts do not award duplicate loot.
 
 ## Database migration history
 - The repository now tracks all 14 migration versions recorded by the connected Supabase project, in the same order.
@@ -27,7 +28,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 
 ## Backend delivered
 - Dedicated Supabase Edge Function `skyrealm-coop`, independent of the existing `skyrealm-auth`.
-- Routes: `/health`, `/api/coop/create`, `/api/coop/join`, `/api/coop/start`, `/api/coop/current`, `/api/coop/leave`, `/api/coop/resume`, `/api/coop/pvp`, `/api/coop/heartbeat`, `/api/coop/recover-owner`, `/api/coop/clock`, `/api/coop/death`, `/api/coop/snapshot/get`, `/api/coop/snapshot/save`.
+- Routes: `/health`, `/api/coop/create`, `/api/coop/join`, `/api/coop/start`, `/api/coop/current`, `/api/coop/leave`, `/api/coop/resume`, `/api/coop/pvp`, `/api/coop/heartbeat`, `/api/coop/recover-owner`, `/api/coop/clock`, `/api/coop/death`, `/api/coop/snapshot/get`, `/api/coop/snapshot/save`, `/api/coop/claim`.
 - The function validates the bearer session with Supabase Auth; the service-role key stays server-side.
 - New tables: `co_op_rooms`, `co_op_members`, `co_op_world_snapshots`, `co_op_audit_events`, and private rate-limit table `private.co_op_join_limits`.
 - RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data. The world-death actor foreign key is indexed.
