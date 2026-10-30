@@ -51,6 +51,10 @@ assert.equal(m.sanitizeWorldAction('place_structure',{type:'unknown',x:112,y:144
 assert.equal(m.sanitizeWorldAction('place_structure',{type:'torch',x:114,y:144}),null);
 assert.equal(m.sanitizeWorldAction('place_structure',{type:'torch',x:112,y:144,actor_id:'bad'}),null);
 assert.equal(m.sanitizeWorldAction('give_gold',{amount:999}),null);
+assert.deepEqual(m.sanitizeWorldAction('farm_plant',{x:112,y:144,crop_id:'wheat'}),{x:112,y:144,crop_id:'wheat'});
+assert.deepEqual(m.sanitizeWorldAction('farm_water',{x:112,y:144}),{x:112,y:144});
+assert.equal(m.sanitizeWorldAction('farm_plant',{x:112,y:144,crop_id:'unknown'}),null);
+assert.equal(m.sanitizeWorldAction('farm_water',{x:112,y:144,amount:999}),null);
 const sharedSnapshot=m.sanitizeSharedWorldSnapshot({
   placedStructures:[{type:'house',x:20,y:40}],
   farmCrops:[{crop:'wheat',x:10,y:10}],
