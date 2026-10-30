@@ -30,7 +30,7 @@
     return 'skyrealm:room:'+roomId;
   }
   function shouldPauseOnOwnerDeparture(room,departingUserId){
-    return !!room&&room.status==='running'&&room.owner_id===departingUserId;
+    return !!room&&['lobby','running'].includes(room.status)&&room.owner_id===departingUserId;
   }
   function sanitizePlayerInput(input){
     if(!input||typeof input!=='object'||Array.isArray(input))return null;

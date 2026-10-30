@@ -8,7 +8,7 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 - Invitation code is generated with Web Crypto, displayed once to the owner, and only its SHA-256 hash is stored.
 - A user may occupy one active/offline room membership at a time. Room membership changes are transactional.
 - Join attempts are limited to 8 per 15 minutes per account.
-- Explicit owner leave pauses the room and marks the owner offline; the previous state (lobby/running) is saved so resume restores the correct state. During a running room, members check owner heartbeat; >30 seconds stale causes a pause.
+- Explicit owner leave pauses the room and marks the owner offline; the previous state (lobby/running) is saved so resume restores the correct state. During lobby or running state, members check owner heartbeat; >30 seconds stale pauses the room.
 - PvP is a persisted owner-only setting, defaults OFF.
 - Shared death is stored as \`shared\`; the existing difficulty-specific death rules must be wired into the shared simulation phase.
 

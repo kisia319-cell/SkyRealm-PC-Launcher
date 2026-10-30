@@ -15,6 +15,8 @@ assert.equal(m.canChangePvp(room,'owner-1'),true);
 assert.equal(m.canChangePvp(room,'member-1'),false);
 assert.equal(m.shouldPauseOnOwnerDeparture({status:'running',owner_id:'owner-1'},'owner-1'),true);
 assert.equal(m.shouldPauseOnOwnerDeparture({status:'running',owner_id:'owner-1'},'member-1'),false);
+assert.equal(m.shouldPauseOnOwnerDeparture({status:'lobby',owner_id:'owner-1'},'owner-1'),true);
+assert.equal(m.shouldPauseOnOwnerDeparture({status:'paused',owner_id:'owner-1'},'owner-1'),false);
 assert.deepEqual(m.sanitizePlayerInput({seq:4,keys:['left','hack','up','down','right']}),{seq:4,keys:['left','up','down','right']});
 assert.equal(m.sanitizePlayerInput({seq:-1,keys:['up']}),null);
 assert.equal(m.sanitizePlayerInput({seq:1.5,keys:['up']}),null);
