@@ -43,7 +43,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - In the desktop runner, launcher Auth session is passed through the child process environment and exposed to the game once via the PyWebView API. It is not put in query parameters or saved to disk.
 - Browser preview uses the same-origin session/local storage token.
 - Supabase Realtime Presence tracks online state on a private `skyrealm:room:<uuid>` channel; roster falls back to authenticated polling every 5 seconds.
-- A position prototype broadcasts player coordinates at up to 8 updates/second. Remote avatars are drawn for matching difficulty and surface/trade mode; position packets are range-checked and discarded after 6.5 seconds. These client broadcasts are untrusted cosmetic data only and cannot modify world state, inventory, damage or saves.
+- A position prototype broadcasts player coordinates at up to 8 updates/second. Remote avatars are drawn for matching difficulty and location mode (surface, trade, mine, cave, dungeon or house); position packets are range-checked and discarded after 6.5 seconds. These client broadcasts are untrusted cosmetic data only and cannot modify world state, inventory, damage or saves.
 
 ## Not yet playable as a shared-world game
 - Player position/avatar exchange is still a cosmetic prototype, not authoritative movement. The versioned host snapshot provides persistence/restore for selected world-owned fields, and owner-mediated guest actions cover building and farming, but there is not yet a complete authoritative simulation for edits made by every participant. Enemy simulation, general loot claims, crafting and combat are not synchronized.
