@@ -132,7 +132,7 @@ assert.ok(game.includes("ctx.scale(1.28,1.28)"), 'Trade NPC sprites must be enla
 const updater = fs.readFileSync('update_helper.py', 'utf8');
 const launcherVersion = fs.readFileSync('launcher_version.txt', 'utf8').trim();
 assert.match(launcherVersion, /^\\d+\\.\\d+\\.\\d+$/, 'launcher_version.txt must be a semantic version');
-assert.ok(py.includes('def _skyrealm_startup_update():') && py.includes('if _skyrealm_startup_update():') && py.indexOf('if _skyrealm_startup_update():') < py.indexOf('webview.create_window('), 'Launcher must check and apply its own update before showing the UI');
+assert.ok(py.includes('def _skyrealm_startup_update():') && py.includes('if _skyrealm_startup_update():') && py.lastIndexOf('if _skyrealm_startup_update():') < py.lastIndexOf('html = Path(resource_path(\"index.html\"))'), 'Launcher must check and apply its own update before showing the UI');
 assert.ok(py.includes('manifest.get("version"') && py.includes('manifest.get("download_url"') && py.includes('manifest.get("sha256"'), 'Launcher self-updater must use the published manifest and checksum');
 assert.ok(py.includes('bin/SkyRealmUpdater.exe') && py.includes('os.getpid()'), 'Launcher must hand off replacement to the separate updater helper');
 assert.ok(updater.includes('expected_version') && updater.includes('launcher_version.txt') && updater.includes('relaunched.poll()'), 'Updater helper must verify the package version and roll back if the new launcher fails to start');
