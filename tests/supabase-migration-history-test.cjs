@@ -27,7 +27,8 @@ const expected = [
   '20261030074001_co_op_guest_farm_actions.sql',
   '20261030075039_co_op_world_action_processed_by_idx.sql',
   '20261030080502_co_op_guest_mining_actions.sql',
-  '20261030080832_co_op_guest_mining_validation_fix.sql'
+  '20261030080832_co_op_guest_mining_validation_fix.sql',
+  '20261030081255_co_op_guest_tree_chop_actions.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
@@ -51,4 +52,6 @@ assert.ok(read(expected[20]).includes('co_op_world_actions_processed_by_idx'));
 assert.ok(read(expected[21]).includes('commit_co_op_mine_action'));
 assert.ok(read(expected[21]).includes("'mine_rock'"));
 assert.ok(read(expected[22]).includes("p_payload - array['rock_index','tool']::text[]"));
+assert.ok(read(expected[23]).includes('commit_co_op_tree_action'));
+assert.ok(read(expected[23]).includes("'chop_tree'"));
 console.log('SkyRealm Supabase migration history tests passed.');
