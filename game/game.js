@@ -1337,6 +1337,20 @@
   }
     function attackNearestMonster(){
     if(playerAttackCooldown>0)return;if(dungeonMode){attackDungeonEnemy();return;}playerAttackCooldown=.7;attackAnimTimer=.24;playSound('hit');spawnVisualBurst(player.x+(player.face==='left'?-20:player.face==='right'?20:0),player.y+(player.face==='up'?-22:player.face==='down'?12:0),5,'spark','#d8eeff');
+    const coop=window.SkyRealmCoopClient,coopRoom=coop?.getRoomState?.();
+    if(coopRoom?.status==='running'&&coopRoom.pvp_enabled&&!caveMode&&!mineMode){
+      const remote=(coop.getRemotePlayers?.()||[]).filter(other=>other.difficulty===currentDifficulty&&other.world_mode===(tradeWorldMode?'trade':'surface'));
+      const target=remote.find(other=>Math.hypot(other.x-player.x,other.y-player.y)<=weaponRange());
+      if(target){
+        const weapon=equipment.weapon||'Деревянный меч';
+        const base=weaponDamage(weapon)*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1);
+        const damage=Math.round(base*(Math.random()<.14?2:1));
+        coop.sendPvpHit?.(target.user_id,damage).then(sent=>{
+          if(sent)toast('Ты атаковал игрока '+(target.name||'соперника')+' на '+damage+' урона.');
+        });
+        return;
+      }
+    }
     if(!caveMode&&!dungeonMode&&!mineMode){for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||!b.active||b.defeated)continue;const d=Math.hypot(player.x-def.x,player.y-def.y);if(d<Math.max(weaponRange()+35,130)){const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.1)*(Math.random()<.14?2:1));b.hp=Math.max(0,b.hp-damage);spawnVisualBurst(def.x,def.y,9,'spark',def.color);toast(def.name+' получил '+damage+' урона · '+Math.ceil(b.hp)+' HP');if(b.hp<=0)defeatBiomeBoss(def,b);else saveGame();return;}}}
     if(!caveMode&&!dungeonMode&&wolfBossActive){const bossDistance=Math.hypot(player.x-wolfBossX,player.y-wolfBossY);if(bossDistance<Math.max(125,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));wolfBossHp=Math.max(0,wolfBossHp-damage);wolfBossFlash=.18;spawnVisualBurst(wolfBossX,wolfBossY,10,'spark','#ff5267');toast('Оборотень получил '+damage+' урона · '+Math.ceil(wolfBossHp)+' HP');if(wolfBossHp<=0)defeatWolfBoss();else saveGame();return;}}
     if(caveMode&&!caveBossDefeated){const bossDistance=Math.hypot(player.x-caveBossX,player.y-caveBossY);if(bossDistance<Math.max(115,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч';const base=weaponDamage(weapon);const damage=Math.round(base*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1)*(Math.random()<.14?2:1));caveBossHp=Math.max(0,caveBossHp-damage);caveBossFlash=.18;spawnVisualBurst(caveBossX,caveBossY,12,'spark',weapon==='Огненный меч'?'#ff9a42':'#b6e7ff');toast('Страж получил '+damage+' урона ('+Math.ceil(caveBossHp)+'/'+bossMaxHp()+').');if(caveBossHp<=0){caveBossDefeated=true;walletCents+=10000;changeItem('Кристалл',5);changeItem('Железо',8);changeItem('Малое зелье',3);awardXP(240,'победа над Каменным стражем');renderInventory();spawnVisualBurst(caveBossX,caveBossY,36,'spark','#8ef5ff');toast('Каменный страж побеждён! +100 золота, 5 кристаллов, 8 железа.');saveGame();}else saveGame();return;}toast('Подойди к Каменному стражу ближе.');return;}
@@ -1854,6 +1868,22 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   function updateCoopPosition(dt){
     const network=window.SkyRealmCoopClient;
     if(!network||!currentWorldId||inMainMenu||paused)return;
+    const room=network.getRoomState?.();
+    const incoming=network.drainPvpHits?.()||[];
+    if(room?.status==='running'&&room.pvp_enabled&&incoming.length){
+      const now=Date.now(),remotes=network.getRemotePlayers?.()||[];
+      for(const hit of incoming){
+        const attacker=remotes.find(other=>other.user_id===hit.attacker_user_id);
+        if(!attacker||now-(attacker.received_at||0)>1800||attacker.difficulty!==currentDifficulty||
+           attacker.world_mode!==(tradeWorldMode?'trade':'surface')||
+           Math.hypot(attacker.x-player.x,attacker.y-player.y)>Math.max(weaponRange()+48,112))continue;
+        const damage=Math.max(1,Math.min(80,Math.round(hit.damage)));
+        player.hp=Math.max(0,player.hp-damage);updateVitals();
+        spawnVisualBurst(player.x,player.y,10,'spark','#ff6d87');
+        toast('Игрок '+(attacker.name||'соперник')+' нанёс '+damage+' урона.');
+        if(player.hp<=0){respawnPlayerAfterDefeat();break;}
+      }
+    }
     syncCoopSharedDeath();
     coopWorldActionPollTimer-=dt;
     if(network.isRoomOwner&&coopWorldActionPollTimer<=0){coopWorldActionPollTimer=1.0;syncCoopWorldActions();}
