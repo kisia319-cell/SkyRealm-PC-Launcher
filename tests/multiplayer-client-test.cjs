@@ -77,6 +77,7 @@ const core = require('../game/multiplayer-core.js');
   assert.equal(pending[0].action_type,'place_structure');
   const status=await client.getWorldActionStatus('123e4567-e89b-42d3-a456-426614174099');
   assert.equal(status.status,'applied');
+  assert.deepEqual(status.result,{reward_name:'Пшеница',reward_amount:4},'Guest action receipt must include the committed reward payload');
   const commit=await client.commitWorldAction('123e4567-e89b-42d3-a456-426614174099',{placedStructures:[{type:'torch',x:112,y:144}]});
   assert.equal(commit.version,6);
   const rejected=await client.rejectWorldAction('123e4567-e89b-42d3-a456-426614174099','invalid');
