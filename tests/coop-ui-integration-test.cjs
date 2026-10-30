@@ -56,6 +56,7 @@ assert.ok(client.includes('getWorldSnapshot') && client.includes('saveWorldSnaps
 assert.ok(game.includes('sanitizeSharedWorldSnapshot') && game.includes('syncCoopWorldSnapshot'));
 assert.ok(game.includes('syncCoopSharedDeath'));
 assert.ok(game.includes("claimWorldObject('treasure_chest'"), 'Treasure chest rewards must be claimed by the server in co-op');
+assert.ok(game.includes('if(!session){toast(\'Комната на паузе'), 'Paused rooms must not award local chest loot');
 assert.ok(ui.includes('startMonitors();') && ui.includes('window.addEventListener'));
 
 

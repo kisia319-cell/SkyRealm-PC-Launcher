@@ -407,8 +407,10 @@
   async function openTreasureChest(chest){
     if(!chest||chest.opened||chest.claimPending)return;
     const network=window.SkyRealmCoopClient;
+    const roomState=network?.getRoomState?.();
     const session=network?.getWorldSession?.();
-    if(session){
+    if(roomState){
+      if(!session){toast('Комната на паузе или ещё не запущена. Возобнови её перед открытием сундука.');return;}
       if(typeof network.claimWorldObject!=='function'){toast('Сервис общих сундуков недоступен.');return;}
       chest.claimPending=true;
       let claim=null;

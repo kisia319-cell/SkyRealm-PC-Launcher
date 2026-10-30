@@ -19,7 +19,7 @@ const expected = [
   '20261030060250_co_op_shared_death.sql',
   '20261030063839_co_op_world_snapshot_api.sql',
   '20261030064404_co_op_world_death_actor_index.sql',
-  '20261030065000_co_op_world_object_claims.sql'
+  '20261030065659_co_op_world_object_claims.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
