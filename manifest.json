@@ -1,9 +1,9 @@
 {
-  "game_version": "0.20.9",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "sha256": "e43f9fb8048e324f1fc8b733c7edef972f00db2c5922a7c1c22e4801339fa534",
-  "game_sha256": "ff321bf53851e70c326fea596634e89f4206571929d356a4b55dfeee94dc8974",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-a0fbf22/SkyRealm_Game.zip",
-  "notes": "SkyRealm 0.20.9: expanded villages, ordinary residents, six selectable free classes with bonuses, and FPS Boost. Class bonuses are wired for solo and supported co-op actions. Co-op remains a preview and still needs multi-client end-to-end testing.",
-  "version": "1.0.2"
+  "game_sha256": "e0581ad8ed9778578ea6e99e54a6aeb4d61595c4196aca980e2f452a6a553332",
+  "version": "1.0.2",
+  "notes": "SkyRealm Launcher 1.0.2 + Game 0.20.9: separate Trade World with two market stalls, five settlements and eight NPCs; complete farming with seven crops, seeds, beds, watering, compost and fertilizer; fixed crop buy/sell balance; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible.",
+  "game_version": "0.20.9",
+  "sha256": "d47015b25be62dd83f87dfa3fca072e7b1fee8c3ee8d8694f8024b8864012c40",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
