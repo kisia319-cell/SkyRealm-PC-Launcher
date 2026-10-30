@@ -55,12 +55,18 @@ assert.equal(m.sanitizeWorldAction('place_structure',{type:'torch',x:114,y:144})
 assert.equal(m.sanitizeWorldAction('place_structure',{type:'torch',x:112,y:144,actor_id:'bad'}),null);
 assert.equal(m.sanitizeWorldAction('give_gold',{amount:999}),null);
 assert.deepEqual(m.sanitizeWorldAction('mine_rock',{rock_index:3,tool:'Кирка'}),{rock_index:3,tool:'Кирка'});
+assert.deepEqual(m.sanitizeWorldAction('mine_rock',{rock_index:3,tool:'Кирка',player_class:'miner',miner_skill_level:2}),{rock_index:3,tool:'Кирка',player_class:'miner',miner_skill_level:2});
+assert.equal(m.sanitizeWorldAction('mine_rock',{rock_index:3,tool:'Кирка',player_class:'rich'}),null);
+assert.equal(m.sanitizeWorldAction('mine_rock',{rock_index:3,tool:'Кирка',miner_skill_level:6}),null);
 assert.equal(m.sanitizeWorldAction('mine_rock',{rock_index:3.5,tool:'Кирка'}),null);
 assert.equal(m.sanitizeWorldAction('mine_rock',{rock_index:3,tool:'Палка'}),null);
 assert.deepEqual(m.sanitizeWorldAction('chop_tree',{x:144,y:177,tool:'Топор'}),{x:144,y:176,tool:'Топор'});
 assert.equal(m.sanitizeWorldAction('chop_tree',{x:144,y:177,tool:'Кирка'}),null);
 assert.deepEqual(m.sanitizeWorldAction('farm_plant',{x:112,y:144,crop_id:'wheat'}),{x:112,y:144,crop_id:'wheat'});
 assert.deepEqual(m.sanitizeWorldAction('farm_water',{x:112,y:144}),{x:112,y:144});
+assert.deepEqual(m.sanitizeWorldAction('farm_harvest',{x:112,y:144,player_class:'farmer',farmer_skill_level:3,has_sickle:true}),{x:112,y:144,player_class:'farmer',farmer_skill_level:3,has_sickle:true});
+assert.equal(m.sanitizeWorldAction('farm_harvest',{x:112,y:144,player_class:'rich'}),null);
+assert.equal(m.sanitizeWorldAction('farm_harvest',{x:112,y:144,farmer_skill_level:7}),null);
 assert.equal(m.sanitizeWorldAction('farm_plant',{x:112,y:144,crop_id:'unknown'}),null);
 assert.equal(m.sanitizeWorldAction('farm_water',{x:112,y:144,amount:999}),null);
 const sharedSnapshot=m.sanitizeSharedWorldSnapshot({
