@@ -21,6 +21,7 @@ assert.ok(launcher.includes('ThreadingHTTPServer(("127.0.0.1", 48731), handler)'
 assert.ok(!launcher.includes('ThreadingHTTPServer(("127.0.0.1", 0), handler)'),
   'Game server must not silently switch to a random port and hide existing saves');
 assert.ok(game.includes('function downloadWorldBackup(id)'), 'Worlds must support exporting a portable backup');
+assert.ok(game.includes('gameVersion:GAME_VERSION'), 'World backups must record the currently embedded game version');
 assert.ok(game.includes('function importWorldBackupFile(file)'), 'Worlds must support restoring a portable backup');
 assert.ok(game.includes("backup.format!=='skyrealm-world-backup'"), 'Imported backups must be validated before use');
 assert.ok(game.includes('Не удалось сохранить мир'), 'Save failures must not be silently swallowed');
