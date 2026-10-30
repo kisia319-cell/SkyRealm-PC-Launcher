@@ -36,6 +36,7 @@ async function refresh(silent=false){
           if(status==='SUBSCRIBED')setMessage('Защищённый канал комнаты подключён. Список онлайн обновляется автоматически.');
         }
       }).catch(error=>{
+        realtimeAttemptedRoom='';
         setMessage('Живое присутствие недоступно; список комнаты обновляется через сервер каждые 5 секунд.',false);
         console.warn('[SkyRealm co-op presence]',error);
       });

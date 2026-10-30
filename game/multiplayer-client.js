@@ -54,6 +54,7 @@ function loadRealtimeSdk(){
 async function disconnectRealtime(){
   const oldClient=realtimeClient,oldChannel=realtimeChannel;
   realtimeClient=null;realtimeChannel=null;realtimeRoomId='';
+  remotePlayers.clear();
   if(oldClient&&oldChannel){try{await oldClient.removeChannel(oldChannel);}catch(_){}}
 }
 async function connectRealtime(room,handlers={}){
@@ -79,7 +80,7 @@ async function connectRealtime(room,handlers={}){
     if(payload?.kind==='player-position'&&typeof safePosition==='function'){
       const position=safePosition(payload);
       if(position&&position.user_id!==userId){
-        remotePlayers.set(position.user_id,{...position,received_at:Date.now()});
+        remotePlayers.set(position.user_id,{...position,room_id:room.id,received_at:Date.now()});
       }
     }
     handlers.onBroadcast?.(envelope);
@@ -103,9 +104,9 @@ async function connectRealtime(room,handlers={}){
     if(joined){realtimeClient=supabaseClient;realtimeChannel=channel;realtimeRoomId=room.id;}
     else await supabaseClient.removeChannel(channel);
     if(joined){
-    for(const [id,player] of remotePlayers){if(player.room_id!==room.id)remotePlayers.delete(id);}
-  }
-  return {connected:!!joined};
+      for(const [id,player] of remotePlayers){if(player.room_id!==room.id)remotePlayers.delete(id);}
+    }
+    return {connected:!!joined};
   }catch(error){
     try{await supabaseClient.removeChannel(channel);}catch(_){}
     throw error;

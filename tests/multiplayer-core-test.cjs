@@ -20,7 +20,6 @@ assert.equal(m.sanitizePlayerInput({seq:-1,keys:['up']}),null);
 assert.equal(m.sanitizePlayerInput({seq:1.5,keys:['up']}),null);
 assert.throws(()=>m.makeRoomTopic('bad-id'),TypeError);
 assert.equal(m.makeRoomTopic('123e4567-e89b-12d3-a456-426614174000'),'skyrealm:room:123e4567-e89b-12d3-a456-426614174000');
-console.log('SkyRealm multiplayer core tests passed.');
 
 const goodPosition={user_id:'user-1',x:320.25,y:640,face:'left',difficulty:'medium',world_mode:'surface',name:'Hero',appearance:{skin:'#e8b88c',hair:'#352d3d',armor:'#526fba',accent:'#9cb9ff'}};
 assert.deepEqual(m.sanitizePlayerPosition(goodPosition),{
@@ -34,3 +33,4 @@ const safePosition=m.sanitizePlayerPosition({...goodPosition,name:'<b>Bad</b>',a
 assert.equal(safePosition.name,'bBad/b');
 assert.equal(safePosition.appearance.skin,'#e8b88c');
 assert.equal(safePosition.appearance.hair,'#112233');
+console.log('SkyRealm multiplayer core tests passed.');

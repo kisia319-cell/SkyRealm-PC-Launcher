@@ -19,6 +19,7 @@ jobs:
       - run: node --check game/multiplayer-core.js
       - run: node --check game/multiplayer-client.js
       - run: node --check game/multiplayer-ui.js
+      - run: node --check game/game.js
       - run: python -m py_compile launcher.py
       - name: Smoke-test deployed co-op API
         run: |
