@@ -46,7 +46,7 @@
     const x=Number(input.x),y=Number(input.y);
     if(!id||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>12000||y<0||y>10000)return null;
     const difficulties=['easy','medium','hard','hell','impossible'];
-    const modes=['surface','trade'];
+    const modes=['surface','trade','mine','cave','dungeon','house'];
     if(!difficulties.includes(input.difficulty)||!modes.includes(input.world_mode))return null;
     const faces=['up','down','left','right'];
     const safeColor=value=>typeof value==='string'&&/^#[0-9a-f]{6}$/i.test(value)?value:null;
