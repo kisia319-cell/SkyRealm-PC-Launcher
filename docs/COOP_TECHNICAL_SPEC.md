@@ -10,7 +10,7 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - Join attempts are limited to 8 per 15 minutes per account.
 - Explicit owner leave pauses the room and marks the owner offline; the previous state (lobby/running) is saved so resume restores the correct state. During lobby or running state, members check owner heartbeat; >30 seconds stale pauses the room.
 - PvP is a persisted owner-only setting, defaults OFF.
-- Shared death is stored as \`shared\`; the existing difficulty-specific death rules must be wired into the shared simulation phase.
+- Shared death is server-sequenced: an active member reports death once, and each active client applies the existing difficulty-specific respawn penalty once per unseen shared-death sequence. The server merges duplicate reports inside a short incident window.
 
 ## Shared map session foundation
 - The room owner chooses one of the existing difficulties before creating the room and explicitly starts the session.
@@ -21,12 +21,12 @@ Status: Co-op foundation is implemented on `feature/co-op-foundation`; Supabase 
 - Snapshot writes are owner-only, limited to 64 KB, restricted to a fixed list of world fields, and protected by optimistic version checks. Reads require active/offline room membership.
 
 ## Backend delivered
-- Dedicated Supabase Edge Function \`skyrealm-coop\`, independent of the existing \`skyrealm-auth\`.
+- Dedicated Supabase Edge Function `skyrealm-coop`, independent of the existing `skyrealm-auth`.
 - Routes: `/health`, `/api/coop/create`, `/api/coop/join`, `/api/coop/start`, `/api/coop/current`, `/api/coop/leave`, `/api/coop/resume`, `/api/coop/pvp`, `/api/coop/heartbeat`, `/api/coop/recover-owner`, `/api/coop/clock`, `/api/coop/death`, `/api/coop/snapshot/get`, `/api/coop/snapshot/save`.
 - The function validates the bearer session with Supabase Auth; the service-role key stays server-side.
-- New tables: \`co_op_rooms\`, \`co_op_members\`, \`co_op_world_snapshots\`, \`co_op_audit_events\`, and private rate-limit table \`private.co_op_join_limits\`.
+- New tables: `co_op_rooms`, `co_op_members`, `co_op_world_snapshots`, `co_op_audit_events`, and private rate-limit table `private.co_op_join_limits`.
 - RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data.
-- Private Realtime channel authorization policies are defined on \`realtime.messages\` for topic \`skyrealm:room:<uuid>\`. Project-wide “Allow public access” must still be switched OFF in dashboard before enabling live Realtime channels.
+- Private Realtime channel authorization policies are defined on `realtime.messages` for topic `skyrealm:room:<uuid>`. The project-wide “Allow public access” setting has not yet been verified OFF in the dashboard and remains a release check.
 - GitHub Actions verifies core rules, client adapter initialization in a VM, client-to-Edge-Function route parity, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated requests.
 
 ## Lobby UI delivered
