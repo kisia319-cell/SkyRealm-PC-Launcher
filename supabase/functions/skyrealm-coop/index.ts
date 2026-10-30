@@ -94,6 +94,18 @@ function sanitizeWorldAction(actionType: unknown, value: unknown): Record<string
   }
   const item = value as Record<string, unknown>;
   const keys = Object.keys(item);
+  if (actionType === "mine_rock") {
+    if (keys.length !== 2 || keys.some(key => !["rock_index","tool"].includes(key))) {
+      throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный запрос добычи.");
+    }
+    const rockIndex = Number(item.rock_index);
+    const tool = typeof item.tool === "string" ? item.tool : "";
+    if (!Number.isSafeInteger(rockIndex) || rockIndex < 0 || rockIndex > 64 ||
+        !["Кирка","Улучшенная кирка","Кирка мастера"].includes(tool)) {
+      throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректная кирка или залежь.");
+    }
+    return { rock_index: rockIndex, tool };
+  }
   const x = Number(item.x), y = Number(item.y);
   if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 12000 || y < 0 || y > 10000) {
     throw new ApiError(400,"INVALID_WORLD_ACTION","Проверь координаты действия.");
@@ -130,6 +142,7 @@ function sanitizeWorldAction(actionType: unknown, value: unknown): Record<string
   }
   throw new ApiError(400,"INVALID_WORLD_ACTION","Недопустимое действие общего мира.");
 }
+
 async function rpc(name: string, args: Record<string, unknown>) {
   const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + name, {
     method: "POST",
@@ -169,6 +182,9 @@ async function rpc(name: string, args: Record<string, unknown>) {
     if(message.includes("INVALID_FARM_ACTION_RESULT"))throw new ApiError(400,"INVALID_FARM_ACTION_RESULT","Некорректная награда фермерского действия.");
     if(message.includes("FARM_PLOT_RESULT_MISSING"))throw new ApiError(409,"FARM_PLOT_RESULT_MISSING","Грядка отсутствует в общей версии мира.");
     if(message.includes("WRONG_WORLD_ACTION_TYPE"))throw new ApiError(409,"WRONG_WORLD_ACTION_TYPE","Тип действия не соответствует запросу.");
+    if(message.includes("INVALID_MINE_ACTION_COMMIT"))throw new ApiError(400,"INVALID_MINE_ACTION_COMMIT","Некорректное подтверждение добычи.");
+    if(message.includes("INVALID_MINE_ACTION_RESULT"))throw new ApiError(400,"INVALID_MINE_ACTION_RESULT","Некорректная награда за добычу.");
+    if(message.includes("MINE_ROCK_RESULT_MISSING"))throw new ApiError(409,"MINE_ROCK_RESULT_MISSING","Залежь отсутствует в общей версии шахты.");
     if (message.includes("INVALID_WORLD_CLOCK")) throw new ApiError(400, "INVALID_WORLD_CLOCK", "Некорректное время игрового мира.");
     if (message.includes("INVALID_WORLD_DIFFICULTY")) throw new ApiError(400, "INVALID_WORLD_DIFFICULTY", "Выбрана неизвестная сложность мира.");
     if (message.includes("NOT_A_MEMBER")) throw new ApiError(403, "NOT_A_MEMBER", "Ты больше не состоишь в этой комнате.");
@@ -268,6 +284,30 @@ Deno.serve(async (req: Request) => {
         throw new ApiError(400,"INVALID_FARM_ACTION_RESULT","Некорректный результат фермерского действия.");
       }
       const result = await rpc("commit_co_op_farm_action", {
+        p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id),
+        p_expected_version:expectedVersion, p_payload:payload, p_result:resultInput,
+      });
+      return reply({ result });
+    }
+    if (route === "/api/coop/actions/commit-mine" && req.method === "POST") {
+      const expectedVersion = Number(body.expected_version);
+      if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
+        throw new ApiError(400,"INVALID_SNAPSHOT_REQUEST","Некорректная версия снимка.");
+      }
+      const payload = sanitizeSharedSnapshot(body.payload);
+      if (!body.result || typeof body.result !== "object" || Array.isArray(body.result)) {
+        throw new ApiError(400,"INVALID_MINE_ACTION_RESULT","Некорректная награда за добычу.");
+      }
+      const resultInput = body.result as Record<string, unknown>;
+      const rewardNames = ["Камень","Уголь","Железо","Медь","Олово","Серебро","Золото","Рубин","Сапфир","Обсидиан","Мифрил","Уран","Алмаз","Кристалл"];
+      if (Object.keys(resultInput).some(key => !["reward_name","reward_amount","bonus_name","bonus_amount"].includes(key)) ||
+          (resultInput.reward_name !== undefined && (typeof resultInput.reward_name !== "string" || !rewardNames.includes(resultInput.reward_name))) ||
+          (resultInput.bonus_name !== undefined && (typeof resultInput.bonus_name !== "string" || resultInput.bonus_name !== "Камень")) ||
+          (resultInput.reward_amount !== undefined && (typeof resultInput.reward_amount !== "number" || !Number.isSafeInteger(resultInput.reward_amount) || resultInput.reward_amount < 0 || resultInput.reward_amount > 1000)) ||
+          (resultInput.bonus_amount !== undefined && (typeof resultInput.bonus_amount !== "number" || !Number.isSafeInteger(resultInput.bonus_amount) || resultInput.bonus_amount < 0 || resultInput.bonus_amount > 1000))) {
+        throw new ApiError(400,"INVALID_MINE_ACTION_RESULT","Некорректная награда за добычу.");
+      }
+      const result = await rpc("commit_co_op_mine_action", {
         p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id),
         p_expected_version:expectedVersion, p_payload:payload, p_result:resultInput,
       });
