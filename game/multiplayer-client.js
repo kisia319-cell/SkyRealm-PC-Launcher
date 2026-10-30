@@ -36,6 +36,8 @@ async function request(route,method='GET',body=null){
 }
 
 let realtimeClient=null,realtimeChannel=null,realtimeRoomId='',realtimeSdkPromise=null;
+const remotePlayers=new Map();
+const safePosition=root.SkyRealmMultiplayerCore?.sanitizePlayerPosition;
 function loadRealtimeSdk(){
   if(window.supabase?.createClient)return Promise.resolve(window.supabase);
   if(realtimeSdkPromise)return realtimeSdkPromise;
@@ -72,7 +74,16 @@ async function connectRealtime(room,handlers={}){
   channel.on('presence',{event:'sync'},()=>handlers.onPresence?.(channel.presenceState()));
   channel.on('presence',{event:'join'},payload=>handlers.onPresenceChange?.('join',payload));
   channel.on('presence',{event:'leave'},payload=>handlers.onPresenceChange?.('leave',payload));
-  channel.on('broadcast',{event:'room-event'},payload=>handlers.onBroadcast?.(payload));
+  channel.on('broadcast',{event:'room-event'},envelope=>{
+    const payload=envelope?.payload||envelope;
+    if(payload?.kind==='player-position'&&typeof safePosition==='function'){
+      const position=safePosition(payload);
+      if(position&&position.user_id!==userId){
+        remotePlayers.set(position.user_id,{...position,received_at:Date.now()});
+      }
+    }
+    handlers.onBroadcast?.(envelope);
+  });
   let joined=false;
   try{
     joined=await new Promise((resolve,reject)=>{
@@ -91,7 +102,10 @@ async function connectRealtime(room,handlers={}){
     });
     if(joined){realtimeClient=supabaseClient;realtimeChannel=channel;realtimeRoomId=room.id;}
     else await supabaseClient.removeChannel(channel);
-    return {connected:!!joined};
+    if(joined){
+    for(const [id,player] of remotePlayers){if(player.room_id!==room.id)remotePlayers.delete(id);}
+  }
+  return {connected:!!joined};
   }catch(error){
     try{await supabaseClient.removeChannel(channel);}catch(_){}
     throw error;
@@ -102,6 +116,23 @@ window.SkyRealmCoopClient=Object.freeze({
   get userId(){return userId;},
   connectRealtime,
   disconnectRealtime,
+  async sendPosition(position){
+    if(!realtimeChannel||!userId)return false;
+    const safe=typeof safePosition==='function'?safePosition({...position,user_id:userId}):null;
+    if(!safe)return false;
+    try{
+      const status=await realtimeChannel.send({type:'broadcast',event:'room-event',payload:{kind:'player-position',...safe}});
+      return status==='ok';
+    }catch(_){return false;}
+  },
+  getRemotePlayers(){
+    const now=Date.now(),result=[];
+    for(const [id,player] of remotePlayers){
+      if(now-player.received_at>6500){remotePlayers.delete(id);continue;}
+      result.push({...player});
+    }
+    return result;
+  },
   async current(){const data=await request('/api/coop/current');return data.room||null;},
   async create(){const data=await request('/api/coop/create','POST',{});return {room:data.room,inviteCode:data.invite_code};},
   async join(code){const data=await request('/api/coop/join','POST',{invite_code:code});return data.room;},

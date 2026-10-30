@@ -28,12 +28,13 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 - View room status and member roster, refresh automatically, leave, resume as owner, and change the saved PvP setting as owner.
 - In the desktop runner, launcher Auth session is passed through the child process environment and exposed to the game once via the PyWebView API. It is not put in query parameters or saved to disk.
 - Browser preview uses the same-origin session/local storage token.
-- Optional Supabase Realtime Presence connects to a private `skyrealm:room:<uuid>` channel; the room roster falls back to authenticated polling every 5 seconds. Presence is only the online indicator, not an authority for game state.
+- Supabase Realtime Presence tracks online state on a private `skyrealm:room:<uuid>` channel; roster falls back to authenticated polling every 5 seconds.
+- A first cosmetic position prototype broadcasts player coordinates at up to 8 updates/second. Remote avatars are drawn for matching difficulty and surface/trade mode; position packets are range-checked and discarded after 6.5 seconds. These client broadcasts are untrusted cosmetic data only and cannot modify world state, inventory, damage or saves.
 
 ## Not yet playable as a shared-world game
-- Current room UI is a lobby/control surface only. There is no shared player movement, remote avatars, shared world map, enemy state, loot, inventory, crafting or combat synchronization.
+- Player position/avatar exchange is a cosmetic prototype only; there is not yet an authoritative shared world. Local world generation, obstacles, enemy state, loot, inventory, crafting or combat are not synchronized.
 - The snapshot table is scaffolding only and currently starts with an empty JSON payload. A world serializer and save/restore protocol are not implemented.
-- Realtime Presence is wired for online state. Broadcast is subscribed for future room events, but no client movement/action events are published. The roster still refreshes from the authenticated API every 5 seconds for durable membership names.
+- Realtime Presence is wired for online state and Broadcast carries cosmetic positions. The roster still refreshes from authenticated API every 5 seconds for durable membership names. Movement is not server-authoritative and must not be used for combat or progression.
 - PvP preference is stored and owner-gated, but does not yet gate damage because combat is still local. Do not advertise PvP combat as working.
 - Kick/revoke-code management, owner handoff, rate limits by IP, and eight-player load testing remain for later hardening.
 - No release is published and main is unchanged.

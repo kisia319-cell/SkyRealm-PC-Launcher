@@ -40,5 +40,30 @@
     if(!Number.isSafeInteger(seq)||seq<0)return null;
     return {seq,keys};
   }
-  return Object.freeze({MAX_PLAYERS,ROOM_STATES,normalizeInviteCode,isValidInviteCode,canJoinRoom,canResumeRoom,canChangePvp,makeRoomTopic,shouldPauseOnOwnerDeparture,sanitizePlayerInput});
+  function sanitizePlayerPosition(input){
+    if(!input||typeof input!=='object'||Array.isArray(input))return null;
+    const id=typeof input.user_id==='string'?input.user_id.slice(0,64):'';
+    const x=Number(input.x),y=Number(input.y);
+    if(!id||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>12000||y<0||y>10000)return null;
+    const difficulties=['easy','medium','hard','hell','impossible'];
+    const modes=['surface','trade'];
+    if(!difficulties.includes(input.difficulty)||!modes.includes(input.world_mode))return null;
+    const faces=['up','down','left','right'];
+    const safeColor=value=>typeof value==='string'&&/^#[0-9a-f]{6}$/i.test(value)?value:null;
+    const raw=input.appearance&&typeof input.appearance==='object'?input.appearance:{};
+    const appearance={
+      skin:safeColor(raw.skin)||'#e8b88c',
+      hair:safeColor(raw.hair)||'#352d3d',
+      armor:safeColor(raw.armor)||'#526fba',
+      accent:safeColor(raw.accent)||'#9cb9ff'
+    };
+    const name=typeof input.name==='string'?input.name.replace(/[<>\u0000-\u001f]/g,'').trim().slice(0,20):'';
+    return {
+      user_id:id,x:Math.round(x*10)/10,y:Math.round(y*10)/10,
+      face:faces.includes(input.face)?input.face:'down',
+      difficulty:input.difficulty,world_mode:input.world_mode,
+      name,appearance
+    };
+  }
+  return Object.freeze({MAX_PLAYERS,ROOM_STATES,normalizeInviteCode,isValidInviteCode,canJoinRoom,canResumeRoom,canChangePvp,makeRoomTopic,shouldPauseOnOwnerDeparture,sanitizePlayerInput,sanitizePlayerPosition});
 });

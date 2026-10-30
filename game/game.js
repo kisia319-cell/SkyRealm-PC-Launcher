@@ -718,6 +718,36 @@
   function drawMeteorPoint(camX,camY,time){if(!meteorPoint)return;const x=meteorPoint.x-camX,y=meteorPoint.y-camY;if(x<-45||x>width+45||y<-45||y>height+45)return;ctx.save();ctx.fillStyle='#1d1725aa';ctx.beginPath();ctx.ellipse(x,y+8,27,14,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ff9b52';ctx.lineWidth=3;ctx.shadowColor='#ff6c43';ctx.shadowBlur=18+Math.sin(time/75)*8;ctx.beginPath();ctx.arc(x,y,18+Math.sin(time/110)*2,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#ffbd72';ctx.beginPath();ctx.moveTo(x-6,y+4);ctx.lineTo(x-2,y-11);ctx.lineTo(x+5,y-4);ctx.lineTo(x+9,y+6);ctx.closePath();ctx.fill();ctx.fillStyle='#fff1c0';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('МЕТЕОРИТ · E',x,y-28);ctx.restore();}
   function collectMeteor(){if(!meteorPoint||Math.hypot(player.x-meteorPoint.x,player.y-meteorPoint.y)>105)return false;const count=1+Math.floor(Math.random()*3);changeItem('Метеоритный осколок',count);if(Math.random()<.18)changeItem('Мифрил',1);if(Math.random()<.34)changeItem('Уран',1);spawnVisualBurst(meteorPoint.x,meteorPoint.y,25,'spark','#ff9b52');meteorPoint=null;meteorShowerTimer=0;renderInventory();saveGame();toast('Метеорит собран! Получено осколков: '+count+'.');return true;}
 
+
+  function drawRemotePlayers(camX,camY){
+    const network=window.SkyRealmCoopClient;
+    if(!network||typeof network.getRemotePlayers!=='function'||inMainMenu||paused||inHouse||caveMode||dungeonMode||mineMode)return;
+    const localMode=tradeWorldMode?'trade':'surface';
+    const remote=network.getRemotePlayers();
+    for(const other of remote){
+      if(other.difficulty!==currentDifficulty||other.world_mode!==localMode)continue;
+      const x=other.x-camX,y=other.y-camY;
+      if(x<-40||x>width+40||y<-55||y>height+55)continue;
+      const look=other.appearance||{};
+      ctx.save();ctx.translate(Math.round(x),Math.round(y));
+      ctx.fillStyle='rgba(5,12,20,.32)';ctx.beginPath();ctx.ellipse(0,13,13,7,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=look.armor||'#526fba';ctx.fillRect(-9,-3,18,15);
+      ctx.fillStyle=look.accent||'#9cb9ff';ctx.fillRect(-7,-2,14,13);
+      ctx.fillStyle='#c5d6ef';ctx.fillRect(-2,-1,4,12);
+      ctx.fillStyle='#3b2837';ctx.fillRect(-7,7,5,8);ctx.fillRect(2,7,5,8);
+      ctx.fillStyle=look.skin||'#e8b88c';ctx.fillRect(-6,-17,12,13);
+      ctx.fillStyle=look.hair||'#352d3d';ctx.fillRect(-7,-20,14,5);ctx.fillRect(-9,-16,4,7);ctx.fillRect(5,-16,4,7);
+      ctx.fillStyle='#eef5ff';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';
+      ctx.fillText((other.name||('Игрок '+other.user_id.slice(0,5))).slice(0,20),0,-27);
+      ctx.strokeStyle='#a8ceff';ctx.lineWidth=2;ctx.beginPath();
+      const facing=other.face||'down';
+      if(facing==='up'){ctx.moveTo(0,-10);ctx.lineTo(0,-17);}
+      else if(facing==='down'){ctx.moveTo(0,10);ctx.lineTo(0,17);}
+      else if(facing==='left'){ctx.moveTo(-8,0);ctx.lineTo(-15,0);}
+      else{ctx.moveTo(8,0);ctx.lineTo(15,0);}
+      ctx.stroke();ctx.restore();
+    }
+  }
   function draw(dt,time){
     if(dungeonMode){drawDungeonInterior(dt,time);updateObjective();return;}
     if(caveMode){drawCaveInterior(dt,time);updateObjective();return;}
@@ -745,6 +775,7 @@
       ctx.fillStyle=aura;ctx.beginPath();ctx.arc(px,py,36,0,Math.PI*2);ctx.fill();
     }
     drawPlayer(camX,camY,dt);
+    drawRemotePlayers(camX,camY);
     drawVisualEffects(camX,camY,time);
     if(gameSettings.graphicsQuality!=='low') drawFireflies(camX,camY,time);
     drawDayNightOverlay(camX,camY);
@@ -1419,6 +1450,28 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   // Top-level frame guard: an exception in simulation/update code must not stop RAF forever.
   // The previous guard covered draw() only, so an error earlier in tick could leave the canvas black.
+
+  let coopPositionSendTimer=0;
+  function updateCoopPosition(dt){
+    const network=window.SkyRealmCoopClient;
+    if(!network||typeof network.sendPosition!=='function'||!currentWorldId||inMainMenu||paused)return;
+    if(inHouse||mineMode||caveMode||dungeonMode)return;
+    coopPositionSendTimer-=dt;
+    if(coopPositionSendTimer>0)return;
+    coopPositionSendTimer=.125;
+    let name='';
+    try{name=localStorage.getItem('skyrealm_login')||'';}catch(_){}
+    network.sendPosition({
+      x:player.x,y:player.y,face:player.face,
+      difficulty:currentDifficulty,
+      world_mode:tradeWorldMode?'trade':'surface',
+      name:name.slice(0,20),
+      appearance:{
+        skin:playerAppearance.skin,hair:playerAppearance.hair,
+        armor:playerAppearance.armor,accent:playerAppearance.accent
+      }
+    }).catch(()=>{});
+  }
   function tick(now){
     try { tickFrame(now); } catch (error) {
       console.error('SkyRealm frame error:', error);
@@ -1484,6 +1537,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     } else {
       player.vx = player.vy = 0;
     }
+    updateCoopPosition(dt);
     minimapTimer += dt; if (minimapTimer >= .16) { drawMinimap(); minimapTimer = 0; }
     try { draw(dt, now); } catch (error) { console.error('SkyRealm render error:', error); drawEmergencyWorld(); }
     updateWalletHud();
