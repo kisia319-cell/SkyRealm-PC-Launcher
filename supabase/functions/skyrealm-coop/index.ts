@@ -106,6 +106,20 @@ function sanitizeWorldAction(actionType: unknown, value: unknown): Record<string
     }
     return { rock_index: rockIndex, tool };
   }
+  if (actionType === "chop_tree") {
+    if (keys.length !== 3 || keys.some(key => !["x","y","tool"].includes(key)) || item.tool !== "Топор") {
+      throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный запрос рубки дерева.");
+    }
+    const treeX = Number(item.x), treeY = Number(item.y);
+    if (!Number.isFinite(treeX) || !Number.isFinite(treeY) || treeX < 0 || treeX > 12000 || treeY < 0 || treeY > 10000) {
+      throw new ApiError(400,"INVALID_WORLD_ACTION","Проверь координаты дерева.");
+    }
+    const gx = Math.round((treeX - 16) / 32) * 32 + 16, gy = Math.round((treeY - 16) / 32) * 32 + 16;
+    if (Math.abs(treeX - gx) > 1 || Math.abs(treeY - gy) > 1) {
+      throw new ApiError(400,"INVALID_WORLD_ACTION","Дерево должно находиться на сетке мира.");
+    }
+    return { x: gx, y: gy, tool: "Топор" };
+  }
   const x = Number(item.x), y = Number(item.y);
   if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 12000 || y < 0 || y > 10000) {
     throw new ApiError(400,"INVALID_WORLD_ACTION","Проверь координаты действия.");
@@ -185,6 +199,9 @@ async function rpc(name: string, args: Record<string, unknown>) {
     if(message.includes("INVALID_MINE_ACTION_COMMIT"))throw new ApiError(400,"INVALID_MINE_ACTION_COMMIT","Некорректное подтверждение добычи.");
     if(message.includes("INVALID_MINE_ACTION_RESULT"))throw new ApiError(400,"INVALID_MINE_ACTION_RESULT","Некорректная награда за добычу.");
     if(message.includes("MINE_ROCK_RESULT_MISSING"))throw new ApiError(409,"MINE_ROCK_RESULT_MISSING","Залежь отсутствует в общей версии шахты.");
+    if(message.includes("INVALID_TREE_ACTION_COMMIT"))throw new ApiError(400,"INVALID_TREE_ACTION_COMMIT","Некорректное подтверждение рубки дерева.");
+    if(message.includes("INVALID_TREE_ACTION_RESULT"))throw new ApiError(400,"INVALID_TREE_ACTION_RESULT","Некорректная награда за дерево.");
+    if(message.includes("TREE_RESULT_MISSING"))throw new ApiError(409,"TREE_RESULT_MISSING","Дерево отсутствует в общей версии мира.");
     if (message.includes("INVALID_WORLD_CLOCK")) throw new ApiError(400, "INVALID_WORLD_CLOCK", "Некорректное время игрового мира.");
     if (message.includes("INVALID_WORLD_DIFFICULTY")) throw new ApiError(400, "INVALID_WORLD_DIFFICULTY", "Выбрана неизвестная сложность мира.");
     if (message.includes("NOT_A_MEMBER")) throw new ApiError(403, "NOT_A_MEMBER", "Ты больше не состоишь в этой комнате.");
@@ -308,6 +325,31 @@ Deno.serve(async (req: Request) => {
         throw new ApiError(400,"INVALID_MINE_ACTION_RESULT","Некорректная награда за добычу.");
       }
       const result = await rpc("commit_co_op_mine_action", {
+        p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id),
+        p_expected_version:expectedVersion, p_payload:payload, p_result:resultInput,
+      });
+      return reply({ result });
+    }
+    if (route === "/api/coop/actions/commit-tree" && req.method === "POST") {
+      const expectedVersion = Number(body.expected_version);
+      if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
+        throw new ApiError(400,"INVALID_SNAPSHOT_REQUEST","Некорректная версия снимка.");
+      }
+      const payload = sanitizeSharedSnapshot(body.payload);
+      if (!body.result || typeof body.result !== "object" || Array.isArray(body.result)) {
+        throw new ApiError(400,"INVALID_TREE_ACTION_RESULT","Некорректная награда за дерево.");
+      }
+      const resultInput = body.result as Record<string, unknown>;
+      const validAmounts = ["reward_amount","bonus_amount","extra_amount"].every(key =>
+        resultInput[key] === undefined || (typeof resultInput[key] === "number" &&
+          Number.isSafeInteger(resultInput[key]) && resultInput[key] >= 0 && resultInput[key] <= 1000));
+      if (Object.keys(resultInput).some(key => !["reward_name","reward_amount","bonus_name","bonus_amount","extra_name","extra_amount"].includes(key)) ||
+          (resultInput.reward_name !== undefined && resultInput.reward_name !== "Древесина") ||
+          (resultInput.bonus_name !== undefined && resultInput.bonus_name !== "Листья") ||
+          (resultInput.extra_name !== undefined && resultInput.extra_name !== "Палка") || !validAmounts) {
+        throw new ApiError(400,"INVALID_TREE_ACTION_RESULT","Некорректная награда за дерево.");
+      }
+      const result = await rpc("commit_co_op_tree_action", {
         p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id),
         p_expected_version:expectedVersion, p_payload:payload, p_result:resultInput,
       });
