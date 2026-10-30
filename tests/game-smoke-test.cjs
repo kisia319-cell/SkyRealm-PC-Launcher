@@ -114,3 +114,8 @@ assert.ok(game.includes('homeX:x,homeY:y,targetX:x,targetY:y'), 'NPC home positi
 
 assert.ok(game.includes("drawNpcCharacter(npc,x,y,time)") && game.includes("npc.activity==='sleeping'?'ОТДЫХАЕТ'"), 'The active village renderer must show detailed animated NPCs and their current activity');
 assert.ok(!game.includes("ctx.fillRect(-22,-23,44,25)"), 'The active village renderer must not use placeholder NPC sprites');
+
+assert.ok(game.includes("ctx.scale(1.28,1.28)"), 'Trade NPC sprites must be enlarged');
+assert.ok(game.includes('HOME_SELL_SHOP={x:33,y:25}') && game.includes('drawTradeShop(HOME_SELL_SHOP'), 'First world must show stalls near home');
+assert.ok(game.includes('drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);'), 'Trade World must render chests, drops and monsters');
+assert.ok(game.includes('Подойди к торговцу или к вывеске лавки и нажми T.'), 'T must open nearby trader or stall');
