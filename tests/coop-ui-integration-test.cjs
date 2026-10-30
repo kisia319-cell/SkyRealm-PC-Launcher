@@ -91,4 +91,9 @@ assert.equal(typeof sandbox.SkyRealmCoopClient.getPendingWorldActions, 'function
 assert.equal(typeof sandbox.SkyRealmCoopClient.commitWorldAction, 'function');
 assert.match(game,/syncCoopWorldActions/);
 assert.match(game,/queueGuestStructurePlacement/);
+assert.ok(game.includes("payload.player_class==='farmer'") && game.includes('farmer_skill_level') && game.includes('has_sickle'), 'Co-op harvest rewards must use the requesting guest class, farming skill and sickle.');
+assert.ok(game.includes("payload.player_class==='miner'") && game.includes('miner_skill_level'), 'Co-op mining rewards must use the requesting guest class and mining skill.');
+assert.ok(core.sanitizeWorldAction('farm_harvest',{x:112,y:144,player_class:'farmer',farmer_skill_level:2,has_sickle:true}), 'Co-op farm harvest class metadata must be accepted.');
+assert.ok(core.sanitizeWorldAction('mine_rock',{rock_index:2,tool:'Кирка',player_class:'miner',miner_skill_level:2}), 'Co-op mining class metadata must be accepted.');
+assert.ok(edge.includes('Неизвестный класс персонажа') && edge.includes('Некорректный уровень навыка шахтёра'), 'Edge Function must validate class metadata before accepting guest actions.');
 console.log('SkyRealm co-op UI integration checks passed.');
