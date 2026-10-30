@@ -69,6 +69,13 @@
   function sanitizeWorldAction(actionType,input){
     if(typeof actionType!=='string'||!input||typeof input!=='object'||Array.isArray(input))return null;
     const keys=Object.keys(input);
+    if(actionType==='mine_rock'){
+      if(keys.length!==2||keys.some(key=>!['rock_index','tool'].includes(key)))return null;
+      const rockIndex=Number(input.rock_index),tool=input.tool;
+      if(!Number.isSafeInteger(rockIndex)||rockIndex<0||rockIndex>64||
+         !['Кирка','Улучшенная кирка','Кирка мастера'].includes(tool))return null;
+      return {rock_index:rockIndex,tool};
+    }
     let allowed=[];
     if(actionType==='place_structure')allowed=['type','x','y'];
     else if(actionType==='farm_plant')allowed=['x','y','crop_id'];
@@ -91,6 +98,7 @@
     }
     return {x:gx,y:gy};
   }
+
   function sanitizeWorldClock(input){
     if(!input||typeof input!=='object'||Array.isArray(input))return null;
     const minute=input.minute_total,nights=input.survived_nights;
