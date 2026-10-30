@@ -164,7 +164,7 @@ assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.1', 'Game 
 for (const crop of ['Пшеница','Морковь','Картофель','Томат','Кукуруза','Тыква','Клубника']) assert.ok(game.includes("product:'"+crop+"'"), 'Farm crop '+crop+' must exist');
 assert.ok(game.includes("farmer:[") && game.includes("Семена клубники"), 'Farmer shop has broad tool and seed catalog');
 assert.ok(game.includes("selected?.name==='Лейка'") && game.includes("selected?.name==='Компост'") && game.includes("selected?.name==='Удобрение'"), 'Watering and soil-care tools work');
-assert.ok(game.includes("farmCropSellPrice(name)") && game.includes("farmEconomy().sell"), 'Crop sale prices scale with difficulty');
+assert.ok(game.includes("farmCropSellPrice(name)") && game.includes("farmCropBuyPrice(name)"), 'Crop sale and purchase prices use the agreed crop balance');
 assert.ok(game.includes("function interactFarmPlot") && game.includes("plot.crop=crop.id"), 'Seeds can be planted and harvested per crop');
 assert.ok(game.includes("crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null"), 'Crop state is restored from saves');
 assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.1', 'Farm update version must be bumped');
