@@ -73,24 +73,29 @@ async function connectRealtime(room,handlers={}){
   channel.on('presence',{event:'join'},payload=>handlers.onPresenceChange?.('join',payload));
   channel.on('presence',{event:'leave'},payload=>handlers.onPresenceChange?.('leave',payload));
   channel.on('broadcast',{event:'room-event'},payload=>handlers.onBroadcast?.(payload));
-  const joined=await new Promise((resolve,reject)=>{
-    let settled=false;
-    channel.subscribe(async status=>{
-      handlers.onStatus?.(status);
-      if(status==='SUBSCRIBED'&&!settled){
-        settled=true;
-        try{
-          await channel.track({user_id:userId,online_at:new Date().toISOString()});
-          resolve(true);
-        }catch(error){reject(error);}
-      }else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&!settled){
-        settled=true;reject(new Error('Не удалось подключиться к приватному каналу комнаты ('+status+').'));
-      }
+  let joined=false;
+  try{
+    joined=await new Promise((resolve,reject)=>{
+      let settled=false;
+      channel.subscribe(async status=>{
+        handlers.onStatus?.(status);
+        if(status==='SUBSCRIBED'){
+          try{
+            await channel.track({user_id:userId,online_at:new Date().toISOString()});
+            if(!settled){settled=true;resolve(true);}
+          }catch(error){if(!settled){settled=true;reject(error);}}
+        }else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&!settled){
+          settled=true;reject(new Error('Не удалось подключиться к приватному каналу комнаты ('+status+').'));
+        }
+      });
     });
-  });
-  if(joined){realtimeClient=supabaseClient;realtimeChannel=channel;realtimeRoomId=room.id;}
-  else await supabaseClient.removeChannel(channel);
-  return {connected:!!joined};
+    if(joined){realtimeClient=supabaseClient;realtimeChannel=channel;realtimeRoomId=room.id;}
+    else await supabaseClient.removeChannel(channel);
+    return {connected:!!joined};
+  }catch(error){
+    try{await supabaseClient.removeChannel(channel);}catch(_){}
+    throw error;
+  }
 }
 
 window.SkyRealmCoopClient=Object.freeze({
