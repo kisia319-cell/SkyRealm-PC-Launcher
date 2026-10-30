@@ -59,7 +59,7 @@ function loadRealtimeSdk(){
 async function disconnectRealtime(){
   const oldClient=realtimeClient,oldChannel=realtimeChannel;
   realtimeClient=null;realtimeChannel=null;realtimeRoomId='';
-  remotePlayers.clear();
+  remotePlayers.clear();incomingPvpHits.length=0;
   if(oldClient&&oldChannel){try{await oldClient.removeChannel(oldChannel);}catch(_){}}
 }
 async function connectRealtime(room,handlers={}){
