@@ -1684,7 +1684,10 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     try{
       const snapshot=await network.getWorldSnapshot();
       if(coopSnapshotRoomId!==state.id)return;
-      if(snapshot&&Number(snapshot.version)>lastAppliedCoopSnapshotVersion)applyCoopSnapshot(snapshot);
+      if(snapshot&&Number(snapshot.version)>lastAppliedCoopSnapshotVersion){
+        const applied=applyCoopSnapshot(snapshot);
+        if(!applied&&!network.isRoomOwner)throw new Error('Не удалось применить обновление общего мира; повторю синхронизацию.');
+      }
       if(network.isRoomOwner){
         let localSave=null;
         try{localSave=JSON.parse(localStorage.getItem(saveKey)||'null');}catch(_){}
@@ -1699,8 +1702,6 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
             }
           }
         }
-      }else if(snapshot){
-        lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(snapshot.version)||0);
       }
     }catch(error){console.warn('[SkyRealm co-op snapshot]',error);}
     finally{coopSnapshotSyncPending=false;}
