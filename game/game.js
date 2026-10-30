@@ -1495,11 +1495,56 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   // Top-level frame guard: an exception in simulation/update code must not stop RAF forever.
   // The previous guard covered draw() only, so an error earlier in tick could leave the canvas black.
 
-  let coopPositionSendTimer=0,coopClockSendTimer=0;
+  let coopPositionSendTimer=0,coopClockSendTimer=0,coopSnapshotTimer=0,coopSnapshotSyncPending=false,coopSnapshotRoomId='',lastAppliedCoopSnapshotVersion=0;
+  function applyCoopSnapshot(snapshot){
+    const network=window.SkyRealmCoopClient;
+    if(!snapshot||!network?.getRoomState?.()||!currentWorldId||!saveKey.startsWith('skyrealm_coop_save_v1_'))return false;
+    const version=Number(snapshot.version)||0;
+    if(version<=lastAppliedCoopSnapshotVersion||!snapshot.payload||typeof snapshot.payload!=='object')return false;
+    const core=window.SkyRealmMultiplayerCore;
+    const shared=core?.sanitizeSharedWorldSnapshot?.(snapshot.payload);
+    if(!shared||!Object.keys(shared).length)return false;
+    try{
+      if(!saveGame())return false;
+      const current=JSON.parse(localStorage.getItem(saveKey)||'null');
+      if(!current||typeof current!=='object')return false;
+      localStorage.setItem(saveKey,JSON.stringify({...current,...shared}));
+      lastAppliedCoopSnapshotVersion=version;
+      loadGame();renderInventory();drawMinimap();updateVitals();updateWalletHud();
+      return true;
+    }catch(error){console.warn('[SkyRealm co-op snapshot apply]',error);return false;}
+  }
+  async function syncCoopWorldSnapshot(){
+    const network=window.SkyRealmCoopClient;
+    const state=network?.getRoomState?.();
+    if(!state||state.status!=='running'||!currentWorldId||!saveKey.startsWith('skyrealm_coop_save_v1_'))return;
+    if(coopSnapshotRoomId!==state.id){coopSnapshotRoomId=state.id;lastAppliedCoopSnapshotVersion=0;}
+    if(coopSnapshotSyncPending)return;
+    coopSnapshotSyncPending=true;
+    try{
+      const snapshot=await network.getWorldSnapshot();
+      if(coopSnapshotRoomId!==state.id)return;
+      if(snapshot&&Number(snapshot.version)>lastAppliedCoopSnapshotVersion)applyCoopSnapshot(snapshot);
+      if(network.isRoomOwner){
+        let localSave=null;
+        try{localSave=JSON.parse(localStorage.getItem(saveKey)||'null');}catch(_){}
+        const payload=window.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot?.(localSave);
+        if(payload&&Object.keys(payload).length){
+          const saved=await network.saveWorldSnapshot(payload);
+          if(saved)lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(saved.version)||0);
+        }
+      }else if(snapshot){
+        lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(snapshot.version)||0);
+      }
+    }catch(error){console.warn('[SkyRealm co-op snapshot]',error);}
+    finally{coopSnapshotSyncPending=false;}
+  }
   function updateCoopPosition(dt){
     const network=window.SkyRealmCoopClient;
     if(!network||!currentWorldId||inMainMenu||paused)return;
     syncCoopSharedDeath();
+    coopSnapshotTimer-=dt;
+    if(coopSnapshotTimer<=0){coopSnapshotTimer=5;syncCoopWorldSnapshot();}
     if(network.isRoomOwner&&typeof network.setWorldClock==='function'){
       coopClockSendTimer-=dt;
       if(coopClockSendTimer<=0){
@@ -1794,7 +1839,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     currentWorldId=record.id;currentWorldName=coopSession?('Кооператив · '+record.name):record.name;
     saveKey=coopSession?('skyrealm_coop_save_v1_'+coopSession.id+'_'+window.SkyRealmCoopClient.userId):worldSaveKey(record.id);
     localStorage.setItem('skyrealm_active_world_id',record.id);mineMode=false;workbenchDialogOpen=false;
-    resetWorldState();createMineForWorld(coopSession?('skyrealm-coop-'+coopSession.id):record.id);loadGame();if(migrateLegacyDifficulty&&caveBossHp>0&&Number.isFinite(caveBossHp)&&caveBossHp<=260&&!caveBossDefeated)caveBossHp=bossMaxHp();markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
+    resetWorldState();createMineForWorld(coopSession?('skyrealm-coop-'+coopSession.id):record.id);if(coopSession){coopSnapshotRoomId=coopSession.id;lastAppliedCoopSnapshotVersion=0;coopSnapshotTimer=0;}loadGame();if(migrateLegacyDifficulty&&caveBossHp>0&&Number.isFinite(caveBossHp)&&caveBossHp<=260&&!caveBossDefeated)caveBossHp=bossMaxHp();markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
     document.querySelector('.realm-sub').textContent=record.name+' · '+difficultyConfig().name.toUpperCase()+' · ПЕРВЫЙ РАССВЕТ';
     document.getElementById('main-menu-shade').hidden=true;document.getElementById('main-menu-shade').setAttribute('aria-hidden','true');
     document.getElementById('pause-shade').hidden=true;document.getElementById('pause-main-view').hidden=false;document.getElementById('pause-settings-view').hidden=true;

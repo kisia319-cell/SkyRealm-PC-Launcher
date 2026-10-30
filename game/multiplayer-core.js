@@ -74,5 +74,18 @@
     if(typeof input.blood_moon_active!=='boolean')return null;
     return {minute_total:Math.round(minute*1000)/1000,survived_nights:nights,blood_moon_active:input.blood_moon_active};
   }
-  return Object.freeze({MAX_PLAYERS,ROOM_STATES,normalizeInviteCode,isValidInviteCode,canJoinRoom,canResumeRoom,canChangePvp,makeRoomTopic,shouldPauseOnOwnerDeparture,sanitizePlayerInput,sanitizePlayerPosition,sanitizeWorldClock});
+  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay"]);
+  function sanitizeSharedWorldSnapshot(input){
+    if(!input||typeof input!=='object'||Array.isArray(input))return null;
+    const output={};
+    for(const key of SHARED_WORLD_FIELDS){
+      if(Object.prototype.hasOwnProperty.call(input,key))output[key]=input[key];
+    }
+    try{
+      const serialized=JSON.stringify(output);
+      if(serialized.length>60000)return null;
+      return JSON.parse(serialized);
+    }catch(_){return null;}
+  }
+  return Object.freeze({MAX_PLAYERS,ROOM_STATES,normalizeInviteCode,isValidInviteCode,canJoinRoom,canResumeRoom,canChangePvp,makeRoomTopic,shouldPauseOnOwnerDeparture,sanitizePlayerInput,sanitizePlayerPosition,sanitizeWorldClock,sanitizeSharedWorldSnapshot,SHARED_WORLD_FIELDS});
 });

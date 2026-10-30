@@ -5,6 +5,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_PATTERN = /^[A-HJ-NP-Z2-9]{8}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SHARED_SNAPSHOT_FIELDS = new Set(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay"]);
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
@@ -23,9 +24,9 @@ class ApiError extends Error {
 function reply(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: CORS });
 }
-async function parseBody(req: Request): Promise<Record<string, unknown>> {
+async function parseBody(req: Request, maxLength = 12_000): Promise<Record<string, unknown>> {
   const raw = await req.text();
-  if (raw.length > 12_000) throw new ApiError(413, "BODY_TOO_LARGE", "Слишком большой запрос.");
+  if (raw.length > maxLength) throw new ApiError(413, "BODY_TOO_LARGE", "Слишком большой запрос.");
   try {
     const parsed = raw ? JSON.parse(raw) : {};
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid");
@@ -62,6 +63,23 @@ function normalizeCode(value: unknown): string {
   if (typeof value !== "string") return "";
   return value.trim().toUpperCase().replace(/[-\s]/g, "");
 }
+function sanitizeSharedSnapshot(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "Некорректный снимок общего мира.");
+  }
+  const input = value as Record<string, unknown>;
+  const output: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(input)) {
+    if (!SHARED_SNAPSHOT_FIELDS.has(key)) {
+      throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "В снимке есть личные или неизвестные данные.");
+    }
+    output[key] = entry;
+  }
+  if (new TextEncoder().encode(JSON.stringify(output)).byteLength > 65_536) {
+    throw new ApiError(413, "INVALID_SNAPSHOT_PAYLOAD", "Снимок общего мира слишком большой.");
+  }
+  return output;
+}
 function roomId(value: unknown): string {
   if (typeof value !== "string" || !UUID_PATTERN.test(value)) throw new ApiError(400, "INVALID_ROOM_ID", "Некорректный ID комнаты.");
   return value;
@@ -82,6 +100,9 @@ async function rpc(name: string, args: Record<string, unknown>) {
   if (!response.ok) {
     const message = String(payload.message ?? payload.details ?? "");
     if (message.includes("JOIN_RATE_LIMITED")) throw new ApiError(429, "JOIN_RATE_LIMITED", "Слишком много попыток. Подожди 15 минут.");
+    if (message.includes("SNAPSHOT_VERSION_CONFLICT")) throw new ApiError(409, "SNAPSHOT_VERSION_CONFLICT", "Снимок мира уже обновился. Повтори синхронизацию.");
+    if (message.includes("INVALID_SNAPSHOT_PAYLOAD") || message.includes("INVALID_SNAPSHOT_REQUEST")) throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "Снимок мира содержит недопустимые данные.");
+    if (message.includes("SNAPSHOT_NOT_FOUND")) throw new ApiError(404, "SNAPSHOT_NOT_FOUND", "Снимок комнаты не найден.");
     if (message.includes("INVALID_INVITE_CODE") || message.includes("ROOM_NOT_JOINABLE")) throw new ApiError(404, "INVITE_UNAVAILABLE", "Код приглашения недействителен или комната закрыта.");
     if (message.includes("ROOM_FULL")) throw new ApiError(409, "ROOM_FULL", "В комнате уже 8 игроков.");
     if (message.includes("OWNER_ONLY")) throw new ApiError(403, "OWNER_ONLY", "Это действие доступно только владельцу комнаты.");
@@ -117,7 +138,7 @@ Deno.serve(async (req: Request) => {
   }
   try {
     const user = await authenticate(req);
-    const body = req.method === "POST" ? await parseBody(req) : {};
+    const body = req.method === "POST" ? await parseBody(req, route.startsWith('/api/coop/snapshot/') ? 80_000 : 12_000) : {};
     if (route === "/api/coop/create" && req.method === "POST") {
       const inviteCode = newInviteCode();
       const difficulty = typeof body.world_difficulty === "string" ? body.world_difficulty : "medium";
@@ -153,6 +174,24 @@ Deno.serve(async (req: Request) => {
     if (route === "/api/coop/death" && req.method === "POST") {
       const death = await rpc("record_co_op_shared_death", { p_user_id:user.id,p_room_id:roomId(body.room_id) });
       return reply({ death });
+    }
+    if (route === "/api/coop/snapshot/get" && req.method === "POST") {
+      const snapshot = await rpc("get_co_op_world_snapshot", {
+        p_user_id: user.id, p_room_id: roomId(body.room_id),
+      });
+      return reply({ snapshot });
+    }
+    if (route === "/api/coop/snapshot/save" && req.method === "POST") {
+      const expectedVersion = Number(body.expected_version);
+      if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
+        throw new ApiError(400, "INVALID_SNAPSHOT_REQUEST", "Некорректная версия снимка.");
+      }
+      const payload = sanitizeSharedSnapshot(body.payload);
+      const snapshot = await rpc("save_co_op_world_snapshot", {
+        p_user_id: user.id, p_room_id: roomId(body.room_id),
+        p_expected_version: expectedVersion, p_payload: payload,
+      });
+      return reply({ snapshot });
     }
     if (route === "/api/coop/current" && req.method === "GET") {
       const room = await rpc("get_my_co_op_room", { p_user_id: user.id });

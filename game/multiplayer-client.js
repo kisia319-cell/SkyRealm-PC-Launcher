@@ -3,7 +3,7 @@
 const root=typeof globalThis!=='undefined'?globalThis:window;
 const API_URL='https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-coop';
 const PUBLIC_KEY='sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL';
-let token='',tokenPromise=null,userId='',currentRoom=null,clockReceivedAt=0,clockWriteInFlight=false;
+let token='',tokenPromise=null,userId='',currentRoom=null,clockReceivedAt=0,clockWriteInFlight=false,snapshotVersion=0;
 async function getToken(){
   if(token)return token;
   if(tokenPromise)return tokenPromise;
@@ -40,6 +40,7 @@ let realtimeClient=null,realtimeChannel=null,realtimeRoomId='',realtimeSdkPromis
 const remotePlayers=new Map();
 const safePosition=root.SkyRealmMultiplayerCore?.sanitizePlayerPosition;
 const safeClock=root.SkyRealmMultiplayerCore?.sanitizeWorldClock;
+const safeSharedSnapshot=root.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot;
 function loadRealtimeSdk(){
   if(window.supabase?.createClient)return Promise.resolve(window.supabase);
   if(realtimeSdkPromise)return realtimeSdkPromise;
@@ -177,11 +178,28 @@ window.SkyRealmCoopClient=Object.freeze({
       return true;
     }finally{clockWriteInFlight=false;}
   },
-  async current(){const data=await request('/api/coop/current');currentRoom=data.room||null;clockReceivedAt=Date.now();return currentRoom;},
-  async create(difficulty='medium'){const data=await request('/api/coop/create','POST',{world_difficulty:difficulty});currentRoom=data.room||null;return {room:currentRoom,inviteCode:data.invite_code};},
-  async join(code){const data=await request('/api/coop/join','POST',{invite_code:code});currentRoom=data.room||null;return currentRoom;},
+  async getWorldSnapshot(){
+    if(!currentRoom?.id)throw new Error('Нет активной комнаты.');
+    const data=await request('/api/coop/snapshot/get','POST',{room_id:currentRoom.id});
+    const snapshot=data.snapshot||null;
+    if(snapshot&&currentRoom?.id===snapshot.room_id)snapshotVersion=Number(snapshot.version)||0;
+    return snapshot;
+  },
+  async saveWorldSnapshot(payload){
+    if(!this.isRoomOwner||!currentRoom||currentRoom.status!=='running')return false;
+    const safe=typeof safeSharedSnapshot==='function'?safeSharedSnapshot(payload):null;
+    if(!safe||!Object.keys(safe).length)return false;
+    const data=await request('/api/coop/snapshot/save','POST',{
+      room_id:currentRoom.id,expected_version:snapshotVersion,payload:safe
+    });
+    if(data.snapshot&&currentRoom)snapshotVersion=Number(data.snapshot.version)||snapshotVersion;
+    return data.snapshot||false;
+  },
+  async current(){const previousRoomId=currentRoom?.id||'';const data=await request('/api/coop/current');currentRoom=data.room||null;if(previousRoomId!==(currentRoom?.id||''))snapshotVersion=0;clockReceivedAt=Date.now();return currentRoom;},
+  async create(difficulty='medium'){const data=await request('/api/coop/create','POST',{world_difficulty:difficulty});currentRoom=data.room||null;snapshotVersion=0;return {room:currentRoom,inviteCode:data.invite_code};},
+  async join(code){const data=await request('/api/coop/join','POST',{invite_code:code});currentRoom=data.room||null;snapshotVersion=0;return currentRoom;},
   async start(roomId){const data=await request('/api/coop/start','POST',{room_id:roomId});currentRoom={...(currentRoom||{}),...(data.room||{})};return currentRoom;},
-  async leave(roomId){const data=await request('/api/coop/leave','POST',{room_id:roomId});currentRoom=null;return data;},
+  async leave(roomId){const data=await request('/api/coop/leave','POST',{room_id:roomId});currentRoom=null;snapshotVersion=0;return data;},
   async resume(roomId){const data=await request('/api/coop/resume','POST',{room_id:roomId});currentRoom={...(currentRoom||{}),...(data.room||{})};return data;},
   async setPvp(roomId,enabled){const data=await request('/api/coop/pvp','POST',{room_id:roomId,enabled});currentRoom={...(currentRoom||{}),...(data.room||{})};return data;},
   async heartbeat(roomId){return request('/api/coop/heartbeat','POST',{room_id:roomId});},
