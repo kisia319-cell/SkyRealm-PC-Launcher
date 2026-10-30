@@ -44,7 +44,7 @@ assert.match(client,/setWorldClock/);
 assert.match(game,/syncCoopSharedDeath/);
 assert.match(ui,/refresh\(true\);/);
 
-const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim','actions/enqueue','actions/pending','actions/status','actions/commit','actions/commit-farm','actions/reject'];
+const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim','actions/enqueue','actions/pending','actions/status','actions/commit','actions/commit-farm','actions/commit-mine','actions/reject'];
 for (const route of coopRoutes) {
   assert.ok(client.includes("'/api/coop/" + route + "'"), 'Client calls an unrecognised route: ' + route);
   assert.ok(edge.includes('route === "/api/coop/' + route + '"'), 'Edge Function is missing route: ' + route);
@@ -55,6 +55,8 @@ assert.ok(client.includes('reportSharedDeath'));
 assert.ok(client.includes('setWorldClock'));
 assert.ok(client.includes('getWorldSnapshot') && client.includes('saveWorldSnapshot'));
 assert.ok(client.includes('commitFarmAction') && edge.includes('commit_co_op_farm_action'),'Farm commits must be wired from the client to the server RPC.');
+assert.ok(client.includes('commitMineAction') && edge.includes('commit_co_op_mine_action'),'Mining commits must be wired from the client to the server RPC.');
+assert.ok(edge.includes('actionType === "mine_rock"'),'Edge Function must validate guest mining requests.');
 assert.ok(edge.includes('actionType === "farm_plant"') && edge.includes('"farm_water","farm_compost","farm_fertilize","farm_harvest"'),'Edge Function must validate all supported guest farm actions.');
 assert.ok(client.includes('sendPvpHit') && game.includes('drainPvpHits') && game.includes('pvp_enabled'),'PvP toggle must gate room combat events.');
 assert.ok(core.sanitizePlayerPosition({user_id:'x',x:100,y:100,face:'down',difficulty:'medium',world_mode:'mine'}),'Mine presence must be accepted.');
