@@ -55,7 +55,10 @@ assert.ok(client.includes('setWorldClock'));
 assert.ok(client.includes('getWorldSnapshot') && client.includes('saveWorldSnapshot'));
 assert.ok(game.includes('sanitizeSharedWorldSnapshot') && game.includes('syncCoopWorldSnapshot'));
 assert.ok(game.includes('syncCoopSharedDeath'));
-assert.ok(game.includes("claimWorldObject('treasure_chest'"), 'Treasure chest rewards must be claimed by the server in co-op');
+assert.ok(game.includes("claimCoopChest('treasure_chest'"), 'Outdoor chests must use server claims');
+assert.ok(game.includes("claimCoopChest('cave_chest','cave')"), 'Cave chest must use server claims');
+assert.ok(game.includes("claimCoopChest('dungeon_chest','dungeon-5')"), 'Dungeon chest must use server claims');
+assert.ok(edge.includes('objectKind === "cave_chest"') && edge.includes('objectKind === "dungeon_chest"'));
 assert.ok(game.includes('if(!session){toast(\'Комната на паузе'), 'Paused rooms must not award local chest loot');
 assert.ok(ui.includes('startMonitors();') && ui.includes('window.addEventListener'));
 

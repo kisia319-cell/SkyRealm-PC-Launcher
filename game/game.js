@@ -404,35 +404,32 @@
     updateProgressHud();if(leveled){updateVitals();spawnVisualBurst(player.x,player.y,24,'spark','#8be9ff');playSound('craft');toast('НОВЫЙ УРОВЕНЬ '+playerLevel+'! +8 здоровья и +12 выносливости.');}else if(reason)toast('+'+gained+' опыта · '+reason);saveGame();
   }
   function updateProgressHud(){const el=document.getElementById('progress-hud');if(el)el.textContent='УРОВЕНЬ '+playerLevel+' · XP '+playerXP+'/'+xpForNextLevel()+' · ✦ '+skillPoints;}
+  async function claimCoopChest(objectKind,objectId){
+    const network=window.SkyRealmCoopClient,roomState=network?.getRoomState?.();
+    if(!roomState)return {coop:false,claimed:true};
+    if(!network?.getWorldSession?.()){toast('Комната на паузе или ещё не запущена. Возобнови её перед открытием сундука.');return {coop:true,claimed:false,error:true};}
+    if(typeof network.claimWorldObject!=='function'){toast('Сервис общих сундуков недоступен.');return {coop:true,claimed:false,error:true};}
+    try{
+      const claim=await network.claimWorldObject(objectKind,objectId);
+      if(claim?.claimed)return {coop:true,claimed:true};
+      toast('Этот сундук уже забрал другой участник комнаты.');
+      return {coop:true,claimed:false,error:false};
+    }catch(error){toast(error?.message||'Не удалось подтвердить сундук на сервере.');return {coop:true,claimed:false,error:true};}
+  }
   async function openTreasureChest(chest){
     if(!chest||chest.opened||chest.claimPending)return;
-    const network=window.SkyRealmCoopClient;
-    const roomState=network?.getRoomState?.();
-    const session=network?.getWorldSession?.();
-    if(roomState){
-      if(!session){toast('Комната на паузе или ещё не запущена. Возобнови её перед открытием сундука.');return;}
-      if(typeof network.claimWorldObject!=='function'){toast('Сервис общих сундуков недоступен.');return;}
-      chest.claimPending=true;
-      let claim=null;
-      try{
-        claim=await network.claimWorldObject('treasure_chest',String(chest.id||''));
-      }catch(error){
-        toast(error?.message||'Не удалось подтвердить сундук на сервере.');
-        return;
-      }finally{chest.claimPending=false;}
-      if(!claim?.claimed){
-        chest.opened=true;saveGame();drawMinimap();
-        toast('Этот сундук уже забрал другой участник комнаты.');
-        return;
-      }
-    }
+    chest.claimPending=true;
+    let claim;
+    try{claim=await claimCoopChest('treasure_chest',String(chest.id||''));}
+    finally{chest.claimPending=false;}
+    if(claim.coop&&!claim.claimed){if(!claim.error){chest.opened=true;saveGame();drawMinimap();}return;}
     chest.opened=true;
     const cfg=difficultyConfig(),gold=5+Math.floor(Math.random()*11);
     const rewards=[{name:'Золото',count:gold},{name:'Кристалл',count:1},{name:'Малое зелье',count:1}];
     const chosen=rewards.filter((r,i)=>i===0||(i===1?Math.random()<cfg.chests.crystal:Math.random()<cfg.chests.potion));
     for(const r of chosen){if(r.name==='Золото')walletCents+=r.count*100;else changeItem(r.name,r.count);}
     spawnVisualBurst(chest.x,chest.y,22,'spark','#ffd86b');playSound('coin');renderInventory();saveGame();drawMinimap();awardXP(45,'найден сундук');
-    toast('Сундук открыт! Золото: '+gold+'; '+chosen.filter(r=>r.name!=='Золото').map(r=>r.name+' ×'+r.count).join(', '));
+    toast('Сундук открыт! Золота: '+gold+'; '+chosen.filter(r=>r.name!=='Золото').map(r=>r.name+' ×'+r.count).join(', '));
   }
   function startDodge(){if(paused||inMainMenu||workbenchDialogOpen||inventoryDialogOpen||signDialogOpen||dodgeCooldown>0||player.stamina<18||mineMode)return;let dx=0,dy=0;const f=player.face;if(f==='left')dx=-1;else if(f==='right')dx=1;else if(f==='up')dy=-1;else dy=1;dodgeVX=dx;dodgeVY=dy;dodgeFacing=f;dodgeTimer=.24;dodgeCooldown=1.15;player.stamina=Math.max(0,player.stamina-18);spawnVisualBurst(player.x,player.y,10,'dust','#a8d9ff');toast('Перекат!');}
   function spawnVisualBurst(x,y,count=8,kind='spark',color='#ffe29a'){
@@ -740,7 +737,34 @@
     }
   }
   function attackDungeonEnemy(){if(playerAttackCooldown>0)return;playerAttackCooldown=.58;attackAnimTimer=.2;playSound('hit');if(dungeonRoomCleared()){toast(dungeonRoom===5?'Страж побеждён. Найди сундук справа.':'Комната очищена. Иди к двери справа.');return;}const ex=dungeonEnemyX>0?dungeonEnemyX:width*.65,ey=dungeonEnemyY>0?dungeonEnemyY:height*.47;if(Math.hypot(player.x-ex,player.y-ey)>Math.max(145,weaponRange()+30)){toast('Подойди к стражу комнаты ближе.');return;}const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));dungeonEnemyHp=Math.max(0,dungeonEnemyHp-damage);spawnVisualBurst(ex,ey,10,'spark',dungeonRoom===5?'#dca4ff':'#a9b5d7');toast((dungeonRoom===5?'Архонт':'Страж')+' получил '+damage+' урона · '+Math.ceil(dungeonEnemyHp)+' HP');if(dungeonEnemyHp<=0){dungeonClearedRooms=Array.from(new Set(dungeonClearedRooms.concat([dungeonRoom])));if(dungeonRoom<5){changeItem('Эссенция глубин',1);if(Math.random()<.6)changeItem('Кристалл',1);toast('Комната '+dungeonRoom+' очищена!');}else{changeItem('Эссенция глубин',4);walletCents+=15000;toast('Архонт руин повержен! Сундук открыт.');}spawnVisualBurst(ex,ey,30,'spark','#b99cff');awardXP(dungeonRoom===5?300:70,'зачистка комнаты руин');renderInventory();saveGame();}else saveGame();}
-  function interactDungeon(){const exitX=width*.12,midY=height*.52;if(Math.hypot(player.x-exitX,player.y-midY)<95){leaveDungeon();return;}if(dungeonRoom===5&&dungeonRoomCleared(5)&&Math.hypot(player.x-width*.82,player.y-height*.48)<105){if(!dungeonChestOpened){dungeonChestOpened=true;changeItem('Реликвия руин',1);changeItem('Алмаз',2);changeItem('Мифрил',3);walletCents+=25000;awardXP(180,'сокровище Архонта');spawnVisualBurst(player.x,player.y,28,'spark','#ffdb7a');renderInventory();saveGame();toast('Реликвия, 2 алмаза, 3 мифрила и 250 золота!');}else toast('Сундук пуст. Найди выход слева.');return;}if(Math.hypot(player.x-width*.88,player.y-midY)<90){if(!dungeonRoomCleared()){toast('Сначала победи стража.');return;}if(dungeonRoom<5){dungeonRoom++;if(!dungeonRoomCleared())dungeonEnemyHp=dungeonEnemyMaxHp();dungeonEnemyX=width*.65;dungeonEnemyY=height*.47;dungeonEnemyAttackTimer=1.35;saveGame();playSound('portal');toast('Комната '+dungeonRoom+'/5. '+(dungeonRoom===5?'Впереди Архонт!':'Новый страж впереди.'));}else if(!dungeonChestOpened)toast('Сначала забери награду из сундука справа.');else leaveDungeon();return;}toast('E у двери слева — выйти, справа — продолжить, у сундука — награда.');}
+  async function interactDungeon(){
+    const exitX=width*.12,midY=height*.52;
+    if(Math.hypot(player.x-exitX,player.y-midY)<95){leaveDungeon();return;}
+    if(dungeonRoom===5&&dungeonRoomCleared(5)&&Math.hypot(player.x-width*.82,player.y-height*.48)<105){
+      if(!dungeonChestOpened){
+        const claim=await claimCoopChest('dungeon_chest','dungeon-5');
+        if(claim.coop&&!claim.claimed){if(!claim.error){dungeonChestOpened=true;saveGame();}return;}
+        dungeonChestOpened=true;
+        changeItem('Реликвия руин',1);changeItem('Алмаз',2);changeItem('Мифрил',3);
+        walletCents+=25000;awardXP(180,'сокровище Архонта');
+        spawnVisualBurst(player.x,player.y,28,'spark','#ffdb7a');renderInventory();saveGame();
+        toast('Реликвия, 2 алмаза, 3 мифрила и 250 золота!');
+      }else toast('Сундук пуст. Найди выход слева.');
+      return;
+    }
+    if(Math.hypot(player.x-width*.88,player.y-midY)<90){
+      if(!dungeonRoomCleared()){toast('Сначала победи стража.');return;}
+      if(dungeonRoom<5){
+        dungeonRoom++;if(!dungeonRoomCleared())dungeonEnemyHp=dungeonEnemyMaxHp();
+        dungeonEnemyX=width*.65;dungeonEnemyY=height*.47;dungeonEnemyAttackTimer=1.35;
+        saveGame();playSound('portal');
+        toast('Комната '+dungeonRoom+'/5. '+(dungeonRoom===5?'Впереди Архонт!':'Новый страж впереди.'));
+      }else if(!dungeonChestOpened)toast('Сначала забери награду из сундука справа.');
+      else leaveDungeon();
+      return;
+    }
+    toast('E у двери слева — выйти, справа — продолжить, у сундука — награда.');
+  }
   function drawDungeonInterior(dt,time){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#090c18';ctx.fillRect(0,0,width,height);const g=ctx.createLinearGradient(0,0,width,height);g.addColorStop(0,'#2a263c');g.addColorStop(1,'#111522');ctx.fillStyle=g;ctx.fillRect(18,18,width-36,height-36);ctx.strokeStyle='#716783';ctx.lineWidth=12;ctx.strokeRect(26,26,width-52,height-52);for(let y=42;y<height-42;y+=43)for(let x=42;x<width-42;x+=43){ctx.strokeStyle='#4d4a5e66';ctx.strokeRect(x,y,40,40);}for(let i=0;i<9;i++){const x=width*(.16+i*.085),y=height*(.18+(i%3)*.27);ctx.fillStyle='#666176';ctx.fillRect(x-6,y-12,12,32);ctx.fillStyle='#9992a9';ctx.fillRect(x-8,y-16,16,5);}const left=width*.12,mid=height*.52,right=width*.88;ctx.fillStyle='#12101b';ctx.fillRect(left-18,mid-42,36,84);ctx.strokeStyle='#c2a1ef';ctx.lineWidth=3;ctx.strokeRect(left-18,mid-42,36,84);ctx.fillStyle=dungeonRoomCleared()?'#3f7c71':'#6d4a72';ctx.fillRect(right-18,mid-42,36,84);ctx.strokeStyle='#d0b4ff';ctx.strokeRect(right-18,mid-42,36,84);ctx.fillStyle='#fff0bd';ctx.font='bold 12px Segoe UI';ctx.textAlign='center';ctx.fillText('ВЫХОД',left,mid-55);ctx.fillText('КОМНАТА '+dungeonRoom+'/5',width/2,48);ctx.fillText(dungeonRoom===5?'АРХОНТ РУИН':'СТРАЖ '+dungeonRoom,right,mid-55);if(dungeonRoom===3){const tx=width*.43,ty=height*.5;ctx.fillStyle='#8b362c';ctx.fillRect(tx-32,ty-24,64,48);ctx.strokeStyle='#ffb06e';ctx.lineWidth=2;ctx.strokeRect(tx-32,ty-24,64,48);ctx.fillStyle='#ffcf9b';ctx.font='bold 10px Segoe UI';ctx.fillText('ЛОВУШКА',tx,ty+4);}if(dungeonRoom===5){ctx.fillStyle=dungeonRoomCleared(5)?'#b88737':'#533d63';ctx.fillRect(width*.82-22,height*.48-8,44,27);ctx.fillStyle='#f7d36f';ctx.fillRect(width*.82-22,height*.48-15,44,10);}if(!dungeonRoomCleared()){const x=dungeonEnemyX||width*.65,y=dungeonEnemyY||height*.47;ctx.save();ctx.translate(x,y);ctx.fillStyle='#11101b99';ctx.beginPath();ctx.ellipse(0,16,28,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=dungeonRoom===5?'#bd75d8':'#8c91ac';ctx.fillRect(-20,-17,40,32);ctx.fillRect(-15,-28,30,16);ctx.fillStyle=dungeonRoom===5?'#ffb3ec':'#ff6f9f';ctx.fillRect(-12,-20,6,4);ctx.fillRect(6,-20,6,4);ctx.restore();ctx.fillStyle='#251d32';ctx.fillRect(width*.5-74,70,148,7);ctx.fillStyle=dungeonRoom===5?'#da7ced':'#aabce8';ctx.fillRect(width*.5-74,70,148*Math.max(0,dungeonEnemyHp/dungeonEnemyMaxHp()),7);ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.fillText((dungeonRoom===5?'АРХОНТ':'СТРАЖ')+' · '+Math.ceil(dungeonEnemyHp)+' HP',width*.5,65);}else{ctx.fillStyle='#a4f1d3';ctx.font='bold 13px Segoe UI';ctx.fillText(dungeonRoom===5?'Победа! E у сундука справа.':'Комната очищена · E у двери справа.',width/2,height-42);}const px=player.x,py=player.y;ctx.fillStyle='#10101a99';ctx.beginPath();ctx.ellipse(px,py+12,15,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=playerAppearance.armor||'#526fba';ctx.fillRect(px-9,py-4,18,17);ctx.fillStyle=playerAppearance.skin||'#e8b88c';ctx.fillRect(px-6,py-19,12,14);ctx.fillStyle=playerAppearance.hair||'#352d3d';ctx.fillRect(px-7,py-23,14,6);ctx.fillStyle='#e9efff';ctx.font='bold 11px Segoe UI';ctx.fillText('WASD · Space атака · E взаимодействие',width/2,height-20);ctx.textAlign='left';}
   function useBuffPotion(){const choices=[{name:'Настой силы',timer:'strengthPotionTimer',label:'урон +30%'},{name:'Зелье защиты',timer:'wardPotionTimer',label:'защита +20%'},{name:'Зелье скорости',timer:'speedPotionTimer',label:'скорость +25%'}];const pick=choices.find(v=>itemCount(v.name)>0);if(!pick){toast('Нет боевых настоев. Создай их на верстаке.');return;}changeItem(pick.name,-1);if(pick.timer==='strengthPotionTimer')strengthPotionTimer=30;else if(pick.timer==='wardPotionTimer')wardPotionTimer=30;else speedPotionTimer=30;playSound('craft');renderInventory();saveGame();toast(pick.name+' действует 30 секунд: '+pick.label+'.');}
   function updateWorldEvents(dt){if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode)return;eventRollTimer+=dt;if(meteorPoint){meteorShowerTimer=Math.max(0,meteorShowerTimer-dt);if(meteorShowerTimer<=0)meteorPoint=null;}if(eventRollTimer>=75){eventRollTimer=0;if(isNightTime()&&!meteorPoint&&Math.random()<.34){const a=Math.random()*Math.PI*2,dist=260+Math.random()*260;let x=Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,player.x+Math.cos(a)*dist)),y=Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,player.y+Math.sin(a)*dist));if(waterAt(x/TILE,y/TILE)||blocked(x,y)){x=Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,player.x+220));y=Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,player.y-180));}meteorPoint={x,y};meteorShowerTimer=22;toast('МЕТЕОРИТНЫЙ ДОЖДЬ! Найди светящийся кратер и нажми E рядом.');playSound('portal');}}}
@@ -1409,10 +1433,19 @@
   function buyOre(name){const price=difficultyConfig().shop.buy[name];if(!Number.isFinite(price)){toast('Этот товар недоступен.');return;}if(walletCents<price){toast('Недостаточно денег. Нужно '+formatMoney(price)+'.');return;}walletCents-=price;changeItem(name,1);playSound('coin');renderInventory();updateWalletHud();renderShop();saveGame();toast('Куплено: '+name+'. Баланс: '+formatMoney(walletCents)+'.');}
   let worldTransitioning=false;
   function transitionTradeWorld(){if(worldTransitioning)return;worldTransitioning=true;const fade=document.getElementById('world-fade');const wasPaused=paused;paused=true;keys.clear();fade.classList.add('active');playSound('portal');window.setTimeout(()=>{tradeWorldMode=!tradeWorldMode;inHouse=false;mineMode=false;player.x=tradeEntranceX*TILE+16;player.y=tradeEntranceY*TILE+16;player.vx=player.vy=0;markExploredAroundPlayer();const loc=document.getElementById('location-name');if(loc)loc.textContent=tradeWorldMode?'Мир торговли':'Лесная долина';saveGame();drawMinimap();toast(tradeWorldMode?'Ты в Мире торговли! У входа — две лавки, рядом — торговец и фермер Мира. T открывает магазин, E — задание.':'Ты вернулся в Лесную долину.');window.setTimeout(()=>{fade.classList.remove('active');paused=wasPaused;worldTransitioning=false;},280);},280);}
-  function interact(){
+  async function interact(){
     if(dungeonMode){interactDungeon();return;}
     if(collectMeteor())return;
-    if(caveMode){if(Math.hypot(player.x-width*.73,player.y-height*.48)<95){if(!caveBossDefeated){toast('Сундук запечатан Каменным стражем. Сначала победи босса!');return;}if(!caveChestOpened){caveChestOpened=true;const gold=5+Math.floor(Math.random()*11),rewards=[['Кристалл',1],['Железо',2],['Малое зелье',1]];rewards.forEach(([n,c])=>{if(n==='Кристалл'?Math.random()<difficultyConfig().chests.crystal:n==='Железо'?Math.random()<.65:Math.random()<.2)changeItem(n,c);});walletCents+=gold*100;spawnVisualBurst(player.x,player.y,28,'spark','#ffd86b');renderInventory();awardXP(120,'тайная сокровищница');toast('Сокровищница открыта: '+gold+' золота и немного редкой добычи!');saveGame();}else toast('Сундук пуст.');return;}if(Math.hypot(player.x-width*.16,player.y-height*.8)<125){caveMode=false;player.x=caveReturn.x;player.y=caveReturn.y;player.vx=player.vy=0;toast('Ты вернулся в лесную долину.');saveGame();return;}toast('Подойди к сундуку или входу в пещеру.');return;}
+    if(caveMode){if(Math.hypot(player.x-width*.73,player.y-height*.48)<95){if(!caveBossDefeated){toast('Сундук запечатан Каменным стражем. Сначала победи босса!');return;}if(!caveChestOpened){
+      const claim=await claimCoopChest('cave_chest','cave');
+      if(claim.coop&&!claim.claimed){if(!claim.error){caveChestOpened=true;saveGame();}return;}
+      caveChestOpened=true;
+      const gold=5+Math.floor(Math.random()*11),rewards=[['Кристалл',1],['Железо',2],['Малое зелье',1]];
+      rewards.forEach(([n,c])=>{if(n==='Кристалл'?Math.random()<difficultyConfig().chests.crystal:n==='Железо'?Math.random()<.65:Math.random()<.2)changeItem(n,c);});
+      walletCents+=gold*100;spawnVisualBurst(player.x,player.y,28,'spark','#ffd86b');renderInventory();
+      awardXP(120,'тайная сокровищница');
+      toast('Сокровищница открыта: '+gold+' золота и немного редкой добычи!');saveGame();
+    }else toast('Сундук пуст.');return;}if(Math.hypot(player.x-width*.16,player.y-height*.8)<125){caveMode=false;player.x=caveReturn.x;player.y=caveReturn.y;player.vx=player.vy=0;toast('Ты вернулся в лесную долину.');saveGame();return;}toast('Подойди к сундуку или входу в пещеру.');return;}
     if(mineMode){mineMode=false;toast('Ты вышел из шахты.');return;}
     if(inHouse){
       const dBed=Math.hypot(player.x-94,player.y-112),dBench=Math.hypot(player.x-325,player.y-75),dDoor=Math.hypot(player.x-210,player.y-260);

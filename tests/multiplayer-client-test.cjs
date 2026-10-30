@@ -66,7 +66,14 @@ const core = require('../game/multiplayer-core.js');
 
   const claim = await client.claimWorldObject('treasure_chest', 'forest');
   assert.equal(claim.claimed, true);
-  const claimCall = calls.find(call => call.route === '/api/coop/claim');
+  for (const [kind,id] of [['cave_chest','cave'],['dungeon_chest','dungeon-5']]) {
+    const extra = await client.claimWorldObject(kind,id);
+    assert.equal(extra.claimed,true);
+  }
+  const claimCalls = calls.filter(call => call.route === '/api/coop/claim');
+  assert.deepEqual(claimCalls.map(call=>call.body.object_kind),['treasure_chest','cave_chest','dungeon_chest']);
+  assert.deepEqual(claimCalls.map(call=>call.body.object_id),['forest','cave','dungeon-5']);
+  const claimCall = claimCalls[0];
   assert.ok(claimCall, 'Client must send the world-object claim request');
   assert.equal(claimCall.method, 'POST');
   assert.deepEqual(claimCall.body, {

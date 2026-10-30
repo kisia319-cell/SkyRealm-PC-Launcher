@@ -179,7 +179,10 @@ Deno.serve(async (req: Request) => {
     if (route === "/api/coop/claim" && req.method === "POST") {
       const objectKind = typeof body.object_kind === "string" ? body.object_kind : "";
       const objectId = typeof body.object_id === "string" ? body.object_id.trim() : "";
-      if (objectKind !== "treasure_chest" || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(objectId)) {
+      if (!["treasure_chest", "cave_chest", "dungeon_chest"].includes(objectKind) ||
+          !/^[a-z0-9][a-z0-9-]{0,63}$/.test(objectId) ||
+          (objectKind === "cave_chest" && objectId !== "cave") ||
+          (objectKind === "dungeon_chest" && objectId !== "dungeon-5")) {
         throw new ApiError(400, "INVALID_WORLD_OBJECT", "Некорректный объект общего мира.");
       }
       const claim = await rpc("claim_co_op_world_object", {
