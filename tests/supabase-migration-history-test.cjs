@@ -23,7 +23,7 @@ const expected = [
   '20261030070348_co_op_extended_world_chest_claims.sql',
   '20261030071818_co_op_guest_world_action_queue.sql',
   '20261030071834_co_op_guest_world_action_rls_policies.sql',
-  '20261030072210_co_op_world_action_room_uuid_unique.sql'
+  '20261030073436_co_op_world_action_room_uuid_unique.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
