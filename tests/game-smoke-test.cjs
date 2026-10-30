@@ -106,3 +106,8 @@ assert.ok(game.includes('function useCombatAbility()') && game.includes("k === '
 assert.ok(game.includes('combatAbilityCooldown'), 'Combat ability cooldown must be tracked');
 
 console.log('SkyRealm smoke tests passed for game ' + version + ' (' + recipeKeys.length + ' unique recipes).');
+
+assert.ok(game.includes('function updateVillageNpcs(dt)'), 'Trade-world residents must follow daily schedules');
+assert.ok(game.includes("npc.activity=slot===2?'sleeping':slot===1?'working':'wandering'"), 'NPCs must have sleeping, working and wandering states');
+assert.ok(game.includes('updateWorldClock(dt);updateVillageNpcs(dt);updateVillageRaid(dt);'), 'NPC schedules must update with the in-game clock');
+assert.ok(game.includes('homeX:x,homeY:y,targetX:x,targetY:y'), 'NPC home positions must be retained for their daily routines');
