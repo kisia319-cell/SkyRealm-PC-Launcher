@@ -66,6 +66,16 @@
     };
   }
 
+  function sanitizeWorldAction(actionType,input){
+    if(actionType!=='place_structure'||!input||typeof input!=='object'||Array.isArray(input))return null;
+    if(Object.keys(input).some(key=>!['type','x','y'].includes(key)))return null;
+    const types=['furnace','house','torch','coal','storage','farmplot'];
+    const x=Number(input.x),y=Number(input.y);
+    if(!types.includes(input.type)||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>12000||y<0||y>10000)return null;
+    const gx=Math.round((x-16)/32)*32+16,gy=Math.round((y-16)/32)*32+16;
+    if(Math.abs(x-gx)>1||Math.abs(y-gy)>1)return null;
+    return {type:input.type,x:gx,y:gy};
+  }
   function sanitizeWorldClock(input){
     if(!input||typeof input!=='object'||Array.isArray(input))return null;
     const minute=input.minute_total,nights=input.survived_nights;
@@ -87,5 +97,5 @@
       return JSON.parse(serialized);
     }catch(_){return null;}
   }
-  return Object.freeze({MAX_PLAYERS,ROOM_STATES,normalizeInviteCode,isValidInviteCode,canJoinRoom,canResumeRoom,canChangePvp,makeRoomTopic,shouldPauseOnOwnerDeparture,sanitizePlayerInput,sanitizePlayerPosition,sanitizeWorldClock,sanitizeSharedWorldSnapshot,SHARED_WORLD_FIELDS});
+  return Object.freeze({MAX_PLAYERS,ROOM_STATES,normalizeInviteCode,isValidInviteCode,canJoinRoom,canResumeRoom,canChangePvp,makeRoomTopic,shouldPauseOnOwnerDeparture,sanitizePlayerInput,sanitizePlayerPosition,sanitizeWorldAction,sanitizeWorldClock,sanitizeSharedWorldSnapshot,SHARED_WORLD_FIELDS});
 });
