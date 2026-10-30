@@ -38,6 +38,7 @@ async function request(route,method='GET',body=null){
 
 let realtimeClient=null,realtimeChannel=null,realtimeRoomId='',realtimeSdkPromise=null;
 const remotePlayers=new Map();
+const incomingPvpHits=[];
 const safePosition=root.SkyRealmMultiplayerCore?.sanitizePlayerPosition;
 const safeClock=root.SkyRealmMultiplayerCore?.sanitizeWorldClock;
 const safeSharedSnapshot=root.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot;
@@ -85,6 +86,14 @@ async function connectRealtime(room,handlers={}){
       const position=safePosition(payload);
       if(position&&position.user_id!==userId){
         remotePlayers.set(position.user_id,{...position,room_id:room.id,received_at:Date.now()});
+      }
+    }else if(payload?.kind==='player-hit'){
+      const attacker=typeof payload.attacker_user_id==='string'?payload.attacker_user_id:'';
+      const target=typeof payload.target_user_id==='string'?payload.target_user_id:'';
+      const damage=Number(payload.damage);
+      if(attacker&&attacker!==userId&&target===userId&&Number.isSafeInteger(damage)&&damage>=1&&damage<=80){
+        incomingPvpHits.push({attacker_user_id:attacker,damage,received_at:Date.now()});
+        if(incomingPvpHits.length>16)incomingPvpHits.splice(0,incomingPvpHits.length-16);
       }
     }
     handlers.onBroadcast?.(envelope);
@@ -139,7 +148,19 @@ window.SkyRealmCoopClient=Object.freeze({
     }
     return result;
   },
-  getRoomState(){return currentRoom?{id:currentRoom.id,status:currentRoom.status,owner_id:currentRoom.owner_id,paused_from_status:currentRoom.paused_from_status||null}:null;},
+  async sendPvpHit(targetUserId,damage){
+    if(!currentRoom||currentRoom.status!=='running'||currentRoom.pvp_enabled!==true||!realtimeChannel||!userId)return false;
+    if(typeof targetUserId!=='string'||!targetUserId||targetUserId===userId)return false;
+    const safeDamage=Math.max(1,Math.min(80,Math.round(Number(damage)||0)));
+    try{
+      const status=await realtimeChannel.send({type:'broadcast',event:'room-event',payload:{
+        kind:'player-hit',attacker_user_id:userId,target_user_id:targetUserId,damage:safeDamage
+      }});
+      return status==='ok';
+    }catch(_){return false;}
+  },
+  drainPvpHits(){return incomingPvpHits.splice(0,incomingPvpHits.length);},
+  getRoomState(){return currentRoom?{id:currentRoom.id,status:currentRoom.status,owner_id:currentRoom.owner_id,paused_from_status:currentRoom.paused_from_status||null,pvp_enabled:currentRoom.pvp_enabled===true}:null;},
   getWorldSession(){if(!currentRoom||currentRoom.status!=='running')return null;return {id:currentRoom.id,world_difficulty:currentRoom.world_difficulty||'medium'};},
   getSharedDeathSequence(){return Number(currentRoom?.world_death_sequence)||0;},
   getSharedDeathEvent(){
