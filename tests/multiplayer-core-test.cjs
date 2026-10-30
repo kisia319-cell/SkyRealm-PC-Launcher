@@ -52,7 +52,7 @@ const sharedSnapshot=m.sanitizeSharedWorldSnapshot({
   x:500,hp:12,walletCents:9900,resources:[{name:'Gold',count:999}]
 });
 assert.deepEqual(sharedSnapshot,{placedStructures:[{type:'house',x:20,y:40}],farmCrops:[{crop:'wheat',x:10,y:10}]});
-assert.equal(m.sanitizeSharedWorldSnapshot({resources:[{name:'Gold',count:999}],walletCents:100}),{});
+assert.deepEqual(m.sanitizeSharedWorldSnapshot({resources:[{name:'Gold',count:999}],walletCents:100}),{});
 assert.equal(m.sanitizeSharedWorldSnapshot({placedStructures:'x'.repeat(61000)}),null);
 assert.equal(m.sanitizeSharedWorldSnapshot(null),null);
 console.log('SkyRealm multiplayer core tests passed.');
