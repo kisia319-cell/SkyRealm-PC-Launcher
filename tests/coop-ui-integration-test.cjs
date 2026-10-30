@@ -7,6 +7,7 @@ const ui = fs.readFileSync('game/multiplayer-ui.js','utf8');
 const client = fs.readFileSync('game/multiplayer-client.js','utf8');
 const game = fs.readFileSync('game/game.js','utf8');
 const edge = fs.readFileSync('supabase/functions/skyrealm-coop/index.ts','utf8');
+const core = require('../game/multiplayer-core.js');
 
 const requiredIds = [
   'menu-coop','coop-shade','coop-title','coop-message','coop-no-room',
@@ -70,7 +71,6 @@ assert.ok(ui.includes('startMonitors();') && ui.includes('window.addEventListene
 
 assert.ok(client.includes("const root=typeof globalThis!=='undefined'?globalThis:window;"), 'Client adapter must define its global root');
 assert.ok(client.includes('const safeClock=root.SkyRealmMultiplayerCore?.sanitizeWorldClock;'), 'Client must bind the world-clock sanitizer');
-const core = require('../game/multiplayer-core.js');
 const sandbox = { Map, URL, Promise, setTimeout, clearTimeout, console };
 sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
