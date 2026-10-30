@@ -41,6 +41,7 @@ const remotePlayers=new Map();
 const safePosition=root.SkyRealmMultiplayerCore?.sanitizePlayerPosition;
 const safeClock=root.SkyRealmMultiplayerCore?.sanitizeWorldClock;
 const safeSharedSnapshot=root.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot;
+const safeWorldAction=root.SkyRealmMultiplayerCore?.sanitizeWorldAction;
 function loadRealtimeSdk(){
   if(window.supabase?.createClient)return Promise.resolve(window.supabase);
   if(realtimeSdkPromise)return realtimeSdkPromise;
@@ -184,6 +185,38 @@ window.SkyRealmCoopClient=Object.freeze({
       room_id:currentRoom.id,object_kind:objectKind,object_id:objectId
     });
     return data.claim||null;
+  },
+  async enqueueWorldAction(actionType,payload,requestedActionId=null){
+    if(!currentRoom?.id||currentRoom.status!=='running')throw new Error('Комната не запущена.');
+    const safe=typeof safeWorldAction==='function'?safeWorldAction(actionType,payload):null;
+    if(!safe)throw new Error('Недопустимое действие общего мира.');
+    const actionId=requestedActionId||window.crypto?.randomUUID?.();
+    if(!actionId)throw new Error('Для отправки действия требуется безопасный генератор случайных кодов.');
+    const data=await request('/api/coop/actions/enqueue','POST',{room_id:currentRoom.id,action_id:actionId,action_type:actionType,payload:safe});
+    return data.action||null;
+  },
+  async getPendingWorldActions(limit=25){
+    if(!this.isRoomOwner||!currentRoom?.id||currentRoom.status!=='running')return [];
+    const data=await request('/api/coop/actions/pending','POST',{room_id:currentRoom.id,limit});
+    return Array.isArray(data.actions)?data.actions:[];
+  },
+  async getWorldActionStatus(actionId){
+    if(!currentRoom?.id)throw new Error('Нет активной комнаты.');
+    const data=await request('/api/coop/actions/status','POST',{room_id:currentRoom.id,action_id:actionId});
+    return data.action||null;
+  },
+  async commitWorldAction(actionId,payload){
+    if(!this.isRoomOwner||!currentRoom||currentRoom.status!=='running')return false;
+    const safe=typeof safeSharedSnapshot==='function'?safeSharedSnapshot(payload):null;
+    if(!safe||!Object.keys(safe).length)return false;
+    const data=await request('/api/coop/actions/commit','POST',{room_id:currentRoom.id,action_id:actionId,expected_version:snapshotVersion,payload:safe});
+    if(data.result&&currentRoom)snapshotVersion=Number(data.result.version)||snapshotVersion;
+    return data.result||false;
+  },
+  async rejectWorldAction(actionId,reason='invalid'){
+    if(!this.isRoomOwner||!currentRoom?.id)return false;
+    const data=await request('/api/coop/actions/reject','POST',{room_id:currentRoom.id,action_id:actionId,reason:String(reason).slice(0,120)});
+    return data.result||false;
   },
   async getWorldSnapshot(){
     if(!currentRoom?.id)throw new Error('Нет активной комнаты.');
