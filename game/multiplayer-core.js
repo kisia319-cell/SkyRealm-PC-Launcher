@@ -70,11 +70,13 @@
     if(typeof actionType!=='string'||!input||typeof input!=='object'||Array.isArray(input))return null;
     const keys=Object.keys(input);
     if(actionType==='mine_rock'){
-      if(keys.length!==2||keys.some(key=>!['rock_index','tool'].includes(key)))return null;
-      const rockIndex=Number(input.rock_index),tool=input.tool;
+      if(keys.some(key=>!['rock_index','tool','player_class','miner_skill_level'].includes(key))||!['rock_index','tool'].every(key=>keys.includes(key)))return null;
+      const rockIndex=Number(input.rock_index),tool=input.tool,playerClass=input.player_class,minerSkill=input.miner_skill_level;
+      if(playerClass!==undefined&&!['swordsman','farmer','ordinary','archer','mage','miner'].includes(playerClass))return null;
+      if(minerSkill!==undefined&&(!Number.isSafeInteger(minerSkill)||minerSkill<0||minerSkill>5))return null;
       if(!Number.isSafeInteger(rockIndex)||rockIndex<0||rockIndex>64||
          !['Кирка','Улучшенная кирка','Кирка мастера'].includes(tool))return null;
-      return {rock_index:rockIndex,tool};
+      return {...{rock_index:rockIndex,tool},...(playerClass?{player_class:playerClass}:{}),...(minerSkill!==undefined?{miner_skill_level:minerSkill}:{})};
     }
     if(actionType==='chop_tree'){
       if(keys.length!==3||keys.some(key=>!['x','y','tool'].includes(key))||input.tool!=='Топор')return null;
@@ -87,9 +89,11 @@
     let allowed=[];
     if(actionType==='place_structure')allowed=['type','x','y'];
     else if(actionType==='farm_plant')allowed=['x','y','crop_id'];
-    else if(['farm_water','farm_compost','farm_fertilize','farm_harvest'].includes(actionType))allowed=['x','y'];
+    else if(['farm_water','farm_compost','farm_fertilize'].includes(actionType))allowed=['x','y'];
+    else if(actionType==='farm_harvest')allowed=['x','y','player_class','farmer_skill_level','has_sickle'];
     else return null;
-    if(keys.some(key=>!allowed.includes(key))||keys.length!==allowed.length)return null;
+    if(keys.some(key=>!allowed.includes(key))||!['x','y'].every(key=>keys.includes(key)))return null;
+    if(actionType==='farm_harvest'&&(input.player_class!==undefined&&!['swordsman','farmer','ordinary','archer','mage','miner'].includes(input.player_class)||input.farmer_skill_level!==undefined&&(!Number.isSafeInteger(input.farmer_skill_level)||input.farmer_skill_level<0||input.farmer_skill_level>5)||input.has_sickle!==undefined&&typeof input.has_sickle!=='boolean'))return null;
     const x=Number(input.x),y=Number(input.y);
     if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>12000||y<0||y>10000)return null;
     const gx=Math.round((x-16)/32)*32+16,gy=Math.round((y-16)/32)*32+16;
@@ -104,7 +108,7 @@
       if(!crops.includes(input.crop_id))return null;
       return {x:gx,y:gy,crop_id:input.crop_id};
     }
-    return {x:gx,y:gy};
+    return {x:gx,y:gy,...(actionType==='farm_harvest'?{...(input.player_class?{player_class:input.player_class}:{}),...(input.farmer_skill_level!==undefined?{farmer_skill_level:input.farmer_skill_level}:{}),...(input.has_sickle!==undefined?{has_sickle:input.has_sickle}:{})}:{})};
   }
 
   function sanitizeWorldClock(input){
