@@ -64,4 +64,14 @@ assert.equal(shortResetResponse.status, 400, "password reset should reject a sho
 const shortReset = await shortResetResponse.json();
 assert.equal(shortReset?.detail?.code, "INVALID_PASSWORD");
 
+
+const invalidRecoveryCodeResponse = await fetch(url("/api/auth/reset-password"), {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ email: "player@example.com", code: "abc", password: "new-valid-password" }),
+});
+assert.equal(invalidRecoveryCodeResponse.status, 400, "password reset should reject a malformed recovery code");
+const invalidRecoveryCode = await invalidRecoveryCodeResponse.json();
+assert.equal(invalidRecoveryCode?.detail?.code, "INVALID_RECOVERY_CODE");
+
 console.log("SkyRealm auth smoke tests passed.");
