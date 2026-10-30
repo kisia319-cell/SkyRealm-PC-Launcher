@@ -85,5 +85,18 @@ jobs:
             payload: { mineRocks: [] },
             result: {}
           });
-          console.log('Co-op health is OK; current, snapshot, world-claim, farm and mining routes reject missing sessions.');
+          await assertProtected('/api/coop/actions/enqueue', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174097',
+            action_type: 'chop_tree',
+            payload: { x: 144, y: 177, tool: 'Топор' }
+          });
+          await assertProtected('/api/coop/actions/commit-tree', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174097',
+            expected_version: 0,
+            payload: { adventureQuestProgress: { treeChops: [], felledTrees: [] } },
+            result: {}
+          });
+          console.log('Co-op health is OK; current, snapshot, world-claim, farm, mining and tree routes reject missing sessions.');
           NODE
