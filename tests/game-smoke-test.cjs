@@ -41,6 +41,12 @@ assert.match(version, /^\d+\.\d+\.\d+$/, 'game/version.txt must be a semantic ve
 assert.ok(gameHtml.includes(version), 'game/index.html version label must match game/version.txt');
 
 for (const feature of [
+  'function findWorldEventPoint',
+  'function updateWorldEvents',
+  'function drawWorldEventCamp',
+  'function drawWorldEventTraveler',
+  'function collectWorldEventCamp',
+  'function collectWorldEventTraveler',
   'function generateMineStock',
   'function craftEquipment',
   'function enterDungeon',
@@ -85,6 +91,9 @@ assert.ok(gameHtml.includes('id="anvil-enchant-weapon"'), 'Enchanting button mus
 assert.ok(game.includes("getElementById('anvil-enchant-weapon')"), 'Enchanting button must be wired');
 assert.ok(game.includes('weaponEnchantments'), 'Weapon enchantments must be persisted');
 assert.ok(game.includes("weatherMode==='snow'") && game.includes("weatherMode==='storm'"), 'Snow and storm weather must be rendered');
+assert.ok(game.includes('const WORLD_EVENT_CHANCES') && game.includes("meteor:.12") && game.includes("nightHorde:.07") && game.includes("abandonedCamp:.10") && game.includes("traveler:.08"), 'Random world events must have distinct configured chances');
+assert.ok(game.includes('lastWorldMeteorNight') && game.includes('lastWorldHordeNight') && game.includes('lastWorldCampDay') && game.includes('lastWorldTravelerDay'), 'World events must use persisted cooldown markers');
+assert.ok(game.includes('worldEventCamp:worldEventCamp?') && game.includes('worldEventTraveler:worldEventTraveler?'), 'World event locations must be saved with the world');
 assert.ok(game.includes('villageQuestStage') && game.includes('dogBehavior'), 'Village quest chain and dog commands must persist');
 assert.ok(game.includes('function drawBlacksmith') && game.includes('function talkToBlacksmith'), 'Blacksmith NPC and multi-stage quest chain must exist');
 assert.ok(game.includes('function drawExplorer') && game.includes('function talkToExplorer'), 'Explorer NPC and multi-stage quest chain must exist');
