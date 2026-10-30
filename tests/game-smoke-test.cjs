@@ -136,3 +136,11 @@ assert.ok(py.includes('def _skyrealm_startup_update():') && py.includes('if _sky
 assert.ok(py.includes('manifest.get("version"') && py.includes('manifest.get("download_url"') && py.includes('manifest.get("sha256"'), 'Launcher self-updater must use the published manifest and checksum');
 assert.ok(py.includes('bin/SkyRealmUpdater.exe') && py.includes('os.getpid()'), 'Launcher must hand off replacement to the separate updater helper');
 assert.ok(updater.includes('expected_version') && updater.includes('launcher_version.txt') && updater.includes('relaunched.poll()'), 'Updater helper must verify the package version and roll back if the new launcher fails to start');
+
+assert.ok(game.includes("return 'snow';"), 'The default world biome must be winter');
+assert.ok(game.includes("drawCabin(camX,camY); drawTradeShop") && !game.includes("drawCabin(camX,camY); drawBlacksmith(camX,camY,time)"), 'Old starter-base NPCs must no longer be rendered');
+assert.ok(!game.includes("talkToBlacksmith();return") && !game.includes("talkToVillageElder();return") && !game.includes("talkToExplorer();return"), 'Old starter-base NPC interactions must be disabled');
+assert.ok(game.includes("name: 'Лопата', icon: '🪏', count: 1"), 'A shovel must be available from the start');
+assert.ok(game.includes("if(hits>=3)") && game.includes("snowShovelHits") && game.includes("clearedSnowTiles"), 'Snow must take three shovel hits and persist its cleared state');
+assert.ok(game.includes("selectedInventoryItem()?.name==='Лопата'") && game.includes("shovelSnowAt(screenX+camX,screenY+camY)"), 'The shovel must work with Space and clicking a snow tile');
+assert.ok(game.includes("drawTree(t,camX,camY)") && game.includes("const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow'"), 'Trees in the winter biome must have snow-covered branches');
