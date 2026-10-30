@@ -87,6 +87,8 @@ async function rpc(name: string, args: Record<string, unknown>) {
     if (message.includes("OWNER_ONLY")) throw new ApiError(403, "OWNER_ONLY", "Это действие доступно только владельцу комнаты.");
     if (message.includes("ALREADY_IN_ROOM")) throw new ApiError(409, "ALREADY_IN_ROOM", "Сначала выйди из текущей активной комнаты.");
     if (message.includes("ROOM_NOT_PAUSED")) throw new ApiError(409, "ROOM_NOT_PAUSED", "Комната сейчас не находится на паузе.");
+    if (message.includes("ROOM_NOT_IN_LOBBY")) throw new ApiError(409, "ROOM_NOT_IN_LOBBY", "Комната уже запущена или находится на паузе.");
+    if (message.includes("INVALID_WORLD_DIFFICULTY")) throw new ApiError(400, "INVALID_WORLD_DIFFICULTY", "Выбрана неизвестная сложность мира.");
     if (message.includes("NOT_A_MEMBER")) throw new ApiError(403, "NOT_A_MEMBER", "Ты больше не состоишь в этой комнате.");
     if (message.includes("ROOM_NOT_FOUND")) throw new ApiError(404, "ROOM_NOT_FOUND", "Комната не найдена.");
     console.error("[SkyRealm Co-op RPC]", name, response.status, payload);
@@ -109,16 +111,19 @@ Deno.serve(async (req: Request) => {
   }
   const route = routeFor(req);
   if (route === "/health" && req.method === "GET") {
-    return reply({ status: "ok", service: "skyrealm-coop", version: "0.1.0" });
+    return reply({ status: "ok", service: "skyrealm-coop", version: "0.2.0" });
   }
   try {
     const user = await authenticate(req);
     const body = req.method === "POST" ? await parseBody(req) : {};
     if (route === "/api/coop/create" && req.method === "POST") {
       const inviteCode = newInviteCode();
-      const created = await rpc("create_co_op_room", {
-        p_owner_id: user.id,
-        p_code_hash: await sha256(inviteCode),
+      const difficulty = typeof body.world_difficulty === "string" ? body.world_difficulty : "medium";
+      if (!["easy","medium","hard","hell","impossible"].includes(difficulty)) {
+        throw new ApiError(400,"INVALID_WORLD_DIFFICULTY","Выбери одну из доступных сложностей.");
+      }
+      const created = await rpc("create_co_op_room_with_settings", {
+        p_owner_id: user.id, p_code_hash: await sha256(inviteCode), p_world_difficulty: difficulty,
       });
       return reply({ room: created, invite_code: inviteCode });
     }
@@ -130,6 +135,10 @@ Deno.serve(async (req: Request) => {
         p_code_hash: await sha256(code),
       });
       return reply({ room });
+    }
+    if (route === "/api/coop/start" && req.method === "POST") {
+      const result = await rpc("start_co_op_room", { p_user_id: user.id, p_room_id: roomId(body.room_id) });
+      return reply({ room: result });
     }
     if (route === "/api/coop/current" && req.method === "GET") {
       const room = await rpc("get_my_co_op_room", { p_user_id: user.id });

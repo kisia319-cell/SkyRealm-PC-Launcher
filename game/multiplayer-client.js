@@ -2,7 +2,7 @@
 'use strict';
 const API_URL='https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-coop';
 const PUBLIC_KEY='sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL';
-let token='',tokenPromise=null,userId='';
+let token='',tokenPromise=null,userId='',currentRoom=null;
 async function getToken(){
   if(token)return token;
   if(tokenPromise)return tokenPromise;
@@ -134,12 +134,14 @@ window.SkyRealmCoopClient=Object.freeze({
     }
     return result;
   },
-  async current(){const data=await request('/api/coop/current');return data.room||null;},
-  async create(){const data=await request('/api/coop/create','POST',{});return {room:data.room,inviteCode:data.invite_code};},
-  async join(code){const data=await request('/api/coop/join','POST',{invite_code:code});return data.room;},
-  async leave(roomId){return request('/api/coop/leave','POST',{room_id:roomId});},
-  async resume(roomId){return request('/api/coop/resume','POST',{room_id:roomId});},
-  async setPvp(roomId,enabled){return request('/api/coop/pvp','POST',{room_id:roomId,enabled});},
+  getWorldSession(){if(!currentRoom||currentRoom.status!=='running')return null;return {id:currentRoom.id,world_difficulty:currentRoom.world_difficulty||'medium'};},
+  async current(){const data=await request('/api/coop/current');currentRoom=data.room||null;return currentRoom;},
+  async create(difficulty='medium'){const data=await request('/api/coop/create','POST',{world_difficulty:difficulty});currentRoom=data.room||null;return {room:currentRoom,inviteCode:data.invite_code};},
+  async join(code){const data=await request('/api/coop/join','POST',{invite_code:code});currentRoom=data.room||null;return currentRoom;},
+  async start(roomId){const data=await request('/api/coop/start','POST',{room_id:roomId});currentRoom={...(currentRoom||{}),...(data.room||{})};return currentRoom;},
+  async leave(roomId){const data=await request('/api/coop/leave','POST',{room_id:roomId});currentRoom=null;return data;},
+  async resume(roomId){const data=await request('/api/coop/resume','POST',{room_id:roomId});currentRoom={...(currentRoom||{}),...(data.room||{})};return data;},
+  async setPvp(roomId,enabled){const data=await request('/api/coop/pvp','POST',{room_id:roomId,enabled});currentRoom={...(currentRoom||{}),...(data.room||{})};return data;},
   async heartbeat(roomId){return request('/api/coop/heartbeat','POST',{room_id:roomId});},
   async recoverOwner(roomId){return request('/api/coop/recover-owner','POST',{room_id:roomId});}
 });

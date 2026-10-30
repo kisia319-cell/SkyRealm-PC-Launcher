@@ -1732,11 +1732,15 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function confirmDifficultySelection(id){const worldId=pendingWorldId;if(!worldId)return;closeDifficultyPicker();enterWorld(worldId,id);}
   function enterWorld(id,difficultyChoice=null){
     const record=readWorlds().find(w=>w.id===id);if(!record){toast('Этот мир не найден. Обнови список миров.');renderWorldList();return;}
-    if(difficultyChoice&&DIFFICULTIES[difficultyChoice]){difficultyMigrationPending=!DIFFICULTIES[record.difficulty];record.difficulty=difficultyChoice;record.updatedAt=Date.now();writeWorlds(readWorlds().map(w=>w.id===record.id?record:w));}
-    if(!DIFFICULTIES[record.difficulty]){openDifficultyPicker(id);return;}
-    const migrateLegacyDifficulty=difficultyMigrationPending;difficultyMigrationPending=false;setWorldDifficulty(record.difficulty);configureTreasureChests();setupWorld();
-    currentWorldId=record.id;currentWorldName=record.name;saveKey=worldSaveKey(record.id);localStorage.setItem('skyrealm_active_world_id',record.id);mineMode=false;workbenchDialogOpen=false;
-    resetWorldState();createMineForWorld(record.id);loadGame();if(migrateLegacyDifficulty&&caveBossHp>0&&Number.isFinite(caveBossHp)&&caveBossHp<=260&&!caveBossDefeated)caveBossHp=bossMaxHp();markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
+    const coopSession=window.SkyRealmCoopClient?.getWorldSession?.()||null;
+    if(!coopSession&&difficultyChoice&&DIFFICULTIES[difficultyChoice]){difficultyMigrationPending=!DIFFICULTIES[record.difficulty];record.difficulty=difficultyChoice;record.updatedAt=Date.now();writeWorlds(readWorlds().map(w=>w.id===record.id?record:w));}
+    const selectedDifficulty=coopSession?(coopSession.world_difficulty||'medium'):record.difficulty;
+    if(!DIFFICULTIES[selectedDifficulty]){openDifficultyPicker(id);return;}
+    const migrateLegacyDifficulty=!coopSession&&difficultyMigrationPending;difficultyMigrationPending=false;setWorldDifficulty(selectedDifficulty);configureTreasureChests();setupWorld();
+    currentWorldId=record.id;currentWorldName=coopSession?('Кооператив · '+record.name):record.name;
+    saveKey=coopSession?('skyrealm_coop_save_v1_'+coopSession.id+'_'+window.SkyRealmCoopClient.userId):worldSaveKey(record.id);
+    localStorage.setItem('skyrealm_active_world_id',record.id);mineMode=false;workbenchDialogOpen=false;
+    resetWorldState();createMineForWorld(coopSession?('skyrealm-coop-'+coopSession.id):record.id);loadGame();if(migrateLegacyDifficulty&&caveBossHp>0&&Number.isFinite(caveBossHp)&&caveBossHp<=260&&!caveBossDefeated)caveBossHp=bossMaxHp();markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
     document.querySelector('.realm-sub').textContent=record.name+' · '+difficultyConfig().name.toUpperCase()+' · ПЕРВЫЙ РАССВЕТ';
     document.getElementById('main-menu-shade').hidden=true;document.getElementById('main-menu-shade').setAttribute('aria-hidden','true');
     document.getElementById('pause-shade').hidden=true;document.getElementById('pause-main-view').hidden=false;document.getElementById('pause-settings-view').hidden=true;

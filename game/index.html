@@ -290,10 +290,14 @@
   <div class="dialog coop-dialog">
     <div class="dialog-mark">♧</div><div class="eyebrow">SKYREALM · СОВМЕСТНОЕ ПРИКЛЮЧЕНИЕ</div>
     <h1 id="coop-title">Кооператив</h1>
-    <p class="coop-muted">Закрытая комната до 8 игроков. Войти можно только по коду приглашения.</p>
+    <p class="coop-muted">Закрытая комната до 8 игроков. Карта поверхности одинакова при общей сложности; предметы, постройки и враги пока сохраняются отдельно у каждого.</p>
     <div id="coop-message" class="coop-status" role="status">Проверяем аккаунт и состояние комнаты…</div>
     <section id="coop-no-room">
       <div class="coop-fields">
+        <label class="coop-muted" for="coop-difficulty">Сложность общей карты</label>
+        <select class="coop-input" id="coop-difficulty" aria-label="Сложность общей карты">
+          <option value="easy">Легко</option><option value="medium" selected>Средняя</option><option value="hard">Сложно</option><option value="hell">Жар</option><option value="impossible">Невозможно</option>
+        </select>
         <button class="action" id="coop-create" type="button">＋ Создать комнату</button>
         <input class="coop-input" id="coop-code" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="КОД ПРИГЛАШЕНИЯ · 8 СИМВОЛОВ" aria-label="Код приглашения">
         <button class="action secondary" id="coop-join" type="button">Войти по коду</button>
@@ -308,6 +312,7 @@
         <label class="coop-toggle-row" id="coop-pvp-row"><span><b>PvP</b><br><small>Настройка комнаты сохранена; урон между игроками подключится на этапе общей боевой системы</small></span><input type="checkbox" id="coop-pvp"></label>
       </div>
       <div class="coop-actions">
+        <button class="action" id="coop-start" type="button" hidden>▶ Начать совместную сессию</button>
         <button class="action secondary" id="coop-resume" type="button" hidden>▶ Возобновить комнату</button>
         <button class="action secondary" id="coop-refresh" type="button">↻ Обновить список</button>
         <button class="action secondary" id="coop-leave" type="button">Покинуть комнату</button>

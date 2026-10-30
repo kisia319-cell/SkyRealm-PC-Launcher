@@ -12,6 +12,12 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 - PvP is a persisted owner-only setting, defaults OFF.
 - Shared death is stored as \`shared\`; the existing difficulty-specific death rules must be wired into the shared simulation phase.
 
+## Shared map session foundation
+- The room owner chooses one of the existing difficulties before creating the room and explicitly starts the session.
+- Each participant entering a local world while the room is running is forced to the room difficulty and uses a co-op save key scoped to room + account. Original solo save keys and data are not overwritten.
+- Surface geometry is deterministic from tile coordinates and selected difficulty, so matching difficulty produces the same static map layout. The mine layout uses a stable room-scoped identifier.
+- This is not yet shared progression: buildings, resources, inventory, creatures, loot, time and combat still remain local to each participant.
+
 ## Backend delivered
 - Dedicated Supabase Edge Function \`skyrealm-coop\`, independent of the existing \`skyrealm-auth\`.
 - Routes: \`/health\`, \`/api/coop/create\`, \`/api/coop/join\`, \`/api/coop/current\`, \`/api/coop/leave\`, \`/api/coop/resume\`, \`/api/coop/pvp\`, \`/api/coop/heartbeat\`, \`/api/coop/recover-owner\`.

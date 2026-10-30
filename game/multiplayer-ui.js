@@ -9,8 +9,10 @@ function statusText(status){return ({lobby:'Ожидание игроков',run
 function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function render(){
   $('coop-no-room').classList.toggle('coop-hidden',!!room);$('coop-has-room').classList.toggle('coop-hidden',!room);if(!room)return;
-  $('coop-room-status').textContent=statusText(room.status);$('coop-room-id').textContent='ID: '+room.id;
-  $('coop-resume').hidden=!(isOwner()&&room.status==='paused');$('coop-pvp-row').classList.toggle('coop-hidden',!isOwner());$('coop-pvp').checked=!!room.pvp_enabled;
+  $('coop-room-status').textContent=statusText(room.status);$('coop-room-id').textContent='ID: '+room.id+' · Сложность: '+({easy:'Легко',medium:'Средняя',hard:'Сложно',hell:'Жар',impossible:'Невозможно'}[room.world_difficulty]||'Средняя');
+  $('coop-resume').hidden=!(isOwner()&&room.status==='paused');
+  $('coop-start').hidden=!(isOwner()&&room.status==='lobby');
+  $('coop-pvp-row').classList.toggle('coop-hidden',!isOwner());$('coop-pvp').checked=!!room.pvp_enabled;
   const members=Array.isArray(room.members)?room.members:[];
   $('coop-members').innerHTML=members.map(member=>{
     const name=escapeHtml(member.username||('Игрок '+String(member.user_id||'').slice(0,8)));
@@ -65,11 +67,12 @@ async function open(){
 }
 function close(){shade.hidden=true;shade.setAttribute('aria-hidden','true');}
 $('menu-coop').addEventListener('click',open);$('coop-close').addEventListener('click',close);
-$('coop-create').addEventListener('click',()=>action(()=>client.create(),'Комната создана. Скопируй код и отправь друзьям.'));
+$('coop-create').addEventListener('click',()=>action(()=>client.create($('coop-difficulty').value),'Комната создана. Отправь код друзьям; когда они войдут, запускай сессию.'));
 $('coop-join').addEventListener('click',()=>{const code=$('coop-code').value.trim().toUpperCase().replace(/[-\s]/g,'');action(()=>client.join(code),'Ты присоединился к комнате.');});
 $('coop-refresh').addEventListener('click',()=>refresh());
 $('coop-leave').addEventListener('click',()=>action(async()=>{if(!room)return;await client.leave(room.id);await client.disconnectRealtime();realtimeAttemptedRoom='';inviteCode='';room=null;},'Ты покинул комнату. Если ты владелец, комната поставлена на паузу.'));
 $('coop-resume').addEventListener('click',()=>action(()=>client.resume(room.id),'Комната возобновлена владельцем.'));
+$('coop-start').addEventListener('click',()=>action(async()=>{const started=await client.start(room.id);close();return started;},'Сетевая сессия запущена. Теперь выбери мир той же сложности.'));
 $('coop-pvp').addEventListener('change',event=>action(()=>client.setPvp(room.id,event.target.checked),'Настройка PvP сохранена.'));
 $('coop-copy').addEventListener('click',async()=>{if(!inviteCode)return;try{await navigator.clipboard.writeText(inviteCode);setMessage('Код приглашения скопирован.');}catch(_){const code=$('coop-invite-code'),range=document.createRange();range.selectNodeContents(code);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);setMessage('Код выделен — нажми Ctrl+C.');}});
 $('coop-code').addEventListener('input',event=>{event.target.value=event.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9-]/g,'').slice(0,10);});
