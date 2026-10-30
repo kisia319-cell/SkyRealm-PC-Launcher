@@ -2,7 +2,7 @@
 'use strict';
 const API_URL='https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-coop';
 const PUBLIC_KEY='sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL';
-let token='',tokenPromise=null,userId='',currentRoom=null;
+let token='',tokenPromise=null,userId='',currentRoom=null,clockReceivedAt=0,clockWriteInFlight=false;
 async function getToken(){
   if(token)return token;
   if(tokenPromise)return tokenPromise;
@@ -115,6 +115,7 @@ async function connectRealtime(room,handlers={}){
 
 window.SkyRealmCoopClient=Object.freeze({
   get userId(){return userId;},
+  get isRoomOwner(){return !!currentRoom&&currentRoom.owner_id===userId;},
   connectRealtime,
   disconnectRealtime,
   async sendPosition(position){
@@ -135,7 +136,29 @@ window.SkyRealmCoopClient=Object.freeze({
     return result;
   },
   getWorldSession(){if(!currentRoom||currentRoom.status!=='running')return null;return {id:currentRoom.id,world_difficulty:currentRoom.world_difficulty||'medium'};},
-  async current(){const data=await request('/api/coop/current');currentRoom=data.room||null;return currentRoom;},
+  getWorldClock(){
+    if(!currentRoom||!Number.isFinite(Number(currentRoom.world_clock_minute)))return null;
+    return {minute_total:Number(currentRoom.world_clock_minute),survived_nights:Number(currentRoom.world_survived_nights)||0,
+      blood_moon_active:currentRoom.world_blood_moon_active===true,received_at:clockReceivedAt};
+  },
+  async setWorldClock(state){
+    if(!this.isRoomOwner||!currentRoom||clockWriteInFlight)return false;
+    const safe=typeof safeClock==='function'?safeClock(state):null;
+    if(!safe)return false;
+    clockWriteInFlight=true;
+    try{
+      const data=await request('/api/coop/clock','POST',{room_id:currentRoom.id,...safe});
+      if(currentRoom&&currentRoom.id===data.clock.room_id){
+        currentRoom.world_clock_minute=data.clock.minute_total;
+        currentRoom.world_survived_nights=data.clock.survived_nights;
+        currentRoom.world_blood_moon_active=data.clock.blood_moon_active;
+        currentRoom.world_clock_updated_at=data.clock.updated_at;
+        clockReceivedAt=Date.now();
+      }
+      return true;
+    }finally{clockWriteInFlight=false;}
+  },
+  async current(){const data=await request('/api/coop/current');currentRoom=data.room||null;clockReceivedAt=Date.now();return currentRoom;},
   async create(difficulty='medium'){const data=await request('/api/coop/create','POST',{world_difficulty:difficulty});currentRoom=data.room||null;return {room:currentRoom,inviteCode:data.invite_code};},
   async join(code){const data=await request('/api/coop/join','POST',{invite_code:code});currentRoom=data.room||null;return currentRoom;},
   async start(roomId){const data=await request('/api/coop/start','POST',{room_id:roomId});currentRoom={...(currentRoom||{}),...(data.room||{})};return currentRoom;},

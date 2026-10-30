@@ -889,6 +889,16 @@
     updateSkipDayHud();
   }
   function updateWorldClock(dt){
+    const coopNetwork=window.SkyRealmCoopClient;
+    const coopSession=coopNetwork?.getWorldSession?.();
+    const sharedClock=coopNetwork?.getWorldClock?.();
+    const remoteClockActive=!!(coopSession&&!coopNetwork.isRoomOwner&&sharedClock&&Date.now()-sharedClock.received_at<15000);
+    if(remoteClockActive){
+      gameMinuteTotal=sharedClock.minute_total;
+      survivedNights=sharedClock.survived_nights;
+      bloodMoonActive=sharedClock.blood_moon_active;
+      lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
+    }
     const wasNightBefore=isNightTime();
     const previousMinute=gameMinuteTotal;
     gameMinuteTotal+=dt;
@@ -901,7 +911,7 @@
     const newMinuteOfDay=((gameMinuteTotal%GAME_MINUTES_PER_DAY)+GAME_MINUTES_PER_DAY)%GAME_MINUTES_PER_DAY;
     // Count only an actual clock crossing through dawn. Manual admin time jumps never pass through this path.
     const crossedDawn=(oldMinuteOfDay<DAWN_MINUTE && newMinuteOfDay>=DAWN_MINUTE && gameMinuteTotal-previousMinute<60) || (oldMinuteOfDay>newMinuteOfDay && newMinuteOfDay>=DAWN_MINUTE && newMinuteOfDay<DAWN_MINUTE+2);
-    if(crossedDawn){survivedNights++;refreshMineDailyStock();if(bloodMoonActive&&bloodMoonRewardPending){walletCents+=2500;changeItem('Кристалл',2);bloodMoonRewardPending=false;toast('КРОВАВАЯ ЛУНА пережита! Награда: 25 золота и 2 кристалла.');}else toast('Рассвет! Ты пережил ночь. Всего ночей: '+survivedNights+'.');bloodMoonActive=false;saveGame();}
+    if(crossedDawn&&!remoteClockActive){survivedNights++;refreshMineDailyStock();if(bloodMoonActive&&bloodMoonRewardPending){walletCents+=2500;changeItem('Кристалл',2);bloodMoonRewardPending=false;toast('КРОВАВАЯ ЛУНА пережита! Награда: 25 золота и 2 кристалла.');}else toast('Рассвет! Ты пережил ночь. Всего ночей: '+survivedNights+'.');bloodMoonActive=false;saveGame();}
     lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
     const nightNow=isNightTime();
     if(nightNow&&!wasNightBefore){
@@ -1451,11 +1461,18 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   // Top-level frame guard: an exception in simulation/update code must not stop RAF forever.
   // The previous guard covered draw() only, so an error earlier in tick could leave the canvas black.
 
-  let coopPositionSendTimer=0;
+  let coopPositionSendTimer=0,coopClockSendTimer=0;
   function updateCoopPosition(dt){
     const network=window.SkyRealmCoopClient;
-    if(!network||typeof network.sendPosition!=='function'||!currentWorldId||inMainMenu||paused)return;
-    if(inHouse||mineMode||caveMode||dungeonMode)return;
+    if(!network||!currentWorldId||inMainMenu||paused)return;
+    if(network.isRoomOwner&&typeof network.setWorldClock==='function'){
+      coopClockSendTimer-=dt;
+      if(coopClockSendTimer<=0){
+        coopClockSendTimer=2;
+        network.setWorldClock({minute_total:gameMinuteTotal,survived_nights:survivedNights,blood_moon_active:bloodMoonActive}).catch(()=>{});
+      }
+    }
+    if(typeof network.sendPosition!=='function'||inHouse||mineMode||caveMode||dungeonMode)return;
     coopPositionSendTimer-=dt;
     if(coopPositionSendTimer>0)return;
     coopPositionSendTimer=.125;
