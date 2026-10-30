@@ -59,5 +59,18 @@ jobs:
             expected_version: 0,
             payload: { placedStructures: [] }
           });
-          console.log('Co-op health is OK; current, snapshot and world-claim routes reject missing sessions.');
+          await assertProtected('/api/coop/actions/enqueue', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174099',
+            action_type: 'farm_plant',
+            payload: { x: 112, y: 144, crop_id: 'wheat' }
+          });
+          await assertProtected('/api/coop/actions/commit-farm', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174099',
+            expected_version: 0,
+            payload: { farmCrops: [] },
+            result: { consumed_item: 'Семена пшеницы' }
+          });
+          console.log('Co-op health is OK; current, snapshot, world-claim and guest-action routes reject missing sessions.');
           NODE
