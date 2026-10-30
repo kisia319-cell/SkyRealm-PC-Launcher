@@ -44,7 +44,7 @@ assert.match(client,/setWorldClock/);
 assert.match(game,/syncCoopSharedDeath/);
 assert.match(ui,/refresh\(true\);/);
 
-const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim','actions/enqueue','actions/pending','actions/status','actions/commit','actions/commit-farm','actions/commit-mine','actions/reject'];
+const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim','actions/enqueue','actions/pending','actions/status','actions/commit','actions/commit-farm','actions/commit-mine','actions/commit-tree','actions/reject'];
 for (const route of coopRoutes) {
   assert.ok(client.includes("'/api/coop/" + route + "'"), 'Client calls an unrecognised route: ' + route);
   assert.ok(edge.includes('route === "/api/coop/' + route + '"'), 'Edge Function is missing route: ' + route);
@@ -56,6 +56,8 @@ assert.ok(client.includes('setWorldClock'));
 assert.ok(client.includes('getWorldSnapshot') && client.includes('saveWorldSnapshot'));
 assert.ok(client.includes('commitFarmAction') && edge.includes('commit_co_op_farm_action'),'Farm commits must be wired from the client to the server RPC.');
 assert.ok(client.includes('commitMineAction') && edge.includes('commit_co_op_mine_action'),'Mining commits must be wired from the client to the server RPC.');
+assert.ok(client.includes('commitTreeAction') && edge.includes('commit_co_op_tree_action'),'Tree chopping commits must be wired from the client to the server RPC.');
+assert.ok(edge.includes('actionType === "chop_tree"') && game.includes('queueGuestTreeChop') && game.includes('network.commitTreeAction'),'Guest tree chopping must be owner-mediated.');
 assert.ok(edge.includes('actionType === "mine_rock"'),'Edge Function must validate guest mining requests.');
 assert.ok(game.includes('queueGuestMineAction') && game.includes('network.commitMineAction'),'Guest mine clicks must be processed by the room owner.');
 assert.ok(game.includes('saveKey.startsWith(\'skyrealm_coop_save_v1_\')&&network?.isRoomOwner') && game.includes('network.pauseRoom()'),'Returning from a co-op world as owner must pause only that shared room.');
