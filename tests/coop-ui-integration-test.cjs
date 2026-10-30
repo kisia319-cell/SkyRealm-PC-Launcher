@@ -43,6 +43,11 @@ assert.match(client,/setWorldClock/);
 assert.match(game,/syncCoopSharedDeath/);
 assert.match(ui,/refresh\(true\);/);
 
+const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death'];
+for (const route of coopRoutes) {
+  assert.ok(client.includes("'/api/coop/" + route + "'"), 'Client calls an unrecognised route: ' + route);
+  assert.ok(edge.includes('route === "/api/coop/' + route + '"'), 'Edge Function is missing route: ' + route);
+}
 assert.ok(edge.includes('route === "/api/coop/clock"'));
 assert.ok(edge.includes('route === "/api/coop/death"'));
 assert.ok(client.includes('reportSharedDeath'));

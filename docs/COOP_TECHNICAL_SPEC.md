@@ -25,7 +25,7 @@ Status: Phase 2 backend deployed; Phase 3 lobby UI and auth-token bridge added o
 - New tables: \`co_op_rooms\`, \`co_op_members\`, \`co_op_world_snapshots\`, \`co_op_audit_events\`, and private rate-limit table \`private.co_op_join_limits\`.
 - RLS is enabled. Authenticated clients have no direct SELECT grants; service-role backend policies and RPCs handle authoritative data.
 - Private Realtime channel authorization policies are defined on \`realtime.messages\` for topic \`skyrealm:room:<uuid>\`. Project-wide “Allow public access” must still be switched OFF in dashboard before enabling live Realtime channels.
-- GitHub Actions verifies the core rules, JS parse checks and Python launcher syntax.
+- GitHub Actions verifies core rules, client adapter initialization in a VM, client-to-Edge-Function route parity, JavaScript syntax, Python launcher syntax, and deployed API health plus rejection of unauthenticated requests.
 
 ## Lobby UI delivered
 - New main-menu entry “Кооператив”.
