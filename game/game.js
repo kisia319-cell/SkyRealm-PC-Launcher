@@ -1714,34 +1714,103 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       if(snapshot&&Number(snapshot.version)>lastAppliedCoopSnapshotVersion)applyCoopSnapshot(snapshot);
       const actions=await network.getPendingWorldActions(20);
       for(const action of actions){
-        if(!action?.action_id||action.action_type!=='place_structure')continue;
-        const payload=action.payload||{},type=payload.type,x=Number(payload.x),y=Number(payload.y);
-        const types=['furnace','house','torch','coal','storage','farmplot'];
-        const gx=Math.round((x-16)/TILE)*TILE+16,gy=Math.round((y-16)/TILE)*TILE+16;
-        if(!types.includes(type)||!Number.isFinite(x)||!Number.isFinite(y)||Math.abs(x-gx)>1||Math.abs(y-gy)>1||
-           placedStructures.length>=250||!canPlaceAt(x,y,true)){
-          try{await network.rejectWorldAction(action.action_id,'placement_invalid');}catch(error){console.warn('[SkyRealm co-op action reject]',error);}
+        if(!action?.action_id)continue;
+        const payload=action.payload||{},x=Number(payload.x),y=Number(payload.y);
+        if(action.action_type==='place_structure'){
+          const type=payload.type;
+          const types=['furnace','house','torch','coal','storage','farmplot'];
+          const gx=Math.round((x-16)/TILE)*TILE+16,gy=Math.round((y-16)/TILE)*TILE+16;
+          if(!types.includes(type)||!Number.isFinite(x)||!Number.isFinite(y)||Math.abs(x-gx)>1||Math.abs(y-gy)>1||
+             placedStructures.length>=250||!canPlaceAt(x,y,true)){
+            try{await network.rejectWorldAction(action.action_id,'placement_invalid');}catch(error){console.warn('[SkyRealm co-op action reject]',error);}
+            continue;
+          }
+          const structure={type,x:gx,y:gy,stage:0,growSeconds:0,contents:{},crop:null,moisture:0,fertilized:false};
+          placedStructures.push(structure);
+          if(!saveGame()){
+            const at=placedStructures.indexOf(structure);if(at>=0)placedStructures.splice(at,1);
+            try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}
+            continue;
+          }
+          let localSave=null;try{localSave=JSON.parse(localStorage.getItem(saveKey)||'null');}catch(_){}
+          const safe=window.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot?.(localSave);
+          if(!safe){placedStructures.pop();saveGame();try{await network.rejectWorldAction(action.action_id,'snapshot_invalid');}catch(_){}continue;}
+          try{
+            const result=await network.commitWorldAction(action.action_id,safe);
+            if(!result||result.status!=='applied')throw new Error('Не удалось подтвердить постройку в общей версии мира.');
+            lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(result.version)||0);
+            lastCoopSnapshotSignature=JSON.stringify(safe);drawMinimap();
+            toast('Участник построил объект. Постройка добавлена в общий мир.');
+          }catch(error){
+            const at=placedStructures.indexOf(structure);if(at>=0)placedStructures.splice(at,1);
+            saveGame();console.warn('[SkyRealm co-op action commit]',error);break;
+          }
           continue;
         }
-        const structure={type,x:gx,y:gy,stage:0,growSeconds:0,contents:{},crop:null,moisture:0,fertilized:false};
-        placedStructures.push(structure);
+        const farmTypes=['farm_plant','farm_water','farm_compost','farm_fertilize','farm_harvest'];
+        if(!farmTypes.includes(action.action_type))continue;
+        const plot=placedStructures.find(v=>v.type==='farmplot'&&Math.abs(Number(v.x)-x)<=1&&Math.abs(Number(v.y)-y)<=1);
+        if(!plot||!Number.isFinite(x)||!Number.isFinite(y)){
+          try{await network.rejectWorldAction(action.action_id,'farm_plot_not_found');}catch(_){}
+          continue;
+        }
+        const before={crop:plot.crop,stage:plot.stage,growSeconds:plot.growSeconds,moisture:plot.moisture,fertilized:plot.fertilized};
+        const resultPayload={};
+        let valid=true;
+        if(action.action_type==='farm_plant'){
+          const crop=FARM_CROPS.find(v=>v.id===payload.crop_id);
+          if(!crop||plot.crop){valid=false;}
+          else{
+            plot.crop=crop.id;plot.stage=0;plot.growSeconds=0;plot.moisture=0;plot.fertilized=false;
+            resultPayload.consumed_item=crop.seed;
+          }
+        }else if(action.action_type==='farm_water'){
+          if(!plot.crop){valid=false;}
+          else plot.moisture=Math.min(100,(Number(plot.moisture)||0)+65);
+        }else if(action.action_type==='farm_compost'){
+          if(!plot.crop){valid=false;}
+          else{
+            plot.growSeconds=(Number(plot.growSeconds)||0)+(farmCropById(plot.crop)?.growth||70)*.25;
+            plot.moisture=Math.max(Number(plot.moisture)||0,25);
+            resultPayload.consumed_item='Компост';
+          }
+        }else if(action.action_type==='farm_fertilize'){
+          if(!plot.crop||plot.fertilized){valid=false;}
+          else{plot.fertilized=true;resultPayload.consumed_item='Удобрение';}
+        }else if(action.action_type==='farm_harvest'){
+          const crop=farmCropById(plot.crop);
+          if(!crop||Number(plot.stage)<3){valid=false;}
+          else{
+            const amount=crop.yield+(plot.fertilized?2:0)+(Math.random()<.25?1:0);
+            resultPayload.reward_name=crop.product;resultPayload.reward_amount=amount;
+            plot.stage=0;plot.growSeconds=0;plot.crop=null;plot.moisture=0;plot.fertilized=false;
+          }
+        }
+        if(!valid){
+          try{await network.rejectWorldAction(action.action_id,'farm_action_not_available');}catch(_){}
+          continue;
+        }
         if(!saveGame()){
-          const at=placedStructures.indexOf(structure);if(at>=0)placedStructures.splice(at,1);
-          try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}
+          Object.assign(plot,before);try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}
           continue;
         }
         let localSave=null;try{localSave=JSON.parse(localStorage.getItem(saveKey)||'null');}catch(_){}
         const safe=window.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot?.(localSave);
-        if(!safe){placedStructures.pop();saveGame();try{await network.rejectWorldAction(action.action_id,'snapshot_invalid');}catch(_){}continue;}
+        if(!safe){
+          Object.assign(plot,before);saveGame();
+          try{await network.rejectWorldAction(action.action_id,'snapshot_invalid');}catch(_){}
+          continue;
+        }
         try{
-          const result=await network.commitWorldAction(action.action_id,safe);
-          if(!result||result.status!=='applied')throw new Error('Не удалось подтвердить постройку в общей версии мира.');
-          lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(result.version)||0);
-          lastCoopSnapshotSignature=JSON.stringify(safe);drawMinimap();
-          toast('Участник построил объект. Постройка добавлена в общий мир.');
+          const committed=await network.commitFarmAction(action.action_id,safe,resultPayload);
+          if(!committed||committed.status!=='applied')throw new Error('Не удалось сохранить фермерское действие в общей версии мира.');
+          lastAppliedCoopSnapshotVersion=Math.max(lastAppliedCoopSnapshotVersion,Number(committed.version)||0);
+          lastCoopSnapshotSignature=JSON.stringify(safe);
+          const labels={farm_plant:'Участник посадил культуру.',farm_water:'Участник полил грядку.',farm_compost:'Участник добавил компост.',farm_fertilize:'Участник удобрил грядку.',farm_harvest:'Участник собрал урожай.'};
+          toast(labels[action.action_type]||'Фермерское действие сохранено.');
         }catch(error){
-          const at=placedStructures.indexOf(structure);if(at>=0)placedStructures.splice(at,1);
-          saveGame();console.warn('[SkyRealm co-op action commit]',error);break;
+          Object.assign(plot,before);saveGame();
+          console.warn('[SkyRealm co-op farm action commit]',error);break;
         }
       }
     }catch(error){console.warn('[SkyRealm co-op action queue]',error);}
