@@ -1637,7 +1637,7 @@
       toast('Подойди к кровати, верстаку или двери.');return;
     }
     if(interactWolfCage())return;
-    const nearbyNpc=nearestVillageNpc();if(nearbyNpc){talkToVillageNpc(nearbyNpc);return;}
+    const nearbyNpc=nearestVillageNpc();if(nearbyNpc){talkToVillageNpc(nearbyNpc);return;}const nearbyCitizen=villageNpcs.filter(n=>n.id==='citizen').sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y))[0];if(tradeWorldMode&&nearbyCitizen&&Math.hypot(player.x-nearbyCitizen.x,player.y-nearbyCitizen.y)<76){const lines=['Сегодня на рынке много покупателей!','Хорошая погода для прогулки.','Я живу здесь уже много лет.','Будь осторожен ночью, за стенами опасно.','Говорят, в шахте нашли редкую руду.'];toast(nearbyCitizen.name+': «'+lines[Math.abs(Math.floor(nearbyCitizen.phase))%lines.length]+'»');return;}
     // The old starter-base blacksmith, elder and explorer were removed from this world.
     if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(player.x-wolfCompanionX(),player.y-wolfCompanionY())<95){commandDog();return;}
     const nearbyStorage=placedStructures.find(v=>v.type==='storage'&&Math.hypot(player.x-v.x,player.y-v.y)<76);if(nearbyStorage){openStorage(nearbyStorage);return;}
