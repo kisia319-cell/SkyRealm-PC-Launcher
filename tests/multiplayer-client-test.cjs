@@ -8,6 +8,7 @@ const core = require('../game/multiplayer-core.js');
   const roomId = '123e4567-e89b-12d3-a456-426614174000';
   const sandbox = {
     Map, URL, Promise, setTimeout, clearTimeout, console,
+    crypto: require('node:crypto').webcrypto,
     sessionStorage: { getItem: () => null },
     localStorage: { getItem: (key) => key === 'skyrealm_token' ? 'test-access-token' : null },
   };
@@ -28,7 +29,12 @@ const core = require('../game/multiplayer-core.js');
       payload = { snapshot: { room_id: roomId, version: 4, payload: { placedStructures: [] } } };
     } else if (route === '/api/coop/snapshot/save') {
       payload = { snapshot: { room_id: roomId, version: 5 } };
-    } else if (route === '/api/coop/claim') {
+    } else if(route==='/api/coop/actions/enqueue') payload={action:{action_id:body.action_id,status:'pending',duplicate:false}};
+    else if(route==='/api/coop/actions/pending') payload={actions:[{action_id:'123e4567-e89b-42d3-a456-426614174099',action_type:'place_structure',payload:{type:'torch',x:112,y:144}}]};
+    else if(route==='/api/coop/actions/status') payload={action:{action_id:body.action_id,status:'applied'}};
+    else if(route==='/api/coop/actions/commit') payload={result:{action_id:body.action_id,status:'applied',version:6}};
+    else if(route==='/api/coop/actions/reject') payload={result:{action_id:body.action_id,status:'rejected'}};
+    else if (route === '/api/coop/claim') {
       payload = { claim: { claimed: true, room_id: roomId, object_kind: 'treasure_chest', object_id: 'forest' } };
     } else {
       throw new Error('Unexpected route: ' + route);
@@ -64,6 +70,23 @@ const core = require('../game/multiplayer-core.js');
   });
   assert.equal(saveCall.headers.Authorization, 'Bearer test-access-token');
 
+  const queued=await client.enqueueWorldAction('place_structure',{type:'torch',x:112,y:144},'123e4567-e89b-42d3-a456-426614174099');
+  assert.equal(queued.status,'pending');
+  const pending=await client.getPendingWorldActions(10);
+  assert.equal(pending.length,1);
+  assert.equal(pending[0].action_type,'place_structure');
+  const status=await client.getWorldActionStatus('123e4567-e89b-42d3-a456-426614174099');
+  assert.equal(status.status,'applied');
+  const commit=await client.commitWorldAction('123e4567-e89b-42d3-a456-426614174099',{placedStructures:[{type:'torch',x:112,y:144}]});
+  assert.equal(commit.version,6);
+  const rejected=await client.rejectWorldAction('123e4567-e89b-42d3-a456-426614174099','invalid');
+  assert.equal(rejected.status,'rejected');
+  const actionCalls=calls.filter(call=>call.route.startsWith('/api/coop/actions/'));
+  assert.deepEqual(actionCalls.map(call=>call.route),['/api/coop/actions/enqueue','/api/coop/actions/pending','/api/coop/actions/status','/api/coop/actions/commit','/api/coop/actions/reject']);
+  assert.equal(actionCalls[0].body.action_id,'123e4567-e89b-42d3-a456-426614174099');
+  assert.equal(actionCalls[3].body.expected_version,5);
+  assert.equal(actionCalls.every(call=>call.headers.Authorization==='Bearer test-access-token'),true);
+
   const claim = await client.claimWorldObject('treasure_chest', 'forest');
   assert.equal(claim.claimed, true);
   for (const [kind,id] of [['cave_chest','cave'],['dungeon_chest','dungeon-5']]) {
@@ -84,6 +107,7 @@ const core = require('../game/multiplayer-core.js');
   const guestCalls = [];
   const guestSandbox = {
     Map, URL, Promise, setTimeout, clearTimeout, console,
+    crypto: require('node:crypto').webcrypto,
     sessionStorage: { getItem: () => null },
     localStorage: { getItem: (key) => key === 'skyrealm_token' ? 'guest-access-token' : null },
   };
