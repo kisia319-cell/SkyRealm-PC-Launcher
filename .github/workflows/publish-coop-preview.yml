@@ -17,11 +17,15 @@ jobs:
           ref: main
           fetch-depth: 0
       - name: Validate game package
+        id: validate
         run: |
-          test "$(tr -d '\r\n' < game/version.txt)" = "0.20.11"
+          VERSION="$(tr -d '\r\n' < game/version.txt)"
+          test -n "$VERSION"
+          node -e "const fs=require('node:fs'); const v=fs.readFileSync('game/version.txt','utf8').trim(); const h=fs.readFileSync('game/index.html','utf8'); if(!/^\\d+\\.\\d+\\.\\d+$/.test(v)) process.exit(1); if(!h.includes('content=\"'+v+'\"') || !h.includes('2D SURVIVAL · '+v)) process.exit(1);"
           test -f game/index.html
           test -f game/game.js
           node --check game/game.js
+          echo "game_version=$VERSION" >> "$GITHUB_OUTPUT"
       - name: Build game archive and checksum
         id: package
         run: |
@@ -30,12 +34,13 @@ jobs:
           cd ..
           HASH="$(sha256sum SkyRealm_Game.zip | cut -d ' ' -f 1)"
           echo "sha256=$HASH" >> "$GITHUB_OUTPUT"
-          echo "tag=village-buildings-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "tag=coop-preview-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "game_version=$(tr -d '\r\n' < game/version.txt)" >> "$GITHUB_OUTPUT"
       - name: Publish preview release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.package.outputs.tag }}
-          name: SkyRealm 0.20.11 Update
+          name: SkyRealm ${{ steps.package.outputs.game_version }} Preview
           prerelease: true
           token: ${{ github.token }}
           generate_release_notes: true
@@ -45,6 +50,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GAME_SHA256: ${{ steps.package.outputs.sha256 }}
           RELEASE_TAG: ${{ steps.package.outputs.tag }}
+          GAME_VERSION: ${{ steps.package.outputs.game_version }}
         run: |
           git fetch origin main
           git switch -C manifest-update origin/main
@@ -53,10 +59,11 @@ jobs:
           from pathlib import Path
           path = Path("manifest.json")
           manifest = json.loads(path.read_text(encoding="utf-8"))
-          manifest["game_version"] = "0.20.11"
+          version = os.environ["GAME_VERSION"]
+          manifest["game_version"] = version
           manifest["game_download_url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
           manifest["game_sha256"] = os.environ["GAME_SHA256"]
-          manifest["notes"] = "SkyRealm 0.20.11: eighteen larger, varied houses in each of five villages with wider, staggered layouts; faster ordinary residents in single-player and Trade World. Existing worlds and saves remain compatible. Co-op remains a preview."
+          manifest["notes"] = f"SkyRealm {version}: random world events with distinct odds (meteor 12%, night horde 7%, abandoned camp 10%, traveler 8%, storm 8%); 18 varied houses in each village; saved event cooldowns and backward-compatible world saves. Co-op remains a preview."
           path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
           git config user.name "github-actions[bot]"
