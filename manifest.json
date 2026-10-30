@@ -1,9 +1,9 @@
 {
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/singleplayer-village-f8bf26f/SkyRealm_Game.zip",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.0.2",
   "sha256": "55081ae7afbb8d56ed1c353eacf610998070db18dc7f7d12c0bd28f4f0b3f243",
-  "notes": "SkyRealm Launcher 1.0.2 + Game 0.20.9: separate Trade World with two market stalls, five settlements and eight NPCs; complete farming with seven crops, seeds, beds, watering, compost and fertilizer; fixed crop buy/sell balance; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible.",
-  "game_sha256": "81e7fca7b907aac668a8c0b2a43908a4ced2389e72f4373b8d094581869e8239",
-  "game_version": "0.20.9"
+  "notes": "SkyRealm 0.20.10: nine houses in each of five villages, faster ordinary residents in single-player and Trade World. Existing worlds and saves remain compatible. Co-op remains a preview.",
+  "game_sha256": "1d297aa5ff71758496aedafae50a0d75b0ee04711bde6da9b2f72de419395d91",
+  "game_version": "0.20.10"
 }
