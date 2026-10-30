@@ -706,15 +706,35 @@
     if (gameLaunchBusy) { toast(currentLanguage === 'en' ? 'The current install step cannot be interrupted safely.' : 'Текущий этап установки нельзя безопасно прервать.'); return; }
     hideInstallDialog();
   });
-  async function launchGame() {
+  async function launchGame(allowUpdate = null) {
     if (gameLaunchBusy) return;
+    if (allowUpdate === null && window.pywebview?.api?.launch_game) {
+      try {
+        const response = await fetch('https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json?check=' + Date.now(), {cache:'no-store'});
+        if (response.ok) {
+          const manifest = await response.json();
+          const update = await window.pywebview.api.get_diagnostics();
+          const current = update?.version || 'не установлена';
+          const parts = value => String(value).split('.').map(Number);
+          const newer = (left,right) => { const x=parts(left),y=parts(right); for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0);} return false; };
+          if (manifest.game_version && newer(manifest.game_version,current)) {
+            $('#game-update-version').textContent = manifest.game_version;
+            $('#game-update-current').textContent = current;
+            $('#game-update-overlay').hidden = false;
+            return;
+          }
+        }
+      } catch (_) { /* Network errors must not prevent launching the installed game. */ }
+      allowUpdate = true;
+    }
+    if (allowUpdate === null) allowUpdate = true;
     gameLaunchBusy = true;
     $('#play-game').disabled = true;
     showInstallDialog();
     $('#install-description').textContent = currentLanguage === 'en' ? 'The launcher checks the installed files and prepares the game if needed.' : 'Лаунчер проверит игровые файлы и установит игру, если её ещё нет.';
     try {
       if (window.pywebview?.api?.launch_game) {
-        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI());
+        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI(), allowUpdate);
         if (!result || result.ok === false) throw new Error(result?.message || (currentLanguage === 'en' ? 'Could not start the game.' : 'Не удалось запустить игру.'));
         setGameProgress(100, currentLanguage === 'en' ? 'Launching SkyRealm…' : 'Запускаем SkyRealm…', currentLanguage === 'en' ? 'The launcher will close now' : 'Сейчас лаунчер закроется');
         await new Promise(resolve => setTimeout(resolve, 450));
@@ -740,7 +760,9 @@
       $('#install-cancel').onclick = hideInstallDialog;
     }
   }
-  $('#play-game').addEventListener('click', launchGame);
+  $('#play-game').addEventListener('click', () => launchGame(null));
+  $('#game-update-yes').addEventListener('click', () => { $('#game-update-overlay').hidden = true; launchGame(true); });
+  $('#game-update-no').addEventListener('click', () => { $('#game-update-overlay').hidden = true; launchGame(false); });
 
   // Window controls work only inside the packaged desktop app.
   $('#minimize').addEventListener('click', () => { if (window.pywebview?.api?.minimize) window.pywebview.api.minimize(); else toast('Кнопка сворачивания работает в приложении Windows.'); });
