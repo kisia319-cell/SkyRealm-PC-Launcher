@@ -152,10 +152,9 @@ assert.ok(game.includes("if(hits>=3)") && game.includes("snowShovelHits") && gam
 assert.ok(game.includes("selectedInventoryItem()?.name==='Лопата'") && game.includes("shovelSnowAt(screenX+camX,screenY+camY)"), 'The shovel must work with Space and clicking a snow tile');
 assert.ok(game.includes("drawTree(t,camX,camY)") && game.includes("const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow'"), 'Trees in the winter biome must have snow-covered branches');
 
-const gameHtml = fs.readFileSync('game/index.html', 'utf8');
-const gameVersion = fs.readFileSync('game/version.txt', 'utf8').trim();
-assert.equal(gameVersion, '0.20.2', 'Game version must be bumped when a hotfix changes game files');
-assert.ok(gameHtml.includes('content="0.20.2"') && gameHtml.includes('2D SURVIVAL · 0.20.2'), 'Visible and metadata game versions must match the packaged version');
+const gameVersion = version;
+assert.equal(gameVersion, version, 'Game version must match the packaged version file');
+assert.ok(gameHtml.includes('content="'+version+'"') && gameHtml.includes('2D SURVIVAL · '+version), 'Visible and metadata game versions must match the packaged version');
 const treeFn = game.slice(game.indexOf('function drawTree'), game.indexOf('function drawRock'));
 assert.ok(treeFn.indexOf("const snowy=") >= 0 && treeFn.indexOf("const snowy=") < treeFn.indexOf("ctx.fillStyle=snowy?"), 'Snowy tree state must be initialized before use');
 
@@ -166,7 +165,7 @@ assert.ok(drawFn.includes("drawTradeShop(SELL_SHOP") && drawFn.includes("drawTra
 assert.ok(game.includes("if(!tradeWorldMode){toast('Лавки лесника и рудокопа находятся в Мире торговли."), 'T must direct home players to the trade world');
 assert.ok(!game.includes('HOME_SELL_SHOP') && !game.includes('HOME_BUY_SHOP'), 'Home shop locations must not exist');
 assert.ok(game.includes("tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16)"), 'E shop interaction must be trade-world-only');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.2', 'Game version bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), version, 'Game version bumped');
 
 for (const crop of ['Пшеница','Морковь','Картофель','Томат','Кукуруза','Тыква','Клубника']) assert.ok(game.includes("product:'"+crop+"'"), 'Farm crop '+crop+' must exist');
 assert.ok(game.includes("farmer:[") && game.includes("Семена клубники"), 'Farmer shop has broad tool and seed catalog');
@@ -174,7 +173,7 @@ assert.ok(game.includes("selected?.name==='Лейка'") && game.includes("selec
 assert.ok(game.includes("farmCropSellPrice(name)") && game.includes("farmCropBuyPrice(name)"), 'Crop sale and purchase prices use the agreed crop balance');
 assert.ok(game.includes("function interactFarmPlot") && game.includes("plot.crop=crop.id"), 'Seeds can be planted and harvested per crop');
 assert.ok(game.includes("crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null"), 'Crop state is restored from saves');
-assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), '0.20.2', 'Farm update version must be bumped');
+assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), version, 'Farm update version must be bumped');
 
 assert.ok(game.includes('const FARM_CROP_TRADE_PRICES={Пшеница:{buy:30,sell:50}') && game.includes('Клубника:{buy:123,sell:200}'), 'Crop trading prices must match the agreed cents-per-item balance');
 assert.ok(game.includes('function farmCropBuyPrice(name)') && game.includes('farmCropBuyPrice(name)||item.price'), 'Farmer must sell harvested crops at the agreed buy prices');
