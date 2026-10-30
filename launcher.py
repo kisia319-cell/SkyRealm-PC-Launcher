@@ -202,7 +202,7 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Ошибка диагностики: " + str(exc)}
 
-    def launch_game(self, settings=None):
+    def launch_game(self, settings=None, allow_game_update=True):
         """Install the bundled prototype into LocalAppData and start it in a new process."""
         try:
             preferences = save_user_settings(settings if isinstance(settings, dict) else read_user_settings())
@@ -218,7 +218,7 @@ class LauncherApi:
             installed_index = install_dir / "index.html"
             installed_version_file = install_dir / "version.txt"
             _js_update(8, "Проверяем обновления…", "Проверяем версию игры и загружаем обновления при необходимости")
-            version = _skyrealm_update_game(install_dir, bundled_version) if getattr(sys, "frozen", False) else bundled_version
+            version = _skyrealm_update_game(install_dir, bundled_version, allow_update=allow_game_update is not False) if getattr(sys, "frozen", False) else bundled_version
             installed_version = ""
             try:
                 installed_version = installed_version_file.read_text(encoding="utf-8").strip()
@@ -413,7 +413,7 @@ def _skyrealm_version_tuple(value):
 
 
 
-def _skyrealm_update_game(install_dir: Path, bundled_version: str) -> str:
+def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update: bool = True) -> str:
     """Download and atomically install the latest game package before launching it."""
     root = install_dir.parent
     version_file = install_dir / "version.txt"
@@ -468,6 +468,10 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str) -> str:
 
         game_ok = (install_dir / "index.html").is_file() and (install_dir / "game.js").is_file()
         installed_tuple = _skyrealm_version_tuple(installed_version)
+        if not allow_update and latest_tuple > max(_skyrealm_version_tuple(installed_version), _skyrealm_version_tuple(bundled_version)):
+            selected = installed_version if installed_tuple >= _skyrealm_version_tuple(bundled_version) and installed_version else bundled_version
+            write_update_log(f"game update declined: installed={installed_version or 'missing'}, latest={latest}, selected={selected}")
+            return selected
         if game_ok and installed_tuple and installed_tuple >= latest_tuple:
             write_update_log(f"game update already current: installed={installed_version}, latest={latest}")
             return installed_version
