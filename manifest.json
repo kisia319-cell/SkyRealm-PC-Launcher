@@ -1,9 +1,9 @@
 {
-  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
-  "game_version": "0.20.12",
-  "game_sha256": "be01942c7d148c0ec54eea4e80af7ecad36c5369b3c37ab51f90f586a0e07c6c",
+  "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
+  "sha256": "55d65bec8c97e96507e4d67a069e371da22d87dd0e902eee9bcca8778d41a1d9",
   "version": "1.0.2",
-  "sha256": "832c7a4cc09e7a2ed39aa4778164dd43a9a119f5980b8d58c0e4dbc9cd47b0a5",
-  "notes": "SkyRealm Launcher 1.0.2 + Game 0.20.12: separate Trade World with two market stalls, five settlements and eight NPCs; complete farming with seven crops, seeds, beds, watering, compost and fertilizer; fixed crop buy/sell balance; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible."
+  "game_sha256": "d6b648996dd1a7c96198b988871966944e19a18f2a568b25d6848b4cd96961c9",
+  "notes": "SkyRealm Launcher 1.0.2 + Game 0.20.13: separate Trade World with two market stalls, five settlements and eight NPCs; complete farming with seven crops, seeds, beds, watering, compost and fertilizer; fixed crop buy/sell balance; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible.",
+  "game_version": "0.20.13"
 }
