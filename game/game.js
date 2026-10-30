@@ -440,13 +440,10 @@
       ctx.fillStyle='#e6d5ad';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=5;ctx.fillText(c.name,x,y-102);ctx.restore();
     }
     for(const npc of villageNpcs){
-      const x=npc.x-camX+Math.sin(time/900+npc.phase)*4,y=npc.y-camY+Math.sin(time/520+npc.phase)*2;if(x<-75||x>width+75||y<-100||y>height+80)continue;
-      ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.fillStyle='rgba(7,13,20,.3)';ctx.beginPath();ctx.ellipse(0,14,18,7,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#65452f';ctx.fillRect(-22,-23,44,25);ctx.fillStyle=npc.color;ctx.fillRect(-19,-20,38,19);
-      ctx.fillStyle='#f0d9a8';ctx.fillRect(-7,-18,14,12);ctx.fillStyle='#6b4935';ctx.fillRect(-24,-26,48,5);
-      ctx.fillStyle=npc.color;ctx.fillRect(-8,-2,16,18);ctx.fillStyle='#d7ad82';ctx.fillRect(-6,-14,12,12);ctx.fillStyle='#242b35';ctx.fillRect(-3,-9,2,2);ctx.fillRect(3,-9,2,2);
-      ctx.fillStyle='#fff1c6';ctx.font='900 9px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=4;ctx.fillText(NPC_NAMES[npc.id]+' · '+NPC_LABELS[npc.id],0,-34);
-      ctx.fillStyle='#d8e7ff';ctx.font='bold 8px Segoe UI';ctx.fillText('E ЗАДАНИЕ · T ЛАВКА',0,31);ctx.restore();
+      const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-75||x>width+75||y<-100||y>height+80)continue;
+      drawNpcCharacter(npc,x,y,time);
+      ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(NPC_NAMES[npc.id]+' · '+NPC_LABELS[npc.id],x,y-34);
+      ctx.fillStyle='#d8e7ff';ctx.font='bold 8px Segoe UI';ctx.fillText(npc.activity==='sleeping'?'ОТДЫХАЕТ':npc.activity==='working'?'РАБОТАЕТ':'ПРОГУЛКА',x,y+29);ctx.restore();
     }
   }
   function updateVillageNpcs(dt){
