@@ -1359,7 +1359,57 @@
     updateUpgradeCards();
   }
   function updateFarmPlots(dt){let changed=false;for(const plot of placedStructures){if(plot.type!=='farmplot'||!plot.crop||plot.stage>=3)continue;plot.moisture=Math.max(0,(Number(plot.moisture)||0)-dt*.55);if(plot.moisture>0)plot.growSeconds=(plot.growSeconds||0)+dt*(plot.fertilized?1.25:1);const crop=farmCropById(plot.crop),growth=crop?crop.growth:70,old=plot.stage||0;plot.stage=Math.min(3,Math.floor((plot.growSeconds||0)/(growth/3)));if(plot.stage!==old){changed=true;spawnVisualBurst(plot.x,plot.y,5,'leaf','#85d45e');if(plot.stage===3)toast((crop?crop.product:'Урожай')+' созрел! Подойди и нажми E.');}}if(changed)saveGame();}
-  function interactFarmPlot(plot){const selected=selectedInventoryItem();if(plot.stage>=3){const crop=farmCropById(plot.crop),product=crop?crop.product:'Урожай',amount=(crop?crop.yield:3)+(plot.fertilized?2:0)+(selected?.name==='Серп'?1:0)+(Math.random()<.25?1:0);changeItem(product,amount);plot.stage=0;plot.growSeconds=0;plot.crop=null;plot.moisture=0;plot.fertilized=false;trackAdventureQuest('harvest',1);spawnVisualBurst(plot.x,plot.y,12,'leaf','#e5c85c');renderInventory();saveGame();playSound('coin');toast('Собрано: '+product+' ×'+amount+'. Грядка свободна.');return;}
+  function queueGuestFarmAction(plot,actionType,extra={},reservedItem=null){
+    const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
+    if(!room||room.status!=='running'){toast('Сначала дождись запуска комнаты.');return true;}
+    if(typeof network.enqueueWorldAction!=='function'){toast('Фермерские действия пока недоступны.');return true;}
+    const actionId=window.crypto?.randomUUID?.();
+    if(!actionId){toast('Не удалось безопасно подготовить запрос.');return true;}
+    const key=saveKey+'_coop_pending_world_actions';let pending=[];
+    try{const value=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(value))pending=value;}catch(_){}
+    if(pending.length>=20){toast('Сначала дождись обработки предыдущих действий.');return true;}
+    if(reservedItem&&!changeItem(reservedItem,-1)){toast('Не хватает предметов для действия.');return true;}
+    pending.push({action_id:actionId,action_type:actionType,reserved_item:reservedItem||null});
+    try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){
+      if(reservedItem)changeItem(reservedItem,1);renderInventory();
+      toast('Не удалось сохранить очередь действий.');return true;
+    }
+    renderInventory();
+    if(!saveGame()){
+      if(reservedItem)changeItem(reservedItem,1);
+      pending=pending.filter(entry=>entry.action_id!==actionId);
+      try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){}
+      renderInventory();return true;
+    }
+    network.enqueueWorldAction(actionType,{x:plot.x,y:plot.y,...extra},actionId).then(action=>{
+      if(!action?.action_id)throw new Error('Сервер не вернул ID запроса.');
+      const names={farm_plant:'Посадка',farm_water:'Полив',farm_compost:'Компост',farm_fertilize:'Удобрение',farm_harvest:'Сбор урожая'};
+      toast((names[actionType]||'Действие')+' отправлено владельцу мира.');
+    }).catch(error=>{
+      if(error?.code&&!['INTERNAL_ERROR','COOP_BACKEND_ERROR'].includes(error.code)){
+        if(reservedItem)changeItem(reservedItem,1);
+        const left=pending.filter(entry=>entry.action_id!==actionId);
+        try{localStorage.setItem(key,JSON.stringify(left));}catch(_){}
+        renderInventory();saveGame();
+      }
+      toast(error?.message||'Не удалось отправить действие. Проверяю его статус перед возвратом предмета.');
+    });
+    return true;
+  }
+  function interactFarmPlot(plot){const selected=selectedInventoryItem();
+    const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
+    if(room&&!network.isRoomOwner){
+      if(plot.stage>=3){queueGuestFarmAction(plot,'farm_harvest');return;}
+      if(!plot.crop){
+        const crop=FARM_CROPS.find(c=>c.seed===selected?.name);
+        if(!crop){toast('Выбери семена и нажми E у пустой грядки.');return;}
+        queueGuestFarmAction(plot,'farm_plant',{crop_id:crop.id},crop.seed);return;
+      }
+      if(selected?.name==='Лейка'){queueGuestFarmAction(plot,'farm_water');return;}
+      if(selected?.name==='Компост'){queueGuestFarmAction(plot,'farm_compost',{},'Компост');return;}
+      if(selected?.name==='Удобрение'){queueGuestFarmAction(plot,'farm_fertilize',{},'Удобрение');return;}
+      toast('Выбери лейку, компост или удобрение для этой грядки.');return;
+    }if(plot.stage>=3){const crop=farmCropById(plot.crop),product=crop?crop.product:'Урожай',amount=(crop?crop.yield:3)+(plot.fertilized?2:0)+(selected?.name==='Серп'?1:0)+(Math.random()<.25?1:0);changeItem(product,amount);plot.stage=0;plot.growSeconds=0;plot.crop=null;plot.moisture=0;plot.fertilized=false;trackAdventureQuest('harvest',1);spawnVisualBurst(plot.x,plot.y,12,'leaf','#e5c85c');renderInventory();saveGame();playSound('coin');toast('Собрано: '+product+' ×'+amount+'. Грядка свободна.');return;}
     if(!plot.crop){const crop=FARM_CROPS.find(c=>c.seed===selected?.name);if(!crop){toast('Выбери семена и нажми E у пустой грядки.');return;}changeItem(crop.seed,-1);plot.crop=crop.id;plot.stage=0;plot.growSeconds=0;plot.moisture=0;plot.fertilized=false;renderInventory();saveGame();playSound('craft');toast('Посажено: '+crop.product+'. Полей грядку лейкой.');return;}
     if(selected?.name==='Лейка'){plot.moisture=Math.min(100,(Number(plot.moisture)||0)+65);saveGame();playSound('water');toast('Грядка полита: '+Math.round(plot.moisture)+'% влаги.');return;}
     if(selected?.name==='Компост'){if(!changeItem('Компост',-1))return;plot.growSeconds=(plot.growSeconds||0)+(farmCropById(plot.crop)?.growth||70)*.25;plot.moisture=Math.max(plot.moisture||0,25);renderInventory();saveGame();toast('Компост ускорил рост на 25%.');return;}
