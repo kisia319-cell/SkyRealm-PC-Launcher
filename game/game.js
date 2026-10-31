@@ -1676,6 +1676,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       loot.push({name:'Метеоритный осколок',count:rand(1,2)});if(Math.random()<.28)loot.push({name:'Кристалл',count:1});
     }
     if((skills.scout>0||skills.fortune>0)&&Math.random()<Math.min(.8,skills.scout*.04+skills.fortune*.02))loot.push({name:Math.random()<.5?'Кристалл':'Малое зелье',count:1});
+    if(isModInstalled('blood_moon')&&loot.length&&Math.random()<.35)loot.splice(Math.floor(Math.random()*loot.length),1);
     return loot;
   }
   function dropMonsterLoot(mob){
