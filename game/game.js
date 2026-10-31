@@ -1399,7 +1399,8 @@
     ctx.fillStyle='rgba(12,10,10,.17)';ctx.beginPath();ctx.ellipse(94,184,53,8,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(330,180,58,7,0,0,Math.PI*2);ctx.fill();
     // Interaction labels are anchored at the actual usable sides of the furniture.
     ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillStyle='#f4e5c4';ctx.shadowColor='#1a100b';ctx.shadowBlur=3;ctx.fillText('КРОВАТЬ · E',166,116);ctx.fillText('ВЕРСТАК · E',255,145);ctx.fillText('ВЫХОД · E',210,320);ctx.shadowBlur=0;
-    const px=player.x,py=player.y;ctx.fillStyle='#101c1c66';ctx.beginPath();ctx.ellipse(px,py+17,15,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f2c18f';ctx.fillRect(px-6,py-15,12,13);ctx.fillStyle='#526fba';ctx.fillRect(px-8,py-2,16,19);ctx.fillStyle='#2c3447';ctx.fillRect(px-7,py+16,5,7);ctx.fillRect(px+2,py+16,5,7);
+    // Use the same full character renderer as the outdoor world so skin, hair, face, armor, equipment and facing stay consistent indoors.
+    drawPlayer(0,0,dt);
     drawRemotePlayers(0,0);ctx.restore();
     if(sleeping){ctx.fillStyle='rgba(5,9,20,.78)';ctx.fillRect(0,0,width,height);ctx.fillStyle='#f2e8ff';ctx.font='bold 22px Segoe UI';ctx.textAlign='center';ctx.fillText('Ты спишь… '+Math.max(0,Math.ceil(5-sleepSeconds))+' сек.',width/2,height/2);ctx.textAlign='left';}
   }
