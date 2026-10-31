@@ -1,7 +1,7 @@
 name: Co-op core tests
 on:
   push:
-    branches: [main, feature/co-op-foundation, feature/shared-enemies-and-loot, 'fix/**']
+    branches: [main, feature/co-op-foundation, feature/shared-enemies-and-loot, feature/profile-foundation-social-20261031, 'fix/**']
   pull_request:
     branches: [main]
 jobs:
@@ -19,6 +19,8 @@ jobs:
       - run: node tests/multiplayer-client-test.cjs
       - run: node tests/supabase-migration-history-test.cjs
       - run: node tests/coop-ui-integration-test.cjs
+      - run: node tests/profile-social-integration-test.cjs
+      - run: node --check app.js
       - run: node tests/singleplayer-village-test.cjs
       - run: node tests/game-smoke-test.cjs
       - run: node --check game/multiplayer-core.js
