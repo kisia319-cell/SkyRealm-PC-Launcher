@@ -261,3 +261,6 @@ assert.ok(fs.readFileSync('game_runner_version.txt','utf8').trim()==='0.9.5', 'C
 
 assert.ok(py.includes('def file_sha256(path: Path) -> str:') && py.includes('file_sha256(install_dir / p.relative_to(source_dir)) == file_sha256(p)'), 'Installed game integrity must compare file hashes, not only file sizes');
 assert.ok(py.includes('file_sha256(runner_path) != file_sha256(bundled_runner)'), 'Separate game runner updates must compare SHA-256 to detect same-size binary changes');
+
+assert.ok(releaseWorkflow.includes('"game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js"'), 'Windows release build must fail early if any multiplayer script is missing');
+assert.ok(releaseWorkflow.includes('notes = "SkyRealm Launcher $version + Game $($gameVersion)'), 'Release notes must use the actual launcher and game versions instead of a stale hard-coded version');
