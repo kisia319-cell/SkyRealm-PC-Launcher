@@ -25,6 +25,7 @@ jobs:
       - run: node tests/singleplayer-village-test.cjs
       - run: node tests/game-smoke-test.cjs
       - run: node tests/achievement-system-test.cjs
+      - run: node tests/world-library-test.cjs
       - run: node --check game/multiplayer-core.js
       - run: node --check game/multiplayer-client.js
       - run: node --check game/multiplayer-ui.js
