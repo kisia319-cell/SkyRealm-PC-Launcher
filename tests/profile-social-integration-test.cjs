@@ -7,6 +7,7 @@ const css=fs.readFileSync('style.css','utf8');
 const edge=fs.readFileSync('supabase/functions/skyrealm-social/index.ts','utf8');
 const migration=fs.readFileSync('supabase/migrations/20261031130000_profile_social_foundation.sql','utf8');
 const inviteMigration=fs.readFileSync('supabase/migrations/20261031140000_coop_friend_invites.sql','utf8');
+const accessMigration=fs.readFileSync('supabase/migrations/20261031150000_deny_direct_social_table_access.sql','utf8');
 const coopUi=fs.readFileSync('game/multiplayer-ui.js','utf8');
 const coopClient=fs.readFileSync('game/multiplayer-client.js','utf8');
 const gameHtml=fs.readFileSync('game/index.html','utf8');
@@ -29,6 +30,8 @@ assert.ok(migration.includes('constraint skyrealm_friendships_pair_unique unique
 assert.ok(css.includes('.social-player')&&css.includes('.profile-stat-grid'),'Profile and social UI styles must exist.');
 assert.ok(inviteMigration.includes('create table if not exists public.skyrealm_room_invites'));
 assert.ok(inviteMigration.includes('enable row level security')&&inviteMigration.includes('revoke all on public.skyrealm_room_invites from anon, authenticated'));
+assert.ok(accessMigration.includes('profiles_no_direct_client_access')&&accessMigration.includes('friendships_no_direct_client_access')&&accessMigration.includes('room_invites_no_direct_client_access'));
+assert.ok(accessMigration.includes('skyrealm_friendships_requested_by_idx'));
 assert.ok(edge.includes('OWNER_ONLY')&&edge.includes('ROOM_FULL')&&edge.includes('join_co_op_room'),'Room invites must enforce room ownership and rely on the existing join RPC capacity rules.');
 for(const id of ['coop-friend-tools','coop-friend-invite-toggle','coop-friend-invite-list','coop-incoming-invites','coop-incoming-count','coop-incoming-invites-list']) assert.ok(gameHtml.includes('id=\"'+id+'\"'));
 for(const feature of ['sendRoomInvite','getRoomInvites','respondRoomInvite']) assert.ok(coopClient.includes(feature));
