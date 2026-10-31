@@ -77,7 +77,7 @@ jobs:
           manifest["game_version"] = version
           manifest["game_download_url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
           manifest["game_sha256"] = os.environ["GAME_SHA256"]
-          manifest["notes"] = f"SkyRealm {version}: random world events with distinct odds (meteor 12%, night horde 7%, abandoned camp 10%, traveler 8%, storm 8%); 18 varied houses in each village; saved event cooldowns and backward-compatible world saves. Co-op remains a preview."
+          manifest["notes"] = f"SkyRealm {version}: shared co-op monsters and boss health, owner-validated combat, and one-time shared loot drops. Every player keeps a separate inventory, wallet, equipment and XP; only the player who picks up a shared drop receives it. Existing worlds and single-player saves remain compatible. Co-op remains a preview."
           path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
             git add manifest.json
