@@ -1468,7 +1468,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     gameMinuteTotal+=dt;
     const elapsedGameMinutes=gameMinuteTotal-previousMinute;
     hungerElapsedMinutes+=elapsedGameMinutes;
-    while(hungerElapsedMinutes>=10+skills.survivor*.5){hungerElapsedMinutes-=10+skills.survivor*.5;hunger=Math.max(0,hunger-1);}
+    while(hungerElapsedMinutes>=(isModInstalled('survivalist')?12:10)+skills.survivor*.5){hungerElapsedMinutes-=10+skills.survivor*.5;hunger=Math.max(0,hunger-1);}
     if(hunger<=10&&!immortal){player.hp=Math.max(0,player.hp-dt*(hunger<=0?2.2:0.7)*(1-skills.survivor*.08));updateVitals();if(player.hp<=0)respawnPlayerAfterDefeat();}
     if(!inHouse){sheepSpawnTimer+=elapsedGameMinutes;if(sheepSpawnTimer>=10){sheepSpawnTimer-=10;spawnOneSheep();}}
     const oldMinuteOfDay=((previousMinute%GAME_MINUTES_PER_DAY)+GAME_MINUTES_PER_DAY)%GAME_MINUTES_PER_DAY;
@@ -1526,9 +1526,50 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
     return exploredCells.has(tileKey(tx,ty));
   }
+
+  const MODS_STORAGE_KEY='skyrealm_installed_mods_v1';
+  const MOD_CATALOG=[
+    {id:'cartographer',name:'Око картографа',icon:'🧭',category:'Исследование',version:'1.0.0',description:'Открывает больше территории вокруг персонажа на мини-карте.',effect:'Радиус открытия карты увеличен с 3 до 5 блоков.',compatibility:'Одиночная игра и кооператив'},
+    {id:'angler',name:'Мастер рыбалки',icon:'🎣',category:'Ресурсы',version:'1.0.0',description:'Помогает быстрее ловить рыбу и повышает шанс редкой находки.',effect:'Поклёвка быстрее на 1 секунду, шанс жемчуга выше, шанс второй рыбы увеличен.',compatibility:'Одиночная игра и кооператив'},
+    {id:'green_thumb',name:'Зелёный палец',icon:'🌱',category:'Фермерство',version:'1.0.0',description:'Ускоряет рост всех посаженных культур на грядках.',effect:'Скорость роста урожая увеличена на 35%.',compatibility:'Одиночная игра и кооператив'},
+    {id:'miners_luck',name:'Удача шахтёра',icon:'⛏️',category:'Добыча',version:'1.0.0',description:'Повышает шанс получить дополнительную единицу добытой руды.',effect:'Дополнительная руда выпадает чаще на 15 процентных пунктов.',compatibility:'Одиночная игра и кооператив'},
+    {id:'survivalist',name:'Запасливый путешественник',icon:'🥫',category:'Выживание',version:'1.0.0',description:'Учит героя экономнее расходовать запасы еды.',effect:'Голод уменьшается раз в 12 игровых минут вместо 10.',compatibility:'Одиночная игра и кооператив'}
+  ];
+  function readInstalledMods(){
+    try{const raw=JSON.parse(localStorage.getItem(MODS_STORAGE_KEY)||'[]');return Array.isArray(raw)?raw.filter(id=>MOD_CATALOG.some(mod=>mod.id===id)):[];}catch(_){return [];}
+  }
+  let installedMods=new Set(readInstalledMods());
+  function isModInstalled(id){return installedMods.has(id);}
+  function saveInstalledMods(){
+    try{localStorage.setItem(MODS_STORAGE_KEY,JSON.stringify(Array.from(installedMods)));return true;}
+    catch(error){console.warn('Could not save mod catalog:',error);toast('Не удалось сохранить список модов. Проверь свободное место.');return false;}
+  }
+  function renderModCatalog(){
+    const root=document.getElementById('mods-catalog-list'),count=document.getElementById('mods-installed-count');if(!root)return;
+    if(count)count.textContent=installedMods.size+' / '+MOD_CATALOG.length+' установлено';
+    root.innerHTML=MOD_CATALOG.map(mod=>{const active=isModInstalled(mod.id);return '<article class="mod-catalog-card '+(active?'mod-installed':'')+'"><div class="mod-card-icon">'+mod.icon+'</div><div class="mod-card-content"><div class="mod-card-title-row"><b>'+escapeHtml(mod.name)+'</b><span class="mod-version">v'+mod.version+'</span></div><div class="mod-card-meta">'+escapeHtml(mod.category)+' · '+escapeHtml(mod.compatibility)+'</div><p>'+escapeHtml(mod.description)+'</p><div class="mod-card-effect"><b>Что добавляет:</b> '+escapeHtml(mod.effect)+'</div></div><button type="button" class="mod-install-button '+(active?'installed':'')+'" data-mod-toggle="'+mod.id+'">'+(active?'Удалить':'Установить')+'</button></article>';}).join('');
+    root.querySelectorAll('[data-mod-toggle]').forEach(button=>button.addEventListener('click',()=>toggleMod(button.dataset.modToggle)));
+  }
+  function toggleMod(id){
+    const mod=MOD_CATALOG.find(item=>item.id===id);if(!mod)return;
+    const wasInstalled=installedMods.has(id);
+    if(wasInstalled)installedMods.delete(id);else installedMods.add(id);
+    if(!saveInstalledMods()){if(wasInstalled)installedMods.add(id);else installedMods.delete(id);return;}
+    renderModCatalog();
+    if(id==='cartographer'&&currentWorldId){markExploredAroundPlayer();drawMinimap();}
+    if(currentWorldId)saveGame();
+    toast((wasInstalled?'Мод удалён: ':'Мод установлен: ')+mod.name+'. '+(wasInstalled?'Его эффект отключён.':'Его эффект уже действует.'));
+  }
+  function openModsCatalog(){
+    renderModCatalog();const shade=document.getElementById('mods-catalog-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');
+  }
+  function closeModsCatalog(){
+    const shade=document.getElementById('mods-catalog-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');
+  }
+
   function markExploredAroundPlayer(){
     if(!currentWorldId)return;
-    const px=Math.floor(player.x/TILE),py=Math.floor(player.y/TILE),radius=3;
+    const px=Math.floor(player.x/TILE),py=Math.floor(player.y/TILE),radius=isModInstalled('cartographer')?5:3;
     for(let y=py-radius;y<=py+radius;y++)for(let x=px-radius;x<=px+radius;x++){
       if(x<0||y<0||x>=COLS||y>=ROWS)continue;
       const dx=x-px,dy=y-py;
@@ -1964,7 +2005,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     status.textContent=message||('Материалы: камень '+stone+'/8 · древесина '+wood+'/6 · дом ур. '+houseLevel+'/3 · шахта ур. '+mineLevel+'/5');
     updateUpgradeCards();
   }
-  function updateFarmPlots(dt){let changed=false;for(const plot of placedStructures){if(plot.type!=='farmplot'||!plot.crop||plot.stage>=3)continue;plot.moisture=Math.max(0,(Number(plot.moisture)||0)-dt*.55);if(plot.moisture>0)plot.growSeconds=(plot.growSeconds||0)+dt*(plot.fertilized?1.25:1)*seasonInfo().growth*(weatherMode==='rain'?1.15:1);const crop=farmCropById(plot.crop),growth=crop?crop.growth:70,old=plot.stage||0;plot.stage=Math.min(3,Math.floor((plot.growSeconds||0)/(growth/3)));if(plot.stage!==old){changed=true;spawnVisualBurst(plot.x,plot.y,5,'leaf','#85d45e');if(plot.stage===3)toast((crop?crop.product:'Урожай')+' созрел! Подойди и нажми E.');}}if(changed)saveGame();}
+  function updateFarmPlots(dt){let changed=false;for(const plot of placedStructures){if(plot.type!=='farmplot'||!plot.crop||plot.stage>=3)continue;plot.moisture=Math.max(0,(Number(plot.moisture)||0)-dt*.55);if(plot.moisture>0)plot.growSeconds=(plot.growSeconds||0)+dt*(plot.fertilized?1.25:1)*(isModInstalled('green_thumb')?1.35:1)*seasonInfo().growth*(weatherMode==='rain'?1.15:1);const crop=farmCropById(plot.crop),growth=crop?crop.growth:70,old=plot.stage||0;plot.stage=Math.min(3,Math.floor((plot.growSeconds||0)/(growth/3)));if(plot.stage!==old){changed=true;spawnVisualBurst(plot.x,plot.y,5,'leaf','#85d45e');if(plot.stage===3)toast((crop?crop.product:'Урожай')+' созрел! Подойди и нажми E.');}}if(changed)saveGame();}
   function queueGuestFarmAction(plot,actionType,extra={},reservedItem=null){
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
     if(!room||room.status!=='running'){toast('Сначала дождись запуска комнаты.');return true;}
@@ -2270,7 +2311,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(itemCount('Удочка')<=0){toast('Для рыбалки сначала создай удочку на верстаке.');return true;}
     if(selectedInventoryItem()?.name!=='Удочка'){toast('Выбери удочку в нижнем инвентаре, чтобы рыбачить.');return true;}
     fishingOrigin={x:player.x,y:player.y};
-    fishingCastTimer=3.2;
+    fishingCastTimer=isModInstalled('angler')?2.2:3.2;
     spawnVisualBurst(player.x,player.y,5,'spark','#9ce8ff');
     playSound('portal');
     toast('Удочка заброшена. Не двигайся около 3 секунд…');
@@ -2284,10 +2325,10 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     fishingCastTimer=Math.max(0,fishingCastTimer-dt);
     if(fishingCastTimer>0)return;
     fishingOrigin=null;
-    const pearlChance=weatherMode==='rain'?.12:.05;
+    const pearlChance=Math.min(.25,(weatherMode==='rain'?.12:.05)+(isModInstalled('angler')?.08:0));
     const pearl=Math.random()<pearlChance;
     const itemName=pearl?'Жемчуг':'Рыба';
-    const amount=pearl?1:1+(Math.random()<.35?1:0);
+    const amount=pearl?1:1+(Math.random()<(isModInstalled('angler')?.6:.35)?1:0);
     if(!changeItem(itemName,amount)){toast('Не удалось поместить улов в инвентарь.');return;}
     fishCaught+=amount;
     spawnVisualBurst(player.x,player.y,pearl?18:10,'spark',pearl?'#e9d4ff':'#9ce8ff');
@@ -2725,7 +2766,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
           const resultPayload={};
           if(target.hp===0){
             const minerSkill=Math.max(0,Math.min(5,Number(payload.miner_skill_level)||0));
-            const minerChance=Math.min(.6,minerSkill*.08+(payload.player_class==='miner'?0.2:0));
+            const minerChance=Math.min(.75,minerSkill*.08+(payload.player_class==='miner'?0.2:0)+(isModInstalled('miners_luck')?0.15:0));
             resultPayload.reward_name=target.ore;
             resultPayload.reward_amount=Math.random()<minerChance?2:1;
             if(target.ore!=='Камень'&&target.ore!=='Кристалл'){
@@ -3502,7 +3543,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     spawnVisualBurst(target.x,target.y,12,'spark',({'Кристалл':'#9ef5ff','Железо':'#c7d6e6','Медь':'#ffc08a','Олово':'#eef4ff','Серебро':'#ffffff','Золото':'#ffe68a','Рубин':'#ff829a','Сапфир':'#9bc8ff','Обсидиан':'#ad8bdf','Мифрил':'#d1ffff','Уран':'#baff7d','Алмаз':'#ffffff'}[target.ore]||'#d8c6a0'));
     const resource=inventoryItems.find(i=>i.name===target.ore),stone=inventoryItems.find(i=>i.name==='Камень');
     playSound(target.ore==='Железо'?'iron':target.ore==='Уголь'?'coal':target.ore==='Кристалл'?'iron':'stone');if(target.ore==='Камень'){if(stone)stone.count++;}else{if(resource)resource.count++;if(['Уголь','Железо','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(target.ore)&&stone)stone.count++;}
-    const bonusOre=Math.random()<Math.min(.6,(skills.miner*.08)+(classHas('miner')?0.2:0));if(bonusOre){const bonusItem=inventoryItems.find(i=>i.name===target.ore);if(bonusItem)bonusItem.count++;else if(target.ore==='Камень'&&stone)stone.count++;}trackAdventureQuest('mining',1);renderInventory();awardXP(target.ore==='Кристалл'?18:target.ore==='Железо'?10:6,'добыча в шахте');saveGame();toast('Добыто: '+target.ore+' ×'+(bonusOre?2:1)+(target.ore==='Камень'||target.ore==='Кристалл'?'':' и камень ×1'));
+    const bonusOre=Math.random()<Math.min(.75,(skills.miner*.08)+(classHas('miner')?0.2:0)+(isModInstalled('miners_luck')?0.15:0));if(bonusOre){const bonusItem=inventoryItems.find(i=>i.name===target.ore);if(bonusItem)bonusItem.count++;else if(target.ore==='Камень'&&stone)stone.count++;}trackAdventureQuest('mining',1);renderInventory();awardXP(target.ore==='Кристалл'?18:target.ore==='Железо'?10:6,'добыча в шахте');saveGame();toast('Добыто: '+target.ore+' ×'+(bonusOre?2:1)+(target.ore==='Камень'||target.ore==='Кристалл'?'':' и камень ×1'));
   });
   document.getElementById('pause').addEventListener('click', () => { if(hudMoveMode)finishHudMoveMode();if(!inMainMenu)setPaused(true); });
   document.getElementById('resume').addEventListener('click', () => setPaused(false));
@@ -3515,6 +3556,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   // Gentle interface feedback; world/action sounds retain their existing individual handlers.
   document.querySelectorAll('.main-menu-action,.action,.pause-button,.game-settings-tab').forEach(button=>button.addEventListener('click',()=>playSound('tap')));
   document.getElementById('menu-create-world').addEventListener('click',openWorldCreate);
+  document.getElementById('menu-mods').addEventListener('click',openModsCatalog);
+  document.getElementById('close-mods-catalog').addEventListener('click',closeModsCatalog);
    document.getElementById('world-search')?.addEventListener('input',renderWorldList);
    document.getElementById('world-sort')?.addEventListener('change',renderWorldList);
    document.getElementById('import-world-button').addEventListener('click',()=>document.getElementById('import-world-file').click());

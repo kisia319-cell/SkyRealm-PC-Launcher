@@ -62,6 +62,7 @@ jobs:
           node tests/world-library-test.cjs
           node tests/cosmetic-collection-test.cjs
           node tests/adventure-history-test.cjs
+          node tests/mod-workshop-test.cjs
           node tests/farm-economy-test.cjs
           node tests/singleplayer-village-test.cjs
           node tests/multiplayer-core-test.cjs
