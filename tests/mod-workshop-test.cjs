@@ -19,7 +19,7 @@ assert.ok(game.includes("(isModInstalled('green_thumb')?1.35:1)"),'Green Thumb m
 assert.ok(game.includes("(isModInstalled('miners_luck')?0.15:0)"),'Miner Luck must improve bonus ore chance');
 assert.ok(game.includes("isModInstalled('survivalist')?12:10"),'Survivalist must reduce hunger drain');
 assert.ok(game.includes('MOD_CATALOG.some(mod=>mod.id===id)'),'Only known mod IDs may be restored from local storage');
-assert.ok(html.includes('Установка и удаление не стирают миры и сохранения.'),'Catalog must explain save safety');
+assert.ok(html.includes('Установка не меняет миры и сохранения.'),'Catalog must explain save safety for player-made mods');
 console.log('Mod workshop: five gameplay effects, persistent installs, catalog UI and save safety passed.');
 
 for(const id of ['skill_expansion','brutal_world','blood_moon'])assert.ok(game.includes("id:'"+id+"'"),'Missing new mod '+id);
