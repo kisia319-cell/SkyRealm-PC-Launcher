@@ -76,6 +76,27 @@ assert.equal(m.sanitizeWorldAction('farm_harvest',{x:112,y:144,player_class:'ric
 assert.equal(m.sanitizeWorldAction('farm_harvest',{x:112,y:144,farmer_skill_level:7}),null);
 assert.equal(m.sanitizeWorldAction('farm_plant',{x:112,y:144,crop_id:'unknown'}),null);
 assert.equal(m.sanitizeWorldAction('farm_water',{x:112,y:144,amount:999}),null);
+assert.deepEqual(m.sanitizeWorldAction('damage_enemy',{
+  target_kind:'monster',target_id:'123e4567-e89b-42d3-a456-426614174099',weapon:'Железный меч',damage:75
+}),{target_kind:'monster',target_id:'123e4567-e89b-42d3-a456-426614174099',weapon:'Железный меч',damage:75});
+assert.equal(m.sanitizeWorldAction('damage_enemy',{
+  target_kind:'monster',target_id:'bad id',weapon:'Железный меч',damage:75
+}),null);
+assert.equal(m.sanitizeWorldAction('damage_enemy',{
+  target_kind:'monster',target_id:'mob_1',weapon:'Железный меч',damage:501
+}),null);
+assert.equal(m.sanitizeWorldAction('damage_enemy',{
+  target_kind:'monster',target_id:'mob_1',weapon:'Железный меч',damage:'75'
+}),null,'Damage must be a numeric integer, never a string payload.');
+assert.deepEqual(m.sanitizeWorldAction('pickup_loot',{
+  loot_id:'123e4567-e89b-42d3-a456-426614174099',x:200,y:240,world_mode:'surface'
+}),{loot_id:'123e4567-e89b-42d3-a456-426614174099',x:200,y:240,world_mode:'surface'});
+assert.equal(m.sanitizeWorldAction('pickup_loot',{
+  loot_id:'not-a-uuid',x:200,y:240,world_mode:'surface'
+}),null);
+assert.equal(m.sanitizeWorldAction('pickup_loot',{
+  loot_id:'123e4567-e89b-42d3-a456-426614174099',x:200,y:240,world_mode:'trade'
+}),null);
 const sharedSnapshot=m.sanitizeSharedWorldSnapshot({
   placedStructures:[{type:'house',x:20,y:40}],
   farmCrops:[{crop:'wheat',x:10,y:10}],
@@ -103,6 +124,22 @@ assert.deepEqual(m.sanitizeSharedWorldSnapshot({villageRaidActive:false,weatherM
   villageRaidActive:false,weatherMode:'clear',meteorPoint:null
 },'False and null world states must be preserved so guests can clear old events');
 assert.deepEqual(m.sanitizeSharedWorldSnapshot({resources:[{name:'Gold',count:999}],walletCents:100}),{});
+const cooperativeEnemies=m.sanitizeSharedWorldSnapshot({
+  adventureQuestProgress:{hunt:1,coopMonsters:[{
+    id:'mob-1',type:'shadow',x:400,y:420,hp:35,maxHp:80,speed:43,damageScale:1,attackCooldown:0,phase:1
+  }]},
+  lootDrops:[
+    {id:'123e4567-e89b-42d3-a456-426614174099',shared:true,x:410,y:430,name:'Кристалл',count:2,life:240,phase:1,world_mode:'surface'},
+    {x:500,y:500,name:'Мясо',count:2,life:240}
+  ],
+  resources:[{name:'Золото',count:999}],walletCents:999999,equipment:{weapon:'Меч дракона'}
+});
+assert.equal(cooperativeEnemies.adventureQuestProgress.coopMonsters.length,1,'Shared enemies belong to the shared world snapshot.');
+assert.equal(cooperativeEnemies.lootDrops.length,1,'Only explicitly shared loot may enter the shared snapshot.');
+assert.equal(cooperativeEnemies.lootDrops[0].id,'123e4567-e89b-42d3-a456-426614174099');
+assert.equal('resources' in cooperativeEnemies,false,'Player inventory must never be copied to the shared world.');
+assert.equal('walletCents' in cooperativeEnemies,false,'Player currency must never be copied to the shared world.');
+assert.equal('equipment' in cooperativeEnemies,false,'Player equipment must never be copied to the shared world.');
 assert.equal(m.sanitizeSharedWorldSnapshot({placedStructures:'x'.repeat(61000)}),null);
 assert.equal(m.sanitizeSharedWorldSnapshot(null),null);
 console.log('SkyRealm multiplayer core tests passed.');

@@ -1,7 +1,7 @@
 name: Co-op core tests
 on:
   push:
-    branches: [main, feature/co-op-foundation, 'fix/**']
+    branches: [main, feature/co-op-foundation, feature/shared-enemies-and-loot, 'fix/**']
   pull_request:
     branches: [main]
 jobs:
@@ -98,6 +98,13 @@ jobs:
             action_id: '123e4567-e89b-42d3-a456-426614174097',
             expected_version: 0,
             payload: { adventureQuestProgress: { treeChops: [], felledTrees: [] } },
+            result: {}
+          });
+          await assertProtected('/api/coop/actions/commit-enemy', 'POST', {
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174096',
+            expected_version: 0,
+            payload: { adventureQuestProgress: { coopMonsters: [] }, lootDrops: [] },
             result: {}
           });
           console.log('Co-op health is OK; current, snapshot, world-claim, farm, mining and tree routes reject missing sessions.');

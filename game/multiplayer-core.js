@@ -69,6 +69,24 @@
   function sanitizeWorldAction(actionType,input){
     if(typeof actionType!=='string'||!input||typeof input!=='object'||Array.isArray(input))return null;
     const keys=Object.keys(input);
+    if(actionType==='damage_enemy'){
+      const allowed=['target_kind','target_id','weapon','damage'];
+      if(keys.length!==4||keys.some(key=>!allowed.includes(key)))return null;
+      const kinds=['monster','biome_boss','wolf_boss','cave_boss','dungeon_boss'];
+      const weapons=['Деревянный меч','Железный меч','Огненный меч','Стальной меч','Меч титана','Меч дракона','Меч пустоты','Ледяной посох','Молниеносное копьё'];
+      const id=typeof input.target_id==='string'?input.target_id:'',damage=input.damage;
+      if(!kinds.includes(input.target_kind)||!id||id.length>64||!/^[A-Za-z0-9_-]+$/.test(id)||
+         !weapons.includes(input.weapon)||typeof damage!=='number'||!Number.isSafeInteger(damage)||damage<1||damage>500)return null;
+      return {target_kind:input.target_kind,target_id:id,weapon:input.weapon,damage};
+    }
+    if(actionType==='pickup_loot'){
+      if(keys.length!==4||keys.some(key=>!['loot_id','x','y','world_mode'].includes(key)))return null;
+      const id=typeof input.loot_id==='string'?input.loot_id:'',x=Number(input.x),y=Number(input.y);
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)||
+         !['surface','cave','dungeon'].includes(input.world_mode)||!Number.isFinite(x)||!Number.isFinite(y)||
+         x<0||x>12000||y<0||y>10000)return null;
+      return {loot_id:id,x:Math.round(x*10)/10,y:Math.round(y*10)/10,world_mode:input.world_mode};
+    }
     if(actionType==='mine_rock'){
       if(keys.some(key=>!['rock_index','tool','player_class','miner_skill_level'].includes(key))||!['rock_index','tool'].every(key=>keys.includes(key)))return null;
       const rockIndex=Number(input.rock_index),tool=input.tool,playerClass=input.player_class,minerSkill=input.miner_skill_level;
@@ -125,6 +143,31 @@
     const output={};
     for(const key of SHARED_WORLD_FIELDS){
       if(Object.prototype.hasOwnProperty.call(input,key))output[key]=input[key];
+    }
+    if(output.adventureQuestProgress&&typeof output.adventureQuestProgress==='object'&&!Array.isArray(output.adventureQuestProgress)){
+      const sourceProgress=output.adventureQuestProgress;
+      const progress={};
+      for(const key of ['hunt','mining','harvest','treeChops','felledTrees']){
+        if(Object.prototype.hasOwnProperty.call(sourceProgress,key))progress[key]=sourceProgress[key];
+      }
+      const types=['shadow','brute','wisp','skeleton','bomb','ice','scorpion','ember','yeti'];
+      if(Array.isArray(sourceProgress.coopMonsters))progress.coopMonsters=sourceProgress.coopMonsters.slice(0,20)
+        .filter(m=>m&&typeof m.id==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(m.id)&&
+          types.includes(m.type)&&Number.isFinite(m.x)&&Number.isFinite(m.y)&&Number.isFinite(m.hp)&&Number.isFinite(m.maxHp)&&
+          m.x>=0&&m.x<=12000&&m.y>=0&&m.y<=10000&&m.maxHp>0&&m.hp>=0&&m.hp<=m.maxHp)
+        .map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:Math.max(1,Math.min(160,Number(m.speed)||43)),
+          damageScale:Math.max(.1,Math.min(5,Number(m.damageScale)||1)),attackCooldown:Math.max(0,Math.min(5,Number(m.attackCooldown)||0)),
+          phase:Number(m.phase)||0,fuseStarted:m.fuseStarted===true,fuseTime:Math.max(0,Math.min(5,Number(m.fuseTime)||0)),
+          exploding:m.exploding===true,explosionTimer:Math.max(0,Math.min(2,Number(m.explosionTimer)||0))}));
+      output.adventureQuestProgress=progress;
+    }
+    if(Array.isArray(output.lootDrops)){
+      output.lootDrops=output.lootDrops.slice(0,80).filter(d=>d&&d.shared===true&&typeof d.id==='string'&&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(d.id)&&
+        typeof d.name==='string'&&d.name.length>0&&d.name.length<=48&&Number.isFinite(d.x)&&Number.isFinite(d.y)&&
+        Number.isSafeInteger(d.count)&&d.count>=1&&d.count<=99&&['surface','cave','dungeon'].includes(d.world_mode))
+        .map(d=>({id:d.id,shared:true,x:d.x,y:d.y,name:d.name,count:d.count,life:Math.max(0,Math.min(240,Number(d.life)||240)),
+          phase:Number(d.phase)||0,world_mode:d.world_mode}));
     }
     try{
       const serialized=JSON.stringify(output);
