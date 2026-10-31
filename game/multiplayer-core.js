@@ -74,9 +74,9 @@
       if(keys.length!==4||keys.some(key=>!allowed.includes(key)))return null;
       const kinds=['monster','biome_boss','wolf_boss','cave_boss','dungeon_boss'];
       const weapons=['Деревянный меч','Железный меч','Огненный меч','Стальной меч','Меч титана','Меч дракона','Меч пустоты','Ледяной посох','Молниеносное копьё'];
-      const id=typeof input.target_id==='string'?input.target_id:'',damage=Number(input.damage);
+      const id=typeof input.target_id==='string'?input.target_id:'',damage=input.damage;
       if(!kinds.includes(input.target_kind)||!id||id.length>64||!/^[A-Za-z0-9_-]+$/.test(id)||
-         !weapons.includes(input.weapon)||!Number.isSafeInteger(damage)||damage<1||damage>500)return null;
+         !weapons.includes(input.weapon)||typeof damage!=='number'||!Number.isSafeInteger(damage)||damage<1||damage>500)return null;
       return {target_kind:input.target_kind,target_id:id,weapon:input.weapon,damage};
     }
     if(actionType==='pickup_loot'){
@@ -145,12 +145,13 @@
       if(Object.prototype.hasOwnProperty.call(input,key))output[key]=input[key];
     }
     if(output.adventureQuestProgress&&typeof output.adventureQuestProgress==='object'&&!Array.isArray(output.adventureQuestProgress)){
+      const sourceProgress=output.adventureQuestProgress;
       const progress={};
       for(const key of ['hunt','mining','harvest','treeChops','felledTrees']){
-        if(Object.prototype.hasOwnProperty.call(output.adventureQuestProgress,key))progress[key]=output.adventureQuestProgress[key];
+        if(Object.prototype.hasOwnProperty.call(sourceProgress,key))progress[key]=sourceProgress[key];
       }
       const types=['shadow','brute','wisp','skeleton','bomb','ice','scorpion','ember','yeti'];
-      progress.coopMonsters=(Array.isArray(progress.coopMonsters)?progress.coopMonsters:[]).slice(0,20)
+      if(Array.isArray(sourceProgress.coopMonsters))progress.coopMonsters=sourceProgress.coopMonsters.slice(0,20)
         .filter(m=>m&&typeof m.id==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(m.id)&&
           types.includes(m.type)&&Number.isFinite(m.x)&&Number.isFinite(m.y)&&Number.isFinite(m.hp)&&Number.isFinite(m.maxHp)&&
           m.x>=0&&m.x<=12000&&m.y>=0&&m.y<=10000&&m.maxHp>0&&m.hp>=0&&m.hp<=m.maxHp)
