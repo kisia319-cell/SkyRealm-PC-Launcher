@@ -315,7 +315,7 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Ошибка диагностики: " + str(exc)}
 
-    def launch_game(self, settings=None, allow_game_update=True, session_token=None):
+    def launch_game(self, settings=None, allow_game_update=True, session_token=None, open_mod_id=None):
         """Install the bundled prototype into LocalAppData and start it in a new process."""
         try:
             preferences = save_user_settings(settings if isinstance(settings, dict) else read_user_settings())
@@ -414,6 +414,14 @@ class LauncherApi:
                 command = [sys.executable, str(Path(__file__).resolve()), "--skyrealm-game", str(installed_index)]
             creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) if os.name == "nt" else 0
             launch_env = os.environ.copy()
+            allowed_mod_ids = {"cartographer", "angler", "green_thumb", "miners_luck", "survivalist", "skill_expansion", "brutal_world", "blood_moon", "__catalog__"}
+            requested_mod = open_mod_id.strip() if isinstance(open_mod_id, str) else ""
+            if requested_mod in allowed_mod_ids:
+                launch_env["SKYREALM_OPEN_MOD_CATALOG"] = "1"
+                launch_env["SKYREALM_OPEN_MOD_ID"] = "" if requested_mod == "__catalog__" else requested_mod
+            else:
+                launch_env.pop("SKYREALM_OPEN_MOD_CATALOG", None)
+                launch_env.pop("SKYREALM_OPEN_MOD_ID", None)
             safe_session_token = session_token.strip() if isinstance(session_token, str) else ""
             if safe_session_token and len(safe_session_token) <= 4096:
                 launch_env["SKYREALM_SESSION_TOKEN"] = safe_session_token
@@ -544,7 +552,13 @@ def run_game_window(game_html: str) -> None:
     server_thread.start()
 
     port = local_server.server_address[1]
-    page_url = "http://127.0.0.1:" + str(port) + "/" + file_path.name + "?" + urlencode({"settings": json.dumps(settings, ensure_ascii=False)})
+    launch_params = {"settings": json.dumps(settings, ensure_ascii=False)}
+    if os.environ.get("SKYREALM_OPEN_MOD_CATALOG") == "1":
+        launch_params["openMods"] = "1"
+        requested_mod = os.environ.get("SKYREALM_OPEN_MOD_ID", "")
+        if requested_mod:
+            launch_params["installMod"] = requested_mod
+    page_url = "http://127.0.0.1:" + str(port) + "/" + file_path.name + "?" + urlencode(launch_params)
     try:
         game_window = webview.create_window(
             "SkyRealm — Первый рассвет",
