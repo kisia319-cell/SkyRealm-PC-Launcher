@@ -75,3 +75,12 @@ const invalidRecoveryCode = await invalidRecoveryCodeResponse.json();
 assert.equal(invalidRecoveryCode?.detail?.code, "INVALID_RECOVERY_CODE");
 
 console.log("SkyRealm auth smoke tests passed.");
+
+const refreshWithoutToken = await fetch(url("/api/auth/refresh"), {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({}),
+});
+assert.equal(refreshWithoutToken.status, 401, "refresh endpoint must reject a missing refresh token");
+const refreshError = await refreshWithoutToken.json();
+assert.equal(refreshError?.detail?.code, "NO_SESSION");
