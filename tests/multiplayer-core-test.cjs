@@ -85,6 +85,9 @@ assert.equal(m.sanitizeWorldAction('damage_enemy',{
 assert.equal(m.sanitizeWorldAction('damage_enemy',{
   target_kind:'monster',target_id:'mob_1',weapon:'Железный меч',damage:501
 }),null);
+assert.equal(m.sanitizeWorldAction('damage_enemy',{
+  target_kind:'monster',target_id:'mob_1',weapon:'Железный меч',damage:'75'
+}),null,'Damage must be a numeric integer, never a string payload.');
 assert.deepEqual(m.sanitizeWorldAction('pickup_loot',{
   loot_id:'123e4567-e89b-42d3-a456-426614174099',x:200,y:240,world_mode:'surface'
 }),{loot_id:'123e4567-e89b-42d3-a456-426614174099',x:200,y:240,world_mode:'surface'});
