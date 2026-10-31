@@ -75,6 +75,26 @@ const sharedSnapshot=m.sanitizeSharedWorldSnapshot({
   x:500,hp:12,walletCents:9900,resources:[{name:'Gold',count:999}]
 });
 assert.deepEqual(sharedSnapshot,{placedStructures:[{type:'house',x:20,y:40}],farmCrops:[{crop:'wheat',x:10,y:10}]});
+const sharedEvents = m.sanitizeSharedWorldSnapshot({
+  villageRaidActive:true,villageRaidKills:2,villageRaidTimer:45,lastVillageRaidDay:4,
+  weatherMode:'storm',weatherTimer:18,
+  meteorPoint:{x:640,y:480},meteorShowerTimer:90,
+  worldEventCamp:{x:500,y:400,life:100},
+  worldEventTraveler:{x:700,y:600,life:80},
+  lastWorldMeteorNight:3,lastWorldHordeNight:2,lastWorldCampDay:4,lastWorldTravelerDay:2,
+  hp:1,walletCents:9000
+});
+assert.deepEqual(sharedEvents,{
+  villageRaidActive:true,villageRaidKills:2,villageRaidTimer:45,lastVillageRaidDay:4,
+  weatherMode:'storm',weatherTimer:18,
+  meteorPoint:{x:640,y:480},meteorShowerTimer:90,
+  worldEventCamp:{x:500,y:400,life:100},
+  worldEventTraveler:{x:700,y:600,life:80},
+  lastWorldMeteorNight:3,lastWorldHordeNight:2,lastWorldCampDay:4,lastWorldTravelerDay:2
+},'Weather, raid and temporary world events must survive shared snapshot sanitization without leaking player-only state');
+assert.deepEqual(m.sanitizeSharedWorldSnapshot({villageRaidActive:false,weatherMode:'clear',meteorPoint:null}),{
+  villageRaidActive:false,weatherMode:'clear',meteorPoint:null
+},'False and null world states must be preserved so guests can clear old events');
 assert.deepEqual(m.sanitizeSharedWorldSnapshot({resources:[{name:'Gold',count:999}],walletCents:100}),{});
 assert.equal(m.sanitizeSharedWorldSnapshot({placedStructures:'x'.repeat(61000)}),null);
 assert.equal(m.sanitizeSharedWorldSnapshot(null),null);
