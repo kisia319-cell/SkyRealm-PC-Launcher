@@ -6,7 +6,6 @@ import sys
 import time
 import json
 import hashlib
-import re
 import zipfile
 import urllib.request
 import functools
@@ -443,15 +442,19 @@ class GameApi:
             if not self._session_token:
                 return {"ok": False, "message": "Войди в аккаунт в лаунчере, чтобы синхронизировать профиль."}
             config = Path(resource_path("config.js")).read_text(encoding="utf-8")
-            base_match = re.search(r'apiBaseUrl\\s*:\\s*["\\']([^"\\']+)["\\']', config)
-            key_match = re.search(r'supabaseAnonKey\\s*:\\s*["\\']([^"\\']+)["\\']', config)
-            if not base_match or not key_match:
+            values = {}
+            for line in config.splitlines():
+                if "apiBaseUrl" in line or "supabaseAnonKey" in line:
+                    parts = line.split('"')
+                    if len(parts) >= 3:
+                        values["apiBaseUrl" if "apiBaseUrl" in line else "supabaseAnonKey"] = parts[1]
+            if not values.get("apiBaseUrl") or not values.get("supabaseAnonKey"):
                 return {"ok": False, "message": "Не удалось прочитать настройки облачного профиля."}
-            endpoint = base_match.group(1).replace("skyrealm-auth", "skyrealm-social")
+            endpoint = values["apiBaseUrl"].replace("skyrealm-auth", "skyrealm-social")
             endpoint += ("&" if "?" in endpoint else "?") + "route=%2Fapi%2Fsocial%2Fstats"
             payload = json.dumps(stats if isinstance(stats, dict) else {}, ensure_ascii=False).encode("utf-8")
             request = urllib.request.Request(endpoint, data=payload, method="POST", headers={
-                "apikey": key_match.group(1),
+                "apikey": values["supabaseAnonKey"],
                 "Authorization": "Bearer " + self._session_token,
                 "Content-Type": "application/json",
                 "User-Agent": "SkyRealm-Game/1.0"
