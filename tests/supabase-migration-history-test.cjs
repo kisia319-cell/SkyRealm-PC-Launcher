@@ -31,7 +31,8 @@ const expected = [
   '20261030081255_co_op_guest_tree_chop_actions.sql',
   '20261030091246_co_op_guest_class_action_payloads.sql',
   '20261031120000_co_op_shared_enemies_loot.sql',
-  '20261031130000_profile_social_foundation.sql'
+  '20261031130000_profile_social_foundation.sql',
+  '20261031140000_coop_friend_invites.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
@@ -68,5 +69,8 @@ assert.ok(read(expected[25]).includes("SHARED_LOOT_ALREADY_CLAIMED"));
 assert.ok(read(expected[26]).includes('create table if not exists public.skyrealm_friendships'));
 assert.ok(read(expected[26]).includes('profiles_avatar_key_check'));
 assert.ok(read(expected[26]).includes('revoke all on public.skyrealm_friendships from anon, authenticated'));
+assert.ok(read(expected[27]).includes('create table if not exists public.skyrealm_room_invites'));
+assert.ok(read(expected[27]).includes('revoke all on public.skyrealm_room_invites from anon, authenticated'));
+assert.ok(read(expected[27]).includes('constraint skyrealm_room_invites_pair_unique unique (room_id, invitee_id)'));
 
 console.log('SkyRealm Supabase migration history tests passed.');
