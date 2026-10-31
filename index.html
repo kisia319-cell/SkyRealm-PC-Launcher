@@ -21,6 +21,7 @@
       <button class="nav-item active" data-page="home"><span class="nav-ico">⌂</span><span>Главная</span></button>
       <button class="nav-item" data-page="news"><span class="nav-ico">▤</span><span>Новости</span><span class="nav-badge">2</span></button>
       <button class="nav-item" data-page="shop"><span class="nav-ico">◇</span><span>Магазин</span><span class="nav-soon">СКОРО</span></button>
+      <button class="nav-item" data-page="mods"><span class="nav-ico">🧩</span><span>Моды</span><span class="nav-badge">8</span></button>
       <button class="nav-item" data-page="community"><span class="nav-ico">♧</span><span>Сообщество</span></button>
       <button class="nav-item" data-page="settings"><span class="nav-ico">⚙</span><span>Настройки</span></button>
     </nav>
@@ -197,6 +198,22 @@
       </section>
 
       <footer class="main-footer"><div class="footer-brand"><div class="footer-logo">S</div><div><b>SkyRealm</b><span>Твоя история начинается здесь</span></div></div><div class="footer-center">© 2026 SKYREALM <span>•</span> ДЕМО-ПРОЕКТ</div><button class="footer-link" data-page="news" type="button">Помощь и новости <span>↗</span></button></footer>
+    </section>
+
+        <section class="page inner-page" id="page-mods">
+      <div class="page-heading"><div class="section-kicker">SKYREALM · МАСТЕРСКАЯ</div><h1>Каталог <span>модов</span></h1><p>Уже созданные игровые моды SkyRealm. Нажми «Добавить в игру» — лаунчер запустит игру и откроет каталог на выбранном моде.</p></div>
+      <div class="mods-launcher-note panel"><div class="mods-launcher-note-icon">🧩</div><div><b>8 встроенных модов готовы</b><p>Моды уже входят в игру. Отдельно скачивать архивы не нужно: лаунчер проверит и обновит игровые файлы перед запуском. Установка не меняет миры и сохранения.</p></div><button class="primary-btn" id="open-full-mod-catalog" type="button">Открыть каталог в игре →</button></div>
+      <div class="launcher-mod-grid">
+        <article class="launcher-mod-card"><div class="launcher-mod-icon">🧭</div><div class="launcher-mod-meta">ИССЛЕДОВАНИЕ · v1.0.0</div><h2>Око картографа</h2><p>Открывает больше территории вокруг персонажа на мини-карте.</p><small>Радиус открытия карты: с 3 до 5 блоков.</small><button class="secondary-btn" data-install-mod="cartographer" type="button">Добавить в игру →</button></article>
+        <article class="launcher-mod-card"><div class="launcher-mod-icon">🎣</div><div class="launcher-mod-meta">РЕСУРСЫ · v1.0.0</div><h2>Мастер рыбалки</h2><p>Помогает быстрее ловить рыбу и повышает шанс редкой находки.</p><small>Быстрее поклёвка, больше шанс жемчуга и второй рыбы.</small><button class="secondary-btn" data-install-mod="angler" type="button">Добавить в игру →</button></article>
+        <article class="launcher-mod-card"><div class="launcher-mod-icon">🌱</div><div class="launcher-mod-meta">ФЕРМЕРСТВО · v1.0.0</div><h2>Зелёный палец</h2><p>Ускоряет рост всех посаженных культур на грядках.</p><small>Рост урожая быстрее на 35%.</small><button class="secondary-btn" data-install-mod="green_thumb" type="button">Добавить в игру →</button></article>
+        <article class="launcher-mod-card"><div class="launcher-mod-icon">⛏️</div><div class="launcher-mod-meta">ДОБЫЧА · v1.0.0</div><h2>Удача шахтёра</h2><p>Повышает шанс получить дополнительную единицу добытой руды.</p><small>Дополнительная руда выпадает чаще.</small><button class="secondary-btn" data-install-mod="miners_luck" type="button">Добавить в игру →</button></article>
+        <article class="launcher-mod-card"><div class="launcher-mod-icon">🥫</div><div class="launcher-mod-meta">ВЫЖИВАНИЕ · v1.0.0</div><h2>Запасливый путешественник</h2><p>Учит героя экономнее расходовать запасы еды.</p><small>Голод уменьшается раз в 12 минут вместо 10.</small><button class="secondary-btn" data-install-mod="survivalist" type="button">Добавить в игру →</button></article>
+        <article class="launcher-mod-card"><div class="launcher-mod-icon">🌟</div><div class="launcher-mod-meta">РАЗВИТИЕ · v1.0.0</div><h2>Путь мастера</h2><p>Открывает 13 веток развития персонажа с 10 уровнями в каждой.</p><small>До 130 улучшений и семь дополнительных специализаций.</small><button class="secondary-btn" data-install-mod="skill_expansion" type="button">Добавить в игру →</button></article>
+        <article class="launcher-mod-card"><div class="launcher-mod-icon">☠️</div><div class="launcher-mod-meta">СЛОЖНОСТЬ · v1.0.0</div><h2>Жестокий мир</h2><p>Усиливает обычных монстров, ночные нападения и расход голода.</p><small>Враги крепче, быстрее и наносят больше урона.</small><button class="secondary-btn" data-install-mod="brutal_world" type="button">Добавить в игру →</button></article>
+        <article class="launcher-mod-card"><div class="launcher-mod-icon">🌑</div><div class="launcher-mod-meta">СЛОЖНОСТЬ · v1.0.0</div><h2>Вечная кровавая луна</h2><p>Учащает ночные волны и повышает вероятность появления взрывных врагов.</p><small>Ночи опаснее, добыча с врагов скуднее.</small><button class="secondary-btn" data-install-mod="blood_moon" type="button">Добавить в игру →</button></article>
+      </div>
+      <div class="mods-launcher-community panel"><div><b>Моды игроков</b><p>Пользовательские моды и их публикация доступны в общем онлайн-каталоге внутри игры. Для публикации требуется подтверждённый аккаунт; лимит — 3 мода за 24 часа.</p></div><button class="secondary-btn" data-install-mod="__catalog__" type="button">Открыть общий каталог →</button></div>
     </section>
 
     <section class="page inner-page" id="page-news">
