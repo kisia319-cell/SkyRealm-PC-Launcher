@@ -1821,6 +1821,7 @@
     function attackNearestMonster(){
     if(playerAttackCooldown>0)return;
     if(dungeonMode&&isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
+      playerAttackCooldown=.7;attackAnimTimer=.24;
       const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1));
       queueGuestEnemyHit('dungeon_boss','room-'+String(dungeonRoom),weapon,damage);return;
     }
