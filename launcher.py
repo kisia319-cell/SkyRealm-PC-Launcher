@@ -433,9 +433,10 @@ class GameApi:
         self._session_token = os.environ.pop("SKYREALM_SESSION_TOKEN", "")
 
     def get_auth_session(self):
-        token = self._session_token
-        self._session_token = ""
-        return {"token": token}
+        # The WebView may request the session more than once (co-op polling,
+        # profile sync and reconnects). Keep the token in this short-lived game
+        # process so native profile sync continues working after the first read.
+        return {"token": self._session_token}
 
     def sync_profile_stats(self, stats):
         """Send bounded, non-sensitive game progress to the authenticated profile API."""
