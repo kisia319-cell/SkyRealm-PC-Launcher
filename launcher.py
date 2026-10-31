@@ -6,6 +6,7 @@ import sys
 import time
 import json
 import hashlib
+import re
 import zipfile
 import urllib.request
 import functools
@@ -435,6 +436,38 @@ class GameApi:
         token = self._session_token
         self._session_token = ""
         return {"token": token}
+
+    def sync_profile_stats(self, stats):
+        """Send bounded, non-sensitive game progress to the authenticated profile API."""
+        try:
+            if not self._session_token:
+                return {"ok": False, "message": "Войди в аккаунт в лаунчере, чтобы синхронизировать профиль."}
+            config = Path(resource_path("config.js")).read_text(encoding="utf-8")
+            base_match = re.search(r'apiBaseUrl\\s*:\\s*["\\']([^"\\']+)["\\']', config)
+            key_match = re.search(r'supabaseAnonKey\\s*:\\s*["\\']([^"\\']+)["\\']', config)
+            if not base_match or not key_match:
+                return {"ok": False, "message": "Не удалось прочитать настройки облачного профиля."}
+            endpoint = base_match.group(1).replace("skyrealm-auth", "skyrealm-social")
+            endpoint += ("&" if "?" in endpoint else "?") + "route=%2Fapi%2Fsocial%2Fstats"
+            payload = json.dumps(stats if isinstance(stats, dict) else {}, ensure_ascii=False).encode("utf-8")
+            request = urllib.request.Request(endpoint, data=payload, method="POST", headers={
+                "apikey": key_match.group(1),
+                "Authorization": "Bearer " + self._session_token,
+                "Content-Type": "application/json",
+                "User-Agent": "SkyRealm-Game/1.0"
+            })
+            with urllib.request.urlopen(request, timeout=8) as response:
+                data = json.loads(response.read(64 * 1024).decode("utf-8"))
+            return {"ok": True, "profile": data.get("profile")}
+        except urllib.error.HTTPError as exc:
+            try:
+                detail = json.loads(exc.read(16 * 1024).decode("utf-8"))
+                message = detail.get("message", "Облачный профиль временно недоступен.")
+            except Exception:
+                message = "Облачный профиль временно недоступен."
+            return {"ok": False, "message": message}
+        except Exception:
+            return {"ok": False, "message": "Не удалось синхронизировать профиль. Проверь интернет."}
 
     def close(self):
         try:
