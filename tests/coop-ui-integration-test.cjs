@@ -60,6 +60,10 @@ assert.ok(client.includes('commitTreeAction') && edge.includes('commit_co_op_tre
 assert.ok(client.includes('commitEnemyAction') && edge.includes('commit_co_op_enemy_action'),'Shared enemy damage and loot claims must be committed by the room owner.');
 assert.ok(edge.includes('actionType === "damage_enemy"') && edge.includes('actionType === "pickup_loot"'),'Edge Function must validate only supported enemy and loot actions.');
 assert.ok(game.includes('queueGuestEnemyHit') && game.includes('processOwnerCoopEnemyAction'),'Guest combat must be routed through owner validation.');
+assert.ok(game.includes("запросов общего урона отправлено") && game.includes("queueGuestEnemyHit('monster',mob.id,weapon,damage)"),
+  'Guest special area attacks must enqueue every shared enemy hit instead of mutating local HP.');
+assert.ok(game.includes("Общий Оборотень ударил тебя") && game.includes("coopGuestWolfAttackCooldown"),
+  'Shared wolf boss must also damage guest players locally without changing shared HP on the guest.');
 assert.ok(game.includes('spawnSharedLoot') && game.includes("drop.shared&&isCoopWorldActive()"),'Boss and monster loot must exist once in the shared world and be individually picked up.');
 assert.ok(game.includes('coopMonsters:isCoopWorldSave()') && core.SHARED_WORLD_FIELDS.includes('adventureQuestProgress'),'Enemy state must be nested in the shared world progress snapshot.');
 assert.equal(core.SHARED_WORLD_FIELDS.includes('resources'),false,'Player inventory must remain outside the shared snapshot.');
