@@ -3309,6 +3309,22 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(e.code==='F11'||e.key==='F11'){e.preventDefault();toggleFullscreen();return;}
     const k = gameKey(e);
     const formTarget = e.target && (e.target.matches?.('input,textarea,select') || e.target.isContentEditable);
+    // Recover from a stale paused flag after first world entry. This can happen
+    // when the character-entry overlay closes without completing its resume callback.
+    const movementKey = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k);
+    const pauseShade = document.getElementById('pause-shade');
+    const blockingOverlay = signDialogOpen || inventoryDialogOpen || workbenchDialogOpen ||
+      shopDialogOpen || npcQuestDialogOpen || storageDialogOpen || fullMapOpen ||
+      !document.getElementById('character-editor-shade')?.hidden ||
+      !document.getElementById('tutorial-shade')?.hidden ||
+      !document.getElementById('class-select-shade')?.hidden;
+    if (movementKey && !formTarget && !inMainMenu && paused &&
+        pauseShade?.hidden && !blockingOverlay && !sleeping) {
+      paused = false;
+      keys.clear();
+      last = performance.now();
+      canvas.focus();
+    }
     if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','q','j','r','t','1','2','3','4'].includes(k)) e.preventDefault();
     if(k==='l'&&!formTarget&&!inMainMenu){if(fullMapOpen)closeFullMap();else if(!paused&&!signDialogOpen&&!inventoryDialogOpen)openFullMap();return;}
     if(fullMapOpen){if(k==='escape'||k==='l')closeFullMap();return;}
