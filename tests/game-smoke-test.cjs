@@ -239,3 +239,8 @@ assert.ok(game.includes('function updateWolfAndDog(dt){\n    if(tradeWorldMode||
 assert.ok(py.includes('"multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js"'), 'Launcher diagnostics must detect missing multiplayer scripts');
 assert.ok(py.includes('required_game_files = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")'), 'Game updater must reinstall a package missing any multiplayer script');
 assert.ok(py.includes('if version != bundled_version and not required_files_ok:'), 'Launcher must not overwrite a newer remote game with an older bundled build during repair');
+
+const worldReset = game.slice(game.indexOf('function resetWorldState(){'), game.indexOf('function updateTreeChopRecord'));
+assert.ok(worldReset.includes('weaponEnchantments={}'), 'Weapon enchantments must reset when entering a different world');
+assert.ok(worldReset.includes("weatherMode='clear';weatherTimer=75"), 'Weather state must reset when entering a different world');
+assert.ok(worldReset.includes("lastRestoredVillageRaidKey=''"), 'Raid restoration bookkeeping must reset between worlds');
