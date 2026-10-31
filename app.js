@@ -6,7 +6,7 @@
   let currentLanguage = ['ru', 'en'].includes(localStorage.getItem('skyrealm_language')) ? localStorage.getItem('skyrealm_language') : 'ru';
   const LANGUAGE_TEXT = {
     ru: {
-      pageHome:'ИГРОВОЙ ЦЕНТР', pageNews:'ХРОНИКИ МИРА', pageShop:'МАГАЗИН ПРИКЛЮЧЕНИЙ', pageCommunity:'СООБЩЕСТВО', pageSettings:'НАСТРОЙКИ',
+      pageHome:'ИГРОВОЙ ЦЕНТР', pageNews:'ХРОНИКИ МИРА', pageShop:'МАГАЗИН ПРИКЛЮЧЕНИЙ', pageMods:'КАТАЛОГ МОДОВ', pageCommunity:'СООБЩЕСТВО', pageSettings:'НАСТРОЙКИ',
       loginTitle:'Войти в SkyRealm', registerTitle:'Создай аккаунт', loginIntro:'Войди, чтобы открыть свой профиль, или создай новый аккаунт.', registerIntro:'Заполни данные ниже. После регистрации мы попросим подтвердить почту кодом.',
       usernameLogin:'Почта или имя игрока', usernameRegister:'Имя игрока', usernamePlaceholderLogin:'Введите почту или имя игрока', usernamePlaceholderRegister:'Придумай имя (3–20 символов)',
       passwordPlaceholderLogin:'Введите пароль', passwordPlaceholderRegister:'Не менее 8 символов', submitLogin:'Войти в аккаунт <span>→</span>', submitRegister:'Создать аккаунт <span>→</span>', switchLogin:'Создать аккаунт <span>→</span>', switchRegister:'← Вернуться ко входу',
@@ -16,7 +16,7 @@
       busyConnect:'Подключаемся к серверу…', busyVerify:'Проверяем код…', busyResend:'Отправляем…', languageChanged:'Language saved.', statusChecking:'Проверяем сервер…', statusOnline:'Облачный сервер онлайн', statusOffline:'Нет связи с облаком', statusUnconfigured:'Сервер не настроен'
     },
     en: {
-      pageHome:'GAME CENTER', pageNews:'WORLD CHRONICLES', pageShop:'ADVENTURE SHOP', pageCommunity:'COMMUNITY', pageSettings:'SETTINGS',
+      pageHome:'GAME CENTER', pageNews:'WORLD CHRONICLES', pageShop:'ADVENTURE SHOP', pageMods:'MOD WORKSHOP', pageCommunity:'COMMUNITY', pageSettings:'SETTINGS',
       loginTitle:'Sign in to SkyRealm', registerTitle:'Create your account', loginIntro:'Sign in to open your profile, or create a new account.', registerIntro:'Fill in the details below. We’ll ask you to verify your email after registration.',
       usernameLogin:'Email or player name', usernameRegister:'Player name', usernamePlaceholderLogin:'Enter email or username', usernamePlaceholderRegister:'Choose a name (3–20 characters)',
       passwordPlaceholderLogin:'Enter password', passwordPlaceholderRegister:'At least 8 characters', submitLogin:'Sign in <span>→</span>', submitRegister:'Create account <span>→</span>', switchLogin:'Create account <span>→</span>', switchRegister:'← Back to sign in',
@@ -27,7 +27,7 @@
     }
   };
   const t = (key) => LANGUAGE_TEXT[currentLanguage][key] || LANGUAGE_TEXT.ru[key] || key;
-  const getPageNames = () => ({home:t('pageHome'),news:t('pageNews'),shop:t('pageShop'),community:t('pageCommunity'),settings:t('pageSettings')});
+  const getPageNames = () => ({home:t('pageHome'),news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),settings:t('pageSettings')});
   let pageNames = getPageNames();
   let gameLaunchBusy = false;
   const toast = (message) => {
@@ -863,7 +863,7 @@
     if (gameLaunchBusy) { toast(currentLanguage === 'en' ? 'The current install step cannot be interrupted safely.' : 'Текущий этап установки нельзя безопасно прервать.'); return; }
     hideInstallDialog();
   });
-  async function launchGame(allowUpdate = null) {
+  async function launchGame(allowUpdate = null, modId = '') {
     if (gameLaunchBusy) return;
     if (allowUpdate === null && window.pywebview?.api?.launch_game) {
       try {
@@ -891,7 +891,7 @@
     $('#install-description').textContent = currentLanguage === 'en' ? 'The launcher checks the installed files and prepares the game if needed.' : 'Лаунчер проверит игровые файлы и установит игру, если её ещё нет.';
     try {
       if (window.pywebview?.api?.launch_game) {
-        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI(), allowUpdate, await getValidToken());
+        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI(), allowUpdate, await getValidToken(), modId);
         if (!result || result.ok === false) throw new Error(result?.message || (currentLanguage === 'en' ? 'Could not start the game.' : 'Не удалось запустить игру.'));
         setGameProgress(100, currentLanguage === 'en' ? 'Launching SkyRealm…' : 'Запускаем SkyRealm…', currentLanguage === 'en' ? 'The launcher will close now' : 'Сейчас лаунчер закроется');
         await new Promise(resolve => setTimeout(resolve, 450));
@@ -900,6 +900,7 @@
         // Browser preview: play the same packaged HTML game in a new tab. Installation/auto-close is desktop-only.
         const gameUrlObject = new URL('game/index.html', window.location.href);
         gameUrlObject.searchParams.set('settings', JSON.stringify(readGamePreferencesFromUI()));
+        if (modId) { gameUrlObject.searchParams.set('openMods', '1'); if (modId !== '__catalog__') gameUrlObject.searchParams.set('installMod', modId); }
         const gameUrl = gameUrlObject.toString();
         setGameProgress(55, currentLanguage === 'en' ? 'Opening browser preview…' : 'Открываем игровое демо…', currentLanguage === 'en' ? 'Desktop installation runs in the EXE build' : 'Установка и закрытие лаунчера работают в EXE');
         await new Promise(resolve => setTimeout(resolve, 650));
@@ -918,6 +919,8 @@
     }
   }
   $('#play-game').addEventListener('click', () => launchGame(null));
+  $('[data-install-mod]').forEach(button => button.addEventListener('click', () => launchGame(true, button.dataset.installMod)));
+  $('#open-full-mod-catalog')?.addEventListener('click', () => launchGame(true, '__catalog__'));
   $('#game-update-yes').addEventListener('click', () => { $('#game-update-overlay').hidden = true; launchGame(true); });
   $('#game-update-no').addEventListener('click', () => { $('#game-update-overlay').hidden = true; launchGame(false); });
 
