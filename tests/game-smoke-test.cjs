@@ -11,6 +11,7 @@ new vm.Script(game, { filename: 'game/game.js' });
 assert.ok(game.includes("water:[520,340,'sine',.16]"), 'Fishing catch sound must use a dedicated water preset');
 assert.ok(game.includes('function fishingShoreRatio()'), 'Fishing must be restricted to the lake shoreline');
 assert.ok(game.includes('function startFishing()') && game.includes('function updateFishing(dt)'), 'Fishing must have a cast and catch loop');
+assert.ok(game.includes('function drawFishingCast(camX,camY,time)') && game.includes('drawFishingCast(camX,camY,time);'), 'Fishing cast must be visible on the game canvas');
 assert.ok(game.includes("fishCaught,meteorPoint:"), 'Fishing progress must be persisted in each world save');
 assert.ok(game.includes("'Рыба':70,'Жемчуг':650"), 'Fishing loot must be sellable in the Trade World');
 assert.ok(gameHtml.includes('data-craft="fishingRod"'), 'The workbench must expose the fishing rod recipe');
