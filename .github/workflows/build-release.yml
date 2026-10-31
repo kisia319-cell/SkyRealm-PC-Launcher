@@ -36,7 +36,8 @@ jobs:
             "launcher.py", "update_helper.py", "launcher_version.txt",
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "config.js", "realm.jpg", "icon.png",
-            "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt"
+            "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt",
+            "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
           if ($missing.Count -gt 0) {
@@ -89,7 +90,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher 1.0.2 + Game $($gameVersion): separate Trade World with two market stalls, five settlements and eight NPCs; complete seven-crop farming; balanced random world events with distinct odds (meteor showers 12%, night hordes 7%, abandoned camps 10%, travelers 8%, storms 8%); saved event cooldowns and world-safe spawn checks; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible."
+            notes = "SkyRealm Launcher $version + Game $($gameVersion): separate Trade World with market stalls, five settlements and 18 varied houses per village; seven-crop farming; random world events with distinct odds; saved event cooldowns; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
