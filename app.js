@@ -148,15 +148,32 @@
   function currentToken() {
     return localStorage.getItem('skyrealm_token') || sessionStorage.getItem('skyrealm_token') || '';
   }
-  function saveToken(token) {
-    localStorage.removeItem('skyrealm_token');
+  function saveToken(token, refreshToken = '', expiresIn = 3600) {
+    // Keep the authenticated session in the persistent WebView profile. The profile
+    // lives under LocalAppData\SkyRealm and survives launcher/game binary updates.
+    if (typeof token !== 'string' || !token) return;
+    localStorage.setItem('skyrealm_token', token);
+    localStorage.setItem('skyrealm_token_expires_at', String(Date.now() + Math.max(60, Number(expiresIn) || 3600) * 1000));
+    if (typeof refreshToken === 'string' && refreshToken) localStorage.setItem('skyrealm_refresh_token', refreshToken);
     sessionStorage.removeItem('skyrealm_token');
-    if ($('#remember').checked) localStorage.setItem('skyrealm_token', token);
-    else sessionStorage.setItem('skyrealm_token', token);
+    if ($('#remember')) $('#remember').checked = true;
   }
   function clearToken() {
     localStorage.removeItem('skyrealm_token');
+    localStorage.removeItem('skyrealm_refresh_token');
+    localStorage.removeItem('skyrealm_token_expires_at');
     sessionStorage.removeItem('skyrealm_token');
+  }
+  async function getValidToken() {
+    const token = currentToken();
+    if (!token) return '';
+    const expiresAt = Number(localStorage.getItem('skyrealm_token_expires_at') || 0);
+    if (!expiresAt || expiresAt > Date.now() + 60000) return token;
+    const refreshToken = localStorage.getItem('skyrealm_refresh_token') || '';
+    if (!refreshToken) return token; // Legacy sessions can still be checked by /me.
+    const result = await requestApi('/api/auth/refresh', {method:'POST', body:{refresh_token:refreshToken}, token:API_KEY});
+    saveToken(result.access_token, result.refresh_token, result.expires_in);
+    return result.access_token;
   }
   async function requestApi(path, {method='GET', body=null, token=null} = {}) {
     if (!apiConfigured()) {
@@ -443,7 +460,7 @@
         showVerification(result.email || email, result.message || 'Код подтверждения отправлен на почту.');
       } else {
         const result = await requestApi('/api/auth/login', {method:'POST', body:{identifier:username, password}});
-        saveToken(result.access_token);
+        saveToken(result.access_token, result.refresh_token, result.expires_in);
         if ($('#remember').checked) localStorage.setItem('skyrealm_login', username); else localStorage.removeItem('skyrealm_login');
         $('#password').value = '';
         showProfile(result.user);
@@ -521,9 +538,9 @@
   if (savedLogin) $('#username').value = savedLogin;
 
   async function restoreSession() {
-    const token = currentToken();
-    if (!token || !apiConfigured()) return;
+    if (!currentToken() || !apiConfigured()) return;
     try {
+      const token = await getValidToken();
       const result = await requestApi('/api/auth/me', {token});
       showProfile(result.user);
     } catch (_) {
@@ -734,7 +751,7 @@
     $('#install-description').textContent = currentLanguage === 'en' ? 'The launcher checks the installed files and prepares the game if needed.' : 'Лаунчер проверит игровые файлы и установит игру, если её ещё нет.';
     try {
       if (window.pywebview?.api?.launch_game) {
-        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI(), allowUpdate, currentToken());
+        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI(), allowUpdate, await getValidToken());
         if (!result || result.ok === false) throw new Error(result?.message || (currentLanguage === 'en' ? 'Could not start the game.' : 'Не удалось запустить игру.'));
         setGameProgress(100, currentLanguage === 'en' ? 'Launching SkyRealm…' : 'Запускаем SkyRealm…', currentLanguage === 'en' ? 'The launcher will close now' : 'Сейчас лаунчер закроется');
         await new Promise(resolve => setTimeout(resolve, 450));
