@@ -442,20 +442,11 @@ class GameApi:
         try:
             if not self._session_token:
                 return {"ok": False, "message": "Войди в аккаунт в лаунчере, чтобы синхронизировать профиль."}
-            config = Path(resource_path("config.js")).read_text(encoding="utf-8")
-            values = {}
-            for line in config.splitlines():
-                if "apiBaseUrl" in line or "supabaseAnonKey" in line:
-                    parts = line.split('"')
-                    if len(parts) >= 3:
-                        values["apiBaseUrl" if "apiBaseUrl" in line else "supabaseAnonKey"] = parts[1]
-            if not values.get("apiBaseUrl") or not values.get("supabaseAnonKey"):
-                return {"ok": False, "message": "Не удалось прочитать настройки облачного профиля."}
-            endpoint = values["apiBaseUrl"].replace("skyrealm-auth", "skyrealm-social")
-            endpoint += ("&" if "?" in endpoint else "?") + "route=%2Fapi%2Fsocial%2Fstats"
+            endpoint = "https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-social?route=%2Fapi%2Fsocial%2Fstats"
+            publishable_key = "sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL"
             payload = json.dumps(stats if isinstance(stats, dict) else {}, ensure_ascii=False).encode("utf-8")
             request = urllib.request.Request(endpoint, data=payload, method="POST", headers={
-                "apikey": values["supabaseAnonKey"],
+                "apikey": publishable_key,
                 "Authorization": "Bearer " + self._session_token,
                 "Content-Type": "application/json",
                 "User-Agent": "SkyRealm-Game/1.0"

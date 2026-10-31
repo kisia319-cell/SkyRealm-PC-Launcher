@@ -70,7 +70,7 @@ jobs:
         run: python -m pip install --upgrade pip pywebview pyinstaller
 
       - name: Build game window executable
-        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealmGame --add-data "config.js;." --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
 
       - name: Build updater helper
         run: python -m PyInstaller --noconfirm --clean --onefile --console --name SkyRealmUpdater --distpath updater_dist --workpath build_updater/work --specpath build_updater update_helper.py
