@@ -1278,6 +1278,8 @@
     if(sleeping){ctx.fillStyle='rgba(5,9,20,.78)';ctx.fillRect(0,0,width,height);ctx.fillStyle='#f2e8ff';ctx.font='bold 22px Segoe UI';ctx.textAlign='center';ctx.fillText('Ты спишь… '+Math.max(0,Math.ceil(5-sleepSeconds))+' сек.',width/2,height/2);ctx.textAlign='left';}
   }
   function minuteOfDay(){return ((Math.floor(gameMinuteTotal)%GAME_MINUTES_PER_DAY)+GAME_MINUTES_PER_DAY)%GAME_MINUTES_PER_DAY;}
+  const SEASON_CYCLE=Object.freeze([{id:'spring',name:'Весна',icon:'🌱',growth:1.1,harvest:1},{id:'summer',name:'Лето',icon:'☀️',growth:1.3,harvest:1.05},{id:'autumn',name:'Осень',icon:'🍂',growth:1,harvest:1.25},{id:'winter',name:'Зима',icon:'❄️',growth:.68,harvest:.85}]);
+  function seasonInfo(){const day=Math.max(0,Math.floor((Number.isFinite(gameMinuteTotal)?gameMinuteTotal:0)/GAME_MINUTES_PER_DAY)),dayInSeason=day%7;return {...SEASON_CYCLE[Math.floor((day%28)/7)],day,daysRemaining:7-dayInSeason};}
   function isNightTime(){const m=minuteOfDay();return m>=NIGHT_MINUTE||m<DAWN_MINUTE;}
   function smoothstep(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);}
   function updateClockDisplay(force=false){
@@ -1293,6 +1295,7 @@
     else if(m>=NIGHT_MINUTE||m<4*60){period='НОЧЬ';icon='☾';skin='night';}
     else if(m>=4*60&&m<DAWN_MINUTE){period='РАССВЕТ';icon='🌅';skin='twilight';}
     document.getElementById('period-label').textContent=period;
+    const currentSeason=seasonInfo(),seasonNode=document.getElementById('season-label');if(seasonNode){seasonNode.textContent=currentSeason.icon+' '+currentSeason.name.toUpperCase();seasonNode.title='Сезон: '+currentSeason.name+'. До смены сезона: '+currentSeason.daysRemaining+' игровых дней.';}
     document.getElementById('clock-icon').textContent=icon;
     clock.classList.remove('day','twilight','night');clock.classList.add(skin);
     document.getElementById('minimap-period').textContent=period;
@@ -1704,7 +1707,7 @@
     status.textContent=message||('Материалы: камень '+stone+'/8 · древесина '+wood+'/6 · дом ур. '+houseLevel+'/3 · шахта ур. '+mineLevel+'/5');
     updateUpgradeCards();
   }
-  function updateFarmPlots(dt){let changed=false;for(const plot of placedStructures){if(plot.type!=='farmplot'||!plot.crop||plot.stage>=3)continue;plot.moisture=Math.max(0,(Number(plot.moisture)||0)-dt*.55);if(plot.moisture>0)plot.growSeconds=(plot.growSeconds||0)+dt*(plot.fertilized?1.25:1);const crop=farmCropById(plot.crop),growth=crop?crop.growth:70,old=plot.stage||0;plot.stage=Math.min(3,Math.floor((plot.growSeconds||0)/(growth/3)));if(plot.stage!==old){changed=true;spawnVisualBurst(plot.x,plot.y,5,'leaf','#85d45e');if(plot.stage===3)toast((crop?crop.product:'Урожай')+' созрел! Подойди и нажми E.');}}if(changed)saveGame();}
+  function updateFarmPlots(dt){let changed=false;for(const plot of placedStructures){if(plot.type!=='farmplot'||!plot.crop||plot.stage>=3)continue;plot.moisture=Math.max(0,(Number(plot.moisture)||0)-dt*.55);if(plot.moisture>0)plot.growSeconds=(plot.growSeconds||0)+dt*(plot.fertilized?1.25:1)*seasonInfo().growth*(weatherMode==='rain'?1.15:1);const crop=farmCropById(plot.crop),growth=crop?crop.growth:70,old=plot.stage||0;plot.stage=Math.min(3,Math.floor((plot.growSeconds||0)/(growth/3)));if(plot.stage!==old){changed=true;spawnVisualBurst(plot.x,plot.y,5,'leaf','#85d45e');if(plot.stage===3)toast((crop?crop.product:'Урожай')+' созрел! Подойди и нажми E.');}}if(changed)saveGame();}
   function queueGuestFarmAction(plot,actionType,extra={},reservedItem=null){
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
     if(!room||room.status!=='running'){toast('Сначала дождись запуска комнаты.');return true;}
@@ -1808,7 +1811,7 @@
       if(selected?.name==='Компост'){queueGuestFarmAction(plot,'farm_compost',{},'Компост');return;}
       if(selected?.name==='Удобрение'){queueGuestFarmAction(plot,'farm_fertilize',{},'Удобрение');return;}
       toast('Выбери лейку, компост или удобрение для этой грядки.');return;
-    }if(plot.stage>=3){const crop=farmCropById(plot.crop),product=crop?crop.product:'Урожай',amount=Math.max(1,Math.round(((crop?crop.yield:3)+(plot.fertilized?2:0)+(selected?.name==='Серп'?1:0)+(Math.random()<.25?1:0))*(1+skills.farmer*.08+(classHas('farmer')?0.2:0))));changeItem(product,amount);plot.stage=0;plot.growSeconds=0;plot.crop=null;plot.moisture=0;plot.fertilized=false;trackAdventureQuest('harvest',1);spawnVisualBurst(plot.x,plot.y,12,'leaf','#e5c85c');renderInventory();saveGame();playSound('coin');toast('Собрано: '+product+' ×'+amount+'. Грядка свободна.');return;}
+    }if(plot.stage>=3){const crop=farmCropById(plot.crop),product=crop?crop.product:'Урожай',amount=Math.max(1,Math.round(((crop?crop.yield:3)+(plot.fertilized?2:0)+(selected?.name==='Серп'?1:0)+(Math.random()<.25?1:0))*(1+skills.farmer*.08+(classHas('farmer')?0.2:0))*seasonInfo().harvest));changeItem(product,amount);plot.stage=0;plot.growSeconds=0;plot.crop=null;plot.moisture=0;plot.fertilized=false;trackAdventureQuest('harvest',1);spawnVisualBurst(plot.x,plot.y,12,'leaf','#e5c85c');renderInventory();saveGame();playSound('coin');toast('Собрано: '+product+' ×'+amount+'. Грядка свободна.');return;}
     if(!plot.crop){const crop=FARM_CROPS.find(c=>c.seed===selected?.name);if(!crop){toast('Выбери семена и нажми E у пустой грядки.');return;}changeItem(crop.seed,-1);plot.crop=crop.id;plot.stage=0;plot.growSeconds=0;plot.moisture=0;plot.fertilized=false;renderInventory();saveGame();playSound('craft');toast('Посажено: '+crop.product+'. Полей грядку лейкой.');return;}
     if(selected?.name==='Лейка'){plot.moisture=Math.min(100,(Number(plot.moisture)||0)+65);saveGame();playSound('water');toast('Грядка полита: '+Math.round(plot.moisture)+'% влаги.');return;}
     if(selected?.name==='Компост'){if(!changeItem('Компост',-1))return;plot.growSeconds=(plot.growSeconds||0)+(farmCropById(plot.crop)?.growth||70)*.25;plot.moisture=Math.max(plot.moisture||0,25);renderInventory();saveGame();toast('Компост ускорил рост на 25%.');return;}
@@ -2332,7 +2335,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
           else{
             const farmerSkill=Math.max(0,Math.min(5,Number(payload.farmer_skill_level)||0));
             const baseAmount=crop.yield+(plot.fertilized?2:0)+(payload.has_sickle===true?1:0)+(Math.random()<.25?1:0);
-            const amount=Math.max(1,Math.round(baseAmount*(1+farmerSkill*.08+(payload.player_class==='farmer'?0.2:0))));
+            const amount=Math.max(1,Math.round(baseAmount*(1+farmerSkill*.08+(payload.player_class==='farmer'?0.2:0))*seasonInfo().harvest));
             resultPayload.reward_name=crop.product;resultPayload.reward_amount=amount;
             plot.stage=0;plot.growSeconds=0;plot.crop=null;plot.moisture=0;plot.fertilized=false;
           }
