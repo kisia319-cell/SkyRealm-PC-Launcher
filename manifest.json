@@ -1,9 +1,9 @@
 {
-  "game_sha256": "4464aa8ba672ce3a3b49734a145c97596b8b1c8463e07f4b2a3da910dbc9e297",
+  "game_sha256": "c4625e2bf0757ef105782afba9c3bf2f1ccc72872aa0ee2d7d02880681240480",
   "game_version": "0.20.40",
-  "notes": "SkyRealm Launcher 1.1.4 + Game 0.20.40: expanded workshop to 25 built-in mods, including 17 new packs and a full magic system with mana, fireball, frost storm, chain lightning and healing. Existing worlds and saves remain compatible.",
+  "notes": "SkyRealm 0.20.40: shared co-op monsters and boss health, owner-validated combat, and one-time shared loot drops. Every player keeps a separate inventory, wallet, equipment and XP; only the player who picks up a shared drop receives it. Existing worlds and single-player saves remain compatible. Co-op remains a preview.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.1.4",
   "sha256": "25c1f582117cc321eedda62e4d51a5d9ff272db1e2786cf686f6cf970744993d",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-60d0af7/SkyRealm_Game.zip"
 }
