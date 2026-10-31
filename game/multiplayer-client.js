@@ -23,6 +23,18 @@ async function getToken(){
   })();
   try{return await tokenPromise;}finally{tokenPromise=null;}
 }
+const SOCIAL_URL='https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-social';
+async function requestSocial(route,method='GET',body=null){
+  const accessToken=await getToken();
+  if(!accessToken)throw new Error('Сначала войди в аккаунт SkyRealm в лаунчере.');
+  const endpoint=new URL(SOCIAL_URL);endpoint.searchParams.set('route',route);
+  let response;
+  try{response=await fetch(endpoint.toString(),{method,headers:{apikey:PUBLIC_KEY,Authorization:'Bearer '+accessToken,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});}
+  catch(_){throw new Error('Не удалось связаться с социальным сервисом SkyRealm. Проверь интернет.');}
+  let data={};try{data=await response.json();}catch(_){}
+  if(!response.ok){const error=new Error(data?.message||'Ошибка социального сервиса ('+response.status+').');error.code=data?.code||'';throw error;}
+  return data;
+}
 async function request(route,method='GET',body=null){
   const accessToken=await getToken();
   if(!accessToken)throw new Error('Сначала войди в аккаунт SkyRealm в лаунчере.');
@@ -295,6 +307,22 @@ window.SkyRealmCoopClient=Object.freeze({
     });
     if(data.snapshot&&currentRoom)snapshotVersion=Number(data.snapshot.version)||snapshotVersion;
     return data.snapshot||false;
+  },
+  async getFriends(){
+    const data=await requestSocial('/api/social/friends');
+    return Array.isArray(data.relationships)?data.relationships.filter(x=>x.status==='accepted'&&x.player):[];
+  },
+  async sendRoomInvite(roomId,friendId){
+    if(!currentRoom||currentRoom.id!==roomId||!this.isRoomOwner)throw new Error('Приглашать друзей может только владелец активной комнаты.');
+    return requestSocial('/api/social/room-invites','POST',{room_id:roomId,friend_id:friendId});
+  },
+  async getRoomInvites(){
+    const data=await requestSocial('/api/social/room-invites');
+    return Array.isArray(data.invites)?data.invites:[];
+  },
+  async respondRoomInvite(inviteId,decision){
+    if(!['accept','reject'].includes(decision))throw new Error('Некорректный ответ на приглашение.');
+    return requestSocial('/api/social/room-invites/respond','POST',{invite_id:inviteId,decision});
   },
   async current(){const previousRoomId=currentRoom?.id||'';const data=await request('/api/coop/current');currentRoom=data.room||null;if(previousRoomId!==(currentRoom?.id||''))snapshotVersion=0;clockReceivedAt=Date.now();return currentRoom;},
   async create(difficulty='medium'){const data=await request('/api/coop/create','POST',{world_difficulty:difficulty});currentRoom=data.room||null;snapshotVersion=0;return {room:currentRoom,inviteCode:data.invite_code};},

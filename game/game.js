@@ -78,7 +78,7 @@
   let sheepSpawnTimer = 0;
   let playerAttackCooldown = 0;
   let attackAnimTimer=0, combatAbilityCooldown=0, weatherMode='clear', weatherTimer=75, weatherFlash=0, ambientTime=0;
-  const GAME_VERSION = document.querySelector('meta[name="skyrealm-game-version"]')?.content || '0.20.22';
+  const GAME_VERSION = document.querySelector('meta[name="skyrealm-game-version"]')?.content || '0.20.36';
   const WORLD_EVENT_CHANCES = Object.freeze({
     checkInterval:75,
     meteor:.12,

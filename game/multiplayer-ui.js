@@ -19,11 +19,17 @@ function render(){
     return '<div class="coop-player"><span>'+name+'<small> · '+(member.role==='owner'?'Владелец':'Игрок')+'</small></span><small>'+(member.status==='offline'?'Отключён':'В сети')+'</small></div>';
   }).join('')||'<div class="coop-player">Пока в комнате только ты</div>';
   $('coop-invite-row').hidden=!inviteCode;if(inviteCode)$('coop-invite-code').textContent=inviteCode;
+  $('coop-friend-tools').hidden=!(isOwner()&&['lobby','running'].includes(room.status));
+  if(!isOwner()||!['lobby','running'].includes(room.status)){
+    $('coop-friend-invite-list').hidden=true;
+    $('coop-friend-invite-toggle').textContent='✉ Пригласить друзей в комнату';
+  }
 }
 async function refresh(silent=false){
   if(busy)return;
   try{
     room=await client.current();render();
+    await refreshIncomingInvites();
     if(!room||room.status==='paused'||room.status==='closed'){
       await client.disconnectRealtime();
       realtimeAttemptedRoom='';
@@ -56,6 +62,85 @@ async function action(fn,successMessage){
   }catch(error){setMessage(error.message||String(error),true);}
   finally{busy=false;}
 }
+let inviteInboxBusy=false,friendListBusy=false;
+function appendSocialPlayer(container,player,buttonLabel,onClick,subtext=''){
+  const row=document.createElement('div');row.className='coop-player coop-social-player';
+  const info=document.createElement('span');
+  const name=document.createElement('b');name.textContent=player?.display_name||player?.username||'Игрок';
+  const detail=document.createElement('small');detail.textContent='@'+(player?.username||'player')+(subtext?' · '+subtext:'');
+  info.append(name,detail);row.append(info);
+  if(buttonLabel){
+    const button=document.createElement('button');button.type='button';button.className='action secondary';button.textContent=buttonLabel;
+    button.addEventListener('click',onClick);row.append(button);
+  }
+  container.append(row);
+}
+async function refreshIncomingInvites(){
+  if(inviteInboxBusy)return;
+  const section=$('coop-incoming-invites'),list=$('coop-incoming-invites-list');
+  if(!section||!list)return;
+  inviteInboxBusy=true;
+  try{
+    const invites=await client.getRoomInvites();
+    list.replaceChildren();
+    $('coop-incoming-count').textContent=String(invites.length);
+    section.hidden=invites.length===0;
+    if(!invites.length)return;
+    invites.forEach(invite=>{
+      const row=document.createElement('div');row.className='coop-player coop-invite-item';
+      const info=document.createElement('span');
+      const name=document.createElement('b');name.textContent=invite.inviter?.display_name||invite.inviter?.username||'Игрок';
+      const roomText=document.createElement('small');
+      const difficulty=({easy:'Легко',medium:'Средняя',hard:'Сложно',hell:'Жар',impossible:'Невозможно'})[invite.room?.world_difficulty]||'Средняя';
+      roomText.textContent='Приглашает в кооператив · '+difficulty+' · '+(invite.room?.status==='running'?'игра уже идёт':'лобби');
+      info.append(name,roomText);row.append(info);
+      const buttons=document.createElement('span');buttons.className='coop-invite-buttons';
+      const accept=document.createElement('button');accept.type='button';accept.className='action';accept.textContent='Принять';
+      accept.addEventListener('click',()=>action(async()=>{
+        await client.respondRoomInvite(invite.id,'accept');
+        const joined=await client.current();room=joined;inviteCode='';
+        return {room:joined};
+      },'Ты присоединился к комнате друга.'));
+      const reject=document.createElement('button');reject.type='button';reject.className='action secondary';reject.textContent='Отклонить';
+      reject.addEventListener('click',()=>action(async()=>{await client.respondRoomInvite(invite.id,'reject');return {};},'Приглашение отклонено.'));
+      buttons.append(accept,reject);row.append(buttons);list.append(row);
+    });
+  }catch(error){
+    section.hidden=true;
+    console.warn('[SkyRealm room invitations]',error.message||error);
+  }finally{inviteInboxBusy=false;}
+}
+async function showFriendInviteChoices(){
+  const list=$('coop-friend-invite-list'),toggle=$('coop-friend-invite-toggle');
+  if(!room||!isOwner()||!['lobby','running'].includes(room.status))return;
+  if(!list.hidden){list.hidden=true;toggle.textContent='✉ Пригласить друзей в комнату';return;}
+  list.hidden=false;toggle.textContent='Скрыть список друзей';list.textContent='Загружаем список друзей…';
+  if(friendListBusy)return;
+  friendListBusy=true;
+  try{
+    const friends=await client.getFriends();
+    list.replaceChildren();
+    if(!friends.length){const empty=document.createElement('div');empty.className='coop-player';empty.textContent='Сначала добавь игроков в друзья в лаунчере.';list.append(empty);return;}
+    friends.forEach(rel=>{
+      const player=rel.player;
+      if(!player)return;
+      const seen=player.last_seen_at?Date.parse(player.last_seen_at):0;
+      const online=seen>0&&Date.now()-seen<120000;
+      appendSocialPlayer(list,player,'Пригласить',async event=>{
+        const button=event.currentTarget;button.disabled=true;button.textContent='Отправляем…';
+        try{
+          const result=await client.sendRoomInvite(room.id,player.id);
+          button.textContent='Отправлено';setMessage(result.message||'Приглашение отправлено.');
+        }catch(error){
+          button.disabled=false;button.textContent='Пригласить';setMessage(error.message||'Не удалось отправить приглашение.',true);
+        }
+      },online?'В сети':'Не в сети');
+    });
+  }catch(error){
+    list.replaceChildren();const empty=document.createElement('div');empty.className='coop-player';empty.textContent=error.message||'Не удалось загрузить друзей.';list.append(empty);
+  }finally{friendListBusy=false;}
+}
+$('coop-friend-invite-toggle').addEventListener('click',showFriendInviteChoices);
 function startMonitors(){
   if(!pollHandle)pollHandle=setInterval(()=>refresh(true),5000);
   if(!heartbeatHandle)heartbeatHandle=setInterval(async()=>{
