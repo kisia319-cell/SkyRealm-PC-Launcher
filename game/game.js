@@ -3087,10 +3087,23 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function renderWorldList(){
     const worlds=readWorlds(),list=document.getElementById('worlds-list'),empty=document.getElementById('worlds-empty');
     document.getElementById('world-count').textContent=worlds.length+' '+(worlds.length===1?'мир':'миров');
-    list.innerHTML='';empty.hidden=worlds.length>0;
-    worlds.slice().sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).forEach(w=>{
+    empty.hidden=worlds.length>0;list.innerHTML='';
+    const query=String(document.getElementById('world-search')?.value||'').trim().toLocaleLowerCase();
+    const sort=document.getElementById('world-sort')?.value||'recent';
+    const visible=worlds.filter(w=>!query||String(w.name||'').toLocaleLowerCase().includes(query));
+    visible.sort((a,b)=>sort==='name'?String(a.name||'').localeCompare(String(b.name||''),'ru'):sort==='oldest'?(a.createdAt||0)-(b.createdAt||0):(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
+    if(worlds.length&&visible.length===0)list.innerHTML='<p class="world-filter-empty">По запросу «'+escapeHtml(query)+'» миры не найдены.</p>';
+    visible.forEach(w=>{
       const card=document.createElement('article');card.className='world-card';
-      const level=DIFFICULTIES[w.difficulty];card.innerHTML='<div class="world-card-art"><span>✦</span></div><div class="world-card-main"><b>'+escapeHtml(w.name)+'</b><small>Сложность: '+escapeHtml(level?level.name:'не выбрана')+' · Последний вход: '+escapeHtml(formatWorldDate(w.updatedAt||w.createdAt))+'</small></div><div class="world-card-actions"><button class="world-enter-button" type="button" data-enter-world="'+escapeHtml(w.id)+'">Войти в мир <span>→</span></button><button class="world-rename-button" type="button" data-rename-world="'+escapeHtml(w.id)+'">✎ Имя</button><button class="world-rename-button world-export-button" type="button" data-export-world="'+escapeHtml(w.id)+'" title="Скачать резервную копию">⇩ Копия</button><button class="world-delete-button" type="button" data-delete-world="'+escapeHtml(w.id)+'" aria-label="Удалить мир '+escapeHtml(w.name)+'">✕</button></div>';
+      const level=DIFFICULTIES[w.difficulty];let saved=null;try{saved=JSON.parse(localStorage.getItem(worldSaveKey(w.id))||'null');}catch(_){}
+      const days=saved&&Number.isFinite(saved.gameMinuteTotal)?Math.floor(Math.max(0,saved.gameMinuteTotal)/1440)+1:1;
+      const lvl=saved&&Number.isFinite(saved.playerLevel)?Math.max(1,Math.floor(saved.playerLevel)):1;
+      const explored=Array.isArray(saved?.exploredCells)?saved.exploredCells.length:0;
+      const total=Math.max(1,(level?.cols||COLS)*(level?.rows||ROWS));
+      const percent=Math.min(100,Math.floor(explored/total*100));
+      const size=saved?Math.max(1,Math.ceil(JSON.stringify(saved).length/1024)):0;
+      const stats=saved?('День '+days+' · Уровень '+lvl+' · Карта '+percent+'% · '+size+' КБ'):'Сохранение ещё не создано';
+      card.innerHTML='<div class="world-card-art"><span>✦</span></div><div class="world-card-main"><b>'+escapeHtml(w.name)+'</b><small>Сложность: '+escapeHtml(level?level.name:'не выбрана')+' · Последний вход: '+escapeHtml(formatWorldDate(w.updatedAt||w.createdAt))+'</small><small class="world-card-stats">'+stats+'</small></div><div class="world-card-actions"><button class="world-enter-button" type="button" data-enter-world="'+escapeHtml(w.id)+'">Войти в мир <span>→</span></button><button class="world-rename-button" type="button" data-rename-world="'+escapeHtml(w.id)+'">✎ Имя</button><button class="world-rename-button world-export-button" type="button" data-export-world="'+escapeHtml(w.id)+'" title="Скачать резервную копию">⇩ Копия</button><button class="world-delete-button" type="button" data-delete-world="'+escapeHtml(w.id)+'" aria-label="Удалить мир '+escapeHtml(w.name)+'">✕</button></div>';
       list.appendChild(card);
     });
     list.querySelectorAll('[data-enter-world]').forEach(btn=>btn.addEventListener('click',()=>enterWorld(btn.dataset.enterWorld)));
@@ -3464,6 +3477,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   // Gentle interface feedback; world/action sounds retain their existing individual handlers.
   document.querySelectorAll('.main-menu-action,.action,.pause-button,.game-settings-tab').forEach(button=>button.addEventListener('click',()=>playSound('tap')));
   document.getElementById('menu-create-world').addEventListener('click',openWorldCreate);
+   document.getElementById('world-search')?.addEventListener('input',renderWorldList);
+   document.getElementById('world-sort')?.addEventListener('change',renderWorldList);
    document.getElementById('import-world-button').addEventListener('click',()=>document.getElementById('import-world-file').click());
    document.getElementById('import-world-file').addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)importWorldBackupFile(file);else e.target.value='';});
   document.getElementById('empty-create-world').addEventListener('click',openWorldCreate);
