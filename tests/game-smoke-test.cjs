@@ -253,3 +253,6 @@ assert.ok(py.includes('webview.start(debug=False, private_mode=False, storage_pa
 assert.ok(releaseWorkflow.includes(":(exclude)manifest.json"), 'Build freshness checks must ignore manifest-only commits from the other release workflow');
 assert.ok(releaseWorkflow.includes('$currentManifest.version = $builtManifest.version') && releaseWorkflow.includes('$currentManifest.download_url = $builtManifest.download_url') && releaseWorkflow.includes('$currentManifest.sha256 = $builtManifest.sha256'), 'Launcher release publication must merge only launcher fields into the manifest');
 assert.ok(releaseWorkflow.includes('Keep the game preview URL and checksum from the dedicated preview workflow.'), 'Launcher release publication must preserve the verified game preview package');
+
+const previewWorkflow = fs.readFileSync('.github/workflows/publish-coop-preview.yml', 'utf8');
+assert.ok(previewWorkflow.includes('SOURCE_COMMIT') && previewWorkflow.includes('git diff --quiet "$SOURCE_COMMIT" origin/main -- game/'), 'Preview workflow must refuse to publish an archive after game source has advanced');
