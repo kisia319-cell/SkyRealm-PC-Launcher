@@ -702,14 +702,14 @@
   function interactNpcShop(){if(!tradeWorldMode){toast('Лавки лесника и рудокопа находятся в Мире торговли. Перейди туда через портал.');return;}const npc=nearestVillageNpc();if(npc){openShop('npc:'+npc.id);return;}if(Math.hypot(player.x-(FARMER_SHOP.x*TILE+16),player.y-(FARMER_SHOP.y*TILE+16))<112){openShop('npc:farmer');return;}if(Math.hypot(player.x-(SELL_SHOP.x*TILE+16),player.y-(SELL_SHOP.y*TILE+16))<112){openShop('sell');return;}if(Math.hypot(player.x-(BUY_SHOP.x*TILE+16),player.y-(BUY_SHOP.y*TILE+16))<112){openShop('buy');return;}toast('Подойди к торговцу или к вывеске лавки и нажми T.');}
   function buyNpcItem(npcId,name){
     const item=(NPC_SHOPS[npcId]||[]).find(v=>v.name===name);if(!item){toast('Этот товар сейчас недоступен.');return;}
-    const basePrice=npcId==='farmer'?(farmCropBuyPrice(name)||item.price):item.price;const price=Math.max(1,Math.round(basePrice*(npcId==='farmer'?farmEconomy().buy:1)*Math.max(.65,1-villageReputation*.02)));if(walletCents<price){toast('Не хватает золота. Нужно '+formatMoney(price)+'.');return;}
+    const basePrice=npcId==='farmer'?(farmCropBuyPrice(name)||item.price):item.price;const reputationPriceFactor=npcId==='farmer'?Math.max(.9,1-villageReputation*.001):Math.max(.65,1-villageReputation*.02);const price=Math.max(1,Math.round(basePrice*(npcId==='farmer'?farmEconomy().buy:1)*reputationPriceFactor));if(walletCents<price){toast('Не хватает золота. Нужно '+formatMoney(price)+'.');return;}
     if(!changeItem(name,1)){toast('Предмет пока отсутствует в каталоге инвентаря.');return;}
     walletCents-=price;if(WEAPON_BASE_DAMAGE[name]&&(!equipment.weapon||equipment.weapon==='Деревянный меч'))equipment.weapon=name;
     playSound('coin');renderInventory();renderEquipmentPanel();updateWalletHud();renderShop();saveGame();toast('Куплено: '+name+'. Цена с учётом репутации: '+formatMoney(price)+'.');
   }
   function sellNpcItem(npcId,name){
     const unit=(npcId==='farmer'?farmCropSellPrice(name):0)||((NPC_SELL_PRICES[npcId]||{})[name]),count=itemCount(name);if(!unit||count<=0){toast('У тебя нет этого товара для продажи.');return;}
-    const total=Math.max(1,Math.round(unit*(1+Math.min(.25,villageReputation*.005))))*count;
+    const reputationSaleFactor=npcId==='farmer'?1+Math.min(.05,villageReputation*.0005):1+Math.min(.25,villageReputation*.005);const total=Math.max(1,Math.round(unit*reputationSaleFactor))*count;
     changeItem(name,-count);walletCents+=total;playSound('coin');renderInventory();updateWalletHud();renderShop();saveGame();
     toast('Продано: '+name+' × '+count+' за '+formatMoney(total)+'.');
   }
