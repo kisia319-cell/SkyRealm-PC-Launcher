@@ -3716,6 +3716,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     setTimeout(()=>{
       openModsCatalog();
       const requestedMod=launcherModParams.get('installMod');
+      if(requestedMod==='__creator__') { openModCreator(); return; }
       if(requestedMod&&MOD_CATALOG.some(mod=>mod.id===requestedMod)&&!isModInstalled(requestedMod))toggleMod(requestedMod);
     },350);
   }
