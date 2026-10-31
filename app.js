@@ -318,7 +318,7 @@
   }
 
   const SOCIAL_URL = (() => {
-    try { const u = new URL(API_BASE); u.pathname = u.pathname.replace(/\\/skyrealm-auth\\/?$/, '/skyrealm-social'); return u.toString(); }
+    try { const u = new URL(API_BASE); u.pathname = u.pathname.replace('skyrealm-auth', 'skyrealm-social'); return u.toString(); }
     catch (_) { return ''; }
   })();
   async function requestSocial(route, {method='GET', body=null} = {}) {
