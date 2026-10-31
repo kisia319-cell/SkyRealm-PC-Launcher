@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const m=require('../game/multiplayer-core.js');
 const serverSource=fs.readFileSync(require('node:path').join(__dirname,'../supabase/functions/skyrealm-coop/index.ts'),'utf8');
-const serverFieldsMatch=serverSource.match(/const SHARED_SNAPSHOT_FIELDS = new Set\\(\\[(.*?)\\]\\);/);
+const serverFieldsMatch=serverSource.match(/const SHARED_SNAPSHOT_FIELDS = new Set\(\[(.*?)\]\);/);
 assert.ok(serverFieldsMatch,'Supabase server must declare its shared snapshot whitelist');
 const serverFields=[...serverFieldsMatch[1].matchAll(/"([^"]+)"/g)].map(match=>match[1]).sort();
 assert.deepEqual([...m.SHARED_WORLD_FIELDS].sort(),serverFields,
