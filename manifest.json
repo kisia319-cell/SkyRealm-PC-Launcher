@@ -1,9 +1,9 @@
 {
-  "game_sha256": "391493392fab3799d993ceabc85ad10454f953b775a509642c963c3346d28ede",
-  "sha256": "8a03d1447cd29f556d5e087c28930601d6f0fca335ab43c3d0fad844c76feeae",
-  "notes": "SkyRealm Launcher 1.0.2 + Game 0.20.17: separate Trade World with two market stalls, five settlements and eight NPCs; complete seven-crop farming; balanced random world events with distinct odds (meteor showers 12%, night hordes 7%, abandoned camps 10%, travelers 8%, storms 8%); saved event cooldowns and world-safe spawn checks; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible.",
-  "game_version": "0.20.17",
-  "version": "1.0.2",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip",
+  "sha256": "328d7f51f93fc920e3ffc02bcd61b3054ff527be5e21334aac2ddc7549cf6e72",
+  "notes": "SkyRealm Launcher 1.0.2 + Game 0.20.17: separate Trade World with two market stalls, five settlements and eight NPCs; complete seven-crop farming; balanced random world events with distinct odds (meteor showers 12%, night hordes 7%, abandoned camps 10%, travelers 8%, storms 8%); saved event cooldowns and world-safe spawn checks; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible.",
+  "version": "1.0.2",
+  "game_version": "0.20.17",
+  "game_sha256": "dcb974d3256ee2098bce0f0bf7c66988d910229f674417ac7971fbd63263b6a2"
 }
