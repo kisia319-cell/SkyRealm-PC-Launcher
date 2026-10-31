@@ -218,5 +218,6 @@ assert.ok(worldClockUpdate.includes('wasNight=isNightTime();updateClockDisplay()
   'A guest must return before applying any local clock or hunger progression when it does not own the room');
 assert.ok(!worldClockUpdate.includes('Date.now()-sharedClock.received_at'),
   'A delayed owner clock packet must not make the guest advance time locally');
-assert.ok((game.match(/const coop=window\\.SkyRealmCoopClient;const coopRoom=coop\\?\\.getRoomState\\?\\.\\(\\);if\\(coopRoom&&!coop\\.isRoomOwner\\)return;/g)||[]).length>=2,
+const ownerGate="const coop=window.SkyRealmCoopClient;const coopRoom=coop?.getRoomState?.();if(coopRoom&&!coop.isRoomOwner)return;";
+assert.ok(game.split(ownerGate).length-1>=2,
   'World events and village raids must remain owner-controlled during room pauses');
