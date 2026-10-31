@@ -145,7 +145,10 @@
       if(Object.prototype.hasOwnProperty.call(input,key))output[key]=input[key];
     }
     if(output.adventureQuestProgress&&typeof output.adventureQuestProgress==='object'&&!Array.isArray(output.adventureQuestProgress)){
-      const progress={...output.adventureQuestProgress};
+      const progress={};
+      for(const key of ['hunt','mining','harvest','treeChops','felledTrees']){
+        if(Object.prototype.hasOwnProperty.call(output.adventureQuestProgress,key))progress[key]=output.adventureQuestProgress[key];
+      }
       const types=['shadow','brute','wisp','skeleton','bomb','ice','scorpion','ember','yeti'];
       progress.coopMonsters=(Array.isArray(progress.coopMonsters)?progress.coopMonsters:[]).slice(0,20)
         .filter(m=>m&&typeof m.id==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(m.id)&&
