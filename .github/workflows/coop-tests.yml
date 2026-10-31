@@ -1,7 +1,7 @@
 name: Co-op core tests
 on:
   push:
-    branches: [main, feature/co-op-foundation, feature/shared-enemies-and-loot, feature/profile-foundation-social-20261031, feature/coop-friend-invites-20261031, 'fix/**']
+    branches: [main, feature/co-op-foundation, feature/shared-enemies-and-loot, feature/profile-foundation-social-20261031, feature/coop-friend-invites-20261031, feature/launcher-foundations-remaining-20261031, 'fix/**']
   pull_request:
     branches: [main]
 jobs:
