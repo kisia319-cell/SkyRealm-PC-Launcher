@@ -8,6 +8,11 @@ const launcherHtml = fs.readFileSync('index.html', 'utf8');
 const version = fs.readFileSync('game/version.txt', 'utf8').trim();
 
 new vm.Script(game, { filename: 'game/game.js' });
+assert.ok(game.includes('function fishingShoreRatio()'), 'Fishing must be restricted to the lake shoreline');
+assert.ok(game.includes('function startFishing()') && game.includes('function updateFishing(dt)'), 'Fishing must have a cast and catch loop');
+assert.ok(game.includes("fishCaught,meteorPoint:"), 'Fishing progress must be persisted in each world save');
+assert.ok(game.includes("'Рыба':70,'Жемчуг':650"), 'Fishing loot must be sellable in the Trade World');
+assert.ok(gameHtml.includes('data-craft="fishingRod"'), 'The workbench must expose the fishing rod recipe');
 
 const launcher = fs.readFileSync('launcher.py', 'utf8');
 const app = fs.readFileSync('app.js', 'utf8');
