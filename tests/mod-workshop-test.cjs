@@ -30,3 +30,13 @@ assert.ok(game.includes("id:'blood_moon'")&&game.includes("eternalMoon?.72:1"),'
 assert.ok(html.includes('id="open-mod-creator"')&&html.includes('id="community-mod-form"'),'Players need a mod creator and publish form');
 assert.ok(game.includes("/api/social/mods"),'Community mods must use the shared online catalog API');
 console.log('Expanded skills, world difficulty mods and community mod creator checks passed.');
+
+const launcher=fs.readFileSync('app.js','utf8');
+const launcherHtml=fs.readFileSync('index.html','utf8');
+const launcherPy=fs.readFileSync('launcher.py','utf8');
+assert.ok(launcherHtml.includes('id="page-mods"'),'Launcher must expose a dedicated Mods page');
+for(const id of ['cartographer','angler','green_thumb','miners_luck','survivalist','skill_expansion','brutal_world','blood_moon'])assert.ok(launcherHtml.includes('data-install-mod="'+id+'"'),'Launcher catalog missing '+id);
+assert.ok(launcher.includes("launch_game(readGamePreferencesFromUI(), allowUpdate, await getValidToken(), modId)"),'Launcher must pass the selected mod to native game launch');
+assert.ok(launcherPy.includes('open_mod_id=None')&&launcherPy.includes('SKYREALM_OPEN_MOD_CATALOG'),'Native launcher must validate and forward mod launch requests');
+assert.ok(game.includes("launcherModParams.get('openMods')==='1'")&&game.includes("!isModInstalled(requestedMod)"),'Game must open catalog and install requested known mod idempotently');
+console.log('Launcher mod workshop handoff checks passed.');
