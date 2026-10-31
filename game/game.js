@@ -3674,5 +3674,13 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('close-inventory').addEventListener('click', closeInventory);
   document.querySelectorAll('[data-difficulty]').forEach(btn=>btn.addEventListener('click',()=>{if(btn.disabled)return;confirmDifficultySelection(btn.dataset.difficulty);}));
   document.getElementById('difficulty-cancel').addEventListener('click',()=>{closeDifficultyPicker();renderWorldList();});
+  const launcherModParams=new URLSearchParams(window.location.search);
+  if(launcherModParams.get('openMods')==='1'){
+    setTimeout(()=>{
+      openModsCatalog();
+      const requestedMod=launcherModParams.get('installMod');
+      if(requestedMod&&MOD_CATALOG.some(mod=>mod.id===requestedMod)&&!isModInstalled(requestedMod))toggleMod(requestedMod);
+    },350);
+  }
   setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
 })();
