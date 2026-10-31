@@ -180,6 +180,10 @@ Deno.serve(async(req:Request)=>{
         })});
         return reply({invite:refreshed?.[0]||null,message:"Приглашение отправлено повторно."},201);
       }
+      const activeMembers=await db("co_op_members?select=user_id&room_id=eq."+roomId+"&member_status=in.(active,offline)");
+      const pendingInvites=await db("skyrealm_room_invites?select=id&room_id=eq."+roomId+"&status=eq.pending&expires_at=gt."+encodeURIComponent(now));
+      const freeSlots=Math.max(0,Number(room.max_players||8)-(activeMembers||[]).length-(pendingInvites||[]).length);
+      if(freeSlots<=0) throw new ApiError(409,"ROOM_INVITE_LIMIT","Все свободные места в комнате уже заняты или зарезервированы приглашениями.");
       const created=await db("skyrealm_room_invites",{method:"POST",body:JSON.stringify({
         room_id:roomId,inviter_id:user.id,invitee_id:friendId,status:"pending"
       })});
