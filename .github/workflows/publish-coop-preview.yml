@@ -7,6 +7,11 @@ on:
       - ".github/workflows/publish-coop-preview.yml"
 permissions:
   contents: write
+
+concurrency:
+  group: skyrealm-manifest-write
+  cancel-in-progress: false
+
 jobs:
   build-and-publish-preview:
     runs-on: ubuntu-latest
@@ -47,27 +52,43 @@ jobs:
           files: SkyRealm_Game.zip
       - name: Point launcher manifest to this verified package
         env:
-          GH_TOKEN: ${{ github.token }}
           GAME_SHA256: ${{ steps.package.outputs.sha256 }}
           RELEASE_TAG: ${{ steps.package.outputs.tag }}
           GAME_VERSION: ${{ steps.package.outputs.game_version }}
         run: |
-          git fetch origin main
-          git switch -C manifest-update origin/main
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          path = Path("manifest.json")
-          manifest = json.loads(path.read_text(encoding="utf-8"))
-          version = os.environ["GAME_VERSION"]
-          manifest["game_version"] = version
-          manifest["game_download_url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
-          manifest["game_sha256"] = os.environ["GAME_SHA256"]
-          manifest["notes"] = f"SkyRealm {version}: random world events with distinct odds (meteor 12%, night horde 7%, abandoned camp 10%, traveler 8%, storm 8%); 18 varied houses in each village; saved event cooldowns and backward-compatible world saves. Co-op remains a preview."
-          path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-          PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add manifest.json
-          git commit -m "Publish SkyRealm $GAME_VERSION preview manifest"
-          git push origin HEAD:main
+          pushed=false
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git switch -C manifest-update origin/main
+            python - <<'PY'
+            import json, os
+            from pathlib import Path
+            path = Path("manifest.json")
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            version = os.environ["GAME_VERSION"]
+            manifest["game_version"] = version
+            manifest["game_download_url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
+            manifest["game_sha256"] = os.environ["GAME_SHA256"]
+            manifest["notes"] = f"SkyRealm {version}: random world events with distinct odds (meteor 12%, night horde 7%, abandoned camp 10%, traveler 8%, storm 8%); 18 varied houses in each village; saved event cooldowns and backward-compatible world saves. Co-op remains a preview."
+            path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+            PY
+            git add manifest.json
+            if git diff --cached --quiet; then
+              echo "Manifest already points to this verified package."
+              pushed=true
+              break
+            fi
+            git commit -m "Publish SkyRealm $GAME_VERSION preview manifest"
+            if git push origin HEAD:main; then
+              pushed=true
+              break
+            fi
+            echo "Manifest push raced with another workflow; refreshing main (attempt $attempt/5)."
+            sleep $((attempt * 5))
+          done
+          if [ "$pushed" != true ]; then
+            echo "Could not update manifest after 5 attempts." >&2
+            exit 1
+          fi
