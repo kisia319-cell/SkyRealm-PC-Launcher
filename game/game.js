@@ -1097,6 +1097,22 @@
       ctx.stroke();ctx.restore();
     }
   }
+  function drawFishingCast(camX,camY,time){
+    if(fishingCastTimer<=0||!fishingOrigin||tradeWorldMode||mineMode||caveMode||dungeonMode||inHouse)return;
+    const lakeX=52*TILE, lakeY=36*TILE, dx=lakeX-player.x, dy=lakeY-player.y, distance=Math.hypot(dx,dy)||1;
+    const ux=dx/distance, uy=dy/distance, px=player.x-camX, py=player.y-camY;
+    const handX=px+ux*9, handY=py-5+uy*8, tipX=px+ux*24, tipY=py-12+uy*22;
+    const bobberDistance=Math.max(34,Math.min(96,distance*.48));
+    const bobX=px+ux*bobberDistance, bobY=py+uy*bobberDistance+Math.sin(time/170)*2;
+    ctx.save();
+    ctx.lineCap='round';
+    ctx.strokeStyle='#a97845';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(handX,handY);ctx.lineTo(tipX,tipY);ctx.stroke();
+    ctx.strokeStyle='rgba(232,244,255,.88)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tipX,tipY);ctx.lineTo(bobX,bobY);ctx.stroke();
+    ctx.strokeStyle='rgba(139,225,246,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(bobX,bobY+5,7+Math.sin(time/210)*2,2.5,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#ff6f70';ctx.shadowColor='#9ce8ff';ctx.shadowBlur=9;ctx.beginPath();ctx.arc(bobX,bobY,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(bobX-1,bobY-1,1.2,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
   function draw(dt,time){
     if(dungeonMode){drawDungeonInterior(dt,time);updateObjective();return;}
     if(caveMode){drawCaveInterior(dt,time);updateObjective();return;}
@@ -1124,6 +1140,7 @@
       ctx.fillStyle=aura;ctx.beginPath();ctx.arc(px,py,36,0,Math.PI*2);ctx.fill();
     }
     drawPlayer(camX,camY,dt);
+    drawFishingCast(camX,camY,time);
     drawRemotePlayers(camX,camY);
     drawVisualEffects(camX,camY,time);
     if(gameSettings.graphicsQuality!=='low') drawFireflies(camX,camY,time);
