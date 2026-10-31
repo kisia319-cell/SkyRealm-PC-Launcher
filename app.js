@@ -543,8 +543,11 @@
       const token = await getValidToken();
       const result = await requestApi('/api/auth/me', {token});
       showProfile(result.user);
-    } catch (_) {
-      clearToken();
+    } catch (error) {
+      // Do not erase a valid saved session during a temporary network outage.
+      // Clear it only when the server explicitly rejects the access/refresh token.
+      if (error && (error.status === 401 || error.status === 403)) clearToken();
+      else if (error) console.warn('[SkyRealm auth] Session restore deferred:', error.message || error);
     }
   }
   restoreSession();
