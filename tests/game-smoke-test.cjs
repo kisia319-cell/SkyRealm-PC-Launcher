@@ -232,3 +232,6 @@ assert.ok(game.includes(String.raw`d.clearedSnowTiles.filter(k=>/^\d+,\d+$/.test
 assert.ok(game.includes(String.raw`Object.entries(d.snowShovelHits).filter(([k,v])=>/^\d+,\d+$/.test(k)`), 'Partial shovel progress must restore from saves');
 assert.ok(game.includes('Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.'), 'Mine location must remain at its deterministic expanded-map position after loading a save');
 assert.ok(!game.includes('Math.max(20,Math.min(31,d.mineTileX))') && !game.includes('Math.max(24,Math.min(29,d.mineTileY))'), 'Legacy mine coordinate clamps must not move the mine back beside the starting area');
+
+assert.ok(game.includes('function updateVillageNpcs(dt){\n    if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;'), 'Trade village NPCs must only simulate inside the Trade World');
+assert.ok(game.includes('function updateWolfAndDog(dt){\n    if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;'), 'Forest boss and companion simulation must not leak into Trade World or interiors');
