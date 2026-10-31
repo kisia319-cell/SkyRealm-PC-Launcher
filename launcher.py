@@ -23,6 +23,15 @@ def resource_path(name: str) -> str:
     return str(base / name)
 
 
+def file_sha256(path: Path) -> str:
+    """Hash a file incrementally so binary integrity checks do not depend on file size."""
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 window = None
 game_window = None
 game_fullscreen = False
@@ -236,7 +245,7 @@ class LauncherApi:
                 version != bundled_version or (
                     bool(source_files) and all(
                         (install_dir / p.relative_to(source_dir)).is_file()
-                        and (install_dir / p.relative_to(source_dir)).stat().st_size == p.stat().st_size
+                        and file_sha256(install_dir / p.relative_to(source_dir)) == file_sha256(p)
                         for p in source_files
                     )
                 )
@@ -291,7 +300,7 @@ class LauncherApi:
                 runner_dir = app_data / "SkyRealm" / "bin"
                 runner_dir.mkdir(parents=True, exist_ok=True)
                 runner_path = runner_dir / ("SkyRealmGame_" + safe_version + ".exe")
-                if (not runner_path.is_file()) or runner_path.stat().st_size != bundled_runner.stat().st_size:
+                if (not runner_path.is_file()) or file_sha256(runner_path) != file_sha256(bundled_runner):
                     temp_runner = runner_path.with_suffix(".exe.new")
                     shutil.copy2(bundled_runner, temp_runner)
                     os.replace(temp_runner, runner_path)
