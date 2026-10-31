@@ -78,7 +78,7 @@
   let sheepSpawnTimer = 0;
   let playerAttackCooldown = 0;
   let attackAnimTimer=0, combatAbilityCooldown=0, weatherMode='clear', weatherTimer=75, weatherFlash=0, ambientTime=0;
-  const GAME_VERSION = document.querySelector('meta[name="skyrealm-game-version"]')?.content || '0.20.19';
+  const GAME_VERSION = document.querySelector('meta[name="skyrealm-game-version"]')?.content || '0.20.20';
   const WORLD_EVENT_CHANCES = Object.freeze({
     checkInterval:75,
     meteor:.12,
@@ -667,7 +667,7 @@
     }
   }
   function updateVillageNpcs(dt){
-    if(inHouse||mineMode||caveMode||dungeonMode)return;
+    if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
     const minute=minuteOfDay(),night=minute>=21*60||minute<6*60,working=minute>=8*60&&minute<18*60;
     for(const npc of villageNpcs){
       const slot=night?2:working?1:0;
@@ -1522,6 +1522,7 @@
   }
   function interactWolfCage(){const p=wolfCagePosition();if(Math.hypot(player.x-p.x,player.y-p.y)>92)return false;if(!wolfCageOpen){if(!wolfBossKeyDropped||itemCount('Ключ от клетки')<1){toast('Клетка заперта. Победи Оборотня и забери ключ!');return true;}changeItem('Ключ от клетки',-1);wolfCageOpen=true;playWolfSound('howl');toast('Клетка открыта! Нажми E рядом с собакой, чтобы приручить её.');saveGame();return true;}if(wolfDogCaged){wolfDogCaged=false;wolfCompanionUnlocked=true;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;playSound('sheep');toast('Собака приручена! Она будет ходить за тобой. У неё 300 HP.');saveGame();return true;}return true;}
   function updateWolfAndDog(dt){
+    if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
     if(!wolfCompanionUnlocked&&!wolfBossDefeated&&!wolfBossKeyDropped&&inForest(player.x,player.y)&&!wolfBossActive){const den=wolfDenPosition();wolfBossActive=true;wolfBossHp=1000+difficultyConfig().rank*500;wolfBossX=den.x;wolfBossY=den.y;wolfBossAttackTimer=1.2;toast('Ты вошёл в Лес! В логове ждёт босс Оборотень. Победи его, чтобы приручить собаку.');saveGame();}
     if(wolfBossActive){const dx=player.x-wolfBossX,dy=player.y-wolfBossY,dist=Math.hypot(dx,dy)||1;const wolfAttackRange=112;if(dist>wolfAttackRange-8){const step=(42+difficultyConfig().rank*4)*dt,nx=wolfBossX+dx/dist*step,ny=wolfBossY+dy/dist*step;if(!world.trees.some(t=>Math.hypot(t.x-nx,t.y-ny)<22)){wolfBossX=nx;wolfBossY=ny;}else{const sx=wolfBossX+Math.sign(dx)*step,sy=wolfBossY+Math.sign(dy)*step;if(!world.trees.some(t=>Math.hypot(t.x-sx,t.y-wolfBossY)<22))wolfBossX=sx;if(!world.trees.some(t=>Math.hypot(t.x-wolfBossX,t.y-sy)<22))wolfBossY=sy;}}wolfBossAttackTimer-=dt;if(wolfBossAttackTimer<=0){wolfBossAttackTimer=Math.max(.7,1.5-difficultyConfig().rank*.12);playWolfSound(Math.random()<.28?'howl':'growl');if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<48){wolfCompanionHp=Math.max(0,wolfCompanionHp-Math.round((12+difficultyConfig().rank*3)*(dogBehavior==='guard' ? 0.55 : 1)));if(wolfCompanionHp<=0)onWolfDogDeath();}else if(dist<wolfAttackRange&&!immortal&&dodgeTimer<=0){const damage=12+difficultyConfig().rank*4;player.hp=Math.max(0,player.hp-damage);updateVitals();toast('Оборотень ударил тебя: −'+damage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
     if(wolfCompanionUnlocked&&wolfCompanionHp>0&&!inHouse&&!mineMode&&!caveMode&&!tradeWorldMode){wolfCompanionAttackTimer-=dt;if(wolfCompanionAttackTimer<=0){wolfCompanionAttackTimer=.85;const damage=Math.round((10+difficultyConfig().rank*5)*(dogBehavior==='hunt'?1.45:dogBehavior==='guard' ? 0.75 : 1));if(wolfBossActive&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<70){wolfBossHp-=damage;if(wolfBossHp<=0)defeatWolfBoss();}else{let target=null,bd=70;for(const mob of monsters){if(mob.exploding)continue;const d=Math.hypot(mob.x-wolfCompanionX(),mob.y-wolfCompanionY());if(d<bd){bd=d;target=mob;}}if(target){target.hp-=damage;if(target.hp<=0){const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);awardXP(12,'помощь собаки');}}}}
