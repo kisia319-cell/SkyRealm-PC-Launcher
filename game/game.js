@@ -601,150 +601,103 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     renderInventory();saveGame();
   }
   const NPC_VISUALS={merchant:{skin:'#efc49a',hair:'#5b3826',coat:'#a85d32',trim:'#f4c56d',pants:'#35465e',beard:'#6a4128',hat:'#bd873d',prop:'coin'},alchemist:{skin:'#e9bdad',hair:'#a95c85',coat:'#7052a5',trim:'#e6a9e4',pants:'#3e3457',hood:'#8b68bc',prop:'potion'},hunter:{skin:'#d9a77e',hair:'#44332c',coat:'#4e7654',trim:'#b7c77b',pants:'#354a3b',scarf:'#a23f38',prop:'bow'},farmer:{skin:'#f0c9a0',hair:'#8a542e',coat:'#c48a45',trim:'#f3d88c',pants:'#536a46',hat:'#d7ad62',prop:'wheat'},miner:{skin:'#c99470',hair:'#3b3030',coat:'#596b7a',trim:'#e0b85e',pants:'#38414c',beard:'#423332',helmet:'#b8a36c',prop:'pickaxe'},builder:{skin:'#e3b38d',hair:'#65402b',coat:'#a86e48',trim:'#f0c68b',pants:'#46576b',cap:'#b9783e',prop:'hammer'},mage:{skin:'#dfb5d7',hair:'#c9b4e9',coat:'#3d3d82',trim:'#8fe7ff',pants:'#29294f',hood:'#5655a7',prop:'staff'},guard:{skin:'#d4a27d',hair:'#342d35',coat:'#52677d',trim:'#d8b66f',pants:'#354254',helmet:'#8299b4',prop:'spear'}};
-  function setupVillageNpcs(){villageCenters=tradeVillageLayouts().map(v=>({...v}));const specs=[],seedByVillage={forest:0,snow:1,desert:2,volcano:3,blight:4};for(const v of villageCenters)v.houses.forEach((id,i)=>{const seed=seedByVillage[v.id]||0,angle=(Math.PI*2*i)/6+seed*.24,r=228+(i%2)*24,x=v.x*TILE+16+Math.cos(angle)*(r-76),y=v.y*TILE+22+Math.sin(angle)*(r*.82-58);specs.push({id,x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:specs.length*1.37,color:NPC_COLORS[id],villageId:v.id,activity:'home',scheduleSlot:-1,moveTimer:0,walkPhase:0});});const farmer=specs.find(n=>n.id==='farmer');if(farmer){farmer.x=farmer.homeX=farmer.targetX=FARMER_SHOP.x*TILE+16;farmer.y=farmer.homeY=farmer.targetY=(FARMER_SHOP.y-3)*TILE+16;farmer.activity='at market';farmer.moveTimer=0;}const names=['Артём','Ника','Марк','Лея','Тимур','Соня','Егор','Мила','Роман','Ася','Даня','Вера','Илья','Зоя','Лука'];for(let i=0;i<names.length;i++){const v=villageCenters[i%villageCenters.length],angle=(i*2.399)%(Math.PI*2),radius=300+(i%3)*34,x=v.x*TILE+16+Math.cos(angle)*radius,y=v.y*TILE+22+Math.sin(angle)*radius;specs.push({id:'citizen',name:names[i],x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:i*1.91,color:'#9ab6a2',villageId:v.id,activity:'wandering',scheduleSlot:-1,moveTimer:0,walkPhase:0});}villageNpcs=specs;}
+  function setupVillageNpcs(){
+    villageCenters=tradeVillageLayouts().map(v=>({...v}));
+    const specs=[],seedByVillage={forest:0,snow:1,desert:2,volcano:3,blight:4};
+    for(const v of villageCenters){
+      const seed=seedByVillage[v.id]||0;
+      v.houses.forEach((id,i)=>{
+        const slot=(seed*3+i*4+1)%18,row=Math.floor(slot/6),col=slot%6;
+        const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270];
+        const x=v.x*TILE+16+xOffsets[col]+(row===1?28:row===2?-24:0);
+        const y=v.y*TILE+16+rowY[row]+72;
+        specs.push({id,x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:specs.length*1.37,color:NPC_COLORS[id],villageId:v.id,activity:'home',scheduleSlot:-1,moveTimer:0,walkPhase:0});
+      });
+    }
+    const farmer=specs.find(n=>n.id==='farmer');
+    if(farmer){farmer.x=farmer.homeX=farmer.targetX=FARMER_SHOP.x*TILE+16;farmer.y=farmer.homeY=farmer.targetY=(FARMER_SHOP.y-3)*TILE+16;farmer.activity='at market';farmer.moveTimer=0;}
+    const names=['Артём','Ника','Марк','Лея','Тимур','Соня','Егор','Мила','Роман','Ася','Даня','Вера','Илья','Зоя','Лука'];
+    const xOffsets=[-420,-210,0,210,420],streetY=[-185,95,340];
+    for(let i=0;i<names.length;i++){
+      const v=villageCenters[i%villageCenters.length],row=i%3,col=Math.floor(i/3)%5;
+      const x=v.x*TILE+16+xOffsets[col]+(row===1?34:-26),y=v.y*TILE+streetY[row]+22;
+      specs.push({id:'citizen',name:names[i],x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:i*1.91,color:'#9ab6a2',villageId:v.id,activity:'wandering',scheduleSlot:-1,moveTimer:0,walkPhase:0});
+    }
+    villageNpcs=specs;
+  }
   function drawNpcCharacter(npc,x,y,time){const v=NPC_VISUALS[npc.id]||NPC_VISUALS.merchant,step=Math.sin(time/105+npc.phase)*1.3;ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.28,1.28);ctx.fillStyle='rgba(4,10,18,.38)';ctx.beginPath();ctx.ellipse(0,14,12,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=v.pants;ctx.fillRect(-7,5+step,6,10);ctx.fillRect(1,5-step,6,10);ctx.fillStyle='#302d35';ctx.fillRect(-8,14+step,7,3);ctx.fillRect(1,14-step,7,3);ctx.fillStyle=v.coat;ctx.beginPath();ctx.roundRect(-10,-5,20,15,4);ctx.fill();ctx.fillStyle=v.trim;ctx.fillRect(-8,-3,3,7);ctx.fillRect(5,-3,3,7);ctx.fillStyle=v.trim;ctx.fillRect(-2,-4,4,12);ctx.fillRect(-8,0,3,5);ctx.fillRect(5,0,3,5);ctx.fillStyle=v.skin;ctx.fillRect(-12,-3,4,10);ctx.fillRect(8,-3,4,10);ctx.fillStyle=v.coat;ctx.fillRect(-12,4,4,4);ctx.fillRect(8,4,4,4);ctx.fillStyle=v.skin;ctx.beginPath();ctx.roundRect(-6,-20,12,13,3);ctx.fill();ctx.fillStyle=v.hair;ctx.fillRect(-7,-22,14,5);ctx.fillRect(-8,-18,3,5);ctx.fillRect(5,-18,3,5);ctx.fillStyle='#263247';ctx.fillRect(-3,-14,2,2);ctx.fillRect(2,-14,2,2);ctx.fillStyle='#fff';ctx.fillRect(-3,-15,1,1);ctx.fillRect(2,-15,1,1);ctx.fillStyle='#9b5e54';ctx.fillRect(-1,-9,3,1);ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(-5,-19,3,2);if(v.beard){ctx.fillStyle=v.beard;ctx.fillRect(-4,-9,8,4);}const hat=v.hat||v.helmet||v.hood||v.cap;if(hat){ctx.fillStyle=hat;ctx.fillRect(-9,-25,18,5);ctx.fillRect(-7,-28,14,5);}if(v.scarf){ctx.fillStyle=v.scarf;ctx.fillRect(-8,-7,16,4);}if(v.prop==='coin'){ctx.fillStyle='#ffd35a';ctx.beginPath();ctx.arc(12,-2,3,0,Math.PI*2);ctx.fill();}if(v.prop==='potion'){ctx.fillStyle='#8fe7ff';ctx.fillRect(11,-4,4,7);}if(['pickaxe','hammer','spear','staff','bow'].includes(v.prop)){ctx.strokeStyle=v.prop==='staff'?'#9beaff':'#9b774d';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(12,10);ctx.lineTo(14,-22);ctx.stroke();if(v.prop==='pickaxe'){ctx.strokeStyle='#c8d4df';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(8,-18);ctx.lineTo(19,-22);ctx.stroke();}if(v.prop==='hammer'){ctx.fillStyle='#b7c4d1';ctx.fillRect(10,-22,9,5);}if(v.prop==='spear'){ctx.fillStyle='#dce7f2';ctx.fillRect(12,-27,4,7);}if(v.prop==='staff'){ctx.fillStyle='#7deaff';ctx.shadowColor='#65dfff';ctx.shadowBlur=9;ctx.beginPath();ctx.arc(14,-23,4,0,Math.PI*2);ctx.fill();}if(v.prop==='bow'){ctx.strokeStyle='#c89b55';ctx.beginPath();ctx.arc(14,-8,8,-1.2,1.2);ctx.stroke();}}ctx.restore();}
   function drawVillageSettlements(camX,camY,time){
-    // Eighteen houses per village: six spaced inner-ring homes and twelve widely spaced outer-ring homes.
-    // Every village gets a slight angle offset so the settlements do not look copied.
-    const seedByVillage={forest:0,snow:1,desert:2,volcano:3,blight:4};
+    // Trade World settlements use a clear rectangular street plan, not circular rings.
+    // Six homes per street, three streets per village; every facade faces the same road.
     const roofs=['#2865bd','#b83d32','#7d4930','#477b50','#7860a9','#bd7938','#a94b48','#547e9b','#a45b36'];
     const walls=['#c79a64','#d5b27c','#a87951','#c8c0a0','#b88969','#d4c18d','#b6aa8c','#b6aa8c','#d0a36e'];
     const darks=['#543b31','#49332d','#604332','#3f4838','#43364d','#65442d','#563c37','#3b4d57','#64422f'];
+    const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270],laneY=[-185,95,340];
     for(const c of villageCenters){
-      const seed=seedByVillage[c.id]||0;
       const housePositions=[];
-      for(let i=0;i<6;i++){
-        const angle=(Math.PI*2*i)/6+seed*.24;
-        const r=228+(i%2)*24;
-        housePositions.push({x:Math.cos(angle)*r,y:Math.sin(angle)*r*.82,style:i,angle,rotation:angle+Math.PI/2});
-      }
-      for(let i=0;i<12;i++){
-        const angle=(Math.PI*2*i)/12+Math.PI/12+seed*.17;
-        const r=430+(i%3)*35;
-        housePositions.push({x:Math.cos(angle)*r,y:Math.sin(angle)*r*.82,style:i+6,angle,rotation:angle+Math.PI/2});
+      for(let row=0;row<3;row++)for(let col=0;col<6;col++){
+        const x=xOffsets[col]+(row===1?28:row===2?-24:0),y=rowY[row];
+        housePositions.push({x,y,style:row*6+col,row,col,rotation:0,laneY:laneY[row]});
       }
       const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;
       if(x<-1000||x>width+1000||y<-1000||y>height+1000)continue;
-      ctx.save();
-      // Three offset, winding village lanes; short paths lead to nearby doors.
-      ctx.lineCap='round';ctx.lineJoin='round';
-      const lanes=[
-        [[-590,-185],[-300,-215],[-20,-165],[260,-205],[590,-150]],
-        [[-610,95],[-310,55],[-20,110],[270,65],[610,125]],
-        [[-520,340],[-240,305],[65,365],[345,315],[590,350]]
-      ];
-      for(const lane of lanes){
-        ctx.strokeStyle='#806747';ctx.lineWidth=36;ctx.beginPath();
-        ctx.moveTo(x+lane[0][0],y+lane[0][1]);
-        ctx.quadraticCurveTo(x+lane[1][0],y+lane[1][1],x+lane[2][0],y+lane[2][1]);
-        ctx.quadraticCurveTo(x+lane[3][0],y+lane[3][1],x+lane[4][0],y+lane[4][1]);ctx.stroke();
-        ctx.strokeStyle='#a1845b';ctx.lineWidth=23;ctx.stroke();
+      ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+      // Three straight, parallel main streets with short perpendicular front paths.
+      for(let row=0;row<3;row++){
+        const ly=y+laneY[row];
+        ctx.strokeStyle='#806747';ctx.lineWidth=34;ctx.beginPath();ctx.moveTo(x-650,ly);ctx.lineTo(x+650,ly);ctx.stroke();
+        ctx.strokeStyle='#a1845b';ctx.lineWidth=22;ctx.stroke();
       }
       for(const h of housePositions){
-        const laneY=h.y<-220?-185:h.y<210?95:340;
-        const doorX=x+h.x-Math.cos(h.angle)*70,doorY=y+h.y-Math.sin(h.angle)*70,joinY=y+laneY;
-        ctx.strokeStyle='#8b704c';ctx.lineWidth=20;ctx.beginPath();
-        ctx.moveTo(doorX,doorY);ctx.quadraticCurveTo(doorX+((h.style%3)-1)*24,(doorY+joinY)/2,doorX,joinY);ctx.stroke();
-        ctx.strokeStyle='#b19367';ctx.lineWidth=11;ctx.stroke();
+        const doorX=x+h.x,doorY=y+h.y+74,joinY=y+h.laneY;
+        ctx.strokeStyle='#8b704c';ctx.lineWidth=17;ctx.beginPath();ctx.moveTo(doorX,doorY);ctx.lineTo(doorX,joinY);ctx.stroke();
+        ctx.strokeStyle='#b19367';ctx.lineWidth=9;ctx.stroke();
       }
-      // Small fenced crop plots beside homes.
+      // Six compact gardens sit in the gaps beside the first street, away from house footprints.
       for(let gi=0;gi<6;gi++){
-        const h=housePositions[gi],gx=x+h.x+(gi%2?112:-116),gy=y+h.y+78;
-        ctx.fillStyle='#5c4933';ctx.fillRect(gx-48,gy-29,96,58);
-        ctx.fillStyle='#6f5132';ctx.fillRect(gx-44,gy-25,88,50);
-        ctx.strokeStyle='#c09b64';ctx.lineWidth=3;ctx.strokeRect(gx-48,gy-29,96,58);
-        for(let row=0;row<3;row++)for(let col=0;col<5;col++){
-          const px=gx-34+col*17,py=gy-16+row*16;
-          ctx.fillStyle='#4b6e36';ctx.fillRect(px,py,4,11);
-          ctx.fillStyle=(gi+row+col)%3===0?'#e1bd54':'#8aa64b';ctx.fillRect(px-3,py-3,10,4);
+        const h=housePositions[gi],gx=x+h.x+(gi%2?91:-91),gy=y+h.y+115;
+        ctx.fillStyle='#5c4933';ctx.fillRect(gx-34,gy-22,68,44);
+        ctx.fillStyle='#6f5132';ctx.fillRect(gx-31,gy-19,62,38);
+        ctx.strokeStyle='#c09b64';ctx.lineWidth=2;ctx.strokeRect(gx-34,gy-22,68,44);
+        for(let row=0;row<2;row++)for(let col=0;col<4;col++){
+          const px=gx-23+col*15,py=gy-11+row*15;
+          ctx.fillStyle='#4b6e36';ctx.fillRect(px,py,4,9);
+          ctx.fillStyle=(gi+row+col)%3===0?'#e1bd54':'#8aa64b';ctx.fillRect(px-2,py-3,8,4);
         }
       }
-      // Trees and bushes around the settlement perimeter.
-      const treeSpots=[[-650,-300],[-245,-520],[150,-500],[610,-330],[-680,180],[-610,470],[-180,610],[280,650],[650,470],[-300,-30],[560,35],[-80,560],[390,-470]];
+      const treeSpots=[[-650,-390],[-260,-470],[180,-470],[650,-390],[-680,170],[-650,470],[-180,570],[260,580],[680,470],[-720,0],[720,0]];
       for(let ti=0;ti<treeSpots.length;ti++){
         const tx=x+treeSpots[ti][0],ty=y+treeSpots[ti][1];
         if(tx<-70||tx>width+70||ty<-80||ty>height+80)continue;
         drawTree({x:tx+camX,y:ty+camY,size:1.12+(ti%3)*.12,tint:ti%3},camX,camY);
       }
-      // Warm lanterns and soft pools of light along the lanes.
-      for(const [lx,ly] of [[-300,55],[0,95],[310,110],[-80,-130],[120,300]]){
-        const px=x+lx,py=y+ly;
-        ctx.fillStyle='#493b2b';ctx.fillRect(px-3,py-5,6,22);
-        ctx.fillStyle='#c6a16b';ctx.fillRect(px-6,py-13,12,10);
-        ctx.fillStyle='#ffe19a';ctx.fillRect(px-3,py-11,6,6);
-        const glow=ctx.createRadialGradient(px,py-8,2,px,py-8,48);
-        glow.addColorStop(0,'rgba(255,198,94,.22)');glow.addColorStop(1,'rgba(255,198,94,0)');
-        ctx.fillStyle=glow;ctx.beginPath();ctx.arc(px,py-8,48,0,Math.PI*2);ctx.fill();
+      for(const [lx,row] of [[-300,0],[0,1],[310,2],[-80,0],[120,2]]){
+        const px=x+lx,py=y+laneY[row];
+        ctx.fillStyle='#493b2b';ctx.fillRect(px-3,py-5,6,22);ctx.fillStyle='#c6a16b';ctx.fillRect(px-6,py-13,12,10);ctx.fillStyle='#ffe19a';ctx.fillRect(px-3,py-11,6,6);
+        const glow=ctx.createRadialGradient(px,py-8,2,px,py-8,42);glow.addColorStop(0,'rgba(255,198,94,.2)');glow.addColorStop(1,'rgba(255,198,94,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(px,py-8,42,0,Math.PI*2);ctx.fill();
       }
       for(const h of housePositions){
-        const hx=x+h.x,hy=y+h.y,variant=h.style%roofs.length;
-        const roof=roofs[variant],wall=walls[variant],dark=darks[variant];
+        const hx=x+h.x,hy=y+h.y,variant=h.style%roofs.length,roof=roofs[variant],wall=walls[variant],dark=darks[variant];
         const w=92+(h.style%3)*5,bodyH=58+(h.style%2)*5;
-        ctx.save();
-        ctx.translate(hx,hy);
-        ctx.rotate(h.rotation);
-        ctx.scale(1.18,1.18);
-        // Broad, level foundations and a visible side wall give the cottage depth.
+        ctx.save();ctx.translate(hx,hy);ctx.rotate(0);ctx.scale(1.18,1.18);
         ctx.fillStyle='#665744';ctx.fillRect(-w/2-5,5,w+10,bodyH+12);
         ctx.fillStyle='#8d7152';ctx.beginPath();ctx.moveTo(w/2,5);ctx.lineTo(w/2+13,0);ctx.lineTo(w/2+13,bodyH+5);ctx.lineTo(w/2,bodyH+17);ctx.closePath();ctx.fill();
-        ctx.fillStyle=wall;ctx.fillRect(-w/2,0,w,bodyH);
-        ctx.fillStyle=dark;ctx.fillRect(-w/2,0,w,6);ctx.fillRect(-w/2,bodyH-6,w,6);
-        ctx.fillRect(-w/2+8,5,5,bodyH-10);ctx.fillRect(w/2-13,5,5,bodyH-10);
-        // Large pitched roof with eaves and varied ridge height keeps each cottage readable.
+        ctx.fillStyle=wall;ctx.fillRect(-w/2,0,w,bodyH);ctx.fillStyle=dark;ctx.fillRect(-w/2,0,w,6);ctx.fillRect(-w/2,bodyH-6,w,6);ctx.fillRect(-w/2+8,5,5,bodyH-10);ctx.fillRect(w/2-13,5,5,bodyH-10);
         ctx.fillStyle=dark;ctx.beginPath();ctx.moveTo(-w/2-15,9);ctx.lineTo(0,-43-(h.style%3)*3);ctx.lineTo(w/2+15,9);ctx.lineTo(w/2+9,25);ctx.lineTo(-w/2-9,25);ctx.closePath();ctx.fill();
         ctx.fillStyle=roof;ctx.beginPath();ctx.moveTo(-w/2-11,6);ctx.lineTo(0,-39-(h.style%3)*3);ctx.lineTo(w/2+11,6);ctx.lineTo(w/2+4,18);ctx.lineTo(-w/2-4,18);ctx.closePath();ctx.fill();
-        ctx.strokeStyle='rgba(255,220,160,.38)';ctx.lineWidth=2;
-        for(let row=0;row<4;row++){const yy=-17+row*9,half=(w*.43)*(1-row*.13);ctx.beginPath();ctx.moveTo(-half,yy);ctx.lineTo(half,yy);ctx.stroke();}
-        ctx.strokeStyle='rgba(20,25,35,.3)';ctx.lineWidth=1;
-        for(let col=-4;col<=4;col++){ctx.beginPath();ctx.moveTo(col*11,-22);ctx.lineTo(col*11,17);ctx.stroke();}
-        // Recessed door, wooden frame and handle.
-        ctx.fillStyle='#392c29';ctx.fillRect(-11,bodyH-34,22,34);
-        ctx.fillStyle='#8e6543';ctx.fillRect(-8,bodyH-31,16,31);
-        ctx.fillStyle='#d9b879';ctx.fillRect(-8,bodyH-31,16,3);
-        ctx.fillStyle='#f0cb70';ctx.beginPath();ctx.arc(5,bodyH-16,2,0,Math.PI*2);ctx.fill();
-        // Windows, shutters and crossbars vary with the house style.
-        for(const wx of [-w*.31,w*.31]){
-          ctx.fillStyle='#4b342b';ctx.fillRect(wx-10,17,20,23);
-          ctx.fillStyle=(h.style%4===0)?'#f4c96e':'#80b8ca';ctx.fillRect(wx-7,20,14,17);
-          ctx.fillStyle='#f0d49a';ctx.fillRect(wx-1,20,2,17);ctx.fillRect(wx-7,27,14,2);
-          ctx.fillStyle=dark;ctx.fillRect(wx-13,15,4,27);ctx.fillRect(wx+9,15,4,27);
-          ctx.fillStyle=wall;ctx.fillRect(wx-15,14,4,29);ctx.fillRect(wx+11,14,4,29);
-        }
-        // A small porch, steps and timber beams make the facade more readable.
-        ctx.fillStyle='#63452d';ctx.fillRect(-23,bodyH+1,46,6);
-        ctx.fillStyle='#c9a06a';ctx.fillRect(-25,bodyH-1,50,4);
-        ctx.fillStyle='#735238';ctx.fillRect(-20,bodyH+7,5,8);ctx.fillRect(15,bodyH+7,5,8);
-        ctx.fillStyle='#d2b27a';ctx.fillRect(-w/2+5,bodyH*.52,w-10,3);
-        if(h.style%3===1){
-          ctx.fillStyle='#8c5740';ctx.fillRect(w*.22,-39,12,25);
-          ctx.fillStyle='#bd8060';ctx.fillRect(w*.22-2,-41,16,4);
-        }
-        // Distinct shop awning / hanging sign on selected homes.
-        if(h.style%4===0){
-          ctx.fillStyle='#e8dfc8';ctx.fillRect(-25,8,50,10);
-          for(let stripe=0;stripe<5;stripe++){ctx.fillStyle=stripe%2?'#e8e1ce':'#4f91c4';ctx.fillRect(-25+stripe*10,8,10,10);}
-        }else if(h.style%4===2){
-          ctx.fillStyle='#e8d19a';ctx.fillRect(w/2+1,12,17,17);
-          ctx.fillStyle='#62412e';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText('✦',w/2+9,25);
-        }
+        ctx.strokeStyle='rgba(255,220,160,.38)';ctx.lineWidth=2;for(let row=0;row<4;row++){const yy=-17+row*9,half=(w*.43)*(1-row*.13);ctx.beginPath();ctx.moveTo(-half,yy);ctx.lineTo(half,yy);ctx.stroke();}
+        ctx.strokeStyle='rgba(20,25,35,.3)';ctx.lineWidth=1;for(let col=-4;col<=4;col++){ctx.beginPath();ctx.moveTo(col*11,-22);ctx.lineTo(col*11,17);ctx.stroke();}
+        ctx.fillStyle='#392c29';ctx.fillRect(-11,bodyH-34,22,34);ctx.fillStyle='#8e6543';ctx.fillRect(-8,bodyH-31,16,31);ctx.fillStyle='#d9b879';ctx.fillRect(-8,bodyH-31,16,3);ctx.fillStyle='#f0cb70';ctx.beginPath();ctx.arc(5,bodyH-16,2,0,Math.PI*2);ctx.fill();
+        for(const wx of [-w*.31,w*.31]){ctx.fillStyle='#4b342b';ctx.fillRect(wx-10,17,20,23);ctx.fillStyle=(h.style%4===0)?'#f4c96e':'#80b8ca';ctx.fillRect(wx-7,20,14,17);ctx.fillStyle='#f0d49a';ctx.fillRect(wx-1,20,2,17);ctx.fillRect(wx-7,27,14,2);ctx.fillStyle=dark;ctx.fillRect(wx-13,15,4,27);ctx.fillRect(wx+9,15,4,27);ctx.fillStyle=wall;ctx.fillRect(wx-15,14,4,29);ctx.fillRect(wx+11,14,4,29);}
+        ctx.fillStyle='#63452d';ctx.fillRect(-23,bodyH+1,46,6);ctx.fillStyle='#c9a06a';ctx.fillRect(-25,bodyH-1,50,4);ctx.fillStyle='#735238';ctx.fillRect(-20,bodyH+7,5,8);ctx.fillRect(15,bodyH+7,5,8);
+        if(h.style%3===1){ctx.fillStyle='#8c5740';ctx.fillRect(w*.22,-39,12,25);ctx.fillStyle='#bd8060';ctx.fillRect(w*.22-2,-41,16,4);}
+        if(h.style%4===0){ctx.fillStyle='#e8dfc8';ctx.fillRect(-25,8,50,10);for(let stripe=0;stripe<5;stripe++){ctx.fillStyle=stripe%2?'#e8e1ce':'#4f91c4';ctx.fillRect(-25+stripe*10,8,10,10);}}
+        else if(h.style%4===2){ctx.fillStyle='#e8d19a';ctx.fillRect(w/2+1,12,17,17);ctx.fillStyle='#62412e';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText('✦',w/2+9,25);}
         ctx.restore();
       }
-
-      ctx.fillStyle='#f2e4c2';ctx.font='900 14px Segoe UI';ctx.textAlign='center';
-      ctx.shadowColor='#101820';ctx.shadowBlur=6;ctx.fillText(c.name,x,y-625);
-      ctx.restore();
+      ctx.fillStyle='#f2e4c2';ctx.font='900 14px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=6;ctx.fillText(c.name,x,y-560);ctx.restore();
     }
-    for(const npc of villageNpcs){
-      const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;
-      if(x<-75||x>width+75||y<-100||y>height+80)continue;
-      drawNpcCharacter(npc,x,y,time);
-      ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';
-      ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;
-      ctx.fillText((npc.id==='citizen'?(npc.name+' · ЖИТЕЛЬ'):(NPC_NAMES[npc.id]+' · '+NPC_LABELS[npc.id])),x,y-34);
-      ctx.fillStyle='#d8e7ff';ctx.font='bold 8px Segoe UI';
-      ctx.fillText(npc.activity==='sleeping'?'ОТДЫХАЕТ':npc.activity==='working'?'РАБОТАЕТ':'ПРОГУЛКА',x,y+29);
-      ctx.restore();
-    }
+    for(const npc of villageNpcs){const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-75||x>width+75||y<-100||y>height+80)continue;drawNpcCharacter(npc,x,y,time);ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(npc.name||NPC_NAMES[npc.id]||'Житель',x,y-27);ctx.font='800 8px Segoe UI';ctx.fillStyle='#d8e8dc';ctx.fillText(npc.activity==='sleeping'?'ОТДЫХАЕТ':npc.activity==='working'?'РАБОТАЕТ':npc.activity==='at market'?'ТОРГУЕТ':'ГУЛЯЕТ',x,y-39);ctx.restore();}
   }
   function updateVillageNpcs(dt){
     if(inHouse||mineMode||caveMode||dungeonMode)return;
