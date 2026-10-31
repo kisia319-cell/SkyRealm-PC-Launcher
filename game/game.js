@@ -143,7 +143,8 @@
     guard:[{name:'Броня стража',icon:'🛡️',price:18000},{name:'Шлем лесника',icon:'🪖',price:4200},{name:'Амулет стража',icon:'📿',price:8500},{name:'Малое зелье',icon:'🧪',price:800}]
   };
   const FARM_ECONOMY={easy:{buy:1,sell:1},medium:{buy:1,sell:1},hard:{buy:1,sell:1},hell:{buy:1,sell:1},impossible:{buy:1,sell:1}};
-  const FARM_CROP_TRADE_PRICES={Пшеница:{buy:30,sell:50},Морковь:{buy:46,sell:75},Картофель:{buy:43,sell:70},Томат:{buy:66,sell:100},Кукуруза:{buy:82,sell:125},Тыква:{buy:152,sell:250},Клубника:{buy:123,sell:200}};
+  // Prices are from the player's perspective: buying from the NPC costs more than selling to the NPC, preventing infinite buy-resell arbitrage.
+  const FARM_CROP_TRADE_PRICES={Пшеница:{buy:50,sell:30},Морковь:{buy:75,sell:46},Картофель:{buy:70,sell:43},Томат:{buy:100,sell:66},Кукуруза:{buy:125,sell:82},Тыква:{buy:250,sell:152},Клубника:{buy:200,sell:123}};
   const FARM_CROPS=[{id:'wheat',seed:'Семена пшеницы',product:'Пшеница',growth:55,yield:4,sell:95},{id:'carrot',seed:'Семена моркови',product:'Морковь',growth:65,yield:3,sell:145},{id:'potato',seed:'Семена картофеля',product:'Картофель',growth:70,yield:4,sell:135},{id:'tomato',seed:'Семена томата',product:'Томат',growth:85,yield:5,sell:210},{id:'corn',seed:'Семена кукурузы',product:'Кукуруза',growth:95,yield:4,sell:260},{id:'pumpkin',seed:'Семена тыквы',product:'Тыква',growth:115,yield:2,sell:480},{id:'strawberry',seed:'Семена клубники',product:'Клубника',growth:100,yield:6,sell:390}];
   function farmCropById(id){return FARM_CROPS.find(c=>c.id===id)||null;}
   function farmEconomy(){return FARM_ECONOMY[currentDifficulty]||FARM_ECONOMY.medium;}
