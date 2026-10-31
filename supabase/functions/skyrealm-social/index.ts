@@ -82,6 +82,20 @@ Deno.serve(async(req:Request)=>{
       const rows=await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify(update)});
       return reply({profile:rows?.[0]||null});
     }
+    if(route==="/api/social/stats" && req.method==="POST") {
+      const p=await body(req), cls=String(p.player_class||"ordinary");
+      const level=Number(p.level), experience=Number(p.experience), playtime=Number(p.playtime_seconds);
+      if(!["swordsman","farmer","ordinary","archer","mage","miner","rich"].includes(cls) ||
+         !Number.isSafeInteger(level)||level<1||level>10000 ||
+         !Number.isSafeInteger(experience)||experience<0||experience>10000000 ||
+         !Number.isSafeInteger(playtime)||playtime<0||playtime>100000000) {
+        throw new ApiError(400,"INVALID_STATS","Игровая статистика имеет недопустимые значения.");
+      }
+      const rows=await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify({
+        player_class:cls,level,experience,playtime_seconds:playtime,last_seen_at:new Date().toISOString()
+      })});
+      return reply({ok:true,profile:rows?.[0]||null});
+    }
     if(route==="/api/social/search" && req.method==="GET") {
       const q=(url.searchParams.get("q")||"").trim();
       if(!/^[A-Za-zА-Яа-яЁё0-9_]{3,20}$/.test(q)) throw new ApiError(400,"INVALID_QUERY","Введи ник: от 3 до 20 букв, цифр или _.");
