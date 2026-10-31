@@ -314,6 +314,7 @@
     $('#auth-foot').innerHTML = t('profileFoot');
     verificationEmail = '';
     sessionStorage.removeItem('skyrealm_pending_email');
+    loadPlayerProfile();
   }
 
   const SOCIAL_URL = (() => {
