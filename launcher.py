@@ -158,7 +158,7 @@ class LauncherApi:
             # Fail closed: do not touch Chromium's LevelDB while process state is unknown.
             return True
 
-    def _skyrealm_create_world_backup(self):
+    def _skyrealm_create_world_backup(self, prefix="skyrealm-worlds"):
         profile = self._skyrealm_webview_profile_dir()
         candidates = [p for p in profile.rglob("Local Storage") if p.is_dir() and (p / "leveldb").is_dir()] if profile.exists() else []
         if not candidates:
@@ -166,8 +166,8 @@ class LauncherApi:
         root = profile.parent
         backup_dir = root / "backups"
         backup_dir.mkdir(parents=True, exist_ok=True)
-        stamp = time.strftime("%Y%m%d-%H%M%S")
-        archive = backup_dir / ("skyrealm-worlds-" + stamp + ".zip")
+        stamp = time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 1000000000).zfill(9)
+        archive = backup_dir / (prefix + "-" + stamp + ".zip")
         count = 0
         with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:
             for storage in candidates:
@@ -203,7 +203,7 @@ class LauncherApi:
             archives = sorted(backup_dir.glob("skyrealm-worlds-*.zip"), key=lambda p: p.stat().st_mtime, reverse=True) if backup_dir.exists() else []
             if not archives:
                 return {"ok": False, "message": "Резервная копия не найдена. Сначала создай её."}
-            safety = self._skyrealm_create_world_backup()
+            safety = self._skyrealm_create_world_backup(prefix="skyrealm-safety")
             if not safety.get("ok"):
                 return {"ok": False, "message": "Перед восстановлением не удалось сохранить текущие миры: " + safety.get("message", "")}
             restored = 0
