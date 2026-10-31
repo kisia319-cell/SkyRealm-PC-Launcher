@@ -124,6 +124,10 @@ Deno.serve(async(req:Request)=>{
           const accepted=await db("skyrealm_friendships?id=eq."+rel.id,{method:"PATCH",body:JSON.stringify({status:"accepted",updated_at:new Date().toISOString()})});
           return reply({relationship:accepted?.[0],message:"Встречная заявка принята. Теперь вы друзья."});
         }
+        if(rel.status==="rejected") {
+          const resent=await db("skyrealm_friendships?id=eq."+rel.id,{method:"PATCH",body:JSON.stringify({status:"pending",requested_by:user.id,updated_at:new Date().toISOString()})});
+          return reply({relationship:resent?.[0],message:"Заявка отправлена повторно."},201);
+        }
         throw new ApiError(409,"REQUEST_EXISTS","Заявка уже отправлена или ожидает ответа.");
       }
       const created=await db("skyrealm_friendships",{method:"POST",body:JSON.stringify({...pair,requested_by:user.id,status:"pending"})});
