@@ -10,6 +10,7 @@ const edge = fs.readFileSync('supabase/functions/skyrealm-coop/index.ts','utf8')
 const core = require('../game/multiplayer-core.js');
 
 const requiredIds = [
+  'coop-friend-tools','coop-friend-invite-toggle','coop-friend-invite-list','coop-incoming-invites','coop-incoming-count','coop-incoming-invites-list',
   'menu-coop','coop-shade','coop-title','coop-message','coop-no-room',
   'coop-difficulty','coop-create','coop-code','coop-join','coop-has-room',
   'coop-room-status','coop-room-id','coop-invite-row','coop-invite-code',
