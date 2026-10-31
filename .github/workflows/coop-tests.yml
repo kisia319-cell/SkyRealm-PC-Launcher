@@ -20,6 +20,7 @@ jobs:
       - run: node tests/supabase-migration-history-test.cjs
       - run: node tests/coop-ui-integration-test.cjs
       - run: node tests/profile-social-integration-test.cjs
+      - run: node tests/profile-social-api-smoke.mjs
       - run: node --check app.js
       - run: node tests/singleplayer-village-test.cjs
       - run: node tests/game-smoke-test.cjs
