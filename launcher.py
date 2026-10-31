@@ -183,7 +183,7 @@ class LauncherApi:
             app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
             root = app_data / "SkyRealm"
             install_dir = root / "game"
-            required = ("index.html", "game.js", "version.txt")
+            required = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
             missing = [name for name in required if not (install_dir / name).is_file()]
             version = ""
             try:
@@ -226,12 +226,19 @@ class LauncherApi:
                 pass
 
             source_files = [p for p in source_dir.rglob("*") if p.is_file()]
-            # Never overwrite a newer remote release with an older bundled copy.
-            installed_files_ok = version != bundled_version or (
-                bool(source_files) and all(
-                    (install_dir / p.relative_to(source_dir)).is_file()
-                    and (install_dir / p.relative_to(source_dir)).stat().st_size == p.stat().st_size
-                    for p in source_files
+            required_game_files = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
+            required_files_ok = all((install_dir / name).is_file() for name in required_game_files)
+            # A remote version may be newer than the launcher bundle. Never overwrite
+            # that release with older bundled files just because one remote asset is missing.
+            if version != bundled_version and not required_files_ok:
+                return {"ok": False, "message": "В установленной версии отсутствуют важные файлы игры, а встроенная копия лаунчера старее. Повтори проверку обновления при стабильном интернете."}
+            installed_files_ok = required_files_ok and (
+                version != bundled_version or (
+                    bool(source_files) and all(
+                        (install_dir / p.relative_to(source_dir)).is_file()
+                        and (install_dir / p.relative_to(source_dir)).stat().st_size == p.stat().st_size
+                        for p in source_files
+                    )
                 )
             )
             already_installed = installed_index.is_file() and installed_version == version and installed_files_ok
@@ -482,7 +489,8 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
         if not latest_tuple:
             return fallback_version()
 
-        game_ok = (install_dir / "index.html").is_file() and (install_dir / "game.js").is_file()
+        required_game_files = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
+        game_ok = all((install_dir / name).is_file() for name in required_game_files)
         installed_tuple = _skyrealm_version_tuple(installed_version)
         if not allow_update and latest_tuple > max(_skyrealm_version_tuple(installed_version), _skyrealm_version_tuple(bundled_version)):
             selected = installed_version if game_ok and installed_version else bundled_version
