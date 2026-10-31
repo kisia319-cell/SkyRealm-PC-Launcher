@@ -541,7 +541,7 @@
       }
       for(let i=0;i<12;i++){
         const angle=(Math.PI*2*i)/12+Math.PI/12+seed*.17;
-        const r=395+(i%3)*35;
+        const r=430+(i%3)*35;
         housePositions.push({x:Math.cos(angle)*r,y:Math.sin(angle)*r*.82,style:i+6,angle,rotation:angle+Math.PI/2});
       }
       const x=c.x*TILE+16-camX,y=c.y*TILE+16-camY;
