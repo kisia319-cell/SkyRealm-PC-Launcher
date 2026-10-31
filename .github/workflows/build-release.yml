@@ -102,9 +102,9 @@ jobs:
         run: |
           git fetch origin main
           $builtCommit = "${{ github.sha }}"
-          $mainCommit = (git rev-parse origin/main).Trim()
-          if ($builtCommit -ne $mainCommit) {
-            throw "Skipping stale build $builtCommit; main has advanced to $mainCommit"
+          git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json'
+          if ($LASTEXITCODE -ne 0) {
+            throw "Skipping stale build $builtCommit; source files on main have changed"
           }
 
       - name: Publish GitHub Release
@@ -165,9 +165,9 @@ jobs:
         run: |
           git fetch origin main
           $builtCommit = "${{ github.sha }}"
-          $mainCommit = (git rev-parse origin/main).Trim()
-          if ($builtCommit -ne $mainCommit) {
-            throw "Refusing to publish a manifest from stale build $builtCommit; main is $mainCommit"
+          git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json'
+          if ($LASTEXITCODE -ne 0) {
+            throw "Refusing stale manifest publication $builtCommit; source files on main have changed"
           }
 
       - name: Commit updated manifest
@@ -185,7 +185,14 @@ jobs:
             }
             git reset --hard origin/main
             if ($LASTEXITCODE -ne 0) { throw "Could not reset to origin/main" }
-            Copy-Item update_release/manifest.json manifest.json -Force
+            $builtManifest = Get-Content update_release/manifest.json -Raw | ConvertFrom-Json
+            $currentManifest = Get-Content manifest.json -Raw | ConvertFrom-Json
+            # Keep the game preview URL and checksum from the dedicated preview workflow.
+            # This build owns only the launcher version and launcher archive fields.
+            $currentManifest.version = $builtManifest.version
+            $currentManifest.download_url = $builtManifest.download_url
+            $currentManifest.sha256 = $builtManifest.sha256
+            $currentManifest | ConvertTo-Json -Depth 10 | Set-Content manifest.json -Encoding utf8
             git add manifest.json
             git diff --cached --quiet
             if ($LASTEXITCODE -eq 0) {
