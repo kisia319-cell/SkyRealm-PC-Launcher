@@ -219,7 +219,7 @@
   let tutorialMoveSeen=false, tutorialInventorySeen=false, tutorialQuestSeen=false, tutorialCombatSeen=false;
   const sheep = [];
   const monsters = [];
-  const coopGuestMobAttackCooldowns=new Map();
+  const coopGuestMobAttackCooldowns=new Map();let coopGuestWolfAttackCooldown=0;
   function isCoopWorldSave(){return typeof saveKey==='string'&&saveKey.startsWith('skyrealm_coop_save_v1_');}
   function isCoopWorldActive(){const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();return isCoopWorldSave()&&room?.status==='running';}
   function newCoopEntityId(){
@@ -1552,7 +1552,7 @@
     const loot=monsterLootFor(mob.type);
     if(isCoopWorldActive()){
       const network=window.SkyRealmCoopClient;
-      if(network?.isRoomOwner)spawnSharedLoot(mob.x,mob.y,loot,coopLocalWorldMode());
+      if(network?.isRoomOwner)spawnSharedLoot(mob.x,mob.y,loot,'surface');
       return;
     }
     for(const item of loot){
@@ -1638,7 +1638,17 @@
   function interactWolfCage(){const p=wolfCagePosition();if(Math.hypot(player.x-p.x,player.y-p.y)>92)return false;if(!wolfCageOpen){if(!wolfBossKeyDropped||itemCount('Ключ от клетки')<1){toast('Клетка заперта. Победи Оборотня и забери ключ!');return true;}changeItem('Ключ от клетки',-1);wolfCageOpen=true;playWolfSound('howl');toast('Клетка открыта! Нажми E рядом с собакой, чтобы приручить её.');saveGame();return true;}if(wolfDogCaged){wolfDogCaged=false;wolfCompanionUnlocked=true;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;playSound('sheep');toast('Собака приручена! Она будет ходить за тобой. У неё 300 HP.');saveGame();return true;}return true;}
   function updateWolfAndDog(dt){
     if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
-    if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner)return;
+    if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
+      coopGuestWolfAttackCooldown=Math.max(0,coopGuestWolfAttackCooldown-dt);
+      if(wolfBossActive&&wolfBossHp>0&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=112&&
+         coopGuestWolfAttackCooldown<=0&&!immortal&&dodgeTimer<=0){
+        const damage=Math.max(1,Math.round((12+difficultyConfig().rank*4)*(1-armorReduction())));
+        player.hp=Math.max(0,player.hp-damage);coopGuestWolfAttackCooldown=1.5;
+        updateVitals();toast('Общий Оборотень ударил тебя: −'+damage+' HP!');
+        if(player.hp<=0)respawnPlayerAfterDefeat();
+      }
+      return;
+    }
     if(!wolfCompanionUnlocked&&!wolfBossDefeated&&!wolfBossKeyDropped&&inForest(player.x,player.y)&&!wolfBossActive){const den=wolfDenPosition();wolfBossActive=true;wolfBossHp=1000+difficultyConfig().rank*500;wolfBossX=den.x;wolfBossY=den.y;wolfBossAttackTimer=1.2;toast('Ты вошёл в Лес! В логове ждёт босс Оборотень. Победи его, чтобы приручить собаку.');saveGame();}
     if(wolfBossActive){const dx=player.x-wolfBossX,dy=player.y-wolfBossY,dist=Math.hypot(dx,dy)||1;const wolfAttackRange=112;if(dist>wolfAttackRange-8){const step=(42+difficultyConfig().rank*4)*dt,nx=wolfBossX+dx/dist*step,ny=wolfBossY+dy/dist*step;if(!world.trees.some(t=>Math.hypot(t.x-nx,t.y-ny)<22)){wolfBossX=nx;wolfBossY=ny;}else{const sx=wolfBossX+Math.sign(dx)*step,sy=wolfBossY+Math.sign(dy)*step;if(!world.trees.some(t=>Math.hypot(t.x-sx,t.y-wolfBossY)<22))wolfBossX=sx;if(!world.trees.some(t=>Math.hypot(t.x-wolfBossX,t.y-sy)<22))wolfBossY=sy;}}wolfBossAttackTimer-=dt;if(wolfBossAttackTimer<=0){wolfBossAttackTimer=Math.max(.7,1.5-difficultyConfig().rank*.12);playWolfSound(Math.random()<.28?'howl':'growl');if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<48){wolfCompanionHp=Math.max(0,wolfCompanionHp-Math.round((12+difficultyConfig().rank*3)*(dogBehavior==='guard' ? 0.55 : 1)));if(wolfCompanionHp<=0)onWolfDogDeath();}else if(dist<wolfAttackRange&&!immortal&&dodgeTimer<=0){const damage=12+difficultyConfig().rank*4;player.hp=Math.max(0,player.hp-damage);updateVitals();toast('Оборотень ударил тебя: −'+damage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
     if(wolfCompanionUnlocked&&wolfCompanionHp>0&&!inHouse&&!mineMode&&!caveMode&&!tradeWorldMode){wolfCompanionAttackTimer-=dt;if(wolfCompanionAttackTimer<=0){wolfCompanionAttackTimer=.85;const damage=Math.round((10+difficultyConfig().rank*5)*(dogBehavior==='hunt'?1.45:dogBehavior==='guard' ? 0.75 : 1));if(wolfBossActive&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<70){wolfBossHp-=damage;if(wolfBossHp<=0)defeatWolfBoss();}else{let target=null,bd=70;for(const mob of monsters){if(mob.exploding)continue;const d=Math.hypot(mob.x-wolfCompanionX(),mob.y-wolfCompanionY());if(d<bd){bd=d;target=mob;}}if(target){target.hp-=damage;if(target.hp<=0){const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);awardXP(12,'помощь собаки');}}}}
@@ -1746,6 +1756,36 @@
     const multiplier=weapon==='Ледяной посох'?1.65:weapon==='Молниеносное копьё'?1.45:1.35;
     const damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*multiplier);
     const color=weapon==='Ледяной посох'?'#8deaff':weapon==='Молниеносное копьё'?'#ffe68a':'#c4d6ff';
+    if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
+      spawnVisualBurst(player.x,player.y,30,'spark',color);playSound('portal');
+      let hits=0;
+      if(dungeonMode){
+        if(!dungeonRoomCleared()&&Math.hypot(player.x-dungeonEnemyX,player.y-dungeonEnemyY)<=radius+30){
+          queueGuestEnemyHit('dungeon_boss','room-'+String(dungeonRoom),weapon,damage);hits++;
+        }
+      }else if(caveMode){
+        if(!caveBossDefeated&&Math.hypot(player.x-caveBossX,player.y-caveBossY)<=radius+30){
+          queueGuestEnemyHit('cave_boss','stone',weapon,damage);hits++;
+        }
+      }else if(!mineMode&&!inHouse&&!tradeWorldMode){
+        for(const mob of monsters){
+          if(mob.exploding||mob.hp<=0||Math.hypot(player.x-mob.x,player.y-mob.y)>radius)continue;
+          queueGuestEnemyHit('monster',mob.id,weapon,damage);hits++;
+        }
+        for(const def of biomeBossDefs()){
+          const boss=biomeBosses[def.id];
+          if(!boss?.active||boss.defeated||Math.hypot(player.x-def.x,player.y-def.y)>radius+30)continue;
+          queueGuestEnemyHit('biome_boss',def.id,weapon,damage);hits++;
+        }
+        if(wolfBossActive&&wolfBossHp>0&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=radius+30){
+          queueGuestEnemyHit('wolf_boss','wolf',weapon,damage);hits++;
+        }
+      }
+      saveGame();
+      toast((weapon==='Ледяной посох'?'ЛЕДЯНОЙ ВЗРЫВ':weapon==='Молниеносное копьё'?'ЦЕПНАЯ МОЛНИЯ':'УДАР ВОЛНЫ')+
+        ': запросов общего урона отправлено '+hits+' · перезарядка 12 сек.');
+      return;
+    }
     spawnVisualBurst(player.x,player.y,30,'spark',color);playSound('portal');
     let hits=0,kills=0;
     if(dungeonMode){
@@ -1803,21 +1843,24 @@
       const mode=coopLocalWorldMode(),weapon=equipment.weapon||'Деревянный меч';
       const base=weaponDamage(weapon)*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1);
       const damage=Math.round(base*(Math.random()<.14?2:1));
+      const reach=weapon==='Ледяной посох'?250:weapon==='Молниеносное копьё'?150:110;
       let sharedTarget=null;
       if(mode==='surface'){
         for(const def of biomeBossDefs()){
           const b=biomeBosses[def.id];
-          if(b?.active&&!b.defeated&&Math.hypot(player.x-def.x,player.y-def.y)<=Math.max(weaponRange()+35,130)){sharedTarget={kind:'biome_boss',id:def.id};break;}
+          if(b?.active&&!b.defeated&&Math.hypot(player.x-def.x,player.y-def.y)<=reach){sharedTarget={kind:'biome_boss',id:def.id};break;}
         }
-        if(!sharedTarget&&wolfBossActive&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=Math.max(125,weaponRange()+30))sharedTarget={kind:'wolf_boss',id:'wolf'};
+        if(!sharedTarget&&wolfBossActive&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=reach)sharedTarget={kind:'wolf_boss',id:'wolf'};
         if(!sharedTarget){
-          let nearest=null,bestRange=weaponRange();
-          for(const mob of monsters){if(mob.exploding||mob.hp<=0)continue;const d=Math.hypot(mob.x-player.x,mob.y-player.y);if(d<bestRange){nearest=mob;bestRange=d;}}
+          let nearest=null,bestRange=reach;
+          for(const mob of monsters){if(mob.exploding||mob.hp<=0)continue;const d=Math.hypot(mob.x-player.x,mob.y-player.y);if(d<=bestRange){nearest=mob;bestRange=d;}}
           if(nearest)sharedTarget={kind:'monster',id:nearest.id};
         }
-      }else if(mode==='cave'&&!caveBossDefeated&&Math.hypot(player.x-caveBossX,player.y-caveBossY)<=Math.max(115,weaponRange()+30))sharedTarget={kind:'cave_boss',id:'stone'};
-      else if(mode==='dungeon'&&!dungeonRoomCleared()&&Math.hypot(player.x-dungeonEnemyX,player.y-dungeonEnemyY)<=Math.max(110,weaponRange()+30))sharedTarget={kind:'dungeon_boss',id:'room-'+String(dungeonRoom)};
-      if(sharedTarget){queueGuestEnemyHit(sharedTarget.kind,sharedTarget.id,weapon,damage);return;}
+      }else if(mode==='cave'&&!caveBossDefeated&&Math.hypot(player.x-caveBossX,player.y-caveBossY)<=reach)sharedTarget={kind:'cave_boss',id:'stone'};
+      else if(mode==='dungeon'&&!dungeonRoomCleared()&&Math.hypot(player.x-dungeonEnemyX,player.y-dungeonEnemyY)<=reach)sharedTarget={kind:'dungeon_boss',id:'room-'+String(dungeonRoom)};
+      if(sharedTarget)queueGuestEnemyHit(sharedTarget.kind,sharedTarget.id,weapon,damage);
+      else toast('Рядом нет цели общего мира.');
+      return;
     }
     if(!caveMode&&!dungeonMode&&!mineMode){for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||!b.active||b.defeated)continue;const d=Math.hypot(player.x-def.x,player.y-def.y);if(d<Math.max(weaponRange()+35,130)){const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.1)*(Math.random()<.14?2:1));b.hp=Math.max(0,b.hp-damage);spawnVisualBurst(def.x,def.y,9,'spark',def.color);toast(def.name+' получил '+damage+' урона · '+Math.ceil(b.hp)+' HP');if(b.hp<=0)defeatBiomeBoss(def,b);else saveGame();return;}}}
     if(!caveMode&&!dungeonMode&&wolfBossActive){const bossDistance=Math.hypot(player.x-wolfBossX,player.y-wolfBossY);if(bossDistance<Math.max(125,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));wolfBossHp=Math.max(0,wolfBossHp-damage);wolfBossFlash=.18;spawnVisualBurst(wolfBossX,wolfBossY,10,'spark','#ff5267');toast('Оборотень получил '+damage+' урона · '+Math.ceil(wolfBossHp)+' HP');if(wolfBossHp<=0)defeatWolfBoss();else saveGame();return;}}
