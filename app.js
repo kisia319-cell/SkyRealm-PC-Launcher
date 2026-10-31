@@ -101,6 +101,7 @@
     $('#crumb-label').textContent = pageNames[name] || pageNames.home;
     $('.main').scrollTop = 0;
     if (name === 'settings') loadSettings();
+    if (name === 'community' && currentToken()) loadSocialFriends();
   }
   $$('[data-page]').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
   $$('.news-item').forEach(b => b.addEventListener('click', () => showPage('news')));
@@ -314,6 +315,118 @@
     verificationEmail = '';
     sessionStorage.removeItem('skyrealm_pending_email');
   }
+
+  const SOCIAL_URL = (() => {
+    try { const u = new URL(API_BASE); u.pathname = u.pathname.replace(/\\/skyrealm-auth\\/?$/, '/skyrealm-social'); return u.toString(); }
+    catch (_) { return ''; }
+  })();
+  async function requestSocial(route, {method='GET', body=null} = {}) {
+    const token = await getValidToken();
+    if (!token || !SOCIAL_URL) throw new Error('Войди в аккаунт SkyRealm.');
+    const endpoint = new URL(SOCIAL_URL);
+    endpoint.searchParams.set('route', route);
+    if (method === 'GET' && body?.q) endpoint.searchParams.set('q', body.q);
+    const response = await fetch(endpoint.toString(), {
+      method, headers: {'apikey':API_KEY,'Authorization':'Bearer '+token,...(body && method!=='GET'?{'Content-Type':'application/json'}:{})},
+      body: body && method!=='GET' ? JSON.stringify(body) : undefined, cache:'no-store'
+    });
+    let data={}; try { data=await response.json(); } catch (_) {}
+    if (!response.ok) throw new Error(data.message || 'Ошибка социального сервиса ('+response.status+').');
+    return data;
+  }
+  function setSocialMessage(message, isError=false) {
+    const el=$('#social-message'); if(!el) return;
+    el.textContent=message||''; el.classList.toggle('error',!!isError); el.classList.toggle('success',!!message&&!isError);
+  }
+  function socialPlayerCard(player, actions=[]) {
+    const card=document.createElement('div'); card.className='social-player';
+    const avatar=document.createElement('div'); avatar.className='social-avatar'; avatar.textContent=({warrior:'⚔',mage:'✦',ranger:'➶',miner:'⚒',farmer:'♧',wanderer:'✧'})[player.avatar_key]||'✦';
+    const info=document.createElement('div'); info.className='social-player-info';
+    const name=document.createElement('b'); name.textContent=player.display_name||player.username||'Игрок';
+    const sub=document.createElement('small'); sub.textContent='@'+(player.username||'player')+' · ур. '+(player.level||1);
+    const seen=player.last_seen_at?Date.parse(player.last_seen_at):0, online=seen>0&&Date.now()-seen<120000;
+    const status=document.createElement('small'); status.className=online?'social-online':'social-offline'; status.textContent=online?'● В сети':'○ Не в сети';
+    info.append(name,sub,status); card.append(avatar,info);
+    actions.forEach(action=>{
+      const button=document.createElement('button'); button.type='button'; button.textContent=action.label;
+      button.addEventListener('click',action.run); card.append(button);
+    });
+    return card;
+  }
+  async function loadSocialFriends() {
+    const list=$('#social-friends-list'); if(!list) return;
+    if(!currentToken()){list.textContent='Войди в аккаунт, чтобы пользоваться друзьями.';return;}
+    list.replaceChildren();
+    try {
+      const data=await requestSocial('/api/social/friends');
+      const rows=data.relationships||[];
+      if(!rows.length){const empty=document.createElement('div');empty.className='social-empty';empty.textContent='Пока нет друзей и заявок. Найди игрока по нику.';list.append(empty);return;}
+      rows.forEach(rel=>{
+        if(!rel.player)return;
+        let actions=[];
+        if(rel.status==='pending'&&rel.direction==='incoming'){
+          actions=[{label:'Принять',run:async()=>{try{await requestSocial('/api/social/respond',{method:'POST',body:{id:rel.id,decision:'accept'}});loadSocialFriends();}catch(e){setSocialMessage(e.message,true);}}},
+                   {label:'Отклонить',run:async()=>{try{await requestSocial('/api/social/respond',{method:'POST',body:{id:rel.id,decision:'reject'}});loadSocialFriends();}catch(e){setSocialMessage(e.message,true);}}}];
+        } else if(rel.status==='accepted') {
+          actions=[{label:'Удалить',run:async()=>{if(!confirm('Удалить игрока из друзей?'))return;try{await requestSocial('/api/social/remove',{method:'POST',body:{id:rel.id}});loadSocialFriends();}catch(e){setSocialMessage(e.message,true);}}}];
+        } else {
+          const waiting=document.createElement('small'); waiting.textContent='Заявка отправлена'; actions=[];
+        }
+        const card=socialPlayerCard(rel.player,actions);
+        if(rel.status==='pending'&&rel.direction==='outgoing'){const pending=document.createElement('small');pending.textContent='Ожидает ответа';pending.className='social-offline';card.append(pending);}
+        list.append(card);
+      });
+    } catch(error){const empty=document.createElement('div');empty.className='social-empty';empty.textContent=error.message;list.append(empty);}
+  }
+  async function searchSocialPlayers(query) {
+    const results=$('#social-search-results'); if(!results)return;
+    results.replaceChildren();
+    try {
+      const data=await requestSocial('/api/social/search',{body:{q:query}});
+      const players=data.players||[];
+      if(!players.length){const empty=document.createElement('div');empty.className='social-empty';empty.textContent='Игрок с таким ником не найден.';results.append(empty);return;}
+      players.forEach(player=>results.append(socialPlayerCard(player,[{label:'Добавить',run:async()=>{
+        try {const result=await requestSocial('/api/social/request',{method:'POST',body:{username:player.username}});setSocialMessage(result.message||'Заявка отправлена.');loadSocialFriends();}
+        catch(error){setSocialMessage(error.message,true);}
+      }}])));
+    } catch(error){setSocialMessage(error.message,true);}
+  }
+  async function loadPlayerProfile() {
+    if(!currentToken())return;
+    try {
+      const data=await requestSocial('/api/social/profile'), p=data.profile||{};
+      $('#profile-display-name').value=p.display_name||'';
+      $('#profile-avatar').value=p.avatar_key||'wanderer';
+      $('#profile-bio').value=p.bio||'';
+      $('#profile-level').textContent=String(p.level||1);
+      $('#profile-xp').textContent=String(p.experience||0);
+      $('#profile-playtime').textContent=(Number(p.playtime_seconds||0)/3600).toFixed(1)+' ч';
+      const classes={swordsman:'Мечник',farmer:'Фермер',ordinary:'Обычный',archer:'Лучник',mage:'Маг',miner:'Шахтёр',rich:'Богач'};
+      $('#profile-class').textContent=classes[p.player_class]||'Обычный';
+      $('#profile-name').textContent=p.display_name||p.username||'Игрок';
+    } catch(error) { $('#profile-save-message').textContent=error.message; }
+  }
+  const saveProfileButton=$('#save-profile');
+  if(saveProfileButton) saveProfileButton.addEventListener('click',async()=>{
+    const button=saveProfileButton; setBusy(button,true,'Сохраняем…');
+    try {
+      const data=await requestSocial('/api/social/profile',{method:'PATCH',body:{
+        display_name:$('#profile-display-name').value,avatar_key:$('#profile-avatar').value,bio:$('#profile-bio').value
+      }});
+      $('#profile-name').textContent=data.profile?.display_name||data.profile?.username||'Игрок';
+      $('#profile-save-message').textContent='Профиль сохранён.';
+    } catch(error) { $('#profile-save-message').textContent=error.message; }
+    finally {setBusy(button,false);}
+  });
+  const socialSearchForm=$('#social-search-form');
+  if(socialSearchForm) socialSearchForm.addEventListener('submit',ev=>{
+    ev.preventDefault(); const q=$('#social-search-input').value.trim();
+    if(q.length<3){setSocialMessage('Ник должен содержать минимум 3 символа.',true);return;}
+    setSocialMessage(''); searchSocialPlayers(q);
+  });
+  const socialRefresh=$('#social-refresh');
+  if(socialRefresh) socialRefresh.addEventListener('click',()=>{loadSocialFriends();setSocialMessage('Список обновлён.');});
+
   function showAuthAfterLogout() {
     hideVerification();
     $('#profile-view').hidden = true;
