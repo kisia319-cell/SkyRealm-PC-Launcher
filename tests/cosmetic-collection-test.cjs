@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const game=fs.readFileSync('game/game.js','utf8');
+const html=fs.readFileSync('game/index.html','utf8');
+new vm.Script(game,{filename:'game/game.js'});
+assert.ok(game.includes('const COSMETIC_SETS=['),'Cosmetic collection catalog must exist');
+assert.ok(game.includes('function renderCosmeticCollection()')&&game.includes('function applyCosmeticSet(id)'),'Cosmetics must be displayed and applied');
+assert.ok(game.includes("if(!state.unlocked?.[id])"),'Cosmetics must be gated by earned achievements');
+assert.ok(game.includes("renderCosmeticCollection();avatarEntryMode"),'Collection must refresh when opening character editor');
+assert.ok(html.includes('id="cosmetic-collection"'),'Character editor must contain cosmetic collection');
+assert.ok(html.includes('Комплекты открываются за игровые достижения. Покупок нет.'),'Collection must clearly state cosmetics are free');
+for(const id of ['first_step','first_night','explorer','veteran','angler','cave_guardian','villager_friend','long_journey'])assert.ok(game.includes("id:'"+id+"'"),'Missing cosmetic unlock achievement '+id);
+console.log('Free cosmetic collection integration passed.');
