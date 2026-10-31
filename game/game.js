@@ -1319,35 +1319,68 @@
     ctx.fillStyle='#dce7ff';ctx.font='12px Segoe UI';ctx.fillText('Добыча: камень, уголь, железо; с 3-го уровня — редкие кристаллы.',38,height-28);
   }
   function drawHouseInterior(dt,time){
-    ctx.fillStyle='#1b2632';ctx.fillRect(0,0,width,height);
+    ctx.fillStyle='#111a25';ctx.fillRect(0,0,width,height);
     const scale=Math.min(width/420,height/340),ox=(width-420*scale)/2,oy=(height-340*scale)/2;
     ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);
-    // Warm timber walls, wooden floor and stone foundation
-    ctx.fillStyle='#544034';ctx.fillRect(0,0,420,340);ctx.fillStyle='#b78b5b';ctx.fillRect(10,10,400,320);
-    ctx.fillStyle='#7b5336';for(let y=18;y<330;y+=27){ctx.fillRect(12,y,396,4);}
-    ctx.fillStyle='#c99c67';for(let y=24;y<326;y+=34){for(let x=22+(y%2)*14;x<400;x+=58){ctx.fillRect(x,y,2,20);}}
-    // Rug in the middle
-    ctx.fillStyle='#8d3f3d';ctx.fillRect(143,135,137,100);ctx.fillStyle='#d3a15b';ctx.fillRect(149,141,125,88);ctx.strokeStyle='#f0d49b';ctx.lineWidth=2;ctx.strokeRect(156,148,111,74);ctx.fillStyle='#a34b43';ctx.fillRect(194,169,35,30);
-    // Bed, pillow, blanket and headboard
-    ctx.fillStyle='#4a2d20';ctx.fillRect(42,35,105,145);ctx.fillStyle='#d5b17b';ctx.fillRect(48,41,93,132);ctx.fillStyle='#eee5d0';ctx.fillRect(54,47,81,120);ctx.fillStyle='#5c81b5';ctx.fillRect(54,94,81,73);ctx.fillStyle='#799ac7';ctx.fillRect(59,99,71,63);ctx.fillStyle='#f7f0dc';ctx.fillRect(58,49,74,34);ctx.fillStyle='#b8c6d7';ctx.fillRect(65,55,27,22);ctx.fillStyle='#d6e0e9';ctx.fillRect(96,55,28,22);
-    // Shelf with books and a lantern
-    ctx.fillStyle='#593b27';ctx.fillRect(166,30,98,10);ctx.fillRect(171,40,5,24);ctx.fillRect(254,40,5,24);ctx.fillStyle='#b84e42';ctx.fillRect(180,18,12,12);ctx.fillStyle='#d5c06f';ctx.fillRect(195,15,11,15);ctx.fillStyle='#416d66';ctx.fillRect(209,20,13,10);ctx.fillStyle='#dfb85e';ctx.fillRect(237,13,14,22);ctx.fillStyle='#f7d98b';ctx.fillRect(241,17,6,13);
-    // Window and night/day light
-    ctx.fillStyle='#573824';ctx.fillRect(302,20,78,69);ctx.fillStyle=isNightTime()?'#273b62':'#91c6d1';ctx.fillRect(309,27,64,55);ctx.fillStyle='#68452d';ctx.fillRect(337,27,5,55);ctx.fillRect(309,52,64,5);ctx.fillStyle='#e8c47b';ctx.fillRect(367,30,3,3);
-    // Workbench with tools and crafting items
-    ctx.fillStyle='#503321';ctx.fillRect(280,111,101,59);ctx.fillStyle='#a87845';ctx.fillRect(273,105,115,17);ctx.fillStyle='#68462d';ctx.fillRect(286,122,8,45);ctx.fillRect(365,122,8,45);ctx.fillStyle='#d0a96d';ctx.fillRect(300,126,23,19);ctx.fillStyle='#6f8792';ctx.fillRect(331,125,8,22);ctx.fillStyle='#c6c9cb';ctx.fillRect(329,122,12,5);ctx.fillStyle='#b58a4e';ctx.fillRect(347,130,12,12);ctx.strokeStyle='#493021';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(308,132);ctx.lineTo(315,140);ctx.moveTo(354,127);ctx.lineTo(359,121);ctx.stroke();
-    // Fireplace and logs
-    ctx.fillStyle='#4b3026';ctx.fillRect(296,201,81,70);ctx.fillStyle='#6e5546';ctx.fillRect(304,209,65,55);ctx.fillStyle='#251f24';ctx.fillRect(312,219,49,38);ctx.fillStyle='#f28d48';ctx.beginPath();ctx.moveTo(325,254);ctx.quadraticCurveTo(309,233,333,223);ctx.quadraticCurveTo(333,240,346,230);ctx.quadraticCurveTo(363,249,345,257);ctx.fill();ctx.fillStyle='#eacb87';ctx.fillRect(322,259,30,4);
-    // Potted plant
-    ctx.fillStyle='#8e523c';ctx.fillRect(163,270,25,24);ctx.fillStyle='#4f8a5e';ctx.fillRect(173,249,5,24);ctx.fillRect(160,255,16,7);ctx.fillRect(176,246,17,8);ctx.fillStyle='#6eae73';ctx.fillRect(164,250,10,6);ctx.fillRect(180,241,10,6);
-    // Door at bottom center
-    ctx.fillStyle='#4b3026';ctx.fillRect(184,276,52,52);ctx.fillStyle='#bd905e';ctx.fillRect(190,282,40,46);ctx.fillStyle='#e5c47b';ctx.fillRect(220,303,4,4);
-    ctx.fillStyle='#f3e6c7';ctx.font='12px Segoe UI';ctx.fillText('Кровать · E',43,198);ctx.fillText('Верстак · E',278,188);ctx.fillText('Выход · E',178,268);
-    // wall-mounted framed landscape and small lamp
-    ctx.fillStyle='#5d3b28';ctx.fillRect(205,78,53,39);ctx.fillStyle='#d8bd85';ctx.fillRect(209,82,45,31);ctx.fillStyle='#82b5a2';ctx.beginPath();ctx.moveTo(211,109);ctx.lineTo(225,91);ctx.lineTo(236,103);ctx.lineTo(245,89);ctx.lineTo(252,109);ctx.fill();ctx.fillStyle='#f1d68d';ctx.beginPath();ctx.arc(242,89,4,0,Math.PI*2);ctx.fill();
-    if(houseLevel>=2){ctx.fillStyle='#563b29';ctx.fillRect(155,251,55,34);ctx.fillStyle='#9d7046';ctx.fillRect(158,254,49,27);ctx.fillStyle='#c39b62';ctx.fillRect(155,251,55,6);ctx.fillStyle='#e5c47a';ctx.fillRect(179,258,6,4);ctx.fillStyle='#4e382b';ctx.fillRect(162,269,41,3);}
-    if(houseLevel>=3){ctx.fillStyle='#57432e';ctx.fillRect(266,37,22,42);ctx.fillStyle='#dbb06a';ctx.fillRect(270,42,14,30);ctx.fillStyle='#ffe79b';ctx.shadowColor='#ffc86a';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(277,51,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#715035';ctx.fillRect(263,75,29,5);}
-    const px=player.x,py=player.y;ctx.fillStyle='#f2c18f';ctx.fillRect(px-7,py-15,14,14);ctx.fillStyle='#526fba';ctx.fillRect(px-9,py,18,18);drawRemotePlayers(0,0);ctx.restore();
+    // Stone foundation, timber walls and individually shaded floor planks.
+    ctx.fillStyle='#34313a';ctx.fillRect(0,0,420,340);
+    ctx.fillStyle='#74604b';ctx.fillRect(5,5,410,330);
+    ctx.fillStyle='#c49a68';ctx.fillRect(12,12,396,316);
+    ctx.fillStyle='#a77c51';for(let y=16;y<330;y+=28){ctx.fillRect(12,y,396,5);ctx.fillStyle='#d2aa78';ctx.fillRect(12,y+5,396,2);ctx.fillStyle='#a77c51';}
+    ctx.fillStyle='#8e6747';for(let y=22;y<325;y+=28){for(let x=24+(Math.floor(y/28)%2)*24;x<400;x+=58){ctx.fillRect(x,y,2,17);ctx.fillStyle='#d6b184';ctx.fillRect(x+2,y+2,2,12);ctx.fillStyle='#8e6747';}}
+    // Floor boards with seams, knots and warm light pools.
+    ctx.fillStyle='#8a5d3c';ctx.fillRect(18,190,384,130);
+    for(let y=194;y<320;y+=18){ctx.fillStyle='#b27c4e';ctx.fillRect(19,y,382,2);for(let x=30+(Math.floor(y/18)%2)*35;x<395;x+=70){ctx.fillStyle='#70482f';ctx.fillRect(x,y+5,2,8);ctx.fillStyle='#d09a60';ctx.fillRect(x+3,y+7,1,4);}}
+    ctx.fillStyle='#59402f';ctx.fillRect(18,184,384,7);ctx.fillStyle='#d0a16a';ctx.fillRect(18,181,384,3);
+    // Rug, stitched border and woven pattern.
+    ctx.fillStyle='#5a302d';ctx.fillRect(145,137,135,103);ctx.fillStyle='#c69a5e';ctx.fillRect(151,143,123,91);ctx.fillStyle='#783c39';ctx.fillRect(157,149,111,79);ctx.strokeStyle='#e5c58b';ctx.lineWidth=2;ctx.strokeRect(162,154,101,69);
+    for(let k=0;k<5;k++){ctx.fillStyle=k%2?'#d9b978':'#b96d4d';ctx.fillRect(169+k*18,160,8,57);ctx.fillRect(166,164+k*13,93,3);}
+    ctx.fillStyle='#e2c48b';ctx.beginPath();ctx.arc(212,188,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7d3b37';ctx.beginPath();ctx.arc(212,188,7,0,Math.PI*2);ctx.fill();
+    // Bed frame, legs, mattress, folded duvet, pillows and headboard.
+    ctx.fillStyle='#37251d';ctx.fillRect(37,31,116,157);ctx.fillStyle='#6f452d';ctx.fillRect(41,34,108,149);ctx.fillStyle='#b27a45';ctx.fillRect(45,39,100,139);
+    ctx.fillStyle='#422b20';ctx.fillRect(39,28,112,17);ctx.fillStyle='#a87949';ctx.fillRect(43,31,104,9);ctx.fillStyle='#d0a06a';ctx.fillRect(47,34,96,3);
+    ctx.fillStyle='#30231e';ctx.fillRect(45,174,10,13);ctx.fillRect(137,174,10,13);
+    ctx.fillStyle='#eee7d7';ctx.fillRect(51,46,88,124);ctx.fillStyle='#d4c7b1';ctx.fillRect(54,49,82,118);
+    ctx.fillStyle='#f7f1e5';ctx.fillRect(57,51,76,36);ctx.fillStyle='#c4d0dc';ctx.fillRect(63,56,29,24);ctx.fillStyle='#e1e8ed';ctx.fillRect(96,56,30,24);ctx.strokeStyle='#9aa9b8';ctx.lineWidth=1;ctx.strokeRect(63,56,29,24);ctx.strokeRect(96,56,30,24);
+    ctx.fillStyle='#385d91';ctx.fillRect(55,88,80,77);ctx.fillStyle='#4e78ad';ctx.fillRect(59,93,72,68);ctx.fillStyle='#7397c3';ctx.fillRect(61,96,68,5);ctx.fillStyle='#294c7c';ctx.fillRect(55,157,80,9);
+    ctx.strokeStyle='#9eb5d0';ctx.lineWidth=1;for(let x=67;x<126;x+=12){ctx.beginPath();ctx.moveTo(x,108);ctx.lineTo(x,150);ctx.stroke();}
+    // Bedside table, drawer, handle and lamp.
+    ctx.fillStyle='#573824';ctx.fillRect(158,103,39,57);ctx.fillStyle='#9b6840';ctx.fillRect(161,106,33,48);ctx.fillStyle='#70452d';ctx.fillRect(164,116,27,14);ctx.fillRect(164,135,27,14);ctx.fillStyle='#d7b16c';ctx.fillRect(176,121,5,4);ctx.fillRect(176,140,5,4);ctx.fillStyle='#5b3926';ctx.fillRect(167,153,5,8);ctx.fillRect(185,153,5,8);
+    ctx.fillStyle='#c28c45';ctx.fillRect(170,91,15,12);ctx.fillStyle='#f8d98b';ctx.beginPath();ctx.moveTo(166,91);ctx.lineTo(177,73);ctx.lineTo(189,91);ctx.closePath();ctx.fill();ctx.fillStyle='#fff0b5';ctx.beginPath();ctx.arc(177,86,4,0,Math.PI*2);ctx.fill();
+    // Wall shelf with books, jars and lantern.
+    ctx.fillStyle='#4b3023';ctx.fillRect(164,26,116,9);ctx.fillStyle='#a97847';ctx.fillRect(167,27,110,4);ctx.fillRect(171,35,5,27);ctx.fillRect(269,35,5,27);
+    ctx.fillStyle='#a94e43';ctx.fillRect(181,12,12,14);ctx.fillStyle='#d8b75f';ctx.fillRect(198,10,11,16);ctx.fillStyle='#3d6d66';ctx.fillRect(214,15,14,11);ctx.fillStyle='#8c5b9b';ctx.fillRect(233,12,12,14);ctx.fillStyle='#d5a14f';ctx.fillRect(251,7,14,19);ctx.fillStyle='#fff0a8';ctx.fillRect(256,11,4,11);
+    // Window with deep wooden frame, crossbars, glass reflections and curtains.
+    ctx.fillStyle='#422b20';ctx.fillRect(304,20,82,76);ctx.fillStyle='#b17c4a';ctx.fillRect(309,25,72,66);ctx.fillStyle=isNightTime()?'#192b4d':'#8bc3d0';ctx.fillRect(315,31,60,54);
+    ctx.fillStyle=isNightTime()?'#e6e5c5':'#f8e8b0';ctx.fillRect(350,37,3,3);ctx.fillStyle='#d4e8e5';ctx.globalAlpha=.45;ctx.beginPath();ctx.moveTo(317,80);ctx.lineTo(342,33);ctx.lineTo(349,33);ctx.lineTo(326,85);ctx.fill();ctx.globalAlpha=1;
+    ctx.fillStyle='#70472e';ctx.fillRect(342,31,5,54);ctx.fillRect(315,55,60,5);ctx.fillStyle='#9d6342';ctx.fillRect(300,18,7,80);ctx.fillRect(383,18,7,80);ctx.fillStyle='#e2bd7d';ctx.fillRect(298,17,12,5);ctx.fillRect(380,17,12,5);
+    // Detailed workbench: thick top, apron, four legs, drawers, tool rack and tools.
+    ctx.fillStyle='#34231b';ctx.fillRect(270,111,122,68);ctx.fillStyle='#694329';ctx.fillRect(277,119,108,53);ctx.fillStyle='#a97643';ctx.fillRect(269,105,124,17);ctx.fillStyle='#d0a16a';ctx.fillRect(273,106,116,5);ctx.fillStyle='#80532f';ctx.fillRect(278,123,106,6);
+    ctx.fillStyle='#4c3020';ctx.fillRect(280,128,9,51);ctx.fillRect(374,128,9,51);ctx.fillStyle='#a36c3d';ctx.fillRect(283,132,4,41);ctx.fillRect(376,132,4,41);
+    ctx.fillStyle='#553521';ctx.fillRect(294,133,29,25);ctx.fillStyle='#9a673e';ctx.fillRect(297,136,23,18);ctx.fillStyle='#d7b36d';ctx.fillRect(306,142,6,4);
+    ctx.fillStyle='#8e9695';ctx.fillRect(329,128,8,23);ctx.fillStyle='#c7c9c4';ctx.fillRect(326,125,14,6);ctx.fillStyle='#5a3b28';ctx.fillRect(332,147,3,15);
+    ctx.fillStyle='#b58b50';ctx.fillRect(345,132,17,16);ctx.fillStyle='#e0bd78';ctx.fillRect(348,135,11,10);ctx.fillStyle='#3c2920';ctx.fillRect(365,136,5,17);
+    // Pegboard and hanging saw, hammer and wrench.
+    ctx.fillStyle='#68432b';ctx.fillRect(281,78,104,25);ctx.fillStyle='#b17c4a';ctx.fillRect(285,81,96,18);
+    ctx.fillStyle='#d3b37b';ctx.fillRect(293,84,3,11);ctx.fillRect(291,83,8,3);ctx.fillStyle='#9ba7a9';ctx.fillRect(311,83,3,16);ctx.fillStyle='#d4d5cc';ctx.fillRect(307,82,11,4);
+    ctx.strokeStyle='#c3c9c5';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(330,84);ctx.lineTo(337,96);ctx.lineTo(344,84);ctx.stroke();ctx.fillStyle='#85552f';ctx.fillRect(354,82,4,17);ctx.fillStyle='#b6a18a';ctx.fillRect(350,80,12,4);
+    // Fireplace, stone surround, iron grate, fire and logs.
+    ctx.fillStyle='#4b3026';ctx.fillRect(292,204,91,78);ctx.fillStyle='#80705e';ctx.fillRect(298,207,79,67);ctx.fillStyle='#b7a18a';ctx.fillRect(302,211,71,58);ctx.fillStyle='#24232a';ctx.fillRect(309,220,57,43);
+    ctx.fillStyle='#4a3024';ctx.fillRect(309,259,57,6);ctx.fillStyle='#9d6437';ctx.fillRect(314,252,47,7);ctx.fillStyle='#f08b3c';ctx.beginPath();ctx.moveTo(322,257);ctx.quadraticCurveTo(307,239,329,224);ctx.quadraticCurveTo(328,241,340,232);ctx.quadraticCurveTo(358,245,345,258);ctx.fill();ctx.fillStyle='#ffe5a0';ctx.beginPath();ctx.moveTo(333,255);ctx.quadraticCurveTo(327,241,339,235);ctx.quadraticCurveTo(343,247,349,254);ctx.fill();
+    ctx.strokeStyle='#b8b9b2';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(310,266);ctx.lineTo(365,266);ctx.moveTo(316,269);ctx.lineTo(316,275);ctx.moveTo(359,269);ctx.lineTo(359,275);ctx.stroke();
+    // Plant, flower pot, leaves and wall picture.
+    ctx.fillStyle='#7d4834';ctx.fillRect(160,273,29,23);ctx.fillStyle='#b77b4d';ctx.fillRect(163,274,23,5);ctx.fillStyle='#3d704a';ctx.fillRect(173,247,4,28);ctx.fillRect(160,254,16,6);ctx.fillRect(176,246,17,7);ctx.fillStyle='#70a96b';ctx.fillRect(163,250,9,5);ctx.fillRect(181,243,10,5);ctx.fillStyle='#e9c27b';ctx.fillRect(168,249,4,4);
+    ctx.fillStyle='#553724';ctx.fillRect(207,68,53,42);ctx.fillStyle='#d7bc86';ctx.fillRect(211,72,45,34);ctx.fillStyle='#78a89a';ctx.beginPath();ctx.moveTo(213,101);ctx.lineTo(225,81);ctx.lineTo(236,96);ctx.lineTo(245,80);ctx.lineTo(253,101);ctx.fill();ctx.fillStyle='#f1d68d';ctx.beginPath();ctx.arc(243,81,4,0,Math.PI*2);ctx.fill();
+    // Door, frame, panels, handle and threshold.
+    ctx.fillStyle='#39251d';ctx.fillRect(178,275,64,59);ctx.fillStyle='#9a6438';ctx.fillRect(184,280,52,53);ctx.fillStyle='#c18b52';ctx.fillRect(188,284,44,45);ctx.strokeStyle='#6e452c';ctx.lineWidth=3;ctx.strokeRect(191,287,18,18);ctx.strokeRect(212,287,16,18);ctx.strokeRect(191,309,37,17);ctx.fillStyle='#e8c778';ctx.beginPath();ctx.arc(225,308,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d4a36b';ctx.fillRect(174,330,72,4);
+    // Small wall details: nails, beams, framed sign and warm light.
+    ctx.fillStyle='#4b3025';for(const p of [[25,18],[395,18],[25,177],[395,177],[25,315],[395,315]]){ctx.beginPath();ctx.arc(p[0],p[1],2,0,Math.PI*2);ctx.fill();}
+    if(houseLevel>=2){ctx.fillStyle='#6b4a32';ctx.fillRect(155,250,54,38);ctx.fillStyle='#b58a54';ctx.fillRect(159,254,46,29);ctx.fillStyle='#e1bd7c';ctx.fillRect(179,258,6,4);ctx.fillStyle='#4b3326';ctx.fillRect(164,271,36,3);ctx.fillStyle='#d6a66b';ctx.fillRect(158,250,49,4);}
+    if(houseLevel>=3){ctx.fillStyle='#5b432f';ctx.fillRect(263,35,26,44);ctx.fillStyle='#d9ad68';ctx.fillRect(268,40,16,33);ctx.fillStyle='#fff0a3';ctx.shadowColor='#ffc86a';ctx.shadowBlur=15;ctx.beginPath();ctx.arc(276,52,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#715035';ctx.fillRect(260,75,32,5);}
+    // Interaction zones are shown as subtle outlines only when the player is close.
+    const zones=[{x:94,y:112,r:1,active:houseNearBed(player.x,player.y)},{x:331,y:144,r:1,active:houseNearWorkbench(player.x,player.y)}];
+    for(const z of zones){if(!z.active)continue;ctx.strokeStyle='rgba(255,226,155,.85)';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.strokeRect(z.x-(z.r?58:0),z.y-(z.r?82:0),z.r?116:0,z.r?164:0);ctx.setLineDash([]);}
+    const px=player.x,py=player.y;ctx.fillStyle='#090f1e66';ctx.beginPath();ctx.ellipse(px,py+20,13,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f2c18f';ctx.fillRect(px-7,py-15,14,14);ctx.fillStyle='#526fba';ctx.fillRect(px-9,py,18,18);ctx.fillStyle='#2c3447';ctx.fillRect(px-7,py+17,5,8);ctx.fillRect(px+2,py+17,5,8);drawRemotePlayers(0,0);ctx.restore();
     if(sleeping){ctx.fillStyle='rgba(5,9,20,.78)';ctx.fillRect(0,0,width,height);ctx.fillStyle='#f2e8ff';ctx.font='bold 22px Segoe UI';ctx.textAlign='center';ctx.fillText('Ты спишь… '+Math.max(0,Math.ceil(5-sleepSeconds))+' сек.',width/2,height/2);ctx.textAlign='left';}
   }
   function minuteOfDay(){return ((Math.floor(gameMinuteTotal)%GAME_MINUTES_PER_DAY)+GAME_MINUTES_PER_DAY)%GAME_MINUTES_PER_DAY;}
@@ -2074,11 +2107,11 @@
   function eatMeat(){const meat=inventoryItems.find(i=>i.name==='Мясо'),fish=inventoryItems.find(i=>i.name==='Рыба'),food=meat&&meat.count>0?meat:fish&&fish.count>0?fish:null;if(!food){toast('Нет еды. Найди овцу или поймай рыбу на озере.');return;}food.count--;const restored=food.name==='Рыба'?12:10;hunger=Math.min(100,hunger+restored);questStage=Math.max(questStage,6);hungerElapsedMinutes=0;renderInventory();updateClockDisplay(true);saveGame();toast('Ты съел '+(food.name==='Рыба'?'рыбу':'мясо')+'. +'+restored+' голода.');}
   function updateSkipDayHud(){const t=document.getElementById('skip-day-timer'),b=document.getElementById('skip-day-button');if(!t||!b)return;const left=Math.max(0,Math.ceil(skipDayRealSeconds));t.textContent=left>0?`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'Готово';b.disabled=left>0||paused||inMainMenu;b.title=left>0?'Пропустить день можно после 5 минут реального времени':'Пропустить игровой день';}
   function skipGameDay(){if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;survivedNights++;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;skipDayRealSeconds=300;updateClockDisplay(true);saveGame();toast('День пропущен. Он засчитан как прожитый.');}
-  function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>276;}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
+  function housePointInBox(x,y,b){return x>=b.x1&&x<=b.x2&&y>=b.y1&&y<=b.y2;}\n  function houseNearBed(x,y){return housePointInBox(x,y,{x1:22,y1:20,x2:169,y2:203});}\n  function houseNearWorkbench(x,y){return housePointInBox(x,y,{x1:257,y1:91,x2:405,y2:198});}\n  function houseNearDoor(x,y){return housePointInBox(x,y,{x1:164,y1:252,x2:256,y2:338});}\n  function houseFurnitureBlocked(x,y){return housePointInBox(x,y,{x1:34,y1:25,x2:155,y2:184})||housePointInBox(x,y,{x1:265,y1:103,x2:397,y2:183})||housePointInBox(x,y,{x1:288,y1:199,x2:388,y2:282})||housePointInBox(x,y,{x1:157,y1:99,x2:199,y2:165});}\n  function blocked(x,y){if(inHouse){return x<18||x>402||y<18||y>334||houseFurnitureBlocked(x,y);}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
   function updateObjective(){
     if(dungeonMode){const cleared=dungeonClearedRooms.includes(dungeonRoom);document.getElementById('objective').textContent=dungeonRoom===5?(cleared?(dungeonChestOpened?'Выйди из руин':'Открой сундук Архонта'):'Победи Архонта руин'):cleared?'Найди дверь в следующую комнату':'Победи стража комнаты '+dungeonRoom;document.getElementById('location-name').textContent='Древние руины · '+dungeonRoom+'/5';return;}
     if(caveMode){document.getElementById('objective').textContent=caveChestOpened?'Вернись в долину или исследуй пещеру':'Найди сияющий сундук в тайной пещере';document.getElementById('location-name').textContent='Тайная пещера';return;}
-    if(inHouse){const dBed=Math.hypot(player.x-94,player.y-112),dBench=Math.hypot(player.x-325,player.y-75),dDoor=Math.hypot(player.x-210,player.y-260);document.getElementById('objective').textContent=dBed<65?'Нажми E у кровати, чтобы поспать':dBench<65?'Нажми E у верстака':dDoor<75?'Нажми E, чтобы выйти из дома':'Осмотри дом: кровать и верстак';document.getElementById('location-name').textContent='Дом у лесной долины';return;}
+    if(inHouse){const nearBed=houseNearBed(player.x,player.y),nearBench=houseNearWorkbench(player.x,player.y),nearDoor=houseNearDoor(player.x,player.y);document.getElementById('objective').textContent=nearBed?'Нажми E у кровати, чтобы поспать':nearBench?'Нажми E у верстака':nearDoor?'Нажми E, чтобы выйти из дома':'Осмотри дом: кровать и верстак';document.getElementById('location-name').textContent='Дом у лесной долины';return;}
     const npc=nearestVillageNpc();if(npc){document.getElementById('objective').textContent='E · задание: '+NPC_NAMES[npc.id]+' / T · лавка';document.getElementById('location-name').textContent='Мир торговли · '+(villageCenters.find(v=>v.id===npc.villageId)?.name||'поселение')+' · репутация '+villageReputation;return;}
     const s = world.signs[0];
     const d = Math.hypot(s.x-player.x, s.y-player.y);
@@ -2179,8 +2212,8 @@
     if(inHouse){
       const dBed=Math.hypot(player.x-94,player.y-112),dBench=Math.hypot(player.x-325,player.y-75),dDoor=Math.hypot(player.x-210,player.y-260);
       if(dDoor<78){inHouse=false;if(enteredPlacedHouse){player.x=enteredPlacedHouse.x;player.y=enteredPlacedHouse.y+55;enteredPlacedHouse=null;}else{player.x=36*TILE+40;player.y=15*TILE+154;}toast('Ты вышел из дома.');if(questStage<2)questStage=2;saveGame();return;}
-      if(dBed<65){bedSpawn=enteredPlacedHouse?{x:enteredPlacedHouse.x,y:enteredPlacedHouse.y+55}:{x:36*TILE+40,y:15*TILE+154};saveGame();const nowMinute=minuteOfDay();if(nowMinute<18*60||nowMinute>=NIGHT_MINUTE){toast('Ложиться спать можно только вечером, с 18:00 до 20:00. Сейчас '+String(Math.floor(nowMinute/60)).padStart(2,'0')+':'+String(nowMinute%60).padStart(2,'0')+'.');return;}const houseX=36*TILE+40,houseY=15*TILE+154;const nearby=monsters.some(m=>Math.hypot(m.x-houseX,m.y-houseY)<10*TILE);if(nearby){toast('Нельзя спать: монстр обнаружен в радиусе 10 блоков от дома.');return;}if(sleeping)return;sleeping=true;sleepSeconds=0;toast('Ты лёг спать.');return;}
-      if(dBench<65){workbenchUsed=true;questStage=Math.max(questStage,3);saveGame();openWorkbench();return;}
+      if(nearBed){bedSpawn=enteredPlacedHouse?{x:enteredPlacedHouse.x,y:enteredPlacedHouse.y+55}:{x:36*TILE+40,y:15*TILE+154};saveGame();const nowMinute=minuteOfDay();if(nowMinute<18*60||nowMinute>=NIGHT_MINUTE){toast('Ложиться спать можно только вечером, с 18:00 до 20:00. Сейчас '+String(Math.floor(nowMinute/60)).padStart(2,'0')+':'+String(nowMinute%60).padStart(2,'0')+'.');return;}const houseX=36*TILE+40,houseY=15*TILE+154;const nearby=monsters.some(m=>Math.hypot(m.x-houseX,m.y-houseY)<10*TILE);if(nearby){toast('Нельзя спать: монстр обнаружен в радиусе 10 блоков от дома.');return;}if(sleeping)return;sleeping=true;sleepSeconds=0;toast('Ты лёг спать.');return;}
+      if(nearBench){workbenchUsed=true;questStage=Math.max(questStage,3);saveGame();openWorkbench();return;}
       toast('Подойди к кровати, верстаку или двери.');return;
     }
     if(interactWolfCage())return;
