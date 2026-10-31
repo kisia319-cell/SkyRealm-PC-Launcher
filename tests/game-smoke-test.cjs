@@ -249,3 +249,7 @@ const releaseWorkflow = fs.readFileSync('.github/workflows/build-release.yml', '
 assert.ok(releaseWorkflow.includes('Reject stale release builds') && releaseWorkflow.includes('Reject stale manifest publication'), 'Older GitHub Actions runs must not overwrite the latest release or manifest');
 
 assert.ok(py.includes('webview.start(debug=False, private_mode=False, storage_path=str(profile_dir))'), 'Release launcher must not expose WebView developer debugging');
+
+assert.ok(releaseWorkflow.includes(":(exclude)manifest.json"), 'Build freshness checks must ignore manifest-only commits from the other release workflow');
+assert.ok(releaseWorkflow.includes('$currentManifest.version = $builtManifest.version') && releaseWorkflow.includes('$currentManifest.download_url = $builtManifest.download_url') && releaseWorkflow.includes('$currentManifest.sha256 = $builtManifest.sha256'), 'Launcher release publication must merge only launcher fields into the manifest');
+assert.ok(releaseWorkflow.includes('Keep the game preview URL and checksum from the dedicated preview workflow.'), 'Launcher release publication must preserve the verified game preview package');
