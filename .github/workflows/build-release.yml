@@ -106,7 +106,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version + Game $($gameVersion): separate Trade World with market stalls, five settlements and 18 varied houses per village; seven-crop farming; lake fishing with catchable fish and rare pearls; the new Lost Jungle biome and Vine Guardian world boss; a four-season farming cycle that changes crop growth and harvest yield; random world events with distinct odds; saved event cooldowns; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible."
+            notes = "SkyRealm Launcher $version + Game $($gameVersion): editable player profiles with synced class, level, XP and playtime; friend search, requests, online status and friend lists; safer launcher diagnostics with SHA-256 fingerprints; world-save backup and restore with a safety archive. Existing accounts, worlds and single-player saves remain compatible."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
@@ -133,7 +133,7 @@ jobs:
           if ($tag -eq "main" -or $tag -eq "") { $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() }
           $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
           $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
-          $notes = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. Adds a visually separate Trade World with market stalls and five settlements, eight NPCs, seven-crop farming, balanced crop buying/selling, random world events with different chances (meteor 12%, night horde 7%, abandoned camp 10%, traveler 8%, storm 8%), saved event cooldowns, daily quests, village raids and legendary swords. Existing worlds and saves remain compatible."
+          $notes = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. Adds editable player profiles with synced class, level, XP and playtime; friend search, requests, online status and friend lists; SHA-256 launcher diagnostics; and non-destructive world backup with safety-backed restore. Existing accounts, worlds and single-player saves remain compatible."
           $assets = @(
             "dist/SkyRealm.exe",
             "update_release/SkyRealm_Windows.zip",
