@@ -119,7 +119,21 @@
   function classCraftCost(name,amount){const sword=['Железный меч','Огненный меч','Стальной меч','Меч титана','Меч дракона','Меч пустоты'].includes(name);const pick=['Улучшенная кирка','Кирка мастера'].includes(name);const discount=(classHas('swordsman')&&sword)?0.8:(classHas('miner')&&pick)?0.85:1;return Math.max(1,Math.round(amount*discount));}
   let adventureQuestProgress={hunt:0,mining:0,harvest:0};
   let activeStorageStructure=null, storageDialogOpen=false, avatarEntryMode=false;
-  let playerLevel=1, playerXP=0, dodgeTimer=0, dodgeCooldown=0, dodgeVX=0, dodgeVY=0, dodgeFacing='down';
+  let playerLevel=1, playerXP=0, dodgeTimer=0, dodgeCooldown=0, dodgeVX=0, dodgeVY=0, dodgeFacing='down';let profilePlaytimeSeconds=0,profilePlaytimeLastTick=Date.now(),profileStatsLastSync=0;
+try{profilePlaytimeSeconds=Math.max(0,Math.floor(Number(localStorage.getItem('skyrealm_profile_playtime_seconds'))||0));}catch(_){}
+function syncProfileStats(force=false){
+  const now=Date.now(),delta=Math.max(0,Math.floor((now-profilePlaytimeLastTick)/1000));
+  if(delta>0){profilePlaytimeSeconds=Math.min(100000000,profilePlaytimeSeconds+delta);profilePlaytimeLastTick=now;try{localStorage.setItem('skyrealm_profile_playtime_seconds',String(profilePlaytimeSeconds));}catch(_){}}
+  if(!force&&now-profileStatsLastSync<60000)return;
+  profileStatsLastSync=now;
+  const api=window.pywebview?.api;
+  if(!api?.sync_profile_stats)return;
+  const payload={player_class:playerClass,level:Math.max(1,Math.floor(playerLevel)),experience:Math.max(0,Math.floor(playerXP)),playtime_seconds:profilePlaytimeSeconds};
+  Promise.resolve(api.sync_profile_stats(payload)).catch(error=>console.warn('SkyRealm profile sync failed:',error));
+}
+setInterval(()=>syncProfileStats(true),60000);
+window.addEventListener('beforeunload',()=>syncProfileStats(true));
+
   const treasureChests=[];
   let tradeWorldMode=false, tradeEntranceX=17, tradeEntranceY=47, footstepTimer=0, walletCents=0, shopDialogOpen=false, activeShop='sell';
   const SELL_SHOP={x:25,y:47}, BUY_SHOP={x:31,y:47}, FARMER_SHOP={x:38,y:47};
@@ -2955,7 +2969,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       const worlds=readWorlds();const worldRecord=worlds.find(w=>w.id===currentWorldId);
       if(worldRecord){worldRecord.updatedAt=Date.now();writeWorlds(worlds);}
     }catch(metadataError){console.warn('SkyRealm save metadata could not be updated:',metadataError);}
-    saveErrorNotified=false;lastSaveAt=Date.now();
+    saveErrorNotified=false;lastSaveAt=Date.now();syncProfileStats(false);
     const status=document.getElementById('save-status');
     if(status){const d=new Date(lastSaveAt);status.textContent='Последнее сохранение: '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
     return true;
