@@ -5,7 +5,7 @@ create table if not exists public.skyrealm_community_mods (
   description text not null check (char_length(description) between 10 and 180),
   category text not null check (category in ('Выживание','Бой','Исследование','Фермерство','Добыча')),
   icon text not null check (icon in ('🧩','⚔️','🛡️','⛏️','🌱','🍀','🔥','🎣')),
-  effect_key text not null check (effect_key in ('damage','health','speed','hunger','mining','farming')),
+  effect_key text not null check (effect_key in ('damage','defense','speed','hunger','mining','farming')),
   effect_strength integer not null check (effect_strength between 1 and 10),
   status text not null default 'published' check (status in ('published','hidden')),
   created_at timestamptz not null default now()
