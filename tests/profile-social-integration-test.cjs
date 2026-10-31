@@ -29,6 +29,7 @@ const authGetter=launcherSource.slice(launcherSource.indexOf('def get_auth_sessi
 assert.ok(authGetter.includes('return {"token": self._session_token}'),'Game auth session must remain available for repeated profile and co-op requests.');
 assert.ok(!authGetter.includes('self._session_token = ""'),'Reading the game auth session must not erase the native sync token.');
 assert.ok(fs.readFileSync('launcher.py','utf8').includes('def backup_worlds')&&fs.readFileSync('launcher.py','utf8').includes('def restore_worlds'),'World backup and restore must be implemented in the native launcher.');
+assert.ok(launcherSource.includes('tasklist',launcherSource.indexOf('def _skyrealm_game_is_running'))&&launcherSource.includes('csv.reader')&&launcherSource.includes('.startswith(\"skyrealmgame\")'),'World backup must detect the versioned Windows game runner and fail closed if tasklist fails.');
 assert.ok(migration.includes('enable row level security')&&migration.includes('revoke all on public.skyrealm_friendships from anon, authenticated'),'Friendship table must not be directly exposed to clients.');
 assert.ok(migration.includes('constraint skyrealm_friendships_pair_unique unique (user_a,user_b)'),'Friendship pairs must be unique.');
 assert.ok(css.includes('.social-player')&&css.includes('.profile-stat-grid'),'Profile and social UI styles must exist.');
