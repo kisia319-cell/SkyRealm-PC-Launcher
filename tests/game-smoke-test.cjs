@@ -198,7 +198,7 @@ assert.ok(game.includes('if(!tradeWorldMode)return;const x=shop.x*TILE+16-camX')
 assert.ok(game.includes("x:Math.floor(COLS*.18),y:Math.floor(ROWS*.28)") && game.includes("houses:['merchant','farmer']"), 'Merchant and farmer must be placed beside the Trade World hub');
 assert.ok(game.includes('function interactFarmPlot(plot)') && game.includes('function updateFarmPlots(dt)'), 'Planting, watering and growing farm plots must be included');
 
-assert.ok(game.includes('const coop=window.SkyRealmCoopClient;const coopRoom=coop?.getRoomState?.();const ownsWeather=!coopRoom||(coopRoom.status==='running'&&coop.isRoomOwner);'),
+assert.ok(game.includes("const coop=window.SkyRealmCoopClient;const coopRoom=coop?.getRoomState?.();const ownsWeather=!coopRoom||(coopRoom.status==='running'&&coop.isRoomOwner);"),
   'Only the co-op room owner may advance weather while a room exists');
 assert.ok(game.includes('if(ownsWeather&&!paused&&!inMainMenu&&!inHouse&&!mineMode){weatherTimer-=dt;'),
   'Guest clients must not independently randomize the shared weather');
