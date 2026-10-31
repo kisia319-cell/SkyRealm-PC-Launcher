@@ -13,7 +13,7 @@ assert.ok(html.includes('id="mods-catalog-shade"')&&html.includes('id="mods-cata
 assert.ok(html.includes('id="close-mods-catalog"'),'Mod catalog must have a close control');
 for(const id of ['cartographer','angler','green_thumb','miners_luck','survivalist'])assert.ok(game.includes("id:'"+id+"'"),'Missing mod '+id);
 assert.ok(game.includes("radius=isModInstalled('cartographer')?5:3"),'Cartographer must change map reveal radius');
-assert.ok(game.includes("fishingCastTimer=isModInstalled('angler')?2.2:3.2"),'Angler must shorten fishing time');
+assert.ok(game.includes("fishingCastTimer=(isModInstalled('angler')?2.2:3.2)*(isModInstalled('ocean_depths')?.75:1)"),'Angler and Ocean Depths must shorten fishing time');
 assert.ok(game.includes("isModInstalled('angler')?.08:0"),'Angler must improve pearl chance');
 assert.ok(game.includes("(isModInstalled('green_thumb')?1.35:1)"),'Green Thumb must speed up crop growth');
 assert.ok(game.includes("(isModInstalled('miners_luck')?0.15:0)"),'Miner Luck must improve bonus ore chance');
