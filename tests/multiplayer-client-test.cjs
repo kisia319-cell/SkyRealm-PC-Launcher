@@ -46,6 +46,7 @@ const core = require('../game/multiplayer-core.js');
     else if(route==='/api/coop/actions/commit-mine') payload={result:{action_id:body.action_id,status:'applied',version:8,result:body.result}};
     else if(route==='/api/coop/actions/commit-tree') payload={result:{action_id:body.action_id,status:'applied',version:9,result:body.result}};
     else if(route==='/api/coop/actions/reject') payload={result:{action_id:body.action_id,status:'rejected'}};
+    else if (route === '/api/coop/leave') payload = { room: { id: roomId, status: 'paused', pause_reason: 'owner_left' } };
     else if (route === '/api/coop/claim') {
       payload = { claim: { claimed: true, room_id: roomId, object_kind: 'treasure_chest', object_id: 'forest' } };
     } else {
@@ -179,6 +180,14 @@ const core = require('../game/multiplayer-core.js');
   const guestSave = await guestClient.saveWorldSnapshot({ placedStructures: [{ type: 'house', x: 1, y: 2 }] });
   assert.equal(guestSave, false, 'Non-owner must not save the canonical world snapshot');
   assert.equal(guestCalls.some(call => call.route === '/api/coop/snapshot/save'), false, 'Non-owner must not even send a snapshot write request');
+
+  const paused=await client.pauseRoom();
+  assert.equal(paused.room.status,'paused','Owner pause must use the existing leave route and server pause semantics.');
+  assert.equal(client.getRoomState(),null,'Pausing the shared room must clear the local active-room state.');
+  const pauseCall=calls.find(call=>call.route==='/api/coop/leave');
+  assert.ok(pauseCall,'Owner pause must call the authenticated server leave route.');
+  assert.deepEqual(pauseCall.body,{room_id:roomId});
+  await assert.rejects(()=>guestClient.pauseRoom(),/Только владелец/,'A guest must not be able to pause the owner room.');
 
   console.log('SkyRealm multiplayer client snapshot tests passed.');
 })().catch(error => {
