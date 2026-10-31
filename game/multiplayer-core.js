@@ -137,23 +137,26 @@
     if(typeof input.blood_moon_active!=='boolean')return null;
     return {minute_total:Math.round(minute*1000)/1000,survived_nights:nights,blood_moon_active:input.blood_moon_active};
   }
-  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","coopMonsters","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","meteorPoint","meteorShowerTimer","worldEventCamp","worldEventTraveler","lastWorldMeteorNight","lastWorldHordeNight","lastWorldCampDay","lastWorldTravelerDay"]);
+  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","meteorPoint","meteorShowerTimer","worldEventCamp","worldEventTraveler","lastWorldMeteorNight","lastWorldHordeNight","lastWorldCampDay","lastWorldTravelerDay"]);
   function sanitizeSharedWorldSnapshot(input){
     if(!input||typeof input!=='object'||Array.isArray(input))return null;
     const output={};
     for(const key of SHARED_WORLD_FIELDS){
       if(Object.prototype.hasOwnProperty.call(input,key))output[key]=input[key];
     }
-    if(Array.isArray(output.coopMonsters)){
+    if(output.adventureQuestProgress&&typeof output.adventureQuestProgress==='object'&&!Array.isArray(output.adventureQuestProgress)){
+      const progress={...output.adventureQuestProgress};
       const types=['shadow','brute','wisp','skeleton','bomb','ice','scorpion','ember','yeti'];
-      output.coopMonsters=output.coopMonsters.slice(0,20).filter(m=>m&&typeof m.id==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(m.id)&&
-        types.includes(m.type)&&Number.isFinite(m.x)&&Number.isFinite(m.y)&&Number.isFinite(m.hp)&&Number.isFinite(m.maxHp)&&
-        m.x>=0&&m.x<=12000&&m.y>=0&&m.y<=10000&&m.maxHp>0&&m.hp>=0&&m.hp<=m.maxHp)
+      progress.coopMonsters=(Array.isArray(progress.coopMonsters)?progress.coopMonsters:[]).slice(0,20)
+        .filter(m=>m&&typeof m.id==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(m.id)&&
+          types.includes(m.type)&&Number.isFinite(m.x)&&Number.isFinite(m.y)&&Number.isFinite(m.hp)&&Number.isFinite(m.maxHp)&&
+          m.x>=0&&m.x<=12000&&m.y>=0&&m.y<=10000&&m.maxHp>0&&m.hp>=0&&m.hp<=m.maxHp)
         .map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:Math.max(1,Math.min(160,Number(m.speed)||43)),
           damageScale:Math.max(.1,Math.min(5,Number(m.damageScale)||1)),attackCooldown:Math.max(0,Math.min(5,Number(m.attackCooldown)||0)),
           phase:Number(m.phase)||0,fuseStarted:m.fuseStarted===true,fuseTime:Math.max(0,Math.min(5,Number(m.fuseTime)||0)),
           exploding:m.exploding===true,explosionTimer:Math.max(0,Math.min(2,Number(m.explosionTimer)||0))}));
-    }else output.coopMonsters=[];
+      output.adventureQuestProgress=progress;
+    }
     if(Array.isArray(output.lootDrops)){
       output.lootDrops=output.lootDrops.slice(0,80).filter(d=>d&&d.shared===true&&typeof d.id==='string'&&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(d.id)&&
