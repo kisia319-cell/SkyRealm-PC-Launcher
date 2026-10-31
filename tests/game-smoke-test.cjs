@@ -12,6 +12,10 @@ assert.ok(game.includes("water:[520,340,'sine',.16]"), 'Fishing catch sound must
 assert.ok(game.includes('function fishingShoreRatio()'), 'Fishing must be restricted to the lake shoreline');
 assert.ok(game.includes('function startFishing()') && game.includes('function updateFishing(dt)'), 'Fishing must have a cast and catch loop');
 assert.ok(game.includes('function drawFishingCast(camX,camY,time)') && game.includes('drawFishingCast(camX,camY,time);'), 'Fishing cast must be visible on the game canvas');
+assert.ok(game.includes('function seasonInfo()') && game.includes('daysRemaining:7-dayInSeason'), 'Four seasons must be derived from persistent world time');
+assert.ok(game.includes('seasonInfo().growth') && game.includes('seasonInfo().harvest'), 'Seasons must affect crop growth and harvest amount');
+assert.ok(game.includes("payload.player_class==='farmer'?0.2:0))*seasonInfo().harvest"), 'Co-op host harvests must use the same seasonal yield bonus');
+assert.ok(gameHtml.includes('id="season-label"'), 'The clock must display the current season');
 assert.ok(game.includes("fishCaught,meteorPoint:"), 'Fishing progress must be persisted in each world save');
 assert.ok(game.includes("'Рыба':70,'Жемчуг':650"), 'Fishing loot must be sellable in the Trade World');
 assert.ok(game.includes("return 'jungle';") && game.includes("jungle:'Затерянные джунгли'"), 'The new jungle biome must have terrain and a visible name');
