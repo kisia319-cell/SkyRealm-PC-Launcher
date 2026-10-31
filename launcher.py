@@ -420,7 +420,7 @@ def run_game_window(game_html: str) -> None:
         # launcher/game updates instead of relying on pywebview's private-mode default.
         profile_dir = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "webview-profile"
         profile_dir.mkdir(parents=True, exist_ok=True)
-        webview.start(debug=True, private_mode=False, storage_path=str(profile_dir))
+        webview.start(debug=False, private_mode=False, storage_path=str(profile_dir))
     finally:
         local_server.shutdown()
         local_server.server_close()
