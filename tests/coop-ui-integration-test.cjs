@@ -44,7 +44,7 @@ assert.match(client,/setWorldClock/);
 assert.match(game,/syncCoopSharedDeath/);
 assert.match(ui,/refresh\(true\);/);
 
-const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim','actions/enqueue','actions/pending','actions/status','actions/commit','actions/commit-farm','actions/commit-mine','actions/commit-tree','actions/reject'];
+const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim','actions/enqueue','actions/pending','actions/status','actions/commit','actions/commit-farm','actions/commit-mine','actions/commit-tree','actions/commit-enemy','actions/reject'];
 for (const route of coopRoutes) {
   assert.ok(client.includes("'/api/coop/" + route + "'"), 'Client calls an unrecognised route: ' + route);
   assert.ok(edge.includes('route === "/api/coop/' + route + '"'), 'Edge Function is missing route: ' + route);
@@ -57,6 +57,14 @@ assert.ok(client.includes('getWorldSnapshot') && client.includes('saveWorldSnaps
 assert.ok(client.includes('commitFarmAction') && edge.includes('commit_co_op_farm_action'),'Farm commits must be wired from the client to the server RPC.');
 assert.ok(client.includes('commitMineAction') && edge.includes('commit_co_op_mine_action'),'Mining commits must be wired from the client to the server RPC.');
 assert.ok(client.includes('commitTreeAction') && edge.includes('commit_co_op_tree_action'),'Tree chopping commits must be wired from the client to the server RPC.');
+assert.ok(client.includes('commitEnemyAction') && edge.includes('commit_co_op_enemy_action'),'Shared enemy damage and loot claims must be committed by the room owner.');
+assert.ok(edge.includes('actionType === "damage_enemy"') && edge.includes('actionType === "pickup_loot"'),'Edge Function must validate only supported enemy and loot actions.');
+assert.ok(game.includes('queueGuestEnemyHit') && game.includes('processOwnerCoopEnemyAction'),'Guest combat must be routed through owner validation.');
+assert.ok(game.includes('spawnSharedLoot') && game.includes("drop.shared&&isCoopWorldActive()"),'Boss and monster loot must exist once in the shared world and be individually picked up.');
+assert.ok(game.includes('coopMonsters:isCoopWorldSave()') && core.SHARED_WORLD_FIELDS.includes('adventureQuestProgress'),'Enemy state must be nested in the shared world progress snapshot.');
+assert.equal(core.SHARED_WORLD_FIELDS.includes('resources'),false,'Player inventory must remain outside the shared snapshot.');
+assert.equal(core.SHARED_WORLD_FIELDS.includes('walletCents'),false,'Player currency must remain outside the shared snapshot.');
+
 assert.ok(edge.includes('actionType === "chop_tree"') && game.includes('queueGuestTreeChop') && game.includes('network.commitTreeAction'),'Guest tree chopping must be owner-mediated.');
 assert.ok(game.includes('treeChops') && game.includes('felledTrees') && game.includes('markTreeFelled'),'Tree damage and felling must persist in the shared world state.');
 assert.ok(game.includes("actor.world_mode!=='surface'") && game.includes("Math.hypot(tree.x-Number(actor.x),tree.y-Number(actor.y))>86"),'The owner must validate the lumberjack position and reach.');
