@@ -1,9 +1,9 @@
 {
-  "game_sha256": "65c5938a74f8de75a6c96e62b05171040d0e6be2855e6425bb69ce5c3678d896",
-  "game_version": "0.20.34",
-  "notes": "SkyRealm 0.20.34: shared co-op monsters and boss health, owner-validated combat, and one-time shared loot drops. Every player keeps a separate inventory, wallet, equipment and XP; only the player who picks up a shared drop receives it. Existing worlds and single-player saves remain compatible. Co-op remains a preview.",
+  "game_sha256": "9124029ee0fb48e1afb2c70b6e503d688ceedb7a6541b9b371037e33d424fe68",
+  "game_version": "0.20.35",
+  "notes": "SkyRealm 0.20.35: shared co-op monsters and boss health, owner-validated combat, and one-time shared loot drops. Every player keeps a separate inventory, wallet, equipment and XP; only the player who picks up a shared drop receives it. Existing worlds and single-player saves remain compatible. Co-op remains a preview.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.0.9",
   "sha256": "7ead05300a2773efe568ca6488021e7012713de35daf118abd69b45d1ec5f478",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-e64ce30/SkyRealm_Game.zip"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-1be4723/SkyRealm_Game.zip"
 }
