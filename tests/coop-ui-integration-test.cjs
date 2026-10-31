@@ -86,6 +86,7 @@ sandbox.SkyRealmMultiplayerCore = core;
 vm.runInNewContext(client, sandbox, { filename: 'game/multiplayer-client.js' });
 assert.ok(sandbox.SkyRealmCoopClient, 'Client adapter must initialize at runtime');
 assert.equal(typeof sandbox.SkyRealmCoopClient.setWorldClock, 'function');
+assert.equal(typeof sandbox.SkyRealmCoopClient.pauseRoom, 'function', 'Owner pause action must be implemented by the client adapter.');
 assert.equal(typeof sandbox.SkyRealmCoopClient.enqueueWorldAction, 'function');
 assert.equal(typeof sandbox.SkyRealmCoopClient.getPendingWorldActions, 'function');
 assert.equal(typeof sandbox.SkyRealmCoopClient.commitWorldAction, 'function');
