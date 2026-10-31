@@ -1,5 +1,6 @@
 """SkyRealm desktop launcher and lightweight local game installer."""
 import os
+import csv
 import shutil
 import subprocess
 import sys
@@ -149,9 +150,14 @@ class LauncherApi:
     def _skyrealm_game_is_running(self):
         try:
             if os.name == "nt":
-                result = subprocess.run(["tasklist", "/FI", "IMAGENAME eq SkyRealmGame.exe"],
+                result = subprocess.run(["tasklist", "/FO", "CSV", "/NH"],
                                         capture_output=True, text=True, timeout=5, check=False)
-                return "SkyRealmGame.exe" in (result.stdout or "")
+                if result.returncode != 0:
+                    return True
+                for row in csv.reader((result.stdout or "").splitlines()):
+                    if row and row[0].strip().lower().startswith("skyrealmgame"):
+                        return True
+                return False
             result = subprocess.run(["pgrep", "-f", "SkyRealmGame"],
                                     capture_output=True, text=True, timeout=5, check=False)
             return result.returncode == 0
