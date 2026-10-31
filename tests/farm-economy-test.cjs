@@ -12,4 +12,6 @@ for (const [crop, price] of Object.entries(prices)) {
 }
 assert.ok(source.includes('farmCropBuyPrice(name)'), 'Farmer shop purchases must use the buy price');
 assert.ok(source.includes('farmCropSellPrice(name)'), 'Farmer shop sales must use the sell price');
+assert.ok(source.includes("npcId==='farmer'?Math.max(.9,1-villageReputation*.001)"), 'Maximum reputation discount must stay capped for crop purchases');
+assert.ok(source.includes("npcId==='farmer'?1+Math.min(.05,villageReputation*.0005)"), 'Maximum reputation sale bonus must stay capped for crop sales');
 console.log('SkyRealm farm economy checks passed.');
