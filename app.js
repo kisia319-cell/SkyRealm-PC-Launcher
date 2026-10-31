@@ -38,6 +38,25 @@
     toast.timer = setTimeout(() => t.classList.remove('show'), 3600);
   };
 
+  const backupButton = document.getElementById('backup-worlds');
+  const restoreButton = document.getElementById('restore-worlds');
+  const backupStatus = document.getElementById('backup-status');
+  if (backupButton) backupButton.addEventListener('click', async () => {
+    if (!window.pywebview?.api?.backup_worlds) { if(backupStatus) backupStatus.textContent='Резервное копирование доступно в установленном Windows-лаунчере.'; return; }
+    backupButton.disabled=true;
+    try { const result=await window.pywebview.api.backup_worlds(); if(!result?.ok) throw new Error(result?.message||'Не удалось создать копию.'); backupStatus.textContent='Копия сохранена: '+result.path; }
+    catch(error){backupStatus.textContent=error.message||'Ошибка резервного копирования.';}
+    finally{backupButton.disabled=false;}
+  });
+  if (restoreButton) restoreButton.addEventListener('click', async () => {
+    if (!window.pywebview?.api?.restore_worlds) { if(backupStatus) backupStatus.textContent='Восстановление доступно в установленном Windows-лаунчере.'; return; }
+    if(!confirm('Восстановить последний архив миров? Текущие сохранения будут дополнительно сохранены в страховочную копию. Перед продолжением закрой игру.')) return;
+    restoreButton.disabled=true;
+    try { const result=await window.pywebview.api.restore_worlds(); if(!result?.ok) throw new Error(result?.message||'Не удалось восстановить миры.'); backupStatus.textContent='Миры восстановлены. Страховочная копия: '+result.safety_backup; }
+    catch(error){backupStatus.textContent=error.message||'Ошибка восстановления.';}
+    finally{restoreButton.disabled=false;}
+  });
+
   const dataFolderButton = document.getElementById('open-data-folder');
   if (dataFolderButton) dataFolderButton.addEventListener('click', async () => {
     try {
