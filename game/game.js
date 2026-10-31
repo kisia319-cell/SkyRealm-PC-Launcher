@@ -219,6 +219,62 @@
   let tutorialMoveSeen=false, tutorialInventorySeen=false, tutorialQuestSeen=false, tutorialCombatSeen=false;
   const sheep = [];
   const monsters = [];
+  const coopGuestMobAttackCooldowns=new Map();
+  function isCoopWorldSave(){return typeof saveKey==='string'&&saveKey.startsWith('skyrealm_coop_save_v1_');}
+  function isCoopWorldActive(){const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();return isCoopWorldSave()&&room?.status==='running';}
+  function newCoopEntityId(){
+    try{if(window.crypto?.randomUUID)return window.crypto.randomUUID();}catch(_){}
+    const bytes=new Uint8Array(16);try{window.crypto.getRandomValues(bytes);}catch(_){for(let i=0;i<16;i++)bytes[i]=Math.floor(Math.random()*256);}
+    bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
+    const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+    return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+  }
+  function spawnSharedLoot(x,y,items,worldMode=null){
+    const network=window.SkyRealmCoopClient;
+    if(!isCoopWorldActive()||!network?.isRoomOwner||!Array.isArray(items))return false;
+    const mode=worldMode||coopLocalWorldMode();
+    if(!['surface','cave','dungeon'].includes(mode))return false;
+    for(const item of items){
+      if(!item||typeof item.name!=='string'||!Number.isSafeInteger(item.count)||item.count<1||item.count>99)continue;
+      lootDrops.push({id:newCoopEntityId(),shared:true,x:Number(x)+(Math.random()-.5)*28,y:Number(y)+(Math.random()-.5)*24,
+        name:item.name,count:item.count,life:240,phase:Math.random()*6.28,world_mode:mode});
+    }
+    if(lootDrops.length>100)lootDrops.splice(0,lootDrops.length-100);
+    saveGame();return true;
+  }
+  function grantLootToPersonalInventory(name,count){
+    const amount=Math.max(1,Math.min(99,Math.floor(Number(count)||0)));
+    if(name==='Золото'){walletCents=Math.min(999999999,walletCents+amount*100);updateWalletHud();return;}
+    changeItem(name,amount);renderInventory();
+  }
+  function queueGuestCoopAction(actionType,payload,successText){
+    const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
+    if(!isCoopWorldSave()||!room||room.status!=='running'||network?.isRoomOwner)return false;
+    const actionId=newCoopEntityId(),key=saveKey+'_coop_pending_world_actions';let pending=[];
+    try{const value=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(value))pending=value;}catch(_){}
+    if(pending.length>=20){toast('Сначала дождись обработки предыдущих действий.');return true;}
+    pending.push({action_id:actionId,action_type:actionType,reserved_item:null});
+    try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){toast('Не удалось сохранить сетевое действие.');return true;}
+    network.enqueueWorldAction(actionType,payload,actionId).then(action=>{
+      if(!action?.action_id)throw new Error('Сервер не подтвердил запрос.');
+      if(successText)toast(successText);
+    }).catch(error=>{
+      if(error?.code&&!['INTERNAL_ERROR','COOP_BACKEND_ERROR'].includes(error.code)){
+        try{localStorage.setItem(key,JSON.stringify(pending.filter(v=>v.action_id!==actionId)));}catch(_){}
+      }
+      toast(error?.message||'Не удалось отправить действие. Проверяю его статус.');
+    });
+    return true;
+  }
+  function queueGuestEnemyHit(kind,id,weapon,damage){
+    return queueGuestCoopAction('damage_enemy',{target_kind:kind,target_id:String(id),weapon,damage:Math.max(1,Math.min(500,Math.round(damage)))},
+      'Удар отправлен в общий мир. Враг получит урон после проверки владельцем комнаты.');
+  }
+  function queueGuestLootPickup(drop){
+    if(!drop?.shared||!drop.id)return false;
+    return queueGuestCoopAction('pickup_loot',{loot_id:drop.id,x:player.x,y:player.y,world_mode:coopLocalWorldMode()},
+      'Запрос на подбор общей добычи отправлен.');
+  }
   let bloodMoonActive=false,bloodMoonRewardPending=false,lastBloodMoonNight=-1;
   let wolfBossActive=false,wolfBossHp=0,wolfBossKeyDropped=false,wolfCageOpen=false,wolfDogCaged=true,wolfBossFlash=0,wolfBossAttackTimer=1.2,wolfBossX=0,wolfBossY=0,wolfBossDefeated=false;
   let wolfCompanionUnlocked=false,wolfCompanionHp=300,wolfCompanionAttackTimer=.5,wolfCompanionRevivals=0,wolfDogDeathHandled=false,wolfCompanionOffsetX=20,wolfCompanionOffsetY=24;
@@ -854,7 +910,11 @@
   function bossHpMax(def){return Math.round(def.maxHp);}
   function normalizeBiomeBossState(saved){const out=makeBiomeBossState();if(!saved||typeof saved!=='object')return out;for(const def of biomeBossDefs()){const v=saved[def.id];if(!v||typeof v!=='object')continue;out[def.id]={active:v.active===true,defeated:v.defeated===true,hp:Math.max(0,Math.min(bossHpMax(def),Number(v.hp)||bossHpMax(def))),attackTimer:Math.max(.15,Math.min(5,Number(v.attackTimer)||1.4)),flash:0};if(out[def.id].defeated){out[def.id].active=false;out[def.id].hp=0;}else if(out[def.id].hp<=0)out[def.id].hp=bossHpMax(def);}return out;}
   function updateBiomeBosses(dt){if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode)return;for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||b.defeated)continue;const d=Math.hypot(player.x-def.x,player.y-def.y);b.flash=Math.max(0,(b.flash||0)-dt);if(!b.active&&d<440){b.active=true;b.hp=b.hp>0?Math.min(b.hp,bossHpMax(def)):bossHpMax(def);b.attackTimer=1.3;toast('ОПАСНОСТЬ: '+def.name+' заметил тебя!');playSound('portal');saveGame();}if(!b.active)continue;b.attackTimer-=dt;if(d<108&&b.attackTimer<=0&&!immortal&&dodgeTimer<=0){b.attackTimer=Math.max(.65,1.65-difficultyConfig().rank*.13);const hit=Math.max(1,Math.round(def.damage*(1-armorReduction())));player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,9,'spark',def.color);updateVitals();toast(def.name+' атакует: −'+hit+' HP');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
-  function defeatBiomeBoss(def,b){if(!def||!b||b.defeated)return;b.defeated=true;b.active=false;b.hp=0;walletCents+=7500;changeItem(def.reward,1);changeItem('Кристалл',3);changeItem('Малое зелье',2);spawnVisualBurst(def.x,def.y,32,'spark',def.color);playSound('portal');awardXP(220,'победа: '+def.name);renderInventory();saveGame();toast(def.name+' повержен! Получен трофей «'+def.reward+'», 3 кристалла и 75 золота.');}
+  function defeatBiomeBoss(def,b){if(!def||!b||b.defeated)return;b.defeated=true;b.active=false;b.hp=0;
+    if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner){
+      spawnSharedLoot(def.x,def.y,[{name:def.reward,count:1},{name:'Кристалл',count:3},{name:'Малое зелье',count:2},{name:'Золото',count:75}],'surface');
+    }else{walletCents+=7500;changeItem(def.reward,1);changeItem('Кристалл',3);changeItem('Малое зелье',2);renderInventory();}
+    spawnVisualBurst(def.x,def.y,32,'spark',def.color);playSound('portal');awardXP(220,'победа: '+def.name);saveGame();toast(def.name+' повержен! Награда появилась в мире.');}
   function drawBiomeBosses(camX,camY,time){for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||b.defeated)continue;const dist=Math.hypot(player.x-def.x,player.y-def.y);if(!b.active&&dist>560)continue;const x=def.x-camX,y=def.y-camY;if(x<-100||x>width+100||y<-100||y>height+100)continue;ctx.save();ctx.translate(x,y);ctx.scale(1+Math.sin(time/170)*.035,1+Math.sin(time/170)*.035);ctx.fillStyle='#08101ba8';ctx.beginPath();ctx.ellipse(0,17,35,11,0,0,Math.PI*2);ctx.fill();ctx.shadowColor=def.color;ctx.shadowBlur=20;ctx.fillStyle=b.flash>0?'#fff':def.color;if(def.id==='frost'){ctx.beginPath();ctx.moveTo(-24,17);ctx.lineTo(-20,-12);ctx.lineTo(-11,-25);ctx.lineTo(-4,-13);ctx.lineTo(3,-33);ctx.lineTo(12,-14);ctx.lineTo(23,-22);ctx.lineTo(26,14);ctx.closePath();ctx.fill();}else if(def.id==='sand'){ctx.beginPath();ctx.ellipse(0,1,24,19,0,0,Math.PI*2);ctx.fill();ctx.fillRect(-28,-10,9,7);ctx.fillRect(19,-10,9,7);ctx.strokeStyle=def.color;ctx.lineWidth=5;ctx.beginPath();ctx.arc(3,-12,24,Math.PI,Math.PI*1.8);ctx.stroke();}else if(def.id==='jungle'){ctx.fillStyle='#6a432d';ctx.fillRect(-8,-5,16,26);ctx.fillStyle=b.flash>0?'#fff':'#73d45b';ctx.beginPath();ctx.ellipse(0,-14,23,18,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(-16,-22);ctx.lineTo(-30,-35);ctx.lineTo(-13,-31);ctx.moveTo(16,-22);ctx.lineTo(30,-35);ctx.lineTo(13,-31);ctx.strokeStyle=def.color;ctx.lineWidth=6;ctx.stroke();ctx.fillStyle='#fff3b0';ctx.fillRect(-9,-17,5,4);ctx.fillRect(4,-17,5,4);ctx.fillStyle='#284b25';ctx.fillRect(-5,-6,10,3);}else{ctx.beginPath();ctx.moveTo(-25,15);ctx.lineTo(-23,-10);ctx.lineTo(-9,-20);ctx.lineTo(0,-14);ctx.lineTo(12,-28);ctx.lineTo(24,-8);ctx.lineTo(28,15);ctx.closePath();ctx.fill();}ctx.shadowBlur=0;ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#fff';ctx.fillText(def.name,x,y-40);ctx.fillStyle='#241a27';ctx.fillRect(x-39,y-32,78,6);ctx.fillStyle=def.color;ctx.fillRect(x-39,y-32,78*Math.max(0,(b.active?b.hp:bossHpMax(def))/bossHpMax(def)),6);ctx.restore();}}
   function dungeonGatePosition(){return {x:(COLS-15)*TILE+16,y:25*TILE+16};}
   function drawDungeonGate(camX,camY,time){const p=dungeonGatePosition(),x=p.x-camX,y=p.y-camY;if(x<-90||x>width+90||y<-100||y>height+100)return;ctx.save();ctx.translate(x,y);ctx.fillStyle='#11192599';ctx.beginPath();ctx.ellipse(0,14,42,16,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#716a73';ctx.fillRect(-28,-16,10,38);ctx.fillRect(18,-16,10,38);ctx.fillRect(-30,-20,60,8);ctx.fillStyle='#262b3a';ctx.beginPath();ctx.arc(0,-5,19,Math.PI,Math.PI*2);ctx.lineTo(19,19);ctx.lineTo(-19,19);ctx.closePath();ctx.fill();ctx.strokeStyle='#b99cff';ctx.lineWidth=3;ctx.shadowColor='#a77bff';ctx.shadowBlur=12+Math.sin(time/200)*4;ctx.beginPath();ctx.arc(0,-4,15,Math.PI,Math.PI*2);ctx.stroke();ctx.fillStyle='#f3eaff';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('РУИНЫ',0,34);ctx.fillText('E · ВОЙТИ',0,46);ctx.restore();}
@@ -1435,7 +1495,7 @@
       if(type===null){const biome=biomeAt(x/TILE,y/TILE),roll=Math.random();if(biome==='volcano'&&roll<.62)type='ember';else if(biome==='snow'&&roll<.42)type='yeti';else if(biome==='snow'&&roll<.72)type='ice';else if(biome==='desert'&&roll<.58)type='scorpion';else type=roll<.28?'skeleton':(['shadow','brute','wisp'][Math.floor(Math.random()*3)]);}
       const cfg=difficultyConfig(),baseHp=type==='ember'?155:type==='yeti'?120:type==='bomb'?55:type==='skeleton'?80:type==='brute'?135:type==='ice'?115:type==='scorpion'?90:100,hp=Math.max(20,Math.round(baseHp*cfg.monsterHp));
       const speed=(type==='ember'?43:type==='yeti'?45:type==='brute'?31:type==='wisp'?58:type==='skeleton'?47:type==='bomb'?49:type==='ice'?39:type==='scorpion'?62:43)*(currentDifficulty==='easy'?.88:currentDifficulty==='impossible'?1.42:currentDifficulty==='hell'?1.2:currentDifficulty==='hard'?1.1:1);
-      monsters.push({x,y,hp,maxHp:hp,type,speed,damageScale:cfg.monsterDamage,attackCooldown:0,phase:Math.random()*6.28,flash:0,fuseStarted:false,fuseTime:1.45,exploding:false,explosionTimer:0,damageApplied:false});
+      monsters.push({id:newCoopEntityId(),x,y,hp,maxHp:hp,type,speed,damageScale:cfg.monsterDamage,attackCooldown:0,phase:Math.random()*6.28,flash:0,fuseStarted:false,fuseTime:1.45,exploding:false,explosionTimer:0,damageApplied:false});
       const warning=document.getElementById('night-warning');if(warning){warning.hidden=false;const text=document.getElementById('night-warning-text');if(text)text.textContent=type==='bomb'?'ОСТОРОЖНО: взрывная бомбочка! Убегай!':monsterLabel(type)+' появился в лесу';setTimeout(()=>{if(warning)warning.hidden=true;},2600);}
       drawMinimap();return true;
     }
@@ -1477,6 +1537,11 @@
     if(!mob||mob.lootDropped)return;
     mob.lootDropped=true;
     const loot=monsterLootFor(mob.type);
+    if(isCoopWorldActive()){
+      const network=window.SkyRealmCoopClient;
+      if(network?.isRoomOwner)spawnSharedLoot(mob.x,mob.y,loot,coopLocalWorldMode());
+      return;
+    }
     for(const item of loot){
       lootDrops.push({x:mob.x+(Math.random()-.5)*28,y:mob.y+(Math.random()-.5)*24,name:item.name,count:item.count,life:240,phase:Math.random()*6.28});
     }
@@ -1494,9 +1559,20 @@
     }
   }
   function pickUpLoot(dt){
-    if(inHouse||mineMode||caveMode||dungeonMode||tradeWorldMode)return;
-    for(let i=lootDrops.length-1;i>=0;i--){const drop=lootDrops[i];drop.life-=dt;if(drop.life<=0){lootDrops.splice(i,1);continue;}
-      if(Math.hypot(player.x-drop.x,player.y-drop.y)<34){spawnVisualBurst(drop.x,drop.y,7,'spark','#ffe28b');changeItem(drop.name,drop.count);playSound('coin');toast('Подобрано: '+drop.name+' ×'+drop.count);lootDrops.splice(i,1);renderInventory();saveGame();}
+    if(inHouse||mineMode||tradeWorldMode)return;
+    for(let i=lootDrops.length-1;i>=0;i--){const drop=lootDrops[i];drop.life-=dt;if(drop.life<=0){if(drop.shared&&isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner)continue;lootDrops.splice(i,1);continue;}
+      if(Math.hypot(player.x-drop.x,player.y-drop.y)<34){
+        if(drop.shared&&isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){queueGuestLootPickup(drop);continue;}
+        if(drop.shared&&isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner){
+          grantLootToPersonalInventory(drop.name,drop.count);
+          toast('Подобрано: '+drop.name+' ×'+drop.count+' · добыча исчезла для всех участников.');
+        }else{
+          changeItem(drop.name,drop.count);renderInventory();
+          toast('Подобрано: '+drop.name+' ×'+drop.count);
+        }
+        spawnVisualBurst(drop.x,drop.y,7,'spark','#ffe28b');playSound('coin');
+        lootDrops.splice(i,1);updateWalletHud();saveGame();
+      }
     }
   }
   let lastAppliedSharedDeathSequence=0,activeCoopDeathRoomId='',coopDeathReportPending=false;
@@ -1555,7 +1631,12 @@
     }
   }
   function onWolfDogDeath(){if(wolfDogDeathHandled)return;wolfDogDeathHandled=true;wolfCompanionUnlocked=false;wolfCompanionHp=0;if(wolfCompanionRevivals<3){wolfCompanionRevivals++;wolfBossDefeated=false;wolfBossActive=true;wolfBossHp=1000+difficultyConfig().rank*500;const den=wolfDenPosition();wolfBossX=den.x;wolfBossY=den.y;toast('Собака погибла. Оборотень вернулся в лес — победи его снова ('+wolfCompanionRevivals+'/3 возрождений).');}else toast('Собака погибла окончательно: лимит возрождений босса исчерпан.');saveGame();}
-  function defeatWolfBoss(){changeItem('Ключ от клетки',1);renderInventory();wolfBossActive=false;wolfBossDefeated=true;wolfBossKeyDropped=true;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;walletCents+=5000;changeItem('Кристалл',2);spawnVisualBurst(wolfBossX,wolfBossY,34,'spark','#b6d6ff');playWolfSound('howl');toast('ОБОРОТЕН ПОБЕЖДЁН! Выпал ключ от клетки в лесу. Найди клетку рядом с логовом и открой её, чтобы освободить собаку!');awardXP(180,'победа над Оборотнем');renderInventory();saveGame();}
+  function defeatWolfBoss(){
+    wolfBossActive=false;wolfBossDefeated=true;wolfBossKeyDropped=true;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;
+    if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner)spawnSharedLoot(wolfBossX,wolfBossY,[{name:'Ключ от клетки',count:1},{name:'Кристалл',count:2},{name:'Золото',count:50}],'surface');
+    else{changeItem('Ключ от клетки',1);walletCents+=5000;changeItem('Кристалл',2);renderInventory();}
+    spawnVisualBurst(wolfBossX,wolfBossY,34,'spark','#b6d6ff');playWolfSound('howl');toast('ОБОРОТЕН ПОБЕЖДЁН! Награда появилась в общей добыче леса.');awardXP(180,'победа над Оборотнем');saveGame();
+  }
   function updateMonsters(dt){
     if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode){return;}
       const active=isNightTime()&&(worldEarlyMonsters===true||survivedNights>=(currentDifficulty==='impossible'?1:3));
@@ -2118,7 +2199,10 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       if(!saveGame())return false;
       const current=JSON.parse(localStorage.getItem(saveKey)||'null');
       if(!current||typeof current!=='object')return false;
-      localStorage.setItem(saveKey,JSON.stringify({...current,...shared}));
+      const personalDrops=Array.isArray(current.lootDrops)?current.lootDrops.filter(d=>d&&d.shared!==true):[];
+      const merged={...current,...shared};
+      merged.lootDrops=[...personalDrops,...(Array.isArray(shared.lootDrops)?shared.lootDrops:[])];
+      localStorage.setItem(saveKey,JSON.stringify(merged));
       lastAppliedCoopSnapshotVersion=version;
       lastCoopSnapshotSignature=JSON.stringify(shared);
       loadGame();renderInventory();drawMinimap();updateVitals();updateWalletHud();
@@ -2437,7 +2521,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     if(network.isRoomOwner&&coopWorldActionPollTimer<=0){coopWorldActionPollTimer=1.0;syncCoopWorldActions();}
     else if(!network.isRoomOwner){coopGuestReceiptTimer-=dt;if(coopGuestReceiptTimer<=0){coopGuestReceiptTimer=2.0;syncCoopGuestActionReceipts();}}
     coopSnapshotTimer-=dt;
-    if(coopSnapshotTimer<=0){coopSnapshotTimer=5;syncCoopWorldSnapshot();}
+    if(coopSnapshotTimer<=0){coopSnapshotTimer=1;syncCoopWorldSnapshot();}
     if(network.isRoomOwner&&typeof network.setWorldClock==='function'){
       coopClockSendTimer-=dt;
       if(coopClockSendTimer<=0){
@@ -2557,7 +2641,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function saveGame(){
     if(!currentWorldId)return false;
-    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees},tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
+    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
     try{
       localStorage.setItem(saveKey,serialized);
     }catch(error){
@@ -2576,6 +2660,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     return true;
   }
   function loadGame(){
+    monsters.length=0;coopGuestMobAttackCooldowns.clear();
     try{
       const d=JSON.parse(localStorage.getItem(saveKey)||'null');
       if(d&&typeof d==='object'){
@@ -2589,13 +2674,24 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
           treeChops=Array.isArray(d.adventureQuestProgress.treeChops)?d.adventureQuestProgress.treeChops.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.chops)).slice(0,600).map(v=>({x:Math.round(v.x),y:Math.round(v.y),chops:Math.max(1,Math.min(4,Math.floor(v.chops)))})):[];
           felledTrees=Array.isArray(d.adventureQuestProgress.felledTrees)?d.adventureQuestProgress.felledTrees.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,2000).map(v=>({x:Math.round(v.x),y:Math.round(v.y)})):[];
           adventureQuestProgress={hunt:Math.max(0,Math.min(5,Number(d.adventureQuestProgress.hunt)||0)),mining:Math.max(0,Math.min(10,Number(d.adventureQuestProgress.mining)||0)),harvest:Math.max(0,Math.min(5,Number(d.adventureQuestProgress.harvest)||0)),treeChops,felledTrees};
+          if(isCoopWorldSave()&&Array.isArray(d.adventureQuestProgress.coopMonsters)){
+            d.adventureQuestProgress.coopMonsters.slice(0,20).forEach(m=>{
+              if(!m||!['shadow','brute','wisp','skeleton','bomb','ice','scorpion','ember','yeti'].includes(m.type)||
+                 !Number.isFinite(m.x)||!Number.isFinite(m.y)||!Number.isFinite(m.hp)||!Number.isFinite(m.maxHp)||m.maxHp<=0||m.hp<0||m.hp>m.maxHp)return;
+              monsters.push({id:typeof m.id==='string'?m.id:newCoopEntityId(),type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,
+                speed:Math.max(1,Math.min(160,Number(m.speed)||43)),damageScale:Math.max(.1,Math.min(5,Number(m.damageScale)||1)),
+                attackCooldown:Math.max(0,Math.min(5,Number(m.attackCooldown)||0)),phase:Number(m.phase)||0,flash:0,
+                fuseStarted:m.fuseStarted===true,fuseTime:Math.max(0,Math.min(5,Number(m.fuseTime)||1.45)),
+                exploding:m.exploding===true,explosionTimer:Math.max(0,Math.min(2,Number(m.explosionTimer)||0)),damageApplied:false});
+            });
+          }
         }
         if(Array.isArray(d.farmCrops))farmCrops=d.farmCrops.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,60).map(v=>({...v,stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0),crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null,moisture:Math.max(0,Math.min(100,Number(v.moisture)||0)),fertilized:v.fertilized===true}));
         if(d.playerAppearance&&typeof d.playerAppearance==='object')applyAppearanceData(d.playerAppearance);
 if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerLevel));if(Number.isFinite(d.playerXP))playerXP=Math.max(0,d.playerXP);caveChestOpened=d.caveChestOpened===true;if(Array.isArray(d.treasureChests))for(const c of treasureChests){const saved=d.treasureChests.find(v=>v&&v.id===c.id);if(saved)c.opened=saved.opened===true;}if(Number.isFinite(d.walletCents))walletCents=Math.max(0,Math.floor(d.walletCents));if(Number.isInteger(d.tradeEntranceX))tradeEntranceX=d.tradeEntranceX;if(Number.isInteger(d.tradeEntranceY))tradeEntranceY=d.tradeEntranceY;mineLevel=Math.max(1,Math.min(5,Number(d.mineLevel)||1));houseLevel=Math.max(1,Math.min(3,Number(d.houseLevel)||1));// Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.if(Array.isArray(d.mineRocks)&&d.mineRocks.length){mineRocks=d.mineRocks.slice(0,60).map(r=>({x:Number(r.x)||100,y:Number(r.y)||100,ore:['Уголь','Железо','Камень','Кристалл','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(r.ore)?r.ore:'Камень',hp:Math.max(0,Math.min(2,Number(r.hp)||0)),maxHp:2}));}if(mineRocks.filter(r=>r.ore==='Камень'&&r.hp>0).length<8)generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));
         for(const felled of felledTrees){const idx=world.trees.findIndex(tree=>Math.round(tree.x)===felled.x&&Math.round(tree.y)===felled.y);if(idx>=0)world.trees.splice(idx,1);}
         for(const tree of world.trees){const progress=treeChops.find(v=>v.x===Math.round(tree.x)&&v.y===Math.round(tree.y));if(progress)tree.chops=progress.chops;}
-        furnaceCrafted=!!d.furnaceCrafted;if(Array.isArray(d.placedStructures))placedStructures=d.placedStructures.filter(v=>v&&['furnace','house','torch','coal','storage','farmplot'].includes(v.type)&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,250).map(v=>({...v,contents:v.type==='storage'&&v.contents&&typeof v.contents==='object'?{...v.contents}:{},stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0)}));lootDrops.length=0;if(Array.isArray(d.lootDrops))d.lootDrops.slice(0,80).forEach(v=>{if(v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&inventoryItems.some(i=>i.name===v.name)&&Number.isFinite(v.count))lootDrops.push({x:v.x,y:v.y,name:v.name,count:Math.max(1,Math.min(99,Math.floor(v.count))),life:Math.max(0,Math.min(240,Number(v.life)||240)),phase:Number(v.phase)||0});});
+        furnaceCrafted=!!d.furnaceCrafted;if(Array.isArray(d.placedStructures))placedStructures=d.placedStructures.filter(v=>v&&['furnace','house','torch','coal','storage','farmplot'].includes(v.type)&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,250).map(v=>({...v,contents:v.type==='storage'&&v.contents&&typeof v.contents==='object'?{...v.contents}:{},stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0)}));lootDrops.length=0;if(Array.isArray(d.lootDrops))d.lootDrops.slice(0,80).forEach(v=>{if(v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&inventoryItems.some(i=>i.name===v.name)&&Number.isFinite(v.count))lootDrops.push({id:typeof v.id==='string'?v.id:'',shared:v.shared===true,x:v.x,y:v.y,name:v.name,count:Math.max(1,Math.min(99,Math.floor(v.count))),life:Math.max(0,Math.min(240,Number(v.life)||240)),phase:Number(v.phase)||0,world_mode:['surface','cave','dungeon'].includes(v.world_mode)?v.world_mode:'surface'});});
         exploredCells=new Set(Array.isArray(d.exploredCells)?d.exploredCells.filter(v=>typeof v==='string'&&/^\d+,\d+$/.test(v)):[]);
         selectedSlot=Number.isInteger(d.selectedSlot)&&d.selectedSlot>=1&&d.selectedSlot<=inventoryItems.length?d.selectedSlot:1;
         if(Number.isFinite(d.gameMinuteTotal)&&d.gameMinuteTotal>=0)gameMinuteTotal=d.gameMinuteTotal;
