@@ -48,6 +48,7 @@ jobs:
           node --check app.js
           node --check tests/auth-smoke.mjs
           node tests/game-smoke-test.cjs
+          node tests/farm-economy-test.cjs
           node tests/auth-smoke.mjs
 
       - name: Install build tools
