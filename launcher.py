@@ -756,6 +756,41 @@ def _skyrealm_startup_update():
         current = version_path.read_text(encoding="utf-8").strip() if version_path.is_file() else "0.9.5"
         if not version or _skyrealm_version_tuple(version) <= _skyrealm_version_tuple(current):
             return False
+
+        # Ask before replacing the running launcher. "No" keeps the current version
+        # for this session; the question is shown again on the next start while an
+        # update remains available.
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            prompt_root = tk.Tk()
+            prompt_root.withdraw()
+            try:
+                prompt_root.attributes("-topmost", True)
+                accepted = messagebox.askyesno(
+                    "Обновление SkyRealm",
+                    f"Доступно обновление лаунчера: {current} → {version}.\\n\\nВы хотите установить обновление?",
+                    parent=prompt_root,
+                )
+            finally:
+                prompt_root.destroy()
+        except Exception as prompt_error:
+            try:
+                root.mkdir(parents=True, exist_ok=True)
+                with (root / "update.log").open("a", encoding="utf-8") as log:
+                    log.write(time.strftime("%Y-%m-%d %H:%M:%S") + " | update prompt failed: " + str(prompt_error) + "\\n")
+            except OSError:
+                pass
+            return False
+        if not accepted:
+            try:
+                root.mkdir(parents=True, exist_ok=True)
+                with (root / "update.log").open("a", encoding="utf-8") as log:
+                    log.write(time.strftime("%Y-%m-%d %H:%M:%S") + f" | launcher update declined: {current} -> {version}\\n")
+            except OSError:
+                pass
+            return False
+
         url = str(manifest.get("download_url", "")).strip()
         expected = str(manifest.get("sha256", "")).strip().lower()
         if not url.startswith("https://") or len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected):

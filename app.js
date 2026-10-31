@@ -919,7 +919,7 @@
     }
   }
   $('#play-game').addEventListener('click', () => launchGame(null));
-  $('[data-install-mod]').forEach(button => button.addEventListener('click', () => launchGame(true, button.dataset.installMod)));
+  $$('[data-install-mod]').forEach(button => button.addEventListener('click', () => launchGame(true, button.dataset.installMod)));
   $('#open-full-mod-catalog')?.addEventListener('click', () => launchGame(true, '__catalog__'));
   $('#create-own-mod')?.addEventListener('click', () => launchGame(true, '__creator__'));
   $('#game-update-yes').addEventListener('click', () => { $('#game-update-overlay').hidden = true; launchGame(true); });
