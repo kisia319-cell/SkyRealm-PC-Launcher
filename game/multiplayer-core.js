@@ -168,7 +168,7 @@
         Number.isSafeInteger(d.count)&&d.count>=1&&d.count<=99&&['surface','cave','dungeon'].includes(d.world_mode))
         .map(d=>({id:d.id,shared:true,x:d.x,y:d.y,name:d.name,count:d.count,life:Math.max(0,Math.min(240,Number(d.life)||240)),
           phase:Number(d.phase)||0,world_mode:d.world_mode}));
-    }else output.lootDrops=[];
+    }
     try{
       const serialized=JSON.stringify(output);
       if(serialized.length>60000)return null;
