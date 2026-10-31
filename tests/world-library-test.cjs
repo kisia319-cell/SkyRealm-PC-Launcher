@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const game=fs.readFileSync('game/game.js','utf8');
+const html=fs.readFileSync('game/index.html','utf8');
+new vm.Script(game,{filename:'game/game.js'});
+assert.ok(game.includes("getElementById('world-search')?.addEventListener('input',renderWorldList)"),'World search must refresh the list as the user types');
+assert.ok(game.includes("getElementById('world-sort')?.addEventListener('change',renderWorldList)"),'World sorting must refresh the list');
+assert.ok(game.includes("const visible=worlds.filter(w=>!query||String(w.name||'').toLocaleLowerCase().includes(query))"),'World search must filter by name');
+assert.ok(game.includes("sort==='name'")&&game.includes("sort==='oldest'"),'Worlds must support name and creation-date sorting');
+for(const field of ['gameMinuteTotal','playerLevel','exploredCells'])assert.ok(game.includes('saved.'+field),'World cards must show saved '+field+' metadata');
+assert.ok(game.includes('function downloadWorldBackup(id)')&&game.includes('function importWorldBackupFile(file)'),'World backup export and restore must remain available');
+for(const id of ['world-search','world-sort','worlds-list','import-world-button','import-world-file'])assert.ok(html.includes('id="'+id+'"'),'Missing world library control '+id);
+console.log('World library search, sorting, metadata and backup wiring passed.');
