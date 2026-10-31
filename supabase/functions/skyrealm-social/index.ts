@@ -142,6 +142,91 @@ Deno.serve(async(req:Request)=>{
       const updated=await db("skyrealm_friendships?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:decision==="accept"?"accepted":"rejected",updated_at:new Date().toISOString()})});
       return reply({relationship:updated?.[0]||null});
     }
+    if(route==="/api/social/room-invites" && req.method==="GET") {
+      const now=new Date().toISOString();
+      const invites=await db("skyrealm_room_invites?select=id,room_id,inviter_id,created_at,expires_at&invitee_id=eq."+user.id+"&status=eq.pending&expires_at=gt."+encodeURIComponent(now)+"&order=created_at.desc&limit=30");
+      const rows=invites||[];
+      const inviterIds=[...new Set(rows.map((x:any)=>String(x.inviter_id)))];
+      const roomIds=[...new Set(rows.map((x:any)=>String(x.room_id)))];
+      const people=await profiles(inviterIds), byId=new Map(people.map((p:any)=>[p.id,p]));
+      const rooms=roomIds.length?await db("co_op_rooms?select=id,status,world_difficulty,owner_id,max_players&id=in.("+roomIds.join(",")+")"):[];
+      const roomById=new Map((rooms||[]).map((r:any)=>[r.id,r]));
+      return reply({invites:rows.map((x:any)=>({id:x.id,created_at:x.created_at,expires_at:x.expires_at,
+        inviter:byId.get(x.inviter_id)||null,room:roomById.get(x.room_id)||null}))});
+    }
+    if(route==="/api/social/room-invites" && req.method==="POST") {
+      const p=await body(req), roomId=String(p.room_id||""), friendId=String(p.friend_id||"");
+      const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if(!uuid.test(roomId)||!uuid.test(friendId)||friendId===user.id) throw new ApiError(400,"INVALID_ROOM_INVITE","Некорректная комната или игрок.");
+      const pair=orderedPair(user.id,friendId);
+      const friendship=await db("skyrealm_friendships?select=id,status&user_a=eq."+pair.user_a+"&user_b=eq."+pair.user_b+"&limit=1");
+      if(!friendship?.length||friendship[0].status!=="accepted") throw new ApiError(403,"NOT_FRIENDS","Приглашать в комнату можно только подтверждённых друзей.");
+      const rooms=await db("co_op_rooms?select=id,owner_id,status,invite_code_hash,max_players&id=eq."+roomId+"&limit=1");
+      const room=rooms?.[0];
+      if(!room) throw new ApiError(404,"ROOM_NOT_FOUND","Комната не найдена.");
+      if(room.owner_id!==user.id) throw new ApiError(403,"OWNER_ONLY","Приглашать друзей может только владелец комнаты.");
+      if(!["lobby","running"].includes(room.status)) throw new ApiError(409,"ROOM_NOT_JOINABLE","Сейчас в эту комнату нельзя приглашать игроков.");
+      const ownerMember=await db("co_op_members?select=member_status,role&room_id=eq."+roomId+"&user_id=eq."+user.id+"&limit=1");
+      if(!ownerMember?.length||ownerMember[0].role!=="owner"||ownerMember[0].member_status!=="active") throw new ApiError(403,"OWNER_NOT_ACTIVE","Владелец должен находиться в комнате.");
+      const targetMember=await db("co_op_members?select=member_status&room_id=eq."+roomId+"&user_id=eq."+friendId+"&limit=1");
+      if(targetMember?.length&&["active","offline"].includes(targetMember[0].member_status)) throw new ApiError(409,"ALREADY_IN_ROOM","Этот игрок уже состоит в комнате.");
+      const existing=await db("skyrealm_room_invites?select=id,status,expires_at&room_id=eq."+roomId+"&invitee_id=eq."+friendId+"&limit=1");
+      const now=new Date().toISOString();
+      if(existing?.length) {
+        const prior=existing[0];
+        if(prior.status==="pending"&&Date.parse(prior.expires_at)>Date.now()) throw new ApiError(409,"INVITE_ALREADY_SENT","Приглашение уже ожидает ответа.");
+        const refreshed=await db("skyrealm_room_invites?id=eq."+prior.id,{method:"PATCH",body:JSON.stringify({
+          inviter_id:user.id,status:"pending",created_at:now,updated_at:now,expires_at:new Date(Date.now()+24*60*60*1000).toISOString()
+        })});
+        return reply({invite:refreshed?.[0]||null,message:"Приглашение отправлено повторно."},201);
+      }
+      const created=await db("skyrealm_room_invites",{method:"POST",body:JSON.stringify({
+        room_id:roomId,inviter_id:user.id,invitee_id:friendId,status:"pending"
+      })});
+      return reply({invite:created?.[0]||null,message:"Приглашение в кооператив отправлено."},201);
+    }
+    if(route==="/api/social/room-invites/respond" && req.method==="POST") {
+      const p=await body(req), inviteId=String(p.invite_id||""), decision=String(p.decision||"");
+      const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if(!uuid.test(inviteId)||!["accept","reject"].includes(decision)) throw new ApiError(400,"INVALID_ROOM_INVITE","Некорректный ответ на приглашение.");
+      const now=new Date().toISOString();
+      const rows=await db("skyrealm_room_invites?select=id,room_id,inviter_id,invitee_id,status,expires_at&id=eq."+inviteId+"&invitee_id=eq."+user.id+"&limit=1");
+      const invite=rows?.[0];
+      if(!invite||invite.status!=="pending") throw new ApiError(404,"ROOM_INVITE_NOT_FOUND","Приглашение не найдено или уже обработано.");
+      if(Date.parse(invite.expires_at)<=Date.now()) {
+        await db("skyrealm_room_invites?id=eq."+inviteId,{method:"PATCH",body:JSON.stringify({status:"expired",updated_at:now})});
+        throw new ApiError(410,"ROOM_INVITE_EXPIRED","Срок действия приглашения истёк.");
+      }
+      if(decision==="reject") {
+        await db("skyrealm_room_invites?id=eq."+inviteId,{method:"PATCH",body:JSON.stringify({status:"rejected",updated_at:now})});
+        return reply({ok:true,accepted:false,message:"Приглашение отклонено."});
+      }
+      const rooms=await db("co_op_rooms?select=id,owner_id,status,invite_code_hash&id=eq."+invite.room_id+"&limit=1");
+      const room=rooms?.[0];
+      if(!room||room.owner_id!==invite.inviter_id||!["lobby","running"].includes(room.status)) throw new ApiError(409,"ROOM_NOT_JOINABLE","Владелец закрыл комнату или она больше недоступна.");
+      const friendPair=orderedPair(user.id,String(invite.inviter_id));
+      const friendship=await db("skyrealm_friendships?select=id,status&user_a=eq."+friendPair.user_a+"&user_b=eq."+friendPair.user_b+"&limit=1");
+      if(!friendship?.length||friendship[0].status!=="accepted") throw new ApiError(403,"NOT_FRIENDS","Вы больше не состоите в друзьях.");
+      const inviterMember=await db("co_op_members?select=member_status,role&room_id=eq."+room.id+"&user_id=eq."+invite.inviter_id+"&limit=1");
+      if(!inviterMember?.length||inviterMember[0].role!=="owner"||inviterMember[0].member_status!=="active") throw new ApiError(409,"OWNER_NOT_ACTIVE","Владелец больше не находится в комнате.");
+      const joinResponse=await fetch(SUPABASE_URL+"/rest/v1/rpc/join_co_op_room",{
+        method:"POST",headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"Content-Type":"application/json"},
+        body:JSON.stringify({p_user_id:user.id,p_code_hash:room.invite_code_hash})
+      });
+      const joinRaw=await joinResponse.text(); let joined:any=null;
+      try{joined=joinRaw?JSON.parse(joinRaw):null;}catch{joined=null;}
+      if(!joinResponse.ok) {
+        const detail=String(joined?.message||joined?.details||"");
+        if(detail.includes("ROOM_FULL")) throw new ApiError(409,"ROOM_FULL","В комнате уже нет свободных мест.");
+        if(detail.includes("ALREADY_IN_ROOM")) throw new ApiError(409,"ALREADY_IN_ROOM","Сначала покинь другую кооперативную комнату.");
+        if(detail.includes("JOIN_RATE_LIMITED")) throw new ApiError(429,"JOIN_RATE_LIMITED","Слишком много попыток входа. Подожди 15 минут.");
+        if(detail.includes("ROOM_NOT_JOINABLE")) throw new ApiError(409,"ROOM_NOT_JOINABLE","Комната больше не принимает игроков.");
+        console.error("[SkyRealm Social Invite Join]",joinResponse.status,joined);
+        throw new ApiError(500,"ROOM_JOIN_FAILED","Не удалось присоединиться к комнате. Обнови список и попробуй снова.");
+      }
+      await db("skyrealm_room_invites?id=eq."+inviteId,{method:"PATCH",body:JSON.stringify({status:"accepted",updated_at:now})});
+      return reply({ok:true,accepted:true,room:joined,message:"Ты присоединился к комнате. Открой кооператив в игре, чтобы продолжить."});
+    }
     if(route==="/api/social/remove" && req.method==="POST") {
       const p=await body(req), id=String(p.id||"");
       if(!/^[0-9a-f-]{36}$/i.test(id)) throw new ApiError(400,"INVALID_REQUEST","Некорректная связь.");
