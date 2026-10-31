@@ -124,7 +124,7 @@
   const SELL_SHOP={x:25,y:47}, BUY_SHOP={x:31,y:47}, FARMER_SHOP={x:38,y:47};
   const ORE_PRICES={Камень:15,Уголь:50,Железо:180};
   let villageNpcs=[],villageCenters=[],npcQuestState={},villageReputation=0,npcQuestDialogOpen=false,activeNpcQuestId=null;
-  let villageRaidActive=false,villageRaidKills=0,villageRaidTimer=0,lastVillageRaidDay=-1;
+  let villageRaidActive=false,villageRaidKills=0,villageRaidTimer=0,lastVillageRaidDay=-1,lastRestoredVillageRaidKey='';
   const NPC_SHOPS={
     merchant:[{name:'Меч титана',icon:'⚔️',price:45000},{name:'Меч дракона',icon:'🔥',price:80000},{name:'Меч пустоты',icon:'🌑',price:140000},{name:'Железный меч',icon:'⚔️',price:3500},{name:'Малое зелье',icon:'🧪',price:700}],
     alchemist:[{name:'Малое зелье',icon:'🧪',price:650},{name:'Зелье скорости',icon:'💨',price:2200},{name:'Настой силы',icon:'🔥',price:3500},{name:'Зелье защиты',icon:'🛡️',price:3000},{name:'Лечебная трава',icon:'🌿',price:450}],
@@ -721,7 +721,7 @@
     if(!center||Math.hypot(center.x-player.x,center.y-player.y)>620)return;
     lastVillageRaidDay=day;villageRaidActive=true;villageRaidTimer=95;villageRaidKills=0;
     for(let i=0;i<3;i++)if(spawnMonster(i===2?'brute':null)){monsters[monsters.length-1].villageRaid=true;monsters[monsters.length-1].adminSpawned=true;villageRaidKills++;}
-    if(villageRaidKills===0){villageRaidActive=false;return;}
+    if(villageRaidKills===0){villageRaidActive=false;return;}lastRestoredVillageRaidKey=String(currentWorldId||'')+':'+day+':'+String(villageRaidKills);
     toast('ТРЕВОГА! На деревню напали монстры. Победи '+villageRaidKills+' врагов, чтобы получить награду!');
     const warning=document.getElementById('night-warning');if(warning){warning.hidden=false;const label=document.getElementById('night-warning-text');if(label)label.textContent='НАПАДЕНИЕ НА ДЕРЕВНЮ · ЗАЩИТИ ЖИТЕЛЕЙ';}
   }
@@ -2537,7 +2537,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         if(Number.isFinite(d.skipDayRealSeconds))skipDayRealSeconds=Math.max(0,Math.min(300,d.skipDayRealSeconds));
         if(Array.isArray(d.resources))d.resources.forEach(r=>{const item=inventoryItems.find(i=>i.name===r.name);if(item&&Number.isFinite(r.count))item.count=Math.max(0,Math.min(999999,Math.floor(r.count)));});
         if(d.npcQuestState&&typeof d.npcQuestState==='object')npcQuestState=Object.fromEntries(Object.entries(d.npcQuestState).filter(([id,v])=>NPC_QUESTS[id]&&v&&typeof v==='object').map(([id,v])=>[id,{status:Math.max(0,Math.min(2,Number(v.status)||0)),day:Number.isFinite(v.day)?Math.floor(v.day):0}]));
-        villageReputation=Math.max(0,Math.min(100,Math.floor(Number(d.villageReputation)||0)));lastVillageRaidDay=Number.isInteger(d.lastVillageRaidDay)?d.lastVillageRaidDay:-1;for(let i=monsters.length-1;i>=0;i--)if(monsters[i]&&monsters[i].villageRaid)monsters.splice(i,1);villageRaidActive=d.villageRaidActive===true&&tradeWorldMode&&isNightTime();villageRaidKills=villageRaidActive?Math.max(0,Math.min(3,Math.floor(Number(d.villageRaidKills)||0))):0;villageRaidTimer=villageRaidActive?Math.max(0,Math.min(95,Number(d.villageRaidTimer)||0)):0;if(villageRaidActive&&villageRaidKills>0){for(let i=0;i<villageRaidKills;i++)if(spawnMonster(i===villageRaidKills-1?'brute':null)){monsters[monsters.length-1].villageRaid=true;monsters[monsters.length-1].adminSpawned=true;}}
+        villageReputation=Math.max(0,Math.min(100,Math.floor(Number(d.villageReputation)||0)));lastVillageRaidDay=Number.isInteger(d.lastVillageRaidDay)?d.lastVillageRaidDay:-1;villageRaidActive=d.villageRaidActive===true&&tradeWorldMode&&isNightTime();villageRaidKills=villageRaidActive?Math.max(0,Math.min(3,Math.floor(Number(d.villageRaidKills)||0))):0;villageRaidTimer=villageRaidActive?Math.max(0,Math.min(95,Number(d.villageRaidTimer)||0)):0;const raidRestoreKey=String(currentWorldId||'')+':'+lastVillageRaidDay+':'+(villageRaidActive?String(villageRaidKills):'inactive');if(raidRestoreKey!==lastRestoredVillageRaidKey){for(let i=monsters.length-1;i>=0;i--)if(monsters[i]&&monsters[i].villageRaid)monsters.splice(i,1);if(villageRaidActive&&villageRaidKills>0){for(let i=0;i<villageRaidKills;i++)if(spawnMonster(i===villageRaidKills-1?'brute':null)){monsters[monsters.length-1].villageRaid=true;monsters[monsters.length-1].adminSpawned=true;}}lastRestoredVillageRaidKey=raidRestoreKey;}
         lastWorldMeteorNight=Number.isInteger(d.lastWorldMeteorNight)?d.lastWorldMeteorNight:-1;
         lastWorldHordeNight=Number.isInteger(d.lastWorldHordeNight)?d.lastWorldHordeNight:-1;
         lastWorldCampDay=Number.isInteger(d.lastWorldCampDay)?d.lastWorldCampDay:-1;
