@@ -148,6 +148,7 @@
 .achievement-progress{height:5px;border-radius:9px;background:#1e2d43;overflow:hidden}.achievement-progress i{display:block;height:100%;background:linear-gradient(90deg,#5579e8,#9bb8ff);border-radius:9px}
 .achievement-status{font-size:9px;color:#91a7c8;white-space:nowrap}.achievement-card.is-unlocked .achievement-status{color:#e6ce83}
 @media(max-width:600px){.achievement-card{grid-template-columns:30px minmax(0,1fr)}.achievement-status{grid-column:2}}
+.world-tools-row{display:grid;grid-template-columns:minmax(0,1fr) 175px;gap:8px;margin:10px 0}.world-tools-row input,.world-tools-row select{height:37px;min-width:0;border:1px solid #344d70;border-radius:9px;background:#0b1a2d;color:#e5efff;padding:0 10px;font:inherit;font-size:10px}.world-tools-row input::placeholder{color:#7489a8}.world-filter-empty{padding:18px;text-align:center;color:#8fa6c8;font-size:11px}.world-card-main .world-card-stats{color:#b7c8e5}@media(max-width:540px){.world-tools-row{grid-template-columns:1fr}.world-card-actions{flex-wrap:wrap}}
 </style>
 <style>.world-import-row{display:flex;justify-content:flex-end;margin:10px 0 2px}.world-import-button{border:1px solid #45638f;border-radius:9px;padding:9px 12px;background:#10233d;color:#cfe0ff;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.world-import-button:hover{border-color:#8eaeff;background:#172f50}.world-export-button{white-space:nowrap}@media(max-width:760px){.world-import-row{justify-content:stretch}.world-import-button{width:100%}}</style></head>
 <body>
@@ -219,6 +220,7 @@
         <section class="world-selector-panel" aria-label="Сохранённые миры">
           <div class="world-selector-heading"><div><div class="main-menu-kicker">ТВОИ СОХРАНЕНИЯ</div><h2>Выбери мир</h2></div><span class="world-count" id="world-count">0 миров</span></div>
           <div class="world-import-row"><button class="world-import-button" id="import-world-button" type="button">⇧ Импорт резервной копии</button><input id="import-world-file" type="file" accept=".json,application/json" hidden></div>
+          <div class="world-tools-row"><input id="world-search" type="search" maxlength="32" placeholder="Найти мир по названию" aria-label="Поиск мира"><select id="world-sort" aria-label="Сортировка миров"><option value="recent">Сначала недавние</option><option value="name">По названию</option><option value="oldest">Сначала старые</option></select></div>
           <p class="world-selector-intro">Продолжи путешествие или создай новый мир. Можно хранить до 50 отдельных миров; список прокручивается.</p>
           <div class="worlds-empty" id="worlds-empty"><div class="worlds-empty-icon">⌁</div><b>Пока нет миров</b><p>Создай первый мир — он появится в этом списке, и ты сможешь вернуться в него в любое время.</p><button class="text-action" id="empty-create-world" type="button">Создать первый мир <span>→</span></button></div>
           <div class="worlds-list" id="worlds-list"></div>
