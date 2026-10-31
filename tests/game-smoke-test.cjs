@@ -223,3 +223,7 @@ assert.ok(!worldClockUpdate.includes('Date.now()-sharedClock.received_at'),
 const ownerGate="const coop=window.SkyRealmCoopClient;const coopRoom=coop?.getRoomState?.();if(coopRoom&&(!coop.isRoomOwner||coopRoom.status!=='running'))return;";
 assert.ok(game.split(ownerGate).length-1>=2,
   'World events and village raids must remain owner-controlled during room pauses');
+
+const enterWorldFlow = game.slice(game.indexOf('function enterWorld('), game.indexOf('function returnToMainMenu('));
+assert.ok(enterWorldFlow.indexOf('resetWorldState();') >= 0 && enterWorldFlow.indexOf('resetWorldState();') < enterWorldFlow.indexOf('setupWorld();'),
+  'A previous world state must be reset before generating the next world');
