@@ -1,9 +1,9 @@
 {
+  "game_sha256": "391493392fab3799d993ceabc85ad10454f953b775a509642c963c3346d28ede",
+  "sha256": "8a03d1447cd29f556d5e087c28930601d6f0fca335ab43c3d0fad844c76feeae",
+  "notes": "SkyRealm Launcher 1.0.2 + Game 0.20.17: separate Trade World with two market stalls, five settlements and eight NPCs; complete seven-crop farming; balanced random world events with distinct odds (meteor showers 12%, night hordes 7%, abandoned camps 10%, travelers 8%, storms 8%); saved event cooldowns and world-safe spawn checks; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible.",
+  "game_version": "0.20.17",
   "version": "1.0.2",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "game_sha256": "50326b5469fcfea2d0717c55d53273c37b600050202e7cf0f0a62d802f534705",
-  "sha256": "20e74deefcbbc5bc60176af9a043530eb759cff88491e229331ccf20be9040a5",
-  "game_version": "0.20.17",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-e94e860/SkyRealm_Game.zip",
-  "notes": "SkyRealm 0.20.17: random world events with distinct odds (meteor 12%, night horde 7%, abandoned camp 10%, traveler 8%, storm 8%); 18 varied houses in each village; saved event cooldowns and backward-compatible world saves. Co-op remains a preview."
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
