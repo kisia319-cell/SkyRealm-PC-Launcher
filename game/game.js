@@ -2305,6 +2305,15 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     }catch(error){console.warn('[SkyRealm co-op snapshot]',error);}
     finally{coopSnapshotSyncPending=false;}
   }
+  function rollbackCoopEnemyAction(serialized,reason){
+    if(typeof serialized!=='string'||!serialized)return false;
+    try{
+      localStorage.setItem(saveKey,serialized);
+      loadGame();renderInventory();drawMinimap();updateVitals();updateWalletHud();
+      lastCoopSnapshotSignature='';
+      return true;
+    }catch(error){console.warn('[SkyRealm co-op action rollback]',reason,error);return false;}
+  }
   async function processOwnerCoopEnemyAction(action,network){
     const payload=action?.payload||{},state=network?.getRoomState?.();
     if(!network?.isRoomOwner||!state||state.status!=='running')return false;
@@ -2320,6 +2329,8 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       if(!drop||actor.world_mode!==drop.world_mode||Math.hypot(Number(actor.x)-Number(drop.x),Number(actor.y)-Number(drop.y))>48){
         try{await network.rejectWorldAction(action.action_id,'loot_target_invalid');}catch(_){}return true;
       }
+      saveGame();
+      const rollbackSave=localStorage.getItem(saveKey)||'';
       const index=lootDrops.indexOf(drop);
       lootDrops.splice(index,1);
       if(!saveGame()){lootDrops.splice(Math.max(0,index),0,drop);try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}return true;}
@@ -2334,6 +2345,10 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
         toast('Игрок забрал '+drop.name+' ×'+drop.count+'. Предмет начислен только ему.');
       }catch(error){
         console.warn('[SkyRealm shared loot commit]',error);
+        if(!rollbackCoopEnemyAction(rollbackSave,'loot_commit_failed')){
+          if(!lootDrops.some(v=>v?.id===drop.id))lootDrops.splice(Math.max(0,index),0,drop);
+          saveGame();
+        }
         try{await network.rejectWorldAction(action.action_id,'loot_commit_failed');}catch(_){}
       }
       return true;
@@ -2362,6 +2377,8 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
        Math.hypot(targetX-Number(actor.x),targetY-Number(actor.y))>reach){
       try{await network.rejectWorldAction(action.action_id,'enemy_target_invalid');}catch(_){}return true;
     }
+    if(!saveGame()){try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}return true;}
+    const rollbackSave=localStorage.getItem(saveKey)||'';
     target.hp=Math.max(0,target.hp-damage);
     const reward={};
     if(target.hp<=0){
@@ -2382,10 +2399,18 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       }
     }
     spawnVisualBurst(targetX,targetY,10,'spark','#ffe17b');
-    if(!saveGame()){try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}return true;}
+    if(!saveGame()){
+      rollbackCoopEnemyAction(rollbackSave,'save_failed');
+      try{await network.rejectWorldAction(action.action_id,'save_failed');}catch(_){}
+      return true;
+    }
     let localSave=null;try{localSave=JSON.parse(localStorage.getItem(saveKey)||'null');}catch(_){}
     const safe=window.SkyRealmMultiplayerCore?.sanitizeSharedWorldSnapshot?.(localSave);
-    if(!safe){try{await network.rejectWorldAction(action.action_id,'snapshot_invalid');}catch(_){}return true;}
+    if(!safe){
+      rollbackCoopEnemyAction(rollbackSave,'snapshot_invalid');
+      try{await network.rejectWorldAction(action.action_id,'snapshot_invalid');}catch(_){}
+      return true;
+    }
     try{
       const committed=await network.commitEnemyAction(action.action_id,safe,reward);
       if(!committed||committed.status!=='applied')throw new Error('enemy action commit failed');
@@ -2394,6 +2419,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       toast('Урон по общему врагу подтверждён: '+damage+'. '+(target.hp<=0?'Враг побеждён!':'Осталось '+Math.ceil(target.hp)+' HP.'));
     }catch(error){
       console.warn('[SkyRealm shared enemy commit]',error);
+      rollbackCoopEnemyAction(rollbackSave,'enemy_commit_failed');
       try{await network.rejectWorldAction(action.action_id,'enemy_commit_failed');}catch(_){}
     }
     return true;
