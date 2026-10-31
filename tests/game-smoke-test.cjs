@@ -227,3 +227,8 @@ assert.ok(game.split(ownerGate).length-1>=2,
 const enterWorldFlow = game.slice(game.indexOf('function enterWorld('), game.indexOf('function returnToMainMenu('));
 assert.ok(enterWorldFlow.indexOf('resetWorldState();') >= 0 && enterWorldFlow.indexOf('resetWorldState();') < enterWorldFlow.indexOf('setupWorld();'),
   'A previous world state must be reset before generating the next world');
+
+assert.ok(game.includes(String.raw`d.clearedSnowTiles.filter(k=>/^\d+,\d+$/.test(k))`), 'Cleared snow tile coordinates must restore from saves');
+assert.ok(game.includes(String.raw`Object.entries(d.snowShovelHits).filter(([k,v])=>/^\d+,\d+$/.test(k)`), 'Partial shovel progress must restore from saves');
+assert.ok(game.includes('Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.'), 'Mine location must remain at its deterministic expanded-map position after loading a save');
+assert.ok(!game.includes('Math.max(20,Math.min(31,d.mineTileX))') && !game.includes('Math.max(24,Math.min(29,d.mineTileY))'), 'Legacy mine coordinate clamps must not move the mine back beside the starting area');
