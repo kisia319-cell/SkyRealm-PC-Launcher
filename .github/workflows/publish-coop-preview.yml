@@ -31,6 +31,7 @@ jobs:
           test -f game/game.js
           node --check game/game.js
           echo "game_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "source_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Build game archive and checksum
         id: package
         run: |
@@ -55,12 +56,17 @@ jobs:
           GAME_SHA256: ${{ steps.package.outputs.sha256 }}
           RELEASE_TAG: ${{ steps.package.outputs.tag }}
           GAME_VERSION: ${{ steps.package.outputs.game_version }}
+          SOURCE_COMMIT: ${{ steps.validate.outputs.source_commit }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           pushed=false
           for attempt in 1 2 3 4 5; do
             git fetch origin main
+            if ! git diff --quiet "$SOURCE_COMMIT" origin/main -- game/; then
+              echo "Game source changed while the preview was building; refusing to publish a stale archive." >&2
+              exit 1
+            fi
             git switch -C manifest-update origin/main
             python - <<'PY'
           import json, os
