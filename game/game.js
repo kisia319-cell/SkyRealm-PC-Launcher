@@ -3531,6 +3531,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('apply-game-settings').addEventListener('click',()=>applyAndSaveSettings(true));
   document.getElementById('toggle-hud-move').addEventListener('click',()=>{if(!hudMoveMode){setHudMoveMode(true);document.getElementById('pause-shade').hidden=true;paused=false;keys.clear();canvas.focus();}else finishHudMoveMode();});
   document.getElementById('save-world-now').addEventListener('click',()=>{if(saveGame())toast('Мир успешно сохранён.');});
+  document.getElementById('open-achievements')?.addEventListener('click',openAchievements);
+  document.getElementById('close-achievements')?.addEventListener('click',closeAchievements);
    document.getElementById('exit').addEventListener('click', () => { saveGame(); if (window.pywebview?.api?.close) window.pywebview.api.close(); else { toast('Закрой вкладку, чтобы выйти из игры.'); setPaused(false); } });
   document.getElementById('sign-dialog-close').addEventListener('click', closeSignDialog);
   document.getElementById('sign-dialog-ok').addEventListener('click', closeSignDialog);
