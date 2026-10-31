@@ -40,3 +40,12 @@ assert.ok(launcher.includes("launch_game(readGamePreferencesFromUI(), allowUpdat
 assert.ok(launcherPy.includes('open_mod_id=None')&&launcherPy.includes('SKYREALM_OPEN_MOD_CATALOG'),'Native launcher must validate and forward mod launch requests');
 assert.ok(game.includes("launcherModParams.get('openMods')==='1'")&&game.includes("!isModInstalled(requestedMod)"),'Game must open catalog and install requested known mod idempotently');
 console.log('Launcher mod workshop handoff checks passed.');
+
+// 25-mod workshop and full magic checks.
+for(const id of ["lost_dungeons","sky_islands","ancient_civs","ocean_depths","elemental_lords","legendary_gear","bounty_hunter","arena_survival","settlement_builder","architect","beast_companions","trade_caravans","magic_academy","engineer_world","banking","parallel_dimensions","full_magic"])assert.ok(game.includes("id:'"+id+"'"),'Missing new built-in mod '+id);
+assert.ok(game.includes('function castMagicSpell()'),'Full magic spell casting must be implemented');
+assert.ok(game.includes("if(k==='g'&&!paused"),'G must cast the selected spell');
+assert.ok(game.includes("if(k==='f'&&!paused"),'F must cycle spells');
+assert.ok(game.includes('magicMana=100'),'Magic must initialize with mana');
+assert.ok(launcherPy.includes('"full_magic"'),'Native launcher allowlist must accept full magic');
+console.log('25-mod workshop and full magic checks passed.');
