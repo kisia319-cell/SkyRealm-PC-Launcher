@@ -211,11 +211,15 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Source files changed during manifest publication; refusing stale launcher metadata" }
             $builtManifest = Get-Content update_release/manifest.json -Raw | ConvertFrom-Json
             $currentManifest = Get-Content manifest.json -Raw | ConvertFrom-Json
-            # Keep the game preview URL and checksum from the dedicated preview workflow.
-            # This build owns only the launcher version and launcher archive fields.
+            # This release contains the game archive built from game/ on the same commit.
+            # Publish launcher and game metadata together so players always receive the newest game.
             $currentManifest.version = $builtManifest.version
             $currentManifest.download_url = $builtManifest.download_url
             $currentManifest.sha256 = $builtManifest.sha256
+            $currentManifest.game_version = $builtManifest.game_version
+            $currentManifest.game_download_url = $builtManifest.game_download_url
+            $currentManifest.game_sha256 = $builtManifest.game_sha256
+            $currentManifest.notes = $builtManifest.notes
             $currentManifest | ConvertTo-Json -Depth 10 | Set-Content manifest.json -Encoding utf8
             git add manifest.json
             git diff --cached --quiet
