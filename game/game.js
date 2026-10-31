@@ -99,6 +99,7 @@
   let workbenchDialogOpen = false;
   let sleeping = false;
   let sleepSeconds = 0;
+  let fishingCastTimer=0,fishingOrigin=null,fishCaught=0;
   let questStage = 0;
   let villageQuestStage = 0;
   let blacksmithQuestStage = 0, explorerQuestStage = 0;
@@ -153,7 +154,7 @@
   const NPC_SELL_PRICES={
     merchant:{'Древесина':55,'Листья':20,'Мясо':40},
     alchemist:{'Лечебная трава':300,'Кристалл':1300},
-    hunter:{'Кость':120,'Череп':250,'Мясо':35},
+    hunter:{'Кость':120,'Череп':250,'Мясо':35,'Рыба':70,'Жемчуг':650},
     farmer:{'Урожай':100,'Мясо':60},
     miner:{'Камень':60,'Уголь':180,'Железо':550,'Медь':800,'Олово':900},
     builder:{'Древесина':50,'Камень':50},
@@ -242,6 +243,7 @@
     { name: 'Топор', icon: '🪓', count: 1, description: 'Ударь дерево 5 раз, чтобы получить древесину, листья и палку.' },
     { name: 'Кирка', icon: '⛏️', count: 1, description: 'Выбери кирку, войди в шахту и нажми по залежи левой кнопкой мыши 2 раза.' },
     { name: 'Лопата', icon: '🪏', count: 1, description: 'Выбери лопату и нажми левой кнопкой по снежной клетке. Нужно 3 удара, чтобы убрать снег.' },
+    { name: 'Удочка', icon: '🎣', count: 0, description: 'Выбери удочку, подойди к берегу озера и нажми E. Не двигайся, пока ждёшь поклёвку.' },
     { name: 'Древесина', icon: '🪵', count: 0, description: '7 штук выпадает при рубке дерева.' },
     { name: 'Листья', icon: '🍃', count: 0, description: '3 листка выпадает при рубке дерева.' },
     { name: 'Палка', icon: '🪵', count: 0, description: 'Одна палка выпадает при рубке дерева.' },
@@ -304,6 +306,8 @@
     { name: 'Метеоритный осколок', icon: '☄️', count: 0, description: 'Редкий материал с метеоритного дождя.' },
     { name: 'Реликвия руин', icon: '🏺', count: 0, description: 'Древняя реликвия из последней комнаты подземелья.' },
     { name: 'Эссенция глубин', icon: '🔮', count: 0, description: 'Добыча стражей подземелья.' },
+    { name: 'Рыба', icon: '🐟', count: 0, description: 'Свежая рыба с озера. Можно продать охотнику или съесть, чтобы восстановить 12 голода.' },
+    { name: 'Жемчуг', icon: '🦪', count: 0, description: 'Редкая находка во время рыбалки. Хорошо ценится охотником.' },
     ...resourceItems];
   const starterItemCounts = inventoryItems.map(item => ({name:item.name,count:item.count}));
 
@@ -1817,8 +1821,8 @@
     stone.count-=8;wood.count-=6;furnace.count+=1;furnaceCrafted=true;playSound('craft');workbenchUsed=true;questStage=Math.max(questStage,4);renderInventory();renderWorkbenchStatus('Печь создана! Она добавлена в инвентарь.');saveGame();toast('Крафт готов: печь ×1.');
   }
   function craftEquipment(kind){
-    const recipes={sword:{name:'Железный меч',cost:{'Железо':3,'Древесина':2},house:1},armor:{name:'Кожаная броня',cost:{'Мясо':4,'Древесина':5},house:1},house:{name:'Комплект дома',cost:{'Древесина':24,'Камень':12,'Палка':6},house:1},torch:{name:'Факел',cost:{'Древесина':1,'Уголь':1},house:1},bandage:{name:'Бинт',cost:{'Листья':3,'Мясо':1},house:1},pickaxe:{name:'Улучшенная кирка',cost:{'Железо':4,'Древесина':3},house:1},flameSword:{name:'Огненный меч',cost:{'Железо':6,'Кристалл':3,'Уголь':5,'Медь':3},house:2},speedPotion:{name:'Зелье скорости',cost:{'Листья':5,'Лечебная трава':2,'Кристалл':1},house:1},strengthPotion:{name:'Настой силы',cost:{'Мясо':2,'Метеоритный осколок':1,'Кристалл':1},house:2},wardPotion:{name:'Зелье защиты',cost:{'Лечебная трава':3,'Обсидиан':1,'Кристалл':1},house:2},steelSword:{name:'Стальной меч',cost:{'Железо':8,'Уголь':5,'Древесина':3,'Олово':4},house:2},titanSword:{name:'Меч титана',cost:{'Мифрил':8,'Алмаз':3,'Уран':2,'Рубин':2},house:3},dragonSword:{name:'Меч дракона',cost:{'Мифрил':12,'Алмаз':5,'Рубин':4,'Метеоритный осколок':5},house:3},voidSword:{name:'Меч пустоты',cost:{'Мифрил':18,'Алмаз':8,'Обсидиан':6,'Реликвия руин':1},house:3},iceStaff:{name:'Ледяной посох',cost:{'Кристалл':4,'Древесина':5,'Уголь':3,'Сапфир':2},house:3},lightningSpear:{name:'Молниеносное копьё',cost:{'Железо':6,'Кристалл':3,'Палка':4,'Серебро':3},house:2},guardianArmor:{name:'Броня стража',cost:{'Железо':10,'Кость':6,'Кристалл':2,'Обсидиан':3},house:3},mageRobe:{name:'Мантия мага',cost:{'Кристалл':3,'Листья':8,'Теневая эссенция':2,'Рубин':2},house:3},anvil:{name:'Наковальня',cost:{'Железо':8,'Камень':12,'Древесина':6},house:2},masterPickaxe:{name:'Кирка мастера',cost:{'Железо':8,'Кристалл':2,'Древесина':5,'Мифрил':2},house:3},coal:{name:'Угольный блок',cost:{'Уголь':4,'Камень':2},house:1},helmet:{name:'Шлем лесника',cost:{'Кость':4,'Железо':3,'Медь':2},house:2},boots:{name:'Сапоги странника',cost:{'Древесина':3,'Листья':6},house:1},amulet:{name:'Амулет стража',cost:{'Кристалл':2,'Железо':2,'Алмаз':1},house:3},storage:{name:'Сундук-хранилище',cost:{'Древесина':10,'Камень':4},house:1},farmplot:{name:'Грядка с семенами',cost:{'Древесина':4,'Листья':3},house:1}};
-    const recipe=recipes[kind];if(!recipe)return;if(houseLevel<recipe.house){const msg='Для рецепта «'+recipe.name+'» нужен дом уровня '+recipe.house+'. Улучши дом у верстака.';renderWorkbenchStatus(msg);toast(msg);return;}const actualCost=Object.fromEntries(Object.entries(recipe.cost).map(([name,amount])=>[name,classCraftCost(recipe.name,amount)]));const missing=Object.entries(actualCost).filter(([name,amount])=>itemCount(name)<amount);if(missing.length){const msg='Не хватает: '+missing.map(([name,amount])=>name+' '+itemCount(name)+'/'+amount).join(', ')+'.';renderWorkbenchStatus(msg);toast(msg);return;}if(['Железный меч','Кожаная броня','Улучшенная кирка','Огненный меч','Стальной меч','Меч титана','Меч дракона','Меч пустоты','Ледяной посох','Молниеносное копьё','Броня стража','Мантия мага','Наковальня','Кирка мастера','Шлем лесника','Сапоги странника','Амулет стража'].includes(recipe.name)&&itemCount(recipe.name)>0){toast('Этот предмет уже создан.');return;}Object.entries(actualCost).forEach(([name,amount])=>changeItem(name,-amount));const item=inventoryItems.find(i=>i.name===recipe.name);if(item)item.count+=1;if(recipe.name==='Наковальня')anvilCrafted=true;playSound('craft');renderInventory();renderWorkbenchStatus(recipe.name+' создан!');awardXP(20,'создание предмета');saveGame();toast('Создано: '+recipe.name+'.');
+    const recipes={sword:{name:'Железный меч',cost:{'Железо':3,'Древесина':2},house:1},armor:{name:'Кожаная броня',cost:{'Мясо':4,'Древесина':5},house:1},house:{name:'Комплект дома',cost:{'Древесина':24,'Камень':12,'Палка':6},house:1},torch:{name:'Факел',cost:{'Древесина':1,'Уголь':1},house:1},bandage:{name:'Бинт',cost:{'Листья':3,'Мясо':1},house:1},pickaxe:{name:'Улучшенная кирка',cost:{'Железо':4,'Древесина':3},house:1},flameSword:{name:'Огненный меч',cost:{'Железо':6,'Кристалл':3,'Уголь':5,'Медь':3},house:2},speedPotion:{name:'Зелье скорости',cost:{'Листья':5,'Лечебная трава':2,'Кристалл':1},house:1},strengthPotion:{name:'Настой силы',cost:{'Мясо':2,'Метеоритный осколок':1,'Кристалл':1},house:2},wardPotion:{name:'Зелье защиты',cost:{'Лечебная трава':3,'Обсидиан':1,'Кристалл':1},house:2},steelSword:{name:'Стальной меч',cost:{'Железо':8,'Уголь':5,'Древесина':3,'Олово':4},house:2},titanSword:{name:'Меч титана',cost:{'Мифрил':8,'Алмаз':3,'Уран':2,'Рубин':2},house:3},dragonSword:{name:'Меч дракона',cost:{'Мифрил':12,'Алмаз':5,'Рубин':4,'Метеоритный осколок':5},house:3},voidSword:{name:'Меч пустоты',cost:{'Мифрил':18,'Алмаз':8,'Обсидиан':6,'Реликвия руин':1},house:3},iceStaff:{name:'Ледяной посох',cost:{'Кристалл':4,'Древесина':5,'Уголь':3,'Сапфир':2},house:3},lightningSpear:{name:'Молниеносное копьё',cost:{'Железо':6,'Кристалл':3,'Палка':4,'Серебро':3},house:2},guardianArmor:{name:'Броня стража',cost:{'Железо':10,'Кость':6,'Кристалл':2,'Обсидиан':3},house:3},mageRobe:{name:'Мантия мага',cost:{'Кристалл':3,'Листья':8,'Теневая эссенция':2,'Рубин':2},house:3},anvil:{name:'Наковальня',cost:{'Железо':8,'Камень':12,'Древесина':6},house:2},masterPickaxe:{name:'Кирка мастера',cost:{'Железо':8,'Кристалл':2,'Древесина':5,'Мифрил':2},house:3},coal:{name:'Угольный блок',cost:{'Уголь':4,'Камень':2},house:1},helmet:{name:'Шлем лесника',cost:{'Кость':4,'Железо':3,'Медь':2},house:2},boots:{name:'Сапоги странника',cost:{'Древесина':3,'Листья':6},house:1},amulet:{name:'Амулет стража',cost:{'Кристалл':2,'Железо':2,'Алмаз':1},house:3},storage:{name:'Сундук-хранилище',cost:{'Древесина':10,'Камень':4},house:1},farmplot:{name:'Грядка с семенами',cost:{'Древесина':4,'Листья':3},house:1},fishingRod:{name:'Удочка',cost:{'Древесина':8,'Палка':4,'Камень':2},house:1}};
+    const recipe=recipes[kind];if(!recipe)return;if(houseLevel<recipe.house){const msg='Для рецепта «'+recipe.name+'» нужен дом уровня '+recipe.house+'. Улучши дом у верстака.';renderWorkbenchStatus(msg);toast(msg);return;}const actualCost=Object.fromEntries(Object.entries(recipe.cost).map(([name,amount])=>[name,classCraftCost(recipe.name,amount)]));const missing=Object.entries(actualCost).filter(([name,amount])=>itemCount(name)<amount);if(missing.length){const msg='Не хватает: '+missing.map(([name,amount])=>name+' '+itemCount(name)+'/'+amount).join(', ')+'.';renderWorkbenchStatus(msg);toast(msg);return;}if(['Железный меч','Кожаная броня','Улучшенная кирка','Огненный меч','Стальной меч','Меч титана','Меч дракона','Меч пустоты','Ледяной посох','Молниеносное копьё','Броня стража','Мантия мага','Наковальня','Кирка мастера','Шлем лесника','Сапоги странника','Амулет стража','Удочка'].includes(recipe.name)&&itemCount(recipe.name)>0){toast('Этот предмет уже создан.');return;}Object.entries(actualCost).forEach(([name,amount])=>changeItem(name,-amount));const item=inventoryItems.find(i=>i.name===recipe.name);if(item)item.count+=1;if(recipe.name==='Наковальня')anvilCrafted=true;playSound('craft');renderInventory();renderWorkbenchStatus(recipe.name+' создан!');awardXP(20,'создание предмета');saveGame();toast('Создано: '+recipe.name+'.');
   }
   function upgradeAtAnvil(kind){if(!anvilCrafted&&itemCount('Наковальня')<=0){toast('Сначала создай наковальню на верстаке.');return;}if(kind==='weapon'){const name=equipment.weapon||'Деревянный меч',level=Math.max(0,Number(weaponUpgrades[name])||0);if(level>=5){toast('Это оружие уже улучшено до максимума.');return;}const cost={'Железо':3+level*2,'Кристалл':level>=2?level:0,'Золото':(level+1)*250};const missing=Object.entries(cost).filter(([n,c])=>c>0&&(n==='Золото'?walletCents<c*100:itemCount(n)<c));if(missing.length){toast('Не хватает ресурсов: '+missing.map(([n,c])=>n+' '+(n==='Золото'?(walletCents/100).toFixed(0):itemCount(n))+'/'+c).join(', '));return;}Object.entries(cost).forEach(([n,c])=>{if(c<=0)return;if(n==='Золото')walletCents-=c*100;else changeItem(n,-c);});weaponUpgrades[name]=level+1;toast(name+' улучшен до +'+(level+1)+'! Урон: '+weaponDamage(name));}else{if(armorUpgrade>=5){toast('Броня уже улучшена до максимума.');return;}const cost={'Железо':4+armorUpgrade*2,'Кристалл':armorUpgrade>=2?armorUpgrade:0,'Золото':300*(armorUpgrade+1)};const missing=Object.entries(cost).filter(([n,c])=>c>0&&(n==='Золото'?walletCents<c*100:itemCount(n)<c));if(missing.length){toast('Не хватает ресурсов для улучшения брони: '+missing.map(([n,c])=>n+' '+(n==='Золото'?(walletCents/100).toFixed(0):itemCount(n))+'/'+c).join(', '));return;}Object.entries(cost).forEach(([n,c])=>{if(c<=0)return;if(n==='Золото')walletCents-=c*100;else changeItem(n,-c);});armorUpgrade++;toast('Броня улучшена до +'+armorUpgrade+'! Защита: '+Math.round(armorReduction()*100)+'%.');}playSound('iron');renderInventory();renderEquipmentPanel();saveGame();}
   function enchantWeapon(){
@@ -1858,7 +1862,7 @@
   function upgradeMine(){applyUpgrade('mine');}
   function useBandage(){const item=inventoryItems.find(i=>i.name==='Бинт');if(!item||item.count<1){toast('Нет бинтов. Создай их у верстака.');return;}if(player.hp>=100){toast('Здоровье уже полное.');return;}item.count--;player.hp=Math.min(100,player.hp+20);updateVitals();renderInventory();saveGame();playSound('craft');toast('Бинт использован: +20 здоровья.');}
   function useHealingPotion(){const potion=inventoryItems.find(i=>i.name==='Малое зелье');if(!potion||potion.count<1){toast('Нет лечебных зелий.');return;}if(player.hp>=100){toast('Здоровье уже полное.');return;}potion.count--;player.hp=Math.min(100,player.hp+35);playSound('craft');updateVitals();renderInventory();saveGame();toast('Зелье использовано: +35 здоровья.');}
-  function eatMeat(){const meat=inventoryItems.find(i=>i.name==='Мясо');if(!meat||meat.count<=0){toast('У тебя нет мяса. Найди овцу и нажми Space рядом с ней.');return;}meat.count--;hunger=Math.min(100,hunger+10);questStage=Math.max(questStage,6);hungerElapsedMinutes=0;renderInventory();updateClockDisplay(true);saveGame();toast('Ты съел мясо. +10 голода.');}
+  function eatMeat(){const meat=inventoryItems.find(i=>i.name==='Мясо'),fish=inventoryItems.find(i=>i.name==='Рыба'),food=meat&&meat.count>0?meat:fish&&fish.count>0?fish:null;if(!food){toast('Нет еды. Найди овцу или поймай рыбу на озере.');return;}food.count--;const restored=food.name==='Рыба'?12:10;hunger=Math.min(100,hunger+restored);questStage=Math.max(questStage,6);hungerElapsedMinutes=0;renderInventory();updateClockDisplay(true);saveGame();toast('Ты съел '+(food.name==='Рыба'?'рыбу':'мясо')+'. +'+restored+' голода.');}
   function updateSkipDayHud(){const t=document.getElementById('skip-day-timer'),b=document.getElementById('skip-day-button');if(!t||!b)return;const left=Math.max(0,Math.ceil(skipDayRealSeconds));t.textContent=left>0?`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'Готово';b.disabled=left>0||paused||inMainMenu;b.title=left>0?'Пропустить день можно после 5 минут реального времени':'Пропустить игровой день';}
   function skipGameDay(){if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;survivedNights++;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;skipDayRealSeconds=300;updateClockDisplay(true);saveGame();toast('День пропущен. Он засчитан как прожитый.');}
   function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>276;}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
@@ -1906,11 +1910,52 @@
   function buyOre(name){const price=difficultyConfig().shop.buy[name];if(!Number.isFinite(price)){toast('Этот товар недоступен.');return;}if(walletCents<price){toast('Недостаточно денег. Нужно '+formatMoney(price)+'.');return;}walletCents-=price;changeItem(name,1);playSound('coin');renderInventory();updateWalletHud();renderShop();saveGame();toast('Куплено: '+name+'. Баланс: '+formatMoney(walletCents)+'.');}
   let worldTransitioning=false;
   function transitionTradeWorld(){if(worldTransitioning)return;worldTransitioning=true;const fade=document.getElementById('world-fade');const wasPaused=paused;paused=true;keys.clear();fade.classList.add('active');playSound('portal');window.setTimeout(()=>{tradeWorldMode=!tradeWorldMode;inHouse=false;mineMode=false;player.x=tradeEntranceX*TILE+16;player.y=tradeEntranceY*TILE+16;player.vx=player.vy=0;markExploredAroundPlayer();const loc=document.getElementById('location-name');if(loc)loc.textContent=tradeWorldMode?'Мир торговли':'Лесная долина';saveGame();drawMinimap();toast(tradeWorldMode?'Ты в Мире торговли! У входа — две лавки, рядом — торговец и фермер Мира. T открывает магазин, E — задание.':'Ты вернулся в Лесную долину.');window.setTimeout(()=>{fade.classList.remove('active');paused=wasPaused;worldTransitioning=false;},280);},280);}
+  function fishingShoreRatio(){
+    if(tradeWorldMode||mineMode||caveMode||dungeonMode||inHouse)return Infinity;
+    const dx=(player.x/TILE-52)/6.5,dy=(player.y/TILE-36)/4.3;
+    return Math.hypot(dx,dy);
+  }
+  function startFishing(){
+    const ratio=fishingShoreRatio();
+    if(!Number.isFinite(ratio)||ratio<.86||ratio>1.55)return false;
+    if(fishingCastTimer>0){toast('Удочка уже заброшена. Подожди поклёвку.');return true;}
+    if(itemCount('Удочка')<=0){toast('Для рыбалки сначала создай удочку на верстаке.');return true;}
+    if(selectedInventoryItem()?.name!=='Удочка'){toast('Выбери удочку в нижнем инвентаре, чтобы рыбачить.');return true;}
+    fishingOrigin={x:player.x,y:player.y};
+    fishingCastTimer=3.2;
+    spawnVisualBurst(player.x,player.y,5,'spark','#9ce8ff');
+    playSound('portal');
+    toast('Удочка заброшена. Не двигайся около 3 секунд…');
+    return true;
+  }
+  function updateFishing(dt){
+    if(fishingCastTimer<=0)return;
+    if(!fishingOrigin||Math.hypot(player.x-fishingOrigin.x,player.y-fishingOrigin.y)>TILE*.6){
+      fishingCastTimer=0;fishingOrigin=null;toast('Рыбалка прервана: ты отошёл от берега.');return;
+    }
+    fishingCastTimer=Math.max(0,fishingCastTimer-dt);
+    if(fishingCastTimer>0)return;
+    fishingOrigin=null;
+    const pearlChance=weatherMode==='rain'?.12:.05;
+    const pearl=Math.random()<pearlChance;
+    const itemName=pearl?'Жемчуг':'Рыба';
+    const amount=pearl?1:1+(Math.random()<.35?1:0);
+    if(!changeItem(itemName,amount)){toast('Не удалось поместить улов в инвентарь.');return;}
+    fishCaught+=amount;
+    spawnVisualBurst(player.x,player.y,pearl?18:10,'spark',pearl?'#e9d4ff':'#9ce8ff');
+    playSound(pearl?'coin':'water');
+    awardXP(pearl?24:8,'рыбалка');
+    renderInventory();
+    saveGame();
+    toast(pearl?'Редкая находка! Ты поймал жемчуг.':'Поклёвка! Получено: рыба ×'+amount+'. Всего поймано: '+fishCaught+'.');
+  }
   async function interact(){
     if(dungeonMode){interactDungeon();return;}
     if(collectMeteor())return;
     if(collectWorldEventCamp())return;
     if(collectWorldEventTraveler())return;
+    if(fishingCastTimer>0){toast('Подожди поклёвку — не двигайся.');return;}
+    if(startFishing())return;
     if(caveMode){if(Math.hypot(player.x-width*.73,player.y-height*.48)<95){if(!caveBossDefeated){toast('Сундук запечатан Каменным стражем. Сначала победи босса!');return;}if(!caveChestOpened){
       const claim=await claimCoopChest('cave_chest','cave');
       if(claim.coop&&!claim.claimed){if(!claim.error){caveChestOpened=true;saveGame();}return;}
@@ -2415,7 +2460,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     if (!paused && !coopRoomPaused && !signDialogOpen && !inventoryDialogOpen && !fullMapOpen && !workbenchDialogOpen) {
       playerAttackCooldown=Math.max(0,playerAttackCooldown-dt);combatAbilityCooldown=Math.max(0,combatAbilityCooldown-dt);dodgeCooldown=Math.max(0,dodgeCooldown-dt);dodgeTimer=Math.max(0,dodgeTimer-dt);
       if(sleeping){sleepSeconds+=dt;if(sleepSeconds>=5){sleeping=false;questStage=Math.max(questStage,4);const oldMinute=minuteOfDay(),oldDay=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(oldMinute<DAWN_MINUTE?oldDay:oldDay+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;if(oldMinute>=18*60&&oldMinute<NIGHT_MINUTE)survivedNights++;refreshMineDailyStock();lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;player.hp=100;updateVitals();updateClockDisplay(true);toast('Ты проспал 5 секунд. Наступил рассвет!');saveGame();}}
-      updateWorldClock(dt);updateVillageNpcs(dt);updateVillageRaid(dt);strengthPotionTimer=Math.max(0,strengthPotionTimer-dt);wardPotionTimer=Math.max(0,wardPotionTimer-dt);speedPotionTimer=Math.max(0,speedPotionTimer-dt);updateWorldEvents(dt);updateBiomeBosses(dt);
+      updateWorldClock(dt);updateVillageNpcs(dt);updateVillageRaid(dt);strengthPotionTimer=Math.max(0,strengthPotionTimer-dt);wardPotionTimer=Math.max(0,wardPotionTimer-dt);speedPotionTimer=Math.max(0,speedPotionTimer-dt);updateWorldEvents(dt);updateFishing(dt);updateBiomeBosses(dt);
       if(inHouse && !sleeping && player.hp<100){player.hp=Math.min(100,player.hp+dt*(1+(houseLevel-1)*.65));updateVitals();}
       pickUpLoot(dt);
       updateFarmPlots(dt);
@@ -2491,7 +2536,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function saveGame(){
     if(!currentWorldId)return false;
-    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees},tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
+    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees},tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
     try{
       localStorage.setItem(saveKey,serialized);
     }catch(error){
@@ -2547,7 +2592,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         lastWorldMeteorNight=Number.isInteger(d.lastWorldMeteorNight)?d.lastWorldMeteorNight:-1;
         lastWorldHordeNight=Number.isInteger(d.lastWorldHordeNight)?d.lastWorldHordeNight:-1;
         lastWorldCampDay=Number.isInteger(d.lastWorldCampDay)?d.lastWorldCampDay:-1;
-        lastWorldTravelerDay=Number.isInteger(d.lastWorldTravelerDay)?d.lastWorldTravelerDay:-2;if(['clear','rain','snow','storm'].includes(d.weatherMode))weatherMode=d.weatherMode;if(Number.isFinite(d.weatherTimer))weatherTimer=Math.max(0,Math.min(180,d.weatherTimer));
+        lastWorldTravelerDay=Number.isInteger(d.lastWorldTravelerDay)?d.lastWorldTravelerDay:-2;fishCaught=Number.isInteger(d.fishCaught)?Math.max(0,Math.min(100000,d.fishCaught)):0;if(['clear','rain','snow','storm'].includes(d.weatherMode))weatherMode=d.weatherMode;if(Number.isFinite(d.weatherTimer))weatherTimer=Math.max(0,Math.min(180,d.weatherTimer));
         meteorPoint=d.meteorPoint&&Number.isFinite(d.meteorPoint.x)&&Number.isFinite(d.meteorPoint.y)?{x:Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,d.meteorPoint.x)),y:Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,d.meteorPoint.y))}:null;
         meteorShowerTimer=meteorPoint&&Number.isFinite(d.meteorShowerTimer)?Math.max(0,Math.min(WORLD_EVENT_CHANCES.meteorLifetime,d.meteorShowerTimer)):0;
         worldEventCamp=d.worldEventCamp&&Number.isFinite(d.worldEventCamp.x)&&Number.isFinite(d.worldEventCamp.y)?{x:Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,d.worldEventCamp.x)),y:Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,d.worldEventCamp.y)),life:Math.max(0,Math.min(WORLD_EVENT_CHANCES.campLifetime,Number(d.worldEventCamp.life)||0))}:null;
