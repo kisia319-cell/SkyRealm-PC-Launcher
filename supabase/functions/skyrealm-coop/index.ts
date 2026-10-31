@@ -97,6 +97,31 @@ function sanitizeWorldAction(actionType: unknown, value: unknown): Record<string
   }
   const item = value as Record<string, unknown>;
   const keys = Object.keys(item);
+  if (actionType === "damage_enemy") {
+    const allowed = ["target_kind","target_id","weapon","damage"];
+    const kinds = ["monster","biome_boss","wolf_boss","cave_boss","dungeon_boss"];
+    const weapons = ["Деревянный меч","Железный меч","Огненный меч","Стальной меч","Меч титана","Меч дракона","Меч пустоты","Ледяной посох","Молниеносное копьё"];
+    const targetId = typeof item.target_id === "string" ? item.target_id : "";
+    const damage = item.damage;
+    if (keys.length !== 4 || keys.some(key => !allowed.includes(key)) ||
+        !kinds.includes(String(item.target_kind)) || !/^[A-Za-z0-9_-]{1,64}$/.test(targetId) ||
+        !weapons.includes(String(item.weapon)) || typeof damage !== "number" ||
+        !Number.isSafeInteger(damage) || damage < 1 || damage > 500) {
+      throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный удар по общему врагу.");
+    }
+    return { target_kind: String(item.target_kind), target_id: targetId, weapon: String(item.weapon), damage };
+  }
+  if (actionType === "pickup_loot") {
+    const allowed = ["loot_id","x","y","world_mode"];
+    const lootId = typeof item.loot_id === "string" ? item.loot_id : "";
+    const x = Number(item.x), y = Number(item.y);
+    if (keys.length !== 4 || keys.some(key => !allowed.includes(key)) ||
+        !UUID_PATTERN.test(lootId) || !["surface","cave","dungeon"].includes(String(item.world_mode)) ||
+        !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 12000 || y < 0 || y > 10000) {
+      throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный запрос подбора общей добычи.");
+    }
+    return { loot_id: lootId, x: Math.round(x*10)/10, y: Math.round(y*10)/10, world_mode: String(item.world_mode) };
+  }
   if (actionType === "mine_rock") {
     if (keys.some(key => !["rock_index","tool","player_class","miner_skill_level"].includes(key)) || !["rock_index","tool"].every(key => keys.includes(key))) {
       throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный запрос добычи.");
@@ -246,7 +271,7 @@ Deno.serve(async (req: Request) => {
   }
   try {
     const user = await authenticate(req);
-    const body = req.method === "POST" ? await parseBody(req, (route.startsWith('/api/coop/snapshot/') || route === '/api/coop/actions/commit') ? 80_000 : 12_000) : {};
+    const body = req.method === "POST" ? await parseBody(req, (route.startsWith('/api/coop/snapshot/') || route === '/api/coop/actions/commit' || route === '/api/coop/actions/commit-enemy') ? 80_000 : 12_000) : {};
     if (route === "/api/coop/create" && req.method === "POST") {
       const inviteCode = newInviteCode();
       const difficulty = typeof body.world_difficulty === "string" ? body.world_difficulty : "medium";
@@ -366,6 +391,29 @@ Deno.serve(async (req: Request) => {
         throw new ApiError(400,"INVALID_TREE_ACTION_RESULT","Некорректная награда за дерево.");
       }
       const result = await rpc("commit_co_op_tree_action", {
+        p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id),
+        p_expected_version:expectedVersion, p_payload:payload, p_result:resultInput,
+      });
+      return reply({ result });
+    }
+    if (route === "/api/coop/actions/commit-enemy" && req.method === "POST") {
+      const expectedVersion = Number(body.expected_version);
+      if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
+        throw new ApiError(400,"INVALID_SNAPSHOT_REQUEST","Некорректная версия снимка.");
+      }
+      const payload = sanitizeSharedSnapshot(body.payload);
+      if (!body.result || typeof body.result !== "object" || Array.isArray(body.result)) {
+        throw new ApiError(400,"INVALID_ENEMY_ACTION_RESULT","Некорректный результат боя или подбора.");
+      }
+      const resultInput = body.result as Record<string, unknown>;
+      const allowed = ["reward_name","reward_amount","reward_xp"];
+      if (Object.keys(resultInput).some(key => !allowed.includes(key)) ||
+          (resultInput.reward_name !== undefined && (typeof resultInput.reward_name !== "string" || resultInput.reward_name.length < 1 || resultInput.reward_name.length > 48)) ||
+          (resultInput.reward_amount !== undefined && (typeof resultInput.reward_amount !== "number" || !Number.isSafeInteger(resultInput.reward_amount) || resultInput.reward_amount < 1 || resultInput.reward_amount > 99)) ||
+          (resultInput.reward_xp !== undefined && (typeof resultInput.reward_xp !== "number" || !Number.isSafeInteger(resultInput.reward_xp) || resultInput.reward_xp < 0 || resultInput.reward_xp > 1000))) {
+        throw new ApiError(400,"INVALID_ENEMY_ACTION_RESULT","Некорректная награда за общий бой.");
+      }
+      const result = await rpc("commit_co_op_enemy_action", {
         p_user_id:user.id, p_room_id:roomId(body.room_id), p_action_id:actionId(body.action_id),
         p_expected_version:expectedVersion, p_payload:payload, p_result:resultInput,
       });
