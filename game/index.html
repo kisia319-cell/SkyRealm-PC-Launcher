@@ -306,12 +306,20 @@
         <button class="action secondary" id="coop-join" type="button">Войти по коду</button>
       </div>
     </section>
+    <section class="coop-room-card coop-friend-inbox" id="coop-incoming-invites" hidden>
+      <div class="coop-room-top"><strong>Приглашения от друзей</strong><span class="coop-badge" id="coop-incoming-count">0</span></div>
+      <div class="coop-friend-list" id="coop-incoming-invites-list"><div class="coop-player">Проверяем приглашения…</div></div>
+    </section>
     <section id="coop-has-room" class="coop-hidden">
       <div class="coop-room-card">
         <div class="coop-room-top"><strong>Твоя комната</strong><span class="coop-badge" id="coop-room-status">Лобби</span></div>
         <div class="coop-room-id" id="coop-room-id"></div>
         <div class="coop-invite" id="coop-invite-row" hidden><code id="coop-invite-code"></code><button class="action secondary" id="coop-copy" type="button">Копировать</button></div>
         <div class="coop-player-list" id="coop-members"></div>
+        <div class="coop-friend-tools" id="coop-friend-tools" hidden>
+          <button class="action secondary" id="coop-friend-invite-toggle" type="button">✉ Пригласить друзей в комнату</button>
+          <div class="coop-friend-list" id="coop-friend-invite-list" hidden></div>
+        </div>
         <label class="coop-toggle-row" id="coop-pvp-row"><span><b>PvP</b><br><small>Настройка комнаты сохранена; урон между игроками подключится на этапе общей боевой системы</small></span><input type="checkbox" id="coop-pvp"></label>
       </div>
       <div class="coop-actions">
