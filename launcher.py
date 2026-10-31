@@ -141,6 +141,93 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Не удалось открыть папку данных: " + str(exc)}
 
+    def _skyrealm_webview_profile_dir(self):
+        app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+        return app_data / "SkyRealm" / "webview-profile"
+
+    def _skyrealm_game_is_running(self):
+        try:
+            if os.name == "nt":
+                result = subprocess.run(["tasklist", "/FI", "IMAGENAME eq SkyRealmGame.exe"],
+                                        capture_output=True, text=True, timeout=5, check=False)
+                return "SkyRealmGame.exe" in (result.stdout or "")
+            result = subprocess.run(["pgrep", "-f", "SkyRealmGame"],
+                                    capture_output=True, text=True, timeout=5, check=False)
+            return result.returncode == 0
+        except Exception:
+            # Fail closed: do not touch Chromium's LevelDB while process state is unknown.
+            return True
+
+    def _skyrealm_create_world_backup(self):
+        profile = self._skyrealm_webview_profile_dir()
+        candidates = [p for p in profile.rglob("Local Storage") if p.is_dir() and (p / "leveldb").is_dir()] if profile.exists() else []
+        if not candidates:
+            return {"ok": False, "message": "Хранилище миров не найдено. Сначала запусти игру и создай или открой мир."}
+        root = profile.parent
+        backup_dir = root / "backups"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        archive = backup_dir / ("skyrealm-worlds-" + stamp + ".zip")
+        count = 0
+        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:
+            for storage in candidates:
+                for item in storage.rglob("*"):
+                    if item.is_file():
+                        bundle.write(item, item.relative_to(profile).as_posix())
+                        count += 1
+            bundle.writestr("backup-info.json", json.dumps({
+                "format": 1, "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "application": "SkyRealm", "storage": "Chromium Local Storage"
+            }, ensure_ascii=False, indent=2))
+        if count == 0:
+            archive.unlink(missing_ok=True)
+            return {"ok": False, "message": "В хранилище пока нет файлов сохранений."}
+        return {"ok": True, "path": str(archive), "files": count}
+
+    def backup_worlds(self):
+        """Create a non-destructive archive of the WebView localStorage database."""
+        try:
+            if self._skyrealm_game_is_running():
+                return {"ok": False, "message": "Сначала полностью закрой SkyRealm, затем создай резервную копию."}
+            return self._skyrealm_create_world_backup()
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось создать копию миров: " + str(exc)}
+
+    def restore_worlds(self):
+        """Restore the newest backup after first creating a safety copy of current saves."""
+        try:
+            if self._skyrealm_game_is_running():
+                return {"ok": False, "message": "Сначала полностью закрой SkyRealm. Нельзя восстанавливать базу, пока игра запущена."}
+            root = self._skyrealm_webview_profile_dir()
+            backup_dir = root.parent / "backups"
+            archives = sorted(backup_dir.glob("skyrealm-worlds-*.zip"), key=lambda p: p.stat().st_mtime, reverse=True) if backup_dir.exists() else []
+            if not archives:
+                return {"ok": False, "message": "Резервная копия не найдена. Сначала создай её."}
+            safety = self._skyrealm_create_world_backup()
+            if not safety.get("ok"):
+                return {"ok": False, "message": "Перед восстановлением не удалось сохранить текущие миры: " + safety.get("message", "")}
+            restored = 0
+            profile = root.resolve()
+            with zipfile.ZipFile(archives[0], "r") as bundle:
+                for info in bundle.infolist():
+                    if info.is_dir() or info.filename == "backup-info.json":
+                        continue
+                    relative = Path(info.filename)
+                    if relative.is_absolute() or ".." in relative.parts or "Local Storage" not in relative.parts:
+                        continue
+                    target = (root / relative).resolve()
+                    if not target.is_relative_to(profile):
+                        continue
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with bundle.open(info, "r") as source, target.open("wb") as destination:
+                        shutil.copyfileobj(source, destination)
+                    restored += 1
+            if restored == 0:
+                return {"ok": False, "message": "Архив не содержит базы сохранений. Текущие миры не удалены."}
+            return {"ok": True, "files": restored, "safety_backup": safety["path"], "archive": str(archives[0])}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось восстановить миры: " + str(exc)}
+
     def get_launcher_settings(self):
         return {"ok": True, "settings": read_user_settings()}
 
@@ -205,9 +292,19 @@ class LauncherApi:
                 last_log = "\\n".join(log_path.read_text(encoding="utf-8", errors="replace").splitlines()[-8:])
             except OSError:
                 pass
+            profile_dir = root / "webview-profile"
+            storage_dirs = [p for p in profile_dir.rglob("Local Storage") if p.is_dir() and (p / "leveldb").is_dir()] if profile_dir.exists() else []
+            storage_bytes = sum(item.stat().st_size for folder in storage_dirs for item in folder.rglob("*") if item.is_file())
+            fingerprints = {}
+            for name in required:
+                candidate = install_dir / name
+                if candidate.is_file():
+                    fingerprints[name] = file_sha256(candidate)
             return {"ok": True, "installed": install_dir.is_dir(), "version": version or "не установлена",
                     "missing": missing, "healthy": not missing, "game_path": str(install_dir),
-                    "log_path": str(log_path), "last_log": last_log}
+                    "log_path": str(log_path), "last_log": last_log,
+                    "world_storage_found": bool(storage_dirs), "world_storage_bytes": storage_bytes,
+                    "integrity_sha256": fingerprints}
         except Exception as exc:
             return {"ok": False, "message": "Ошибка диагностики: " + str(exc)}
 
