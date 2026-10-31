@@ -72,8 +72,8 @@ jobs:
             manifest["game_download_url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
             manifest["game_sha256"] = os.environ["GAME_SHA256"]
             manifest["notes"] = f"SkyRealm {version}: random world events with distinct odds (meteor 12%, night horde 7%, abandoned camp 10%, traveler 8%, storm 8%); 18 varied houses in each village; saved event cooldowns and backward-compatible world saves. Co-op remains a preview."
-            path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
-            PY
+            path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
             git add manifest.json
             if git diff --cached --quiet; then
               echo "Manifest already points to this verified package."
