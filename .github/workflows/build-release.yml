@@ -185,6 +185,8 @@ jobs:
             }
             git reset --hard origin/main
             if ($LASTEXITCODE -ne 0) { throw "Could not reset to origin/main" }
+            git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json'
+            if ($LASTEXITCODE -ne 0) { throw "Source files changed during manifest publication; refusing stale launcher metadata" }
             $builtManifest = Get-Content update_release/manifest.json -Raw | ConvertFrom-Json
             $currentManifest = Get-Content manifest.json -Raw | ConvertFrom-Json
             # Keep the game preview URL and checksum from the dedicated preview workflow.
