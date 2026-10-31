@@ -97,6 +97,16 @@ jobs:
           Set-Content -Path update_release/manifest.json -Value $manifest -Encoding utf8
           Copy-Item update_release/manifest.json manifest.json -Force
 
+      - name: Reject stale release builds
+        shell: pwsh
+        run: |
+          git fetch origin main
+          $builtCommit = "${{ github.sha }}"
+          $mainCommit = (git rev-parse origin/main).Trim()
+          if ($builtCommit -ne $mainCommit) {
+            throw "Skipping stale build $builtCommit; main has advanced to $mainCommit"
+          }
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -148,6 +158,16 @@ jobs:
             if ($publishedNames -notcontains $expectedName) {
               throw "Release asset missing after upload: $expectedName"
             }
+          }
+
+      - name: Reject stale manifest publication
+        shell: pwsh
+        run: |
+          git fetch origin main
+          $builtCommit = "${{ github.sha }}"
+          $mainCommit = (git rev-parse origin/main).Trim()
+          if ($builtCommit -ne $mainCommit) {
+            throw "Refusing to publish a manifest from stale build $builtCommit; main is $mainCommit"
           }
 
       - name: Commit updated manifest
