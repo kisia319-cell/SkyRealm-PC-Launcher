@@ -713,6 +713,7 @@
     toast('Продано: '+name+' × '+count+' за '+formatMoney(total)+'.');
   }
   function updateVillageRaid(dt){
+    const coop=window.SkyRealmCoopClient;if(coop?.getWorldSession?.()&&!coop.isRoomOwner)return;
     if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);
     if(villageRaidActive){villageRaidTimer-=dt;if(villageRaidTimer<=0){for(let i=monsters.length-1;i>=0;i--)if(monsters[i].villageRaid)monsters.splice(i,1);villageRaidActive=false;villageRaidKills=0;toast('Нападение на деревню отбито не полностью. Жители укрылись до рассвета.');}return;}
     if(!isNightTime()||day<1||lastVillageRaidDay===day)return;
@@ -921,6 +922,7 @@
     return null;
   }
   function updateWorldEvents(dt){
+    const coop=window.SkyRealmCoopClient;if(coop?.getWorldSession?.()&&!coop.isRoomOwner)return;
     if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode||paused||inMainMenu)return;
     if(!Number.isFinite(dt)||dt<=0)return;
     try{
@@ -1287,6 +1289,7 @@
       survivedNights=sharedClock.survived_nights;
       bloodMoonActive=sharedClock.blood_moon_active;
       lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
+      wasNight=isNightTime();updateClockDisplay();return;
     }
     const wasNightBefore=isNightTime();
     const previousMinute=gameMinuteTotal;
@@ -2481,7 +2484,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function saveGame(){
     if(!currentWorldId)return false;
-    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees},tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
+    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees},tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay,weatherMode,weatherTimer});
     try{
       localStorage.setItem(saveKey,serialized);
     }catch(error){
@@ -2533,11 +2536,11 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         if(Number.isFinite(d.skipDayRealSeconds))skipDayRealSeconds=Math.max(0,Math.min(300,d.skipDayRealSeconds));
         if(Array.isArray(d.resources))d.resources.forEach(r=>{const item=inventoryItems.find(i=>i.name===r.name);if(item&&Number.isFinite(r.count))item.count=Math.max(0,Math.min(999999,Math.floor(r.count)));});
         if(d.npcQuestState&&typeof d.npcQuestState==='object')npcQuestState=Object.fromEntries(Object.entries(d.npcQuestState).filter(([id,v])=>NPC_QUESTS[id]&&v&&typeof v==='object').map(([id,v])=>[id,{status:Math.max(0,Math.min(2,Number(v.status)||0)),day:Number.isFinite(v.day)?Math.floor(v.day):0}]));
-        villageReputation=Math.max(0,Math.min(100,Math.floor(Number(d.villageReputation)||0)));lastVillageRaidDay=Number.isInteger(d.lastVillageRaidDay)?d.lastVillageRaidDay:-1;villageRaidActive=false;villageRaidKills=0;
+        villageReputation=Math.max(0,Math.min(100,Math.floor(Number(d.villageReputation)||0)));lastVillageRaidDay=Number.isInteger(d.lastVillageRaidDay)?d.lastVillageRaidDay:-1;villageRaidActive=d.villageRaidActive===true&&tradeWorldMode&&isNightTime();villageRaidKills=villageRaidActive?Math.max(0,Math.min(3,Math.floor(Number(d.villageRaidKills)||0))):0;villageRaidTimer=villageRaidActive?Math.max(0,Math.min(95,Number(d.villageRaidTimer)||0)):0;if(villageRaidActive&&villageRaidKills>0){for(let i=0;i<villageRaidKills;i++)if(spawnMonster(i===villageRaidKills-1?'brute':null)){monsters[monsters.length-1].villageRaid=true;monsters[monsters.length-1].adminSpawned=true;}}
         lastWorldMeteorNight=Number.isInteger(d.lastWorldMeteorNight)?d.lastWorldMeteorNight:-1;
         lastWorldHordeNight=Number.isInteger(d.lastWorldHordeNight)?d.lastWorldHordeNight:-1;
         lastWorldCampDay=Number.isInteger(d.lastWorldCampDay)?d.lastWorldCampDay:-1;
-        lastWorldTravelerDay=Number.isInteger(d.lastWorldTravelerDay)?d.lastWorldTravelerDay:-2;
+        lastWorldTravelerDay=Number.isInteger(d.lastWorldTravelerDay)?d.lastWorldTravelerDay:-2;if(['clear','rain','snow','storm'].includes(d.weatherMode))weatherMode=d.weatherMode;if(Number.isFinite(d.weatherTimer))weatherTimer=Math.max(0,Math.min(180,d.weatherTimer));
         meteorPoint=d.meteorPoint&&Number.isFinite(d.meteorPoint.x)&&Number.isFinite(d.meteorPoint.y)?{x:Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,d.meteorPoint.x)),y:Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,d.meteorPoint.y))}:null;
         meteorShowerTimer=meteorPoint&&Number.isFinite(d.meteorShowerTimer)?Math.max(0,Math.min(WORLD_EVENT_CHANCES.meteorLifetime,d.meteorShowerTimer)):0;
         worldEventCamp=d.worldEventCamp&&Number.isFinite(d.worldEventCamp.x)&&Number.isFinite(d.worldEventCamp.y)?{x:Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,d.worldEventCamp.x)),y:Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,d.worldEventCamp.y)),life:Math.max(0,Math.min(WORLD_EVENT_CHANCES.campLifetime,Number(d.worldEventCamp.life)||0))}:null;
