@@ -106,7 +106,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version + Game $($gameVersion): separate Trade World with market stalls, five settlements and 18 varied houses per village; seven-crop farming; random world events with distinct odds; saved event cooldowns; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible."
+            notes = "SkyRealm Launcher $version + Game $($gameVersion): separate Trade World with market stalls, five settlements and 18 varied houses per village; seven-crop farming; lake fishing with catchable fish and rare pearls; the new Lost Jungle biome and Vine Guardian world boss; random world events with distinct odds; saved event cooldowns; night raids, daily quests and legendary swords. Existing worlds and saves remain compatible."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
