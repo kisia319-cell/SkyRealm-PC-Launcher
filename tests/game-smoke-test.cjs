@@ -178,7 +178,7 @@ assert.ok(game.includes("function interactFarmPlot") && game.includes("plot.crop
 assert.ok(game.includes("crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null"), 'Crop state is restored from saves');
 assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), version, 'Farm update version must be bumped');
 
-assert.ok(game.includes('const FARM_CROP_TRADE_PRICES={Пшеница:{buy:30,sell:50}') && game.includes('Клубника:{buy:123,sell:200}'), 'Crop trading prices must match the agreed cents-per-item balance');
+assert.ok(game.includes('const FARM_CROP_TRADE_PRICES={Пшеница:{buy:50,sell:30}') && game.includes('Клубника:{buy:200,sell:123}'), 'Crop trading prices must keep the NPC buy/sell spread and prevent arbitrage');
 assert.ok(game.includes('function farmCropBuyPrice(name)') && game.includes('farmCropBuyPrice(name)||item.price'), 'Farmer must sell harvested crops at the agreed buy prices');
 assert.ok(game.includes("Math.round(unit*(1+Math.min(.25,villageReputation*.005)))") && !game.includes("(id==='farmer'?(farmCropSellPrice(name)||unit):unit)"), 'Crop sale totals must use the correct NPC id and per-item price');
 
