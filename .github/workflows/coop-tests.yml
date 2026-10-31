@@ -1,7 +1,7 @@
 name: Co-op core tests
 on:
   push:
-    branches: [feature/co-op-foundation, 'fix/**']
+    branches: [main, feature/co-op-foundation, 'fix/**']
   pull_request:
     branches: [main]
 jobs:
