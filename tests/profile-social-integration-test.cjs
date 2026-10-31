@@ -32,7 +32,7 @@ assert.ok(inviteMigration.includes('create table if not exists public.skyrealm_r
 assert.ok(inviteMigration.includes('enable row level security')&&inviteMigration.includes('revoke all on public.skyrealm_room_invites from anon, authenticated'));
 assert.ok(accessMigration.includes('profiles_no_direct_client_access')&&accessMigration.includes('friendships_no_direct_client_access')&&accessMigration.includes('room_invites_no_direct_client_access'));
 assert.ok(accessMigration.includes('skyrealm_friendships_requested_by_idx'));
-assert.ok(edge.includes('OWNER_ONLY')&&edge.includes('ROOM_FULL')&&edge.includes('join_co_op_room'),'Room invites must enforce room ownership and rely on the existing join RPC capacity rules.');
+assert.ok(edge.includes('OWNER_ONLY')&&edge.includes('ROOM_FULL')&&edge.includes('ROOM_INVITE_LIMIT')&&edge.includes('join_co_op_room'),'Room invites must enforce room ownership and existing join/room-capacity rules.');
 for(const id of ['coop-friend-tools','coop-friend-invite-toggle','coop-friend-invite-list','coop-incoming-invites','coop-incoming-count','coop-incoming-invites-list']) assert.ok(gameHtml.includes('id=\"'+id+'\"'));
 for(const feature of ['sendRoomInvite','getRoomInvites','respondRoomInvite']) assert.ok(coopClient.includes(feature));
 assert.ok(coopUi.includes('refreshIncomingInvites')&&coopUi.includes('showFriendInviteChoices'));
