@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const game=fs.readFileSync('game/game.js','utf8');
+const html=fs.readFileSync('game/index.html','utf8');
+new vm.Script(game,{filename:'game/game.js'});
+assert.ok(game.includes("const ADVENTURE_HISTORY_KEY='skyrealm_adventure_history_v1'"),'Adventure history must persist separately from world saves');
+assert.ok(game.includes('function recordAdventureHistory()')&&game.includes('function renderAdventureHistory()'),'History must be recorded and displayed');
+assert.ok(game.includes('rows.slice(0,50)'),'History must be bounded to avoid unbounded storage growth');
+assert.ok(game.includes('recordAdventureHistory();}'),'Returning to world menu must close and record the current session');
+assert.ok(game.includes('syncProfileStats(true);recordAdventureHistory();'),'Closing the game must record the current session');
+for(const field of ['durationSeconds','exploredPercent','playerClass','startedAt','endedAt'])assert.ok(game.includes(field),'History entries must contain '+field);
+assert.ok(html.includes('id="adventure-history"'),'Progress center must display recent adventures');
+console.log('Adventure history persistence and UI integration passed.');
