@@ -33,6 +33,7 @@
   let saveKey = LEGACY_SAVE_KEY;
   let currentWorldId = null;
   let currentWorldName = '';
+  let worldSessionStartedAt=0,worldSessionRecorded=false;
   let renameWorldId = null;
   let discovered = false;
   let fullMapOpen = false;
@@ -132,7 +133,7 @@ function syncProfileStats(force=false){
   Promise.resolve(api.sync_profile_stats(payload)).catch(error=>console.warn('SkyRealm profile sync failed:',error));
 }
 setInterval(()=>syncProfileStats(true),60000);
-window.addEventListener('beforeunload',()=>syncProfileStats(true));
+window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventureHistory();});
 
   const treasureChests=[];
   let tradeWorldMode=false, tradeEntranceX=17, tradeEntranceY=47, footstepTimer=0, walletCents=0, shopDialogOpen=false, activeShop='sell';
@@ -2157,6 +2158,74 @@ window.addEventListener('beforeunload',()=>syncProfileStats(true));
     document.getElementById('location-name').textContent = tradeWorldMode ? 'Мир торговли' : (waterAt(player.x/TILE,player.y/TILE) ? 'Берег тихого озера' : (player.x/TILE>31&&player.x/TILE<42&&player.y/TILE>13&&player.y/TILE<24 ? 'Старая деревня' : biomeNameAt(player.x/TILE,player.y/TILE)));
   }
   function toast(text){const el=document.getElementById('toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2600);}let toastTimer;
+  const ACHIEVEMENT_KEY='skyrealm_achievements_v1';
+  const ACHIEVEMENTS=[
+    {id:'first_step',title:'Первый шаг',desc:'Прочитай дорожный знак и начни своё приключение.',target:1,progress:()=>questStage>=1,reward:'Значок «Путешественник»'},
+    {id:'first_night',title:'Первая ночь',desc:'Переживи первую ночь в мире.',target:1,progress:()=>survivedNights>=1,reward:'Титул «Ночной дозор»'},
+    {id:'explorer',title:'Следопыт',desc:'Исследуй не менее 100 клеток карты.',target:100,progress:()=>exploredCells.size,reward:'Значок «Следопыт»'},
+    {id:'veteran',title:'Опытный путешественник',desc:'Достигни 5-го уровня.',target:5,progress:()=>playerLevel,reward:'Титул «Ветеран»'},
+    {id:'angler',title:'Рыбак',desc:'Поймай 10 рыб.',target:10,progress:()=>fishCaught,reward:'Значок «Рыбак»'},
+    {id:'cave_guardian',title:'Страж глубин',desc:'Победи босса пещеры.',target:1,progress:()=>caveBossDefeated?1:0,reward:'Титул «Страж глубин»'},
+    {id:'villager_friend',title:'Друг жителей',desc:'Получи 10 очков репутации в деревне.',target:10,progress:()=>villageReputation,reward:'Значок «Друг деревни»'},
+    {id:'long_journey',title:'Долгий путь',desc:'Проведи в SkyRealm не менее одного часа.',target:3600,progress:()=>profilePlaytimeSeconds,reward:'Титул «Путешественник времени»'}
+  ];
+  function readAchievementState(){try{const v=JSON.parse(localStorage.getItem(ACHIEVEMENT_KEY)||'{}');return v&&typeof v==='object'?v:{unlocked:{},stats:{}};}catch(_){return {unlocked:{},stats:{}};}}
+  function evaluateAchievements(quiet=false){
+    const state=readAchievementState();if(!state.unlocked||typeof state.unlocked!=='object')state.unlocked={};if(!state.stats||typeof state.stats!=='object')state.stats={};
+    const checks={questStage:Math.max(0,Number(questStage)||0),survivedNights:Math.max(0,Number(survivedNights)||0),exploredCells:exploredCells.size,playerLevel:Math.max(1,Number(playerLevel)||1),fishCaught:Math.max(0,Number(fishCaught)||0),villageReputation:Math.max(0,Number(villageReputation)||0),profilePlaytimeSeconds:Math.max(0,Number(profilePlaytimeSeconds)||0)};
+    for(const [key,value] of Object.entries(checks))state.stats[key]=Math.max(Number(state.stats[key])||0,value);
+    if(caveBossDefeated)state.stats.caveBossDefeated=true;
+    const newly=[];
+    for(const item of ACHIEVEMENTS){const value=item.id==='cave_guardian'?(state.stats.caveBossDefeated?1:0):Math.max(0,Number(state.stats[item.id==='first_step'?'questStage':item.id==='first_night'?'survivedNights':item.id==='explorer'?'exploredCells':item.id==='veteran'?'playerLevel':item.id==='angler'?'fishCaught':item.id==='villager_friend'?'villageReputation':'profilePlaytimeSeconds'])||0);if(value>=item.target&&!state.unlocked[item.id]){state.unlocked[item.id]={at:Date.now(),reward:item.reward};newly.push(item);}}
+    try{localStorage.setItem(ACHIEVEMENT_KEY,JSON.stringify(state));}catch(error){console.warn('Achievement progress could not be saved:',error);}
+    if(!quiet)newly.forEach(item=>toast('🏆 Достижение: '+item.title+' · '+item.reward));
+    return {state,newly};
+  }
+  function renderAchievements(){
+    const {state}=evaluateAchievements(true),list=document.getElementById('achievement-list'),count=document.getElementById('achievement-count');if(!list)return;
+    const unlocked=Object.keys(state.unlocked||{}).length;if(count)count.textContent=unlocked+' / '+ACHIEVEMENTS.length+' открыто';
+    list.innerHTML=ACHIEVEMENTS.map(item=>{const value=item.id==='cave_guardian'?(state.stats?.caveBossDefeated?1:0):Math.max(0,Number(state.stats?.[item.id==='first_step'?'questStage':item.id==='first_night'?'survivedNights':item.id==='explorer'?'exploredCells':item.id==='veteran'?'playerLevel':item.id==='angler'?'fishCaught':item.id==='villager_friend'?'villageReputation':'profilePlaytimeSeconds'])||0);const done=!!state.unlocked[item.id],shown=Math.min(item.target,value),progress=item.target>=3600?Math.floor(shown/60)+' / 60 мин':shown+' / '+item.target;return '<article class="achievement-card '+(done?'is-unlocked':'')+'"><span class="achievement-icon">'+(done?'🏆':'🔒')+'</span><div class="achievement-copy"><b>'+item.title+'</b><small>'+item.desc+'</small><small class="achievement-reward">'+(done?'Награда получена: ':'Награда: ')+item.reward+'</small><div class="achievement-progress"><i style="width:'+Math.round(shown/item.target*100)+'%"></i></div><small>'+progress+'</small></div><span class="achievement-status">'+(done?'Открыто':'В процессе')+'</span></article>';}).join('');
+  }
+
+  const COSMETIC_SETS=[
+    {id:'first_step',name:'Путешественник',icon:'🧭',desc:'Практичный образ для первых дорог.',appearance:{armor:'#398b68',accent:'#9af0cb',hairStyle:'short'}},
+    {id:'first_night',name:'Ночной страж',icon:'🌙',desc:'Тёмная броня и светящиеся детали.',appearance:{armor:'#39436f',accent:'#9cb9ff',face:'visor',hairStyle:'hood'}},
+    {id:'explorer',name:'Лесной следопыт',icon:'🌲',desc:'Зелёный плащ для дальних походов.',appearance:{armor:'#28694b',accent:'#9af0cb',hairStyle:'hood'}},
+    {id:'veteran',name:'Золотой ветеран',icon:'👑',desc:'Золотые детали за большой опыт.',appearance:{armor:'#b78b35',accent:'#f4d36c',face:'stern'}},
+    {id:'angler',name:'Хозяин озера',icon:'🎣',desc:'Морские оттенки и холодный блеск.',appearance:{armor:'#287d91',accent:'#61c5ff',eye:'#61c5ff'}},
+    {id:'cave_guardian',name:'Страж глубин',icon:'💠',desc:'Фиолетовая броня с сияющими деталями.',appearance:{armor:'#6e4ca5',accent:'#e8e9f2',face:'visor'}},
+    {id:'villager_friend',name:'Защитник деревни',icon:'🏡',desc:'Тёплый зелёно-золотой комплект.',appearance:{armor:'#55764a',accent:'#f4d36c',hairStyle:'long'}},
+    {id:'long_journey',name:'Легенда времени',icon:'✨',desc:'Серебряный образ опытного странника.',appearance:{armor:'#64748b',accent:'#e8e9f2',hair:'#dce7f5',face:'mask'}}
+  ];
+  function renderCosmeticCollection(){
+    const root=document.getElementById('cosmetic-collection');if(!root)return;
+    const state=readAchievementState(),unlocked=state.unlocked||{};
+    root.innerHTML=COSMETIC_SETS.map(set=>{const ready=!!unlocked[set.id];return '<article class="cosmetic-card '+(ready?'cosmetic-unlocked':'cosmetic-locked')+'"><span class="cosmetic-icon">'+(ready?set.icon:'🔒')+'</span><div><b>'+set.name+'</b><small>'+set.desc+'</small><small>'+(ready?'Бесплатная награда открыта':'Открой достижение «'+(ACHIEVEMENTS.find(a=>a.id===set.id)?.title||'')+'»')+'</small></div><button type="button" data-cosmetic="'+set.id+'" '+(!ready?'disabled':'')+'>'+(ready?'Применить':'Закрыто')+'</button></article>';}).join('');
+    root.querySelectorAll('[data-cosmetic]').forEach(button=>button.addEventListener('click',()=>applyCosmeticSet(button.dataset.cosmetic)));
+  }
+  function applyCosmeticSet(id){
+    const state=readAchievementState();if(!state.unlocked?.[id]){toast('Сначала открой соответствующее достижение.');return;}
+    const set=COSMETIC_SETS.find(item=>item.id===id);if(!set)return;
+    applyAppearanceData(set.appearance);for(const key of Object.keys(set.appearance)){const control=document.getElementById('avatar-'+key);if(control)control.value=playerAppearance[key];}
+    syncAvatarPreview();toast('Выбран образ: '+set.name+'. Нажми «Сохранить образ», чтобы применить его.');
+  }
+
+  const ADVENTURE_HISTORY_KEY='skyrealm_adventure_history_v1';
+  function recordAdventureHistory(){
+    if(!currentWorldId||!worldSessionStartedAt||worldSessionRecorded)return false;
+    const endedAt=Date.now(),duration=Math.max(0,Math.floor((endedAt-worldSessionStartedAt)/1000));
+    const difficulty=DIFFICULTIES[currentDifficulty];
+    const entry={id:currentWorldId+'-'+worldSessionStartedAt,world:currentWorldName||'Мир',difficulty:difficulty?.name||currentDifficulty,startedAt:worldSessionStartedAt,endedAt,durationSeconds:duration,level:Math.max(1,Number(playerLevel)||1),day:Math.floor(Math.max(0,Number(gameMinuteTotal)||0)/1440)+1,exploredPercent:Math.min(100,Math.floor(exploredCells.size/Math.max(1,COLS*ROWS)*100)),playerClass};
+    try{const prior=JSON.parse(localStorage.getItem(ADVENTURE_HISTORY_KEY)||'[]');const rows=Array.isArray(prior)?prior:[];rows.unshift(entry);localStorage.setItem(ADVENTURE_HISTORY_KEY,JSON.stringify(rows.slice(0,50)));worldSessionRecorded=true;return true;}catch(error){console.warn('Adventure history could not be saved:',error);return false;}
+  }
+  function renderAdventureHistory(){
+    const root=document.getElementById('adventure-history');if(!root)return;
+    let rows=[];try{const parsed=JSON.parse(localStorage.getItem(ADVENTURE_HISTORY_KEY)||'[]');if(Array.isArray(parsed))rows=parsed;}catch(_){}
+    root.innerHTML=rows.length?rows.slice(0,10).map(row=>{const date=new Date(Number(row.endedAt)||Date.now()).toLocaleString();const minutes=Math.floor(Math.max(0,Number(row.durationSeconds)||0)/60);return '<article class="history-row"><b>'+escapeHtml(row.world||'Мир')+'</b><small>'+escapeHtml(date)+' · '+escapeHtml(row.difficulty||'')+'</small><small>Уровень '+Math.max(1,Number(row.level)||1)+' · День '+Math.max(1,Number(row.day)||1)+' · Карта '+Math.max(0,Number(row.exploredPercent)||0)+'% · '+minutes+' мин.</small></article>';}).join(''):'<p class="history-empty">История появится после завершения первого игрового сеанса.</p>';
+  }
+  function openAchievements(){evaluateAchievements(true);renderAchievements();renderAdventureHistory();document.getElementById('achievements-shade').hidden=false;document.getElementById('achievements-shade').setAttribute('aria-hidden','false');}
+  function closeAchievements(){document.getElementById('achievements-shade').hidden=true;document.getElementById('achievements-shade').setAttribute('aria-hidden','true');canvas.focus();}
+
   function openSignDialog(){
     signDialogOpen = true;
     keys.clear();
@@ -2969,7 +3038,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       const worlds=readWorlds();const worldRecord=worlds.find(w=>w.id===currentWorldId);
       if(worldRecord){worldRecord.updatedAt=Date.now();writeWorlds(worlds);}
     }catch(metadataError){console.warn('SkyRealm save metadata could not be updated:',metadataError);}
-    saveErrorNotified=false;lastSaveAt=Date.now();syncProfileStats(false);
+    saveErrorNotified=false;lastSaveAt=Date.now();syncProfileStats(false);evaluateAchievements(false);
     const status=document.getElementById('save-status');
     if(status){const d=new Date(lastSaveAt);status.textContent='Последнее сохранение: '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
     return true;
@@ -3056,10 +3125,23 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function renderWorldList(){
     const worlds=readWorlds(),list=document.getElementById('worlds-list'),empty=document.getElementById('worlds-empty');
     document.getElementById('world-count').textContent=worlds.length+' '+(worlds.length===1?'мир':'миров');
-    list.innerHTML='';empty.hidden=worlds.length>0;
-    worlds.slice().sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)).forEach(w=>{
+    empty.hidden=worlds.length>0;list.innerHTML='';
+    const query=String(document.getElementById('world-search')?.value||'').trim().toLocaleLowerCase();
+    const sort=document.getElementById('world-sort')?.value||'recent';
+    const visible=worlds.filter(w=>!query||String(w.name||'').toLocaleLowerCase().includes(query));
+    visible.sort((a,b)=>sort==='name'?String(a.name||'').localeCompare(String(b.name||''),'ru'):sort==='oldest'?(a.createdAt||0)-(b.createdAt||0):(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
+    if(worlds.length&&visible.length===0)list.innerHTML='<p class="world-filter-empty">По запросу «'+escapeHtml(query)+'» миры не найдены.</p>';
+    visible.forEach(w=>{
       const card=document.createElement('article');card.className='world-card';
-      const level=DIFFICULTIES[w.difficulty];card.innerHTML='<div class="world-card-art"><span>✦</span></div><div class="world-card-main"><b>'+escapeHtml(w.name)+'</b><small>Сложность: '+escapeHtml(level?level.name:'не выбрана')+' · Последний вход: '+escapeHtml(formatWorldDate(w.updatedAt||w.createdAt))+'</small></div><div class="world-card-actions"><button class="world-enter-button" type="button" data-enter-world="'+escapeHtml(w.id)+'">Войти в мир <span>→</span></button><button class="world-rename-button" type="button" data-rename-world="'+escapeHtml(w.id)+'">✎ Имя</button><button class="world-rename-button world-export-button" type="button" data-export-world="'+escapeHtml(w.id)+'" title="Скачать резервную копию">⇩ Копия</button><button class="world-delete-button" type="button" data-delete-world="'+escapeHtml(w.id)+'" aria-label="Удалить мир '+escapeHtml(w.name)+'">✕</button></div>';
+      const level=DIFFICULTIES[w.difficulty];let saved=null;try{saved=JSON.parse(localStorage.getItem(worldSaveKey(w.id))||'null');}catch(_){}
+      const days=saved&&Number.isFinite(saved.gameMinuteTotal)?Math.floor(Math.max(0,saved.gameMinuteTotal)/1440)+1:1;
+      const lvl=saved&&Number.isFinite(saved.playerLevel)?Math.max(1,Math.floor(saved.playerLevel)):1;
+      const explored=Array.isArray(saved?.exploredCells)?saved.exploredCells.length:0;
+      const total=Math.max(1,(level?.cols||COLS)*(level?.rows||ROWS));
+      const percent=Math.min(100,Math.floor(explored/total*100));
+      const size=saved?Math.max(1,Math.ceil(JSON.stringify(saved).length/1024)):0;
+      const stats=saved?('День '+days+' · Уровень '+lvl+' · Карта '+percent+'% · '+size+' КБ'):'Сохранение ещё не создано';
+      card.innerHTML='<div class="world-card-art"><span>✦</span></div><div class="world-card-main"><b>'+escapeHtml(w.name)+'</b><small>Сложность: '+escapeHtml(level?level.name:'не выбрана')+' · Последний вход: '+escapeHtml(formatWorldDate(w.updatedAt||w.createdAt))+'</small><small class="world-card-stats">'+stats+'</small></div><div class="world-card-actions"><button class="world-enter-button" type="button" data-enter-world="'+escapeHtml(w.id)+'">Войти в мир <span>→</span></button><button class="world-rename-button" type="button" data-rename-world="'+escapeHtml(w.id)+'">✎ Имя</button><button class="world-rename-button world-export-button" type="button" data-export-world="'+escapeHtml(w.id)+'" title="Скачать резервную копию">⇩ Копия</button><button class="world-delete-button" type="button" data-delete-world="'+escapeHtml(w.id)+'" aria-label="Удалить мир '+escapeHtml(w.name)+'">✕</button></div>';
       list.appendChild(card);
     });
     list.querySelectorAll('[data-enter-world]').forEach(btn=>btn.addEventListener('click',()=>enterWorld(btn.dataset.enterWorld)));
@@ -3168,7 +3250,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const selectedDifficulty=coopSession?(coopSession.world_difficulty||'medium'):record.difficulty;
     if(!DIFFICULTIES[selectedDifficulty]){openDifficultyPicker(id);return;}
     const migrateLegacyDifficulty=!coopSession&&difficultyMigrationPending;difficultyMigrationPending=false;setWorldDifficulty(selectedDifficulty);resetWorldState();configureTreasureChests();setupWorld();
-    currentWorldId=record.id;currentWorldName=coopSession?('Кооператив · '+record.name):record.name;
+    currentWorldId=record.id;currentWorldName=coopSession?('Кооператив · '+record.name):record.name;worldSessionStartedAt=Date.now();worldSessionRecorded=false;
     saveKey=coopSession?('skyrealm_coop_save_v1_'+coopSession.id+'_'+window.SkyRealmCoopClient.userId):worldSaveKey(record.id);
     localStorage.setItem('skyrealm_active_world_id',record.id);mineMode=false;workbenchDialogOpen=false;
     createMineForWorld(coopSession?('skyrealm-coop-'+coopSession.id):record.id);if(coopSession){coopSnapshotRoomId=coopSession.id;lastAppliedCoopSnapshotVersion=0;coopSnapshotTimer=0;}loadGame();if(migrateLegacyDifficulty&&caveBossHp>0&&Number.isFinite(caveBossHp)&&caveBossHp<=260&&!caveBossDefeated)caveBossHp=bossMaxHp();markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
@@ -3178,7 +3260,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     inMainMenu=false;paused=true;settingsOpenedFromMainMenu=false;keys.clear();canvas.focus();last=performance.now();openCharacterEditor(true);renderWorldList();
   }
   function returnToMainMenu(){
-    if(currentWorldId)saveGame();
+    if(currentWorldId){saveGame();recordAdventureHistory();}
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
     if(saveKey.startsWith('skyrealm_coop_save_v1_')&&network?.isRoomOwner&&room?.status==='running')network.pauseRoom().catch(error=>console.warn('[SkyRealm co-op host pause]',error));
     inMainMenu=true;paused=true;keys.clear();document.getElementById('main-menu-shade').hidden=false;document.getElementById('main-menu-shade').setAttribute('aria-hidden','false');document.getElementById('pause-shade').hidden=true;document.getElementById('pause-settings-view').hidden=true;document.getElementById('pause-main-view').hidden=false;renderWorldList();drawMinimap();
@@ -3433,6 +3515,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   // Gentle interface feedback; world/action sounds retain their existing individual handlers.
   document.querySelectorAll('.main-menu-action,.action,.pause-button,.game-settings-tab').forEach(button=>button.addEventListener('click',()=>playSound('tap')));
   document.getElementById('menu-create-world').addEventListener('click',openWorldCreate);
+   document.getElementById('world-search')?.addEventListener('input',renderWorldList);
+   document.getElementById('world-sort')?.addEventListener('change',renderWorldList);
    document.getElementById('import-world-button').addEventListener('click',()=>document.getElementById('import-world-file').click());
    document.getElementById('import-world-file').addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)importWorldBackupFile(file);else e.target.value='';});
   document.getElementById('empty-create-world').addEventListener('click',openWorldCreate);
@@ -3442,7 +3526,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('world-rename-form').addEventListener('submit',e=>{e.preventDefault();renameWorld(document.getElementById('world-rename-input').value);});
   const avatarShade=document.getElementById('character-editor-shade');
   function syncAvatarPreview(){const doll=document.getElementById('avatar-doll');if(!doll)return;doll.style.setProperty('--skin',document.getElementById('avatar-skin').value);doll.style.setProperty('--hair',document.getElementById('avatar-hair').value);doll.style.setProperty('--armor',document.getElementById('avatar-armor').value);doll.style.setProperty('--accent',document.getElementById('avatar-accent').value);doll.style.setProperty('--eye',document.getElementById('avatar-eye').value);doll.dataset.face=document.getElementById('avatar-face').value;doll.dataset.hair=document.getElementById('avatar-hairStyle').value;}
-  function openCharacterEditor(onEntry=false){avatarEntryMode=!!onEntry;if(avatarEntryMode){paused=true;keys.clear();}for(const k of Object.keys(DEFAULT_PLAYER_APPEARANCE)){const el=document.getElementById('avatar-'+k);if(el)el.value=playerAppearance[k]||DEFAULT_PLAYER_APPEARANCE[k];}syncAvatarPreview();const title=document.getElementById('character-editor-title'),desc=avatarShade.querySelector('p'),save=document.getElementById('avatar-save'),close=document.getElementById('avatar-close');if(avatarEntryMode){title.textContent='Настрой персонажа перед путешествием';desc.textContent='Перед входом в мир выбери скин. Образ можно будет изменить позже через меню персонажа.';save.textContent='Сохранить и войти в мир';close.textContent='Войти без изменений';}else{title.textContent='Редактор персонажа';desc.textContent='Настрой внешний вид героя. Изменения сохраняются на этом компьютере и применяются во всех мирах.';save.textContent='Сохранить образ';close.textContent='Закрыть';}avatarShade.hidden=false;avatarShade.setAttribute('aria-hidden','false');}
+  function openCharacterEditor(onEntry=false){renderCosmeticCollection();avatarEntryMode=!!onEntry;if(avatarEntryMode){paused=true;keys.clear();}for(const k of Object.keys(DEFAULT_PLAYER_APPEARANCE)){const el=document.getElementById('avatar-'+k);if(el)el.value=playerAppearance[k]||DEFAULT_PLAYER_APPEARANCE[k];}syncAvatarPreview();const title=document.getElementById('character-editor-title'),desc=avatarShade.querySelector('p'),save=document.getElementById('avatar-save'),close=document.getElementById('avatar-close');if(avatarEntryMode){title.textContent='Настрой персонажа перед путешествием';desc.textContent='Перед входом в мир выбери скин. Образ можно будет изменить позже через меню персонажа.';save.textContent='Сохранить и войти в мир';close.textContent='Войти без изменений';}else{title.textContent='Редактор персонажа';desc.textContent='Настрой внешний вид героя. Изменения сохраняются на этом компьютере и применяются во всех мирах.';save.textContent='Сохранить образ';close.textContent='Закрыть';}avatarShade.hidden=false;avatarShade.setAttribute('aria-hidden','false');}
   function finishCharacterEditor(saveChanges){if(saveChanges){for(const k of Object.keys(DEFAULT_PLAYER_APPEARANCE))playerAppearance[k]=document.getElementById('avatar-'+k).value;localStorage.setItem('skyrealm_character_v1',JSON.stringify(playerAppearance));saveGame();draw(0,performance.now());}avatarShade.hidden=true;avatarShade.setAttribute('aria-hidden','true');const wasEntry=avatarEntryMode;avatarEntryMode=false;if(wasEntry){paused=false;last=performance.now();canvas.focus();if(!localStorage.getItem('skyrealm_tutorial_seen_v1'))setTimeout(()=>{if(!inMainMenu&&!paused)openTutorial();},220);else if(!localStorage.getItem('skyrealm_player_class_v1'))setTimeout(()=>{if(!inMainMenu&&!paused)openClassSelection(true);},300);}if(saveChanges)toast('Образ персонажа сохранён!');}
   ['skin','hair','armor','accent','eye','face','hairStyle'].forEach(k=>document.getElementById('avatar-'+k).addEventListener('change',syncAvatarPreview));
   document.getElementById('menu-character').addEventListener('click',()=>openCharacterEditor(false));
@@ -3500,6 +3584,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('apply-game-settings').addEventListener('click',()=>applyAndSaveSettings(true));
   document.getElementById('toggle-hud-move').addEventListener('click',()=>{if(!hudMoveMode){setHudMoveMode(true);document.getElementById('pause-shade').hidden=true;paused=false;keys.clear();canvas.focus();}else finishHudMoveMode();});
   document.getElementById('save-world-now').addEventListener('click',()=>{if(saveGame())toast('Мир успешно сохранён.');});
+  document.getElementById('open-achievements')?.addEventListener('click',openAchievements);
+  document.getElementById('close-achievements')?.addEventListener('click',closeAchievements);
    document.getElementById('exit').addEventListener('click', () => { saveGame(); if (window.pywebview?.api?.close) window.pywebview.api.close(); else { toast('Закрой вкладку, чтобы выйти из игры.'); setPaused(false); } });
   document.getElementById('sign-dialog-close').addEventListener('click', closeSignDialog);
   document.getElementById('sign-dialog-ok').addEventListener('click', closeSignDialog);

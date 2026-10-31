@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const game=fs.readFileSync('game/game.js','utf8');
+const html=fs.readFileSync('game/index.html','utf8');
+new vm.Script(game,{filename:'game/game.js'});
+assert.ok(game.includes("const ACHIEVEMENT_KEY='skyrealm_achievements_v1'"),'Achievements must persist independently of individual world saves');
+assert.ok(game.includes('function evaluateAchievements(quiet=false)'), 'Achievement evaluator must exist');
+assert.ok(game.includes('function renderAchievements()') && game.includes('function openAchievements()') && game.includes('function closeAchievements()'),'Achievement center must render and open/close');
+assert.ok(game.includes('evaluateAchievements(false);'),'World autosaves must evaluate achievements after updating playtime');
+assert.ok(game.includes("localStorage.setItem(ACHIEVEMENT_KEY,JSON.stringify(state))"),'Unlocked achievements and progress must be persisted');
+assert.ok(game.includes("getElementById('open-achievements')?.addEventListener('click',openAchievements)"),'Pause menu must open the achievement center');
+assert.ok(game.includes("getElementById('close-achievements')?.addEventListener('click',closeAchievements)"),'Achievement center must have a working close action');
+for(const id of ['first_step','first_night','explorer','veteran','angler','cave_guardian','villager_friend','long_journey'])assert.ok(game.includes("id:'"+id+"'"),'Missing achievement '+id);
+for(const id of ['open-achievements','achievements-shade','achievement-list','achievement-count','close-achievements'])assert.ok(html.includes('id="'+id+'"'),'Missing achievement UI element '+id);
+assert.ok(html.includes('.achievement-card.is-unlocked'),'Unlocked rewards must have a distinct visible state');
+console.log('Achievement system syntax and UI integration passed.');

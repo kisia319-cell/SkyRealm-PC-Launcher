@@ -1,7 +1,7 @@
 name: Co-op core tests
 on:
   push:
-    branches: [main, feature/co-op-foundation, feature/shared-enemies-and-loot, feature/profile-foundation-social-20261031, feature/coop-friend-invites-20261031, 'fix/**']
+    branches: [main, feature/co-op-foundation, feature/shared-enemies-and-loot, feature/profile-foundation-social-20261031, feature/coop-friend-invites-20261031, feature/launcher-foundations-remaining-20261031, 'fix/**']
   pull_request:
     branches: [main]
 jobs:
@@ -24,6 +24,10 @@ jobs:
       - run: node --check app.js
       - run: node tests/singleplayer-village-test.cjs
       - run: node tests/game-smoke-test.cjs
+      - run: node tests/achievement-system-test.cjs
+      - run: node tests/world-library-test.cjs
+      - run: node tests/cosmetic-collection-test.cjs
+      - run: node tests/adventure-history-test.cjs
       - run: node --check game/multiplayer-core.js
       - run: node --check game/multiplayer-client.js
       - run: node --check game/multiplayer-ui.js
