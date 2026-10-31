@@ -244,3 +244,6 @@ const worldReset = game.slice(game.indexOf('function resetWorldState(){'), game.
 assert.ok(worldReset.includes('weaponEnchantments={}'), 'Weapon enchantments must reset when entering a different world');
 assert.ok(worldReset.includes("weatherMode='clear';weatherTimer=75"), 'Weather state must reset when entering a different world');
 assert.ok(worldReset.includes("lastRestoredVillageRaidKey=''"), 'Raid restoration bookkeeping must reset between worlds');
+
+const releaseWorkflow = fs.readFileSync('.github/workflows/build-release.yml', 'utf8');
+assert.ok(releaseWorkflow.includes('Reject stale release builds') && releaseWorkflow.includes('Reject stale manifest publication'), 'Older GitHub Actions runs must not overwrite the latest release or manifest');
