@@ -78,6 +78,43 @@ function sanitizeSharedSnapshot(value: unknown): Record<string, unknown> {
     }
     output[key] = entry;
   }
+  if (output.adventureQuestProgress && typeof output.adventureQuestProgress === "object" && !Array.isArray(output.adventureQuestProgress)) {
+    const source = output.adventureQuestProgress as Record<string, unknown>;
+    const allowedProgress = new Set(["hunt","mining","harvest","treeChops","felledTrees","coopMonsters"]);
+    if (Object.keys(source).some(key => !allowedProgress.has(key))) {
+      throw new ApiError(400,"INVALID_SNAPSHOT_PAYLOAD","В прогрессе мира есть личные или неизвестные данные.");
+    }
+    const progress: Record<string, unknown> = {};
+    for (const key of ["hunt","mining","harvest","treeChops","felledTrees"]) {
+      if (Object.prototype.hasOwnProperty.call(source,key)) progress[key]=source[key];
+    }
+    if (source.coopMonsters !== undefined) {
+      if (!Array.isArray(source.coopMonsters) || source.coopMonsters.length > 20) {
+        throw new ApiError(400,"INVALID_SNAPSHOT_PAYLOAD","Некорректный список общих врагов.");
+      }
+      const types = ["shadow","brute","wisp","skeleton","bomb","ice","scorpion","ember","yeti"];
+      progress.coopMonsters = source.coopMonsters.filter(value => {
+        if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+        const mob = value as Record<string, unknown>;
+        return typeof mob.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(mob.id) &&
+          types.includes(String(mob.type)) && Number.isFinite(mob.x) && Number.isFinite(mob.y) &&
+          Number.isFinite(mob.hp) && Number.isFinite(mob.maxHp) && Number(mob.x)>=0 && Number(mob.x)<=12000 &&
+          Number(mob.y)>=0 && Number(mob.y)<=10000 && Number(mob.maxHp)>0 && Number(mob.hp)>=0 && Number(mob.hp)<=Number(mob.maxHp);
+      }).slice(0,20);
+    }
+    output.adventureQuestProgress = progress;
+  }
+  if (Array.isArray(output.lootDrops)) {
+    output.lootDrops = output.lootDrops.filter(value => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+      const drop = value as Record<string, unknown>;
+      return drop.shared === true && typeof drop.id === "string" && UUID_PATTERN.test(drop.id) &&
+        typeof drop.name === "string" && drop.name.length>0 && drop.name.length<=48 &&
+        Number.isFinite(drop.x) && Number.isFinite(drop.y) && Number(drop.x)>=0 && Number(drop.x)<=12000 &&
+        Number(drop.y)>=0 && Number(drop.y)<=10000 && Number.isSafeInteger(drop.count) &&
+        Number(drop.count)>=1 && Number(drop.count)<=99 && ["surface","cave","dungeon"].includes(String(drop.world_mode));
+    }).slice(0,80);
+  }
   if (new TextEncoder().encode(JSON.stringify(output)).byteLength > 65_536) {
     throw new ApiError(413, "INVALID_SNAPSHOT_PAYLOAD", "Снимок общего мира слишком большой.");
   }
