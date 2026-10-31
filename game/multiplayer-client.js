@@ -291,6 +291,7 @@ window.SkyRealmCoopClient=Object.freeze({
   async join(code){const data=await request('/api/coop/join','POST',{invite_code:code});currentRoom=data.room||null;snapshotVersion=0;return currentRoom;},
   async start(roomId){const data=await request('/api/coop/start','POST',{room_id:roomId});currentRoom={...(currentRoom||{}),...(data.room||{})};return currentRoom;},
   async leave(roomId){const data=await request('/api/coop/leave','POST',{room_id:roomId});currentRoom=null;snapshotVersion=0;return data;},
+  async pauseRoom(roomId=currentRoom?.id){if(!this.isRoomOwner||!roomId||roomId!==currentRoom?.id)throw new Error('Только владелец комнаты может поставить её на паузу.');const data=await request('/api/coop/leave','POST',{room_id:roomId});currentRoom=null;snapshotVersion=0;clockReceivedAt=0;return data;},
   async resume(roomId){const data=await request('/api/coop/resume','POST',{room_id:roomId});currentRoom={...(currentRoom||{}),...(data.room||{})};return data;},
   async setPvp(roomId,enabled){const data=await request('/api/coop/pvp','POST',{room_id:roomId,enabled});currentRoom={...(currentRoom||{}),...(data.room||{})};return data;},
   async heartbeat(roomId){return request('/api/coop/heartbeat','POST',{room_id:roomId});},
