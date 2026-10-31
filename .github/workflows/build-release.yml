@@ -58,6 +58,10 @@ jobs:
           node --check tests/coop-ui-integration-test.cjs
           node --check tests/supabase-migration-history-test.cjs
           node tests/game-smoke-test.cjs
+          node tests/achievement-system-test.cjs
+          node tests/world-library-test.cjs
+          node tests/cosmetic-collection-test.cjs
+          node tests/adventure-history-test.cjs
           node tests/farm-economy-test.cjs
           node tests/singleplayer-village-test.cjs
           node tests/multiplayer-core-test.cjs
@@ -106,7 +110,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version + Game $($gameVersion): editable player profiles with synced class, level, XP and playtime; friend search, requests, online status and friend lists; direct friend invitations into existing co-op rooms with accept/decline and room-capacity checks; SHA-256 diagnostics; safe world backup and restore. Existing accounts, worlds and single-player saves remain compatible."
+            notes = "SkyRealm Launcher $version + Game $($gameVersion): editable player profiles with synced class, level, XP and playtime; friend search, requests, online status and friend lists; direct friend invitations into existing co-op rooms with accept/decline and room-capacity checks; SHA-256 diagnostics; safe world backup and restore. achievement center with eight persistent achievements, free achievement-unlocked cosmetic sets, world-library search/sorting and saved-world summaries, and recent adventure history. Existing accounts, worlds and single-player saves remain compatible."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
