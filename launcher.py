@@ -8,6 +8,7 @@ import json
 import hashlib
 import zipfile
 import urllib.request
+import urllib.error
 import functools
 import http.server
 import threading
