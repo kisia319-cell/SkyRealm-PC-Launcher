@@ -697,7 +697,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       }
       ctx.fillStyle='#f2e4c2';ctx.font='900 14px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=6;ctx.fillText(c.name,x,y-560);ctx.restore();
     }
-    for(const npc of villageNpcs){const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-75||x>width+75||y<-100||y>height+80)continue;drawNpcCharacter(npc,x,y,time);ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(npc.name||NPC_NAMES[npc.id]||'Житель',x,y-27);ctx.restore();}
+    for(const npc of villageNpcs){const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-75||x>width+75||y<-100||y>height+80)continue;drawNpcCharacter(npc,x,y,time);ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(npc.name||NPC_NAMES[npc.id]||'Житель',x,y-27);ctx.font='800 8px Segoe UI';ctx.fillStyle='#d8e8dc';ctx.fillText(npc.activity==='sleeping'?'ОТДЫХАЕТ':npc.activity==='working'?'РАБОТАЕТ':npc.activity==='at market'?'ТОРГУЕТ':'ГУЛЯЕТ',x,y-39);ctx.restore();}
   }
   function updateVillageNpcs(dt){
     if(inHouse||mineMode||caveMode||dungeonMode)return;
