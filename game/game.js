@@ -33,6 +33,7 @@
   let saveKey = LEGACY_SAVE_KEY;
   let currentWorldId = null;
   let currentWorldName = '';
+  let worldSessionStartedAt=0,worldSessionRecorded=false;
   let renameWorldId = null;
   let discovered = false;
   let fullMapOpen = false;
@@ -132,7 +133,7 @@ function syncProfileStats(force=false){
   Promise.resolve(api.sync_profile_stats(payload)).catch(error=>console.warn('SkyRealm profile sync failed:',error));
 }
 setInterval(()=>syncProfileStats(true),60000);
-window.addEventListener('beforeunload',()=>syncProfileStats(true));
+window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventureHistory();});
 
   const treasureChests=[];
   let tradeWorldMode=false, tradeEntranceX=17, tradeEntranceY=47, footstepTimer=0, walletCents=0, shopDialogOpen=false, activeShop='sell';
@@ -2208,7 +2209,21 @@ window.addEventListener('beforeunload',()=>syncProfileStats(true));
     applyAppearanceData(set.appearance);for(const key of Object.keys(set.appearance)){const control=document.getElementById('avatar-'+key);if(control)control.value=playerAppearance[key];}
     syncAvatarPreview();toast('Выбран образ: '+set.name+'. Нажми «Сохранить образ», чтобы применить его.');
   }
-  function openAchievements(){evaluateAchievements(true);renderAchievements();document.getElementById('achievements-shade').hidden=false;document.getElementById('achievements-shade').setAttribute('aria-hidden','false');}
+
+  const ADVENTURE_HISTORY_KEY='skyrealm_adventure_history_v1';
+  function recordAdventureHistory(){
+    if(!currentWorldId||!worldSessionStartedAt||worldSessionRecorded)return false;
+    const endedAt=Date.now(),duration=Math.max(0,Math.floor((endedAt-worldSessionStartedAt)/1000));
+    const difficulty=DIFFICULTIES[currentDifficulty];
+    const entry={id:currentWorldId+'-'+worldSessionStartedAt,world:currentWorldName||'Мир',difficulty:difficulty?.name||currentDifficulty,startedAt:worldSessionStartedAt,endedAt,durationSeconds:duration,level:Math.max(1,Number(playerLevel)||1),day:Math.floor(Math.max(0,Number(gameMinuteTotal)||0)/1440)+1,exploredPercent:Math.min(100,Math.floor(exploredCells.size/Math.max(1,COLS*ROWS)*100)),playerClass};
+    try{const prior=JSON.parse(localStorage.getItem(ADVENTURE_HISTORY_KEY)||'[]');const rows=Array.isArray(prior)?prior:[];rows.unshift(entry);localStorage.setItem(ADVENTURE_HISTORY_KEY,JSON.stringify(rows.slice(0,50)));worldSessionRecorded=true;return true;}catch(error){console.warn('Adventure history could not be saved:',error);return false;}
+  }
+  function renderAdventureHistory(){
+    const root=document.getElementById('adventure-history');if(!root)return;
+    let rows=[];try{const parsed=JSON.parse(localStorage.getItem(ADVENTURE_HISTORY_KEY)||'[]');if(Array.isArray(parsed))rows=parsed;}catch(_){}
+    root.innerHTML=rows.length?rows.slice(0,10).map(row=>{const date=new Date(Number(row.endedAt)||Date.now()).toLocaleString();const minutes=Math.floor(Math.max(0,Number(row.durationSeconds)||0)/60);return '<article class="history-row"><b>'+escapeHtml(row.world||'Мир')+'</b><small>'+escapeHtml(date)+' · '+escapeHtml(row.difficulty||'')+'</small><small>Уровень '+Math.max(1,Number(row.level)||1)+' · День '+Math.max(1,Number(row.day)||1)+' · Карта '+Math.max(0,Number(row.exploredPercent)||0)+'% · '+minutes+' мин.</small></article>';}).join(''):'<p class="history-empty">История появится после завершения первого игрового сеанса.</p>';
+  }
+  function openAchievements(){evaluateAchievements(true);renderAchievements();renderAdventureHistory();document.getElementById('achievements-shade').hidden=false;document.getElementById('achievements-shade').setAttribute('aria-hidden','false');}
   function closeAchievements(){document.getElementById('achievements-shade').hidden=true;document.getElementById('achievements-shade').setAttribute('aria-hidden','true');canvas.focus();}
 
   function openSignDialog(){
@@ -3235,7 +3250,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const selectedDifficulty=coopSession?(coopSession.world_difficulty||'medium'):record.difficulty;
     if(!DIFFICULTIES[selectedDifficulty]){openDifficultyPicker(id);return;}
     const migrateLegacyDifficulty=!coopSession&&difficultyMigrationPending;difficultyMigrationPending=false;setWorldDifficulty(selectedDifficulty);resetWorldState();configureTreasureChests();setupWorld();
-    currentWorldId=record.id;currentWorldName=coopSession?('Кооператив · '+record.name):record.name;
+    currentWorldId=record.id;currentWorldName=coopSession?('Кооператив · '+record.name):record.name;worldSessionStartedAt=Date.now();worldSessionRecorded=false;
     saveKey=coopSession?('skyrealm_coop_save_v1_'+coopSession.id+'_'+window.SkyRealmCoopClient.userId):worldSaveKey(record.id);
     localStorage.setItem('skyrealm_active_world_id',record.id);mineMode=false;workbenchDialogOpen=false;
     createMineForWorld(coopSession?('skyrealm-coop-'+coopSession.id):record.id);if(coopSession){coopSnapshotRoomId=coopSession.id;lastAppliedCoopSnapshotVersion=0;coopSnapshotTimer=0;}loadGame();if(migrateLegacyDifficulty&&caveBossHp>0&&Number.isFinite(caveBossHp)&&caveBossHp<=260&&!caveBossDefeated)caveBossHp=bossMaxHp();markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
@@ -3245,7 +3260,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     inMainMenu=false;paused=true;settingsOpenedFromMainMenu=false;keys.clear();canvas.focus();last=performance.now();openCharacterEditor(true);renderWorldList();
   }
   function returnToMainMenu(){
-    if(currentWorldId)saveGame();
+    if(currentWorldId){saveGame();recordAdventureHistory();}
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
     if(saveKey.startsWith('skyrealm_coop_save_v1_')&&network?.isRoomOwner&&room?.status==='running')network.pauseRoom().catch(error=>console.warn('[SkyRealm co-op host pause]',error));
     inMainMenu=true;paused=true;keys.clear();document.getElementById('main-menu-shade').hidden=false;document.getElementById('main-menu-shade').setAttribute('aria-hidden','false');document.getElementById('pause-shade').hidden=true;document.getElementById('pause-settings-view').hidden=true;document.getElementById('pause-main-view').hidden=false;renderWorldList();drawMinimap();
