@@ -25,8 +25,9 @@ assert.ok(edge.includes('INVALID_STATS')&&edge.includes('playtime_seconds'),'Pro
 assert.ok(fs.readFileSync('game/game.js','utf8').includes('sync_profile_stats'),'Game saves must synchronize profile progress.');
 assert.ok(fs.readFileSync('launcher.py','utf8').includes('def sync_profile_stats'),'Native bridge must send profile stats without exposing the token to game JavaScript.');
 const launcherSource=fs.readFileSync('launcher.py','utf8');
-assert.match(launcherSource,/def get_auth_session\(self\):[\\s\\S]{0,350}return \{\"token\": self\._session_token\}/,'Game auth session must remain available for repeated profile and co-op requests.');
-assert.doesNotMatch(launcherSource,/def get_auth_session\(self\):[\\s\\S]{0,200}self\._session_token\s*=\s*\"\"/,'Reading the game auth session must not erase the native sync token.');
+const authGetter=launcherSource.slice(launcherSource.indexOf('def get_auth_session(self):'),launcherSource.indexOf('def sync_profile_stats(self):'));
+assert.ok(authGetter.includes('return {"token": self._session_token}'),'Game auth session must remain available for repeated profile and co-op requests.');
+assert.ok(!authGetter.includes('self._session_token = ""'),'Reading the game auth session must not erase the native sync token.');
 assert.ok(fs.readFileSync('launcher.py','utf8').includes('def backup_worlds')&&fs.readFileSync('launcher.py','utf8').includes('def restore_worlds'),'World backup and restore must be implemented in the native launcher.');
 assert.ok(migration.includes('enable row level security')&&migration.includes('revoke all on public.skyrealm_friendships from anon, authenticated'),'Friendship table must not be directly exposed to clients.');
 assert.ok(migration.includes('constraint skyrealm_friendships_pair_unique unique (user_a,user_b)'),'Friendship pairs must be unique.');
