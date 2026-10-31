@@ -207,3 +207,6 @@ assert.ok(game.includes('for(let i=monsters.length-1;i>=0;i--)if(monsters[i]&&mo
 const snapshotSync = game.slice(game.indexOf('async function syncCoopWorldSnapshot(){'), game.indexOf('async function syncCoopWorldActions(){'));
 assert.ok(snapshotSync.includes('if(!saveGame())return;'),
   'The room owner must persist live event and raid timers before publishing snapshots');
+
+assert.ok(game.includes("if(raidRestoreKey!==lastRestoredVillageRaidKey)"),
+  'Unchanged co-op snapshots must not recreate raid enemies every five seconds');
