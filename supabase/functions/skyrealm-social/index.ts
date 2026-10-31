@@ -54,6 +54,23 @@ Deno.serve(async(req:Request)=>{
     const url=new URL(req.url);
     const route=url.searchParams.get("route")||"/";
     const user=await authenticate(req);
+    if(route==="/api/social/mods" && req.method==="GET") {
+      const rows=await db("skyrealm_community_mods?select=id,creator_id,name,description,category,icon,effect_key,effect_strength,created_at&status=eq.published&order=created_at.desc&limit=60");
+      const ids=[...new Set((rows||[]).map((x:any)=>String(x.creator_id)))];
+      const people=await profiles(ids), byId=new Map(people.map((p:any)=>[p.id,p]));
+      return reply({mods:(rows||[]).map((m:any)=>({...m,creator_name:byId.get(m.creator_id)?.display_name||byId.get(m.creator_id)?.username||"Игрок"}))});
+    }
+    if(route==="/api/social/mods" && req.method==="POST") {
+      const p=await body(req),name=String(p.name||"").trim(),description=String(p.description||"").trim();
+      const categories=["Выживание","Бой","Исследование","Фермерство","Добыча"],icons=["🧩","⚔️","🛡️","⛏️","🌱","🍀","🔥","🎣"],effects=["damage","defense","speed","hunger","mining","farming"];
+      const strength=Number(p.effect_strength);
+      if(name.length<1||name.length>32||description.length<10||description.length>180||!categories.includes(String(p.category))||!icons.includes(String(p.icon))||!effects.includes(String(p.effect_key))||!Number.isInteger(strength)||strength<1||strength>10) throw new ApiError(400,"INVALID_MOD","Проверь название, описание и параметры мода.");
+      const mine=await db("skyrealm_community_mods?select=id&creator_id=eq."+user.id+"&created_at=gte."+encodeURIComponent(new Date(Date.now()-24*60*60*1000).toISOString()));
+      if((mine||[]).length>=3) throw new ApiError(429,"MOD_DAILY_LIMIT","Можно публиковать не более трёх модов за 24 часа.");
+      const created=await db("skyrealm_community_mods",{method:"POST",body:JSON.stringify({creator_id:user.id,name,description,category:String(p.category),icon:String(p.icon),effect_key:String(p.effect_key),effect_strength:strength,status:"published"})});
+      const row=created?.[0];
+      return reply({mod:row?{...row,creator_name:user.email.split("@")[0]}:null,message:"Мод опубликован."},201);
+    }
     if(route==="/api/social/profile" && req.method==="GET") {
       await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify({last_seen_at:new Date().toISOString()})});
       const rows=await db("profiles?select="+profileFields+"&id=eq."+user.id);

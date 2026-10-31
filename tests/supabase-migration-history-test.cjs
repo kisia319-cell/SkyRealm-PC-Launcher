@@ -33,7 +33,10 @@ const expected = [
   '20261031120000_co_op_shared_enemies_loot.sql',
   '20261031130000_profile_social_foundation.sql',
   '20261031140000_coop_friend_invites.sql',
-  '20261031150000_deny_direct_social_table_access.sql'
+  '20261031150000_deny_direct_social_table_access.sql',
+  '20261031170000_skyrealm_community_mods.sql',
+  '20261031170500_skyrealm_community_mods_defense_effect.sql',
+  '20261031171000_skyrealm_community_mods_service_policy.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');

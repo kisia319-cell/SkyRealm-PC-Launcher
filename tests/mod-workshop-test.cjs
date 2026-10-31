@@ -19,5 +19,14 @@ assert.ok(game.includes("(isModInstalled('green_thumb')?1.35:1)"),'Green Thumb m
 assert.ok(game.includes("(isModInstalled('miners_luck')?0.15:0)"),'Miner Luck must improve bonus ore chance');
 assert.ok(game.includes("isModInstalled('survivalist')?12:10"),'Survivalist must reduce hunger drain');
 assert.ok(game.includes('MOD_CATALOG.some(mod=>mod.id===id)'),'Only known mod IDs may be restored from local storage');
-assert.ok(html.includes('Установка и удаление не стирают миры и сохранения.'),'Catalog must explain save safety');
+assert.ok(html.includes('Установка не меняет миры и сохранения.'),'Catalog must explain save safety for player-made mods');
 console.log('Mod workshop: five gameplay effects, persistent installs, catalog UI and save safety passed.');
+
+for(const id of ['skill_expansion','brutal_world','blood_moon'])assert.ok(game.includes("id:'"+id+"'"),'Missing new mod '+id);
+assert.ok(game.includes("skills={warrior:0,miner:0,scout:0,farmer:0,survivor:0,crafter:0,guardian:0,ranger:0,alchemist:0,fisherman:0,builder:0,beastmaster:0,fortune:0}"),'Expanded skill tree must initialize all 13 branches');
+assert.ok(game.includes("skills[q.id]>=10"),'Skill branches must support ten levels');
+assert.ok(game.includes("id:'brutal_world'" )&&game.includes("isModInstalled('brutal_world')?1.45:1"),'Brutal World must affect ordinary monsters');
+assert.ok(game.includes("id:'blood_moon'")&&game.includes("eternalMoon?.72:1"),'Eternal Blood Moon must increase night pressure');
+assert.ok(html.includes('id="open-mod-creator"')&&html.includes('id="community-mod-form"'),'Players need a mod creator and publish form');
+assert.ok(game.includes("/api/social/mods"),'Community mods must use the shared online catalog API');
+console.log('Expanded skills, world difficulty mods and community mod creator checks passed.');

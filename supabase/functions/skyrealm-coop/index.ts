@@ -168,7 +168,7 @@ function sanitizeWorldAction(actionType: unknown, value: unknown): Record<string
     const playerClass = item.player_class;
     const minerSkill = item.miner_skill_level;
     if (playerClass !== undefined && !["swordsman","farmer","ordinary","archer","mage","miner"].includes(String(playerClass))) throw new ApiError(400,"INVALID_WORLD_ACTION","Неизвестный класс персонажа.");
-    if (minerSkill !== undefined && (!Number.isSafeInteger(minerSkill) || Number(minerSkill) < 0 || Number(minerSkill) > 5)) throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный уровень навыка шахтёра.");
+    if (minerSkill !== undefined && (!Number.isSafeInteger(minerSkill) || Number(minerSkill) < 0 || Number(minerSkill) > 10)) throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректный уровень навыка шахтёра.");
     if (!Number.isSafeInteger(rockIndex) || rockIndex < 0 || rockIndex > 64 ||
         !["Кирка","Улучшенная кирка","Кирка мастера"].includes(tool)) {
       throw new ApiError(400,"INVALID_WORLD_ACTION","Некорректная кирка или залежь.");
