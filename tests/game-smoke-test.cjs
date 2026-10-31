@@ -235,3 +235,7 @@ assert.ok(!game.includes('Math.max(20,Math.min(31,d.mineTileX))') && !game.inclu
 
 assert.ok(game.includes('function updateVillageNpcs(dt){\n    if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;'), 'Trade village NPCs must only simulate inside the Trade World');
 assert.ok(game.includes('function updateWolfAndDog(dt){\n    if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;'), 'Forest boss and companion simulation must not leak into Trade World or interiors');
+
+assert.ok(py.includes('"multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js"'), 'Launcher diagnostics must detect missing multiplayer scripts');
+assert.ok(py.includes('required_game_files = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")'), 'Game updater must reinstall a package missing any multiplayer script');
+assert.ok(py.includes('if version != bundled_version and not required_files_ok:'), 'Launcher must not overwrite a newer remote game with an older bundled build during repair');
