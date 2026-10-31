@@ -180,7 +180,7 @@ assert.equal(fs.readFileSync('game/version.txt','utf8').trim(), version, 'Farm u
 
 assert.ok(game.includes('const FARM_CROP_TRADE_PRICES={Пшеница:{buy:50,sell:30}') && game.includes('Клубника:{buy:200,sell:123}'), 'Crop trading prices must keep the NPC buy/sell spread and prevent arbitrage');
 assert.ok(game.includes('function farmCropBuyPrice(name)') && game.includes('farmCropBuyPrice(name)||item.price'), 'Farmer must sell harvested crops at the agreed buy prices');
-assert.ok(game.includes("Math.round(unit*(1+Math.min(.25,villageReputation*.005)))") && !game.includes("(id==='farmer'?(farmCropSellPrice(name)||unit):unit)"), 'Crop sale totals must use the correct NPC id and per-item price');
+assert.ok(game.includes("npcId==='farmer'?1+Math.min(.05,villageReputation*.0005)") && game.includes("npcId==='farmer'?Math.max(.9,1-villageReputation*.001)"), 'Farmer reputation discounts and bonuses must not reopen crop arbitrage');
 
 
 const activeTradeDraw = game.slice(game.indexOf('function draw(dt,time)'), game.indexOf('function mineRockScreenPosition'));
