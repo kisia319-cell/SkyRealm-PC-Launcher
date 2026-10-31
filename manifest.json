@@ -1,9 +1,9 @@
 {
-  "game_sha256": "48317ca4c034188ac36190d387bd1853bdbcb47e28c2c8634f4347343e2d1384",
-  "game_version": "0.20.27",
-  "notes": "SkyRealm 0.20.27: random world events with distinct odds (meteor 12%, night horde 7%, abandoned camp 10%, traveler 8%, storm 8%); 18 varied houses in each village; saved event cooldowns and backward-compatible world saves. Co-op remains a preview.",
+  "game_sha256": "05ac3411b107bf57d8919d538bc6fc09c894285932a4db19712a2b847aa979df",
+  "game_version": "0.20.28",
+  "notes": "SkyRealm 0.20.28: random world events with distinct odds (meteor 12%, night horde 7%, abandoned camp 10%, traveler 8%, storm 8%); 18 varied houses in each village; saved event cooldowns and backward-compatible world saves. Co-op remains a preview.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.0.6",
   "sha256": "80c25f40ceffc0bea15e91bfbd63613b659656fde8e523a21495f6f96e33779d",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-075eccf/SkyRealm_Game.zip"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-c8e5057/SkyRealm_Game.zip"
 }
