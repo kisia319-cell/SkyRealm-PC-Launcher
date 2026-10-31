@@ -211,7 +211,9 @@ assert.ok(snapshotSync.includes('if(!saveGame())return;'),
 assert.ok(game.includes("if(raidRestoreKey!==lastRestoredVillageRaidKey)"),
   'Unchanged co-op snapshots must not recreate raid enemies every five seconds');
 
-const worldClockUpdate=game.slice(game.indexOf('function updateWorldClock(dt){'),game.indexOf('function updateWorldEvents(dt){'));
+const worldClockStart=game.indexOf('function updateWorldClock(dt){');
+assert.ok(worldClockStart>=0,'World clock updater must exist');
+const worldClockUpdate=game.slice(worldClockStart,worldClockStart+2200);
 assert.ok(worldClockUpdate.includes('const coopRoom=coopNetwork?.getRoomState?.();') && worldClockUpdate.includes('const remoteClockActive=!!(coopRoom&&!coopNetwork.isRoomOwner);'),
   'Guest clock authority must remain active while a room is paused');
 assert.ok(worldClockUpdate.includes('wasNight=isNightTime();updateClockDisplay();return;'),
