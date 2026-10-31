@@ -2157,6 +2157,37 @@ window.addEventListener('beforeunload',()=>syncProfileStats(true));
     document.getElementById('location-name').textContent = tradeWorldMode ? 'Мир торговли' : (waterAt(player.x/TILE,player.y/TILE) ? 'Берег тихого озера' : (player.x/TILE>31&&player.x/TILE<42&&player.y/TILE>13&&player.y/TILE<24 ? 'Старая деревня' : biomeNameAt(player.x/TILE,player.y/TILE)));
   }
   function toast(text){const el=document.getElementById('toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2600);}let toastTimer;
+  const ACHIEVEMENT_KEY='skyrealm_achievements_v1';
+  const ACHIEVEMENTS=[
+    {id:'first_step',title:'Первый шаг',desc:'Прочитай дорожный знак и начни своё приключение.',target:1,progress:()=>questStage>=1,reward:'Значок «Путешественник»'},
+    {id:'first_night',title:'Первая ночь',desc:'Переживи первую ночь в мире.',target:1,progress:()=>survivedNights>=1,reward:'Титул «Ночной дозор»'},
+    {id:'explorer',title:'Следопыт',desc:'Исследуй не менее 100 клеток карты.',target:100,progress:()=>exploredCells.size,reward:'Значок «Следопыт»'},
+    {id:'veteran',title:'Опытный путешественник',desc:'Достигни 5-го уровня.',target:5,progress:()=>playerLevel,reward:'Титул «Ветеран»'},
+    {id:'angler',title:'Рыбак',desc:'Поймай 10 рыб.',target:10,progress:()=>fishCaught,reward:'Значок «Рыбак»'},
+    {id:'cave_guardian',title:'Страж глубин',desc:'Победи босса пещеры.',target:1,progress:()=>caveBossDefeated?1:0,reward:'Титул «Страж глубин»'},
+    {id:'villager_friend',title:'Друг жителей',desc:'Получи 10 очков репутации в деревне.',target:10,progress:()=>villageReputation,reward:'Значок «Друг деревни»'},
+    {id:'long_journey',title:'Долгий путь',desc:'Проведи в SkyRealm не менее одного часа.',target:3600,progress:()=>profilePlaytimeSeconds,reward:'Титул «Путешественник времени»'}
+  ];
+  function readAchievementState(){try{const v=JSON.parse(localStorage.getItem(ACHIEVEMENT_KEY)||'{}');return v&&typeof v==='object'?v:{unlocked:{},stats:{}};}catch(_){return {unlocked:{},stats:{}};}}
+  function evaluateAchievements(quiet=false){
+    const state=readAchievementState();if(!state.unlocked||typeof state.unlocked!=='object')state.unlocked={};if(!state.stats||typeof state.stats!=='object')state.stats={};
+    const checks={questStage:Math.max(0,Number(questStage)||0),survivedNights:Math.max(0,Number(survivedNights)||0),exploredCells:exploredCells.size,playerLevel:Math.max(1,Number(playerLevel)||1),fishCaught:Math.max(0,Number(fishCaught)||0),villageReputation:Math.max(0,Number(villageReputation)||0),profilePlaytimeSeconds:Math.max(0,Number(profilePlaytimeSeconds)||0)};
+    for(const [key,value] of Object.entries(checks))state.stats[key]=Math.max(Number(state.stats[key])||0,value);
+    if(caveBossDefeated)state.stats.caveBossDefeated=true;
+    const newly=[];
+    for(const item of ACHIEVEMENTS){const value=item.id==='cave_guardian'?(state.stats.caveBossDefeated?1:0):Math.max(0,Number(state.stats[item.id==='first_step'?'questStage':item.id==='first_night'?'survivedNights':item.id==='explorer'?'exploredCells':item.id==='veteran'?'playerLevel':item.id==='angler'?'fishCaught':item.id==='villager_friend'?'villageReputation':'profilePlaytimeSeconds'])||0);if(value>=item.target&&!state.unlocked[item.id]){state.unlocked[item.id]={at:Date.now(),reward:item.reward};newly.push(item);}}
+    try{localStorage.setItem(ACHIEVEMENT_KEY,JSON.stringify(state));}catch(error){console.warn('Achievement progress could not be saved:',error);}
+    if(!quiet)newly.forEach(item=>toast('🏆 Достижение: '+item.title+' · '+item.reward));
+    return {state,newly};
+  }
+  function renderAchievements(){
+    const {state}=evaluateAchievements(true),list=document.getElementById('achievement-list'),count=document.getElementById('achievement-count');if(!list)return;
+    const unlocked=Object.keys(state.unlocked||{}).length;if(count)count.textContent=unlocked+' / '+ACHIEVEMENTS.length+' открыто';
+    list.innerHTML=ACHIEVEMENTS.map(item=>{const value=item.id==='cave_guardian'?(state.stats?.caveBossDefeated?1:0):Math.max(0,Number(state.stats?.[item.id==='first_step'?'questStage':item.id==='first_night'?'survivedNights':item.id==='explorer'?'exploredCells':item.id==='veteran'?'playerLevel':item.id==='angler'?'fishCaught':item.id==='villager_friend'?'villageReputation':'profilePlaytimeSeconds'])||0);const done=!!state.unlocked[item.id],shown=Math.min(item.target,value),progress=item.target>=3600?Math.floor(shown/60)+' / 60 мин':shown+' / '+item.target;return '<article class="achievement-card '+(done?'is-unlocked':'')+'"><span class="achievement-icon">'+(done?'🏆':'🔒')+'</span><div class="achievement-copy"><b>'+item.title+'</b><small>'+item.desc+'</small><small class="achievement-reward">'+(done?'Награда получена: ':'Награда: ')+item.reward+'</small><div class="achievement-progress"><i style="width:'+Math.round(shown/item.target*100)+'%"></i></div><small>'+progress+'</small></div><span class="achievement-status">'+(done?'Открыто':'В процессе')+'</span></article>';}).join('');
+  }
+  function openAchievements(){evaluateAchievements(true);renderAchievements();document.getElementById('achievements-shade').hidden=false;document.getElementById('achievements-shade').setAttribute('aria-hidden','false');}
+  function closeAchievements(){document.getElementById('achievements-shade').hidden=true;document.getElementById('achievements-shade').setAttribute('aria-hidden','true');canvas.focus();}
+
   function openSignDialog(){
     signDialogOpen = true;
     keys.clear();
@@ -2969,7 +3000,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       const worlds=readWorlds();const worldRecord=worlds.find(w=>w.id===currentWorldId);
       if(worldRecord){worldRecord.updatedAt=Date.now();writeWorlds(worlds);}
     }catch(metadataError){console.warn('SkyRealm save metadata could not be updated:',metadataError);}
-    saveErrorNotified=false;lastSaveAt=Date.now();syncProfileStats(false);
+    saveErrorNotified=false;lastSaveAt=Date.now();syncProfileStats(false);evaluateAchievements(false);
     const status=document.getElementById('save-status');
     if(status){const d=new Date(lastSaveAt);status.textContent='Последнее сохранение: '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
     return true;
