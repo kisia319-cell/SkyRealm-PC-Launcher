@@ -1,9 +1,9 @@
 {
-  "game_sha256": "30670cd4b22dec1a8e6aad7a75ad1454571af1c642d6179d2e9f33c0005605b8",
+  "game_sha256": "b77cd75e72ac6b98245aac27bd9e36c264bd551911f3724add018605a06a398b",
   "game_version": "0.20.44",
   "notes": "SkyRealm Launcher 1.1.8 + Game 0.20.44: profile sync, friend requests, private chat and co-op room invitations; SHA-256 diagnostics and world backup/restore; 8 persistent achievements; free achievement-earned cosmetic sets; searchable and sortable world library with level/day/map summaries; and recent adventure history. Existing accounts, worlds and single-player saves remain compatible.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.1.8",
-  "sha256": "5c3bc631ffebb23e4573b0592799b7f0607ffd56b47aa215e10572ea1913bf1d",
+  "sha256": "ea354708e27c6dc30cc72e773cf460111c7ed458a4e87f27cb68bbbf6e9c7be4",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
