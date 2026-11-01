@@ -45,6 +45,7 @@ DEFAULT_SETTINGS = {
     "windowMode": "windowed",
     "graphicsQuality": "medium",
     "fpsLimit": 0,
+    "updateChannel": "stable",
     "musicVolume": 35,
     "sfxVolume": 70,
     "musicEnabled": False,
@@ -84,6 +85,8 @@ def normalize_settings(value=None) -> dict:
         settings["graphicsQuality"] = DEFAULT_SETTINGS["graphicsQuality"]
     if settings.get("fpsLimit") not in {0, 30, 60, 120, 144}:
         settings["fpsLimit"] = 0
+    if settings.get("updateChannel") not in {"stable", "beta"}:
+        settings["updateChannel"] = "stable"
     for key in ("musicVolume", "sfxVolume"):
         try:
             settings[key] = max(0, min(100, int(settings.get(key, DEFAULT_SETTINGS[key]))))
@@ -443,13 +446,10 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Ошибка диагностики: " + str(exc)}
 
-    def get_update_status(self):
+    def get_update_status(self, channel=None):
         """Return release metadata and local version state without modifying files."""
         try:
-            config = json.loads(Path(resource_path("updater_config.json")).read_text(encoding="utf-8"))
-            manifest_url = str(config.get("manifest_url", "")).strip()
-            if not manifest_url.startswith("https://"):
-                raise ValueError("В конфигурации отсутствует HTTPS-ссылка на манифест.")
+            selected_channel, manifest_url = _skyrealm_manifest_url(channel)
             request = urllib.request.Request(manifest_url, headers={"User-Agent": "SkyRealmLauncher-UpdateCenter/1.0", "Cache-Control": "no-cache"})
             with urllib.request.urlopen(request, timeout=8) as response:
                 manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
@@ -469,7 +469,7 @@ class LauncherApi:
             latest_launcher = str(manifest.get("version", "")).strip()
             latest_game = str(manifest.get("game_version", "")).strip()
             return {
-                "ok": True, "launcher_version": launcher_version, "latest_launcher_version": latest_launcher,
+                "ok": True, "channel": selected_channel, "manifest_url": manifest_url, "launcher_version": launcher_version, "latest_launcher_version": latest_launcher,
                 "launcher_update_available": bool(_skyrealm_version_tuple(latest_launcher) and _skyrealm_version_tuple(latest_launcher) > _skyrealm_version_tuple(launcher_version)),
                 "game_version": installed_game or "не установлена", "latest_game_version": latest_game,
                 "game_update_available": bool(_skyrealm_version_tuple(latest_game) and _skyrealm_version_tuple(latest_game) > _skyrealm_version_tuple(installed_game)),
@@ -477,42 +477,42 @@ class LauncherApi:
                 "rollback_available": bool(install_dir.with_name("game.previous").is_dir() and previous_game),
                 "previous_game_version": previous_game,
                 "notes": str(manifest.get("notes", ""))[:1200],
-                "release_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest",
+                "release_url": str(manifest.get("release_url") or ("https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases?q=prerelease%3Atrue" if selected_channel == "beta" else "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest")),
                 "checked_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
             }
         except Exception as exc:
             return {"ok": False, "message": "Не удалось проверить обновления: " + str(exc)}
 
-    def install_game_update(self):
+    def install_game_update(self, channel=None):
         """Install the latest game package without starting the game."""
         try:
             if self._skyrealm_game_is_running():
                 return {"ok": False, "message": "Сначала закрой SkyRealm, затем устанавливай обновление."}
-            state = self.get_update_status()
+            state = self.get_update_status(channel)
             if not state.get("ok"):
                 return state
             if not state.get("game_update_available"):
                 return {"ok": True, "updated": False, "version": state.get("game_version"), "message": "Установлена последняя версия игры."}
             install_dir = skyrealm_game_dir()
             bundled_version = Path(resource_path("game/version.txt")).read_text(encoding="utf-8").strip()
-            installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True)
+            installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True, manifest_url_override=state.get("manifest_url", ""))
             if installed != state.get("latest_game_version"):
                 return {"ok": False, "message": "Обновление не установилось. Проверь журнал; прежняя версия сохранена.", "version": installed}
             return {"ok": True, "updated": True, "version": installed, "message": "Игра обновлена. Предыдущая версия сохранена для отката."}
         except Exception as exc:
             return {"ok": False, "message": "Не удалось установить обновление: " + str(exc)}
 
-    def repair_game_files(self):
+    def repair_game_files(self, channel=None):
         """Reinstall the verified release archive, keeping a rollback copy."""
         try:
             if self._skyrealm_game_is_running():
                 return {"ok": False, "message": "Сначала полностью закрой SkyRealm, затем запускай восстановление."}
-            state = self.get_update_status()
+            state = self.get_update_status(channel)
             if not state.get("ok"):
                 return state
             install_dir = skyrealm_game_dir()
             bundled_version = Path(resource_path("game/version.txt")).read_text(encoding="utf-8").strip()
-            installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True, force=True)
+            installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True, force=True, manifest_url_override=state.get("manifest_url", ""))
             required = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
             missing = [name for name in required if not (install_dir / name).is_file()]
             if missing or installed != state.get("latest_game_version"):
@@ -605,7 +605,7 @@ class LauncherApi:
             installed_index = install_dir / "index.html"
             installed_version_file = install_dir / "version.txt"
             _js_update(8, "Проверяем обновления…", "Проверяем версию игры и загружаем обновления при необходимости")
-            version = _skyrealm_update_game(install_dir, bundled_version, allow_update=allow_game_update is not False) if getattr(sys, "frozen", False) else bundled_version
+            version = _skyrealm_update_game(install_dir, bundled_version, allow_update=allow_game_update is not False, manifest_url_override=_skyrealm_manifest_url(preferences.get("updateChannel"))[1]) if getattr(sys, "frozen", False) else bundled_version
             installed_version = ""
             try:
                 installed_version = installed_version_file.read_text(encoding="utf-8").strip()
@@ -913,6 +913,18 @@ def run_game_window(game_html: str) -> None:
 
 
 
+def _skyrealm_manifest_url(channel=None):
+    config = json.loads(Path(resource_path("updater_config.json")).read_text(encoding="utf-8"))
+    selected = str(channel or read_user_settings().get("updateChannel") or "stable").lower()
+    if selected not in {"stable", "beta"}:
+        selected = "stable"
+    key = "beta_manifest_url" if selected == "beta" else "manifest_url"
+    url = str(config.get(key, "")).strip()
+    if not url.startswith("https://"):
+        raise ValueError("В конфигурации отсутствует HTTPS-ссылка на выбранный канал обновлений.")
+    return selected, url
+
+
 def _skyrealm_version_tuple(value):
     try:
         parts = tuple(int(part) for part in str(value).strip().split("."))
@@ -922,7 +934,7 @@ def _skyrealm_version_tuple(value):
 
 
 
-def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update: bool = True, force: bool = False) -> str:
+def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update: bool = True, force: bool = False, manifest_url_override: str = "") -> str:
     """Download and atomically install the latest game package before launching it."""
     root = install_dir.parent
     version_file = install_dir / "version.txt"
@@ -960,7 +972,7 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
     try:
         config_path = Path(resource_path("updater_config.json"))
         config = json.loads(config_path.read_text(encoding="utf-8"))
-        manifest_url = str(config.get("manifest_url", "")).strip()
+        manifest_url = str(manifest_url_override or config.get("manifest_url", "")).strip()
         if not manifest_url.startswith("https://"):
             return fallback_version()
         request = urllib.request.Request(
