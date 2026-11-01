@@ -1011,8 +1011,7 @@ def _skyrealm_startup_game_update():
     if not getattr(sys, "frozen", False):
         return False
 
-    appdata = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-    root = appdata / "SkyRealm"
+    root = skyrealm_data_root()
     install_dir = root / "game"
     version_file = install_dir / "version.txt"
     try:
