@@ -36,3 +36,7 @@
 .system-error{color:#ff9eae!important}
 @media(max-width:1050px){.system-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.system-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.system-grid{grid-template-columns:1fr}.system-notification-panel{right:14px;top:62px}.system-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Authenticated accounts never see duplicate sign-up/login entry points. */
+button[hidden], [hidden] { display: none !important; }
+body.is-authenticated [data-auth-mode], body.is-authenticated #top-create-account { display: none !important; }
