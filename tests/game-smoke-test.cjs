@@ -304,3 +304,8 @@ assert.ok(game.includes("const hasBlockingShade=Array.from(document.querySelecto
 assert.ok(game.includes('!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true'), 'A stale pause must recover only inside an active world with no visible pause dialog');
 
 assert.ok(game.includes("canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused)canvas.focus();},true)"), 'Clicking the world canvas must restore keyboard focus');
+
+assert.ok(game.includes('fpsGateAt=0') && game.includes('1000/fpsLimit'), 'Game must enforce the selected FPS limit without stopping requestAnimationFrame');
+assert.ok(game.includes('Number(gameSettings.sfxVolume??70)'), 'Game sound effects must use the saved sound volume');
+assert.ok(game.includes('Number(gameSettings.musicVolume??35)'), 'Game ambient music must use the saved music volume');
+assert.ok(game.includes('gameSettings.musicEnabled=skyMusicEnabled'), 'Game music toggle must persist its enabled state');
