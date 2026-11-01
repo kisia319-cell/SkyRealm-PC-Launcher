@@ -40,3 +40,11 @@ assert.match(app,/DEFAULT_KEY_BINDINGS/,'Launcher must expose editable default k
 assert.match(app,/renderKeyBindings/,'Launcher must render the key-binding editor');
 assert.ok(html.includes('id="key-bindings-list"')&&html.includes('id="reset-key-bindings"'),'Keyboard remapping controls must exist');
 assert.ok(launcher.includes('"keyBindings"')&&launcher.includes('"up": "KeyW"'),'Native launcher settings must persist keyboard bindings');
+
+assert.match(launcher,/def skyrealm_data_root\(settings=None\)/,'Launcher must resolve the configured installation root');
+assert.match(launcher,/def select_install_folder\(self\)/,'Windows launcher must expose a native folder picker');
+assert.match(launcher,/def reset_install_folder\(self\)/,'Windows launcher must allow restoring the default folder');
+assert.match(launcher,/install_dir = skyrealm_game_dir\(preferences\)/,'Game installation must use the selected folder');
+assert.ok(html.includes('id="select-install-folder"')&&html.includes('id="reset-install-folder"')&&html.includes('id="install-folder-path"'),'Installation folder controls must exist in launcher settings');
+assert.match(app,/select_install_folder/,'Launcher UI must call the native folder picker');
+assert.match(app,/reset_install_folder/,'Launcher UI must call the default folder reset action');
