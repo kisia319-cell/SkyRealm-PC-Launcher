@@ -90,3 +90,13 @@
 .mods-launcher-community b{font-size:13px}.mods-launcher-community p{margin:5px 0 0;color:#9fb4d2;font-size:11px;line-height:1.6}
 .mods-launcher-community button{white-space:nowrap}
 @media(max-width:900px){.mods-launcher-note{align-items:flex-start;flex-wrap:wrap}.mods-launcher-note .primary-btn{width:100%}.launcher-mod-grid{grid-template-columns:1fr}.mods-launcher-community{align-items:flex-start;flex-direction:column}.mods-launcher-community button{width:100%}}
+
+.social-invites,.social-chat{margin:18px 0;padding:18px;border:1px solid #304765;border-radius:15px;background:linear-gradient(145deg,#10223a,#0a1728)}
+.social-invites .social-toolbar,.social-chat .social-toolbar{align-items:center}
+.social-chat-messages{height:300px;overflow:auto;display:flex;flex-direction:column;gap:9px;padding:12px;margin:14px 0;background:#071321;border:1px solid #263d5a;border-radius:12px}
+.social-chat-bubble{max-width:82%;align-self:flex-start;display:grid;gap:5px;padding:10px 12px;border:1px solid #344967;border-radius:12px 12px 12px 3px;background:#142640;color:#e4edff;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.social-chat-bubble.mine{align-self:flex-end;border-color:#526fc0;background:#1c3159;border-radius:12px 12px 3px 12px}
+.social-chat-bubble small{font-size:9px;color:#8da5ca;text-align:right}
+.social-chat .social-search{margin-bottom:0}
+.social-chat .social-search input{min-width:0}
+@media(max-width:650px){.social-player{flex-wrap:wrap}.social-player-info{min-width:calc(100% - 60px)}.social-chat .social-search{flex-wrap:wrap}.social-chat .social-search button{width:100%}}
