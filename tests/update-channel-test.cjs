@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const launcher=fs.readFileSync('launcher.py','utf8');
+const app=fs.readFileSync('app.js','utf8');
+const html=fs.readFileSync('index.html','utf8');
+const updater=JSON.parse(fs.readFileSync('updater_config.json','utf8'));
+const betaWorkflow=fs.readFileSync('.github/workflows/build-beta-release.yml','utf8');
+assert.ok(launcher.includes('def _skyrealm_manifest_url(channel=None)'),'Native updater must select a manifest by channel');
+assert.ok(launcher.includes('beta_manifest_url')&&launcher.includes('manifest_url_override'),'Game installation and repair must use the selected channel manifest');
+assert.ok(launcher.includes('def get_update_status(self, channel=None)')&&launcher.includes('def install_game_update(self, channel=None)'),'Update check and install APIs must accept the selected channel');
+assert.ok(launcher.includes('"updateChannel": "stable"')&&launcher.includes('{"stable", "beta"}'),'Existing settings must default safely to stable');
+assert.ok(app.includes("updateChannel: $('#update-channel-select')")&&app.includes("['stable','beta'].includes(p.updateChannel)"),'Launcher UI must persist stable or beta selection');
+assert.ok(html.includes('id="update-channel-select"'),'Launcher settings must expose update channel selection');
+assert.ok(typeof updater.beta_manifest_url==='string'&&updater.beta_manifest_url.includes('/beta/manifest.json'),'Updater config must point beta channel to its own manifest');
+assert.ok(betaWorkflow.includes('      - beta')&&betaWorkflow.includes('--prerelease')&&betaWorkflow.includes('releases/download/$betaTag/'),'Beta channel must publish a separate prerelease and package URLs');
+console.log('SkyRealm stable/beta update channel checks passed.');
