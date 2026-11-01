@@ -282,10 +282,12 @@ assert.ok(releaseWorkflow.includes('notes = "SkyRealm Launcher $version + Game $
 assert.ok(game.includes("const visible = id => { const el=document.getElementById(id); return !!el && !el.hidden; }"), 'Movement recovery must check actual overlay visibility without treating missing elements as blockers');
 assert.ok(game.includes("pauseShade?.hidden === true && !blockingOverlay && !sleeping"), 'A movement key must recover a stale pause state when no blocking modal is visible');
 assert.ok(game.includes("['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)"), 'Movement must accept physical WASD and arrow key codes in embedded WebViews');
-assert.ok(game.includes("document.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Movement key releases must be captured at document level');
+assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Movement key releases must be captured at window level');
 assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden) keys.clear(); })"), 'Hidden game windows must clear held movement keys');
 
 assert.ok(game.includes("window.addEventListener('keydown', e => {"), 'Keyboard input must be captured at the WebView window level');
 assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Keyboard releases must clear movement keys at window level');
 assert.ok(game.includes("const hasBlockingShade=Array.from(document.querySelectorAll('.shade'))"), 'Pause recovery must check all visible modal overlays');
 assert.ok(game.includes('!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true'), 'A stale pause must recover only inside an active world with no visible pause dialog');
+
+assert.ok(game.includes("canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused)canvas.focus();},true)"), 'Clicking the world canvas must restore keyboard focus');
