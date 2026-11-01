@@ -6,7 +6,8 @@
   let inMainMenu = true;
   let settingsOpenedFromMainMenu = false;
   const keys = new Set();
-  const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
+  const DEFAULT_GAME_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
+  const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
   let gameSettings = readInitialSettings();
   const world = { trees: [], rocks: [], flowers: [], fireflies: [], signs: [], fences: [] };
   let treeChops=[],felledTrees=[];
@@ -395,6 +396,10 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if (![0,30,60,120,144].includes(Number(s.fpsLimit))) s.fpsLimit = 0; else s.fpsLimit = Number(s.fpsLimit);
     for (const key of ['musicVolume','sfxVolume']) s[key] = Math.max(0,Math.min(100,Math.round(Number(s[key])||0)));
     s.musicEnabled = s.musicEnabled === true;
+    const rawBindings=s.keyBindings&&typeof s.keyBindings==='object'?s.keyBindings:{};
+    const validBinding=code=>/^(Key[A-Z]|Arrow(Up|Down|Left|Right)|Space|Digit[0-9])$/.test(String(code||''));
+    const bindings={};Object.keys(DEFAULT_GAME_KEY_BINDINGS).forEach(action=>{bindings[action]=validBinding(rawBindings[action])?String(rawBindings[action]):DEFAULT_GAME_KEY_BINDINGS[action];});
+    if(new Set(Object.values(bindings)).size!==Object.keys(DEFAULT_GAME_KEY_BINDINGS).length)s.keyBindings={...DEFAULT_GAME_KEY_BINDINGS};else s.keyBindings=bindings;
     if (!['85','100','115'].includes(String(s.uiScale))) s.uiScale = '100'; else s.uiScale = String(s.uiScale);
     ['showVitals','showQuest','showControls','showInventory','showMinimap'].forEach(k => s[k] = s[k] !== false);
     s.adminMode = s.adminMode === true;
@@ -2489,6 +2494,9 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     canvas.focus();
   }
   function gameKey(e){
+    const keyByAction={up:'w',left:'a',down:'s',right:'d',interact:'e',inventory:'i',map:'l',attack:' ',dodge:'q',ability:'r',heal:'h',buff:'j'};
+    const bindings=gameSettings.keyBindings||DEFAULT_GAME_KEY_BINDINGS;
+    for(const [action,code] of Object.entries(bindings)){if(code===e.code&&keyByAction[action])return keyByAction[action];}
     const byCode = {
       KeyW:'w', KeyA:'a', KeyS:'s', KeyD:'d', KeyE:'e', KeyI:'i', KeyL:'l', KeyK:'k',
       ArrowUp:'arrowup', ArrowDown:'arrowdown', ArrowLeft:'arrowleft', ArrowRight:'arrowright',
