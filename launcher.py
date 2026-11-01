@@ -785,13 +785,14 @@ def _skyrealm_startup_update():
                 finally:
                     prompt_root.destroy()
             except Exception as prompt_error:
-            try:
-                root.mkdir(parents=True, exist_ok=True)
-                with (root / "update.log").open("a", encoding="utf-8") as log:
-                    log.write(time.strftime("%Y-%m-%d %H:%M:%S") + " | update prompt failed: " + str(prompt_error) + "\\n")
-            except OSError:
-                pass
-            return False
+                try:
+                    root.mkdir(parents=True, exist_ok=True)
+                    with (root / "update.log").open("a", encoding="utf-8") as log:
+                        log.write(time.strftime("%Y-%m-%d %H:%M:%S") + " | update prompt failed: " + str(prompt_error) + "\\n")
+                except OSError:
+                    pass
+                return False
+
         if not accepted:
             try:
                 root.mkdir(parents=True, exist_ok=True)
