@@ -3011,6 +3011,19 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     last = now;
     ambientTime=now;
     updateVisualEffects(dt);
+    // Recover a stale pause flag only when the world is active and every modal is closed.
+    // This prevents a hidden entry dialog from leaving the simulation frozen.
+    const pauseShade=document.getElementById('pause-shade');
+    const hasBlockingShade=Array.from(document.querySelectorAll('.shade')).some(el=>
+      !el.hidden && !['pause-shade','main-menu-shade'].includes(el.id));
+    const hasBlockingDialog=signDialogOpen||inventoryDialogOpen||workbenchDialogOpen||
+      shopDialogOpen||npcQuestDialogOpen||storageDialogOpen||fullMapOpen;
+    if(!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true&&
+       !hasBlockingShade&&!hasBlockingDialog&&!sleeping&&!hudMoveMode){
+      paused=false;
+      keys.clear();
+      last=now;
+    }
     const coopRoomState=window.SkyRealmCoopClient?.getRoomState?.();
     const coopRoomPaused=coopRoomState?.status==='paused';
     if (!paused && !coopRoomPaused && !signDialogOpen && !inventoryDialogOpen && !fullMapOpen && !workbenchDialogOpen) {
@@ -3500,7 +3513,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   document.getElementById('shop-close')?.addEventListener('click',closeShop);
   document.getElementById('npc-quest-close')?.addEventListener('click',closeNpcQuestDialog);
-  document.addEventListener('keydown', e => {
+  window.addEventListener('keydown', e => {
     if(e.code==='F11'||e.key==='F11'){e.preventDefault();toggleFullscreen();return;}
     const k = gameKey(e);
     const formTarget = e.target && (e.target.matches?.('input,textarea,select') || e.target.isContentEditable);
@@ -3512,11 +3525,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const visible = id => { const el=document.getElementById(id); return !!el && !el.hidden; };
     const blockingOverlay = signDialogOpen || inventoryDialogOpen || workbenchDialogOpen ||
       shopDialogOpen || npcQuestDialogOpen || storageDialogOpen || fullMapOpen ||
-      visible('character-editor-shade') || visible('tutorial-shade') ||
-      visible('class-select-shade') || visible('skill-tree-shade') ||
-      visible('admin-panel-shade') || visible('moderator-panel-shade') ||
-      visible('admin-password-shade') || visible('world-create-shade') ||
-      visible('world-rename-shade') || visible('difficulty-shade');
+      Array.from(document.querySelectorAll('.shade')).some(el =>
+        !el.hidden && !['pause-shade','main-menu-shade'].includes(el.id));
     // Some embedded WebView builds can leave the internal pause flag stale after
     // a modal closes. Resume on the first movement key only when no modal is visible.
     if (movementKey && !formTarget && !inMainMenu && paused &&
@@ -3568,7 +3578,6 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }, true);
   // Listen at document capture level as well: WebView keyboard focus can move
   // between the canvas and its wrapper, but key releases must always clear input.
-  document.addEventListener('keyup', e => keys.delete(gameKey(e)), true);
   window.addEventListener('keyup', e => keys.delete(gameKey(e)), true);
   window.addEventListener('blur', () => keys.clear(), true);
   document.addEventListener('visibilitychange', () => { if(document.hidden) keys.clear(); });
