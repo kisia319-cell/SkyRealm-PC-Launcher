@@ -37,7 +37,7 @@ jobs:
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "config.js", "realm.jpg", "icon.png",
             "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt",
-            "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/cloud-save-ui.js"
+            "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
           if ($missing.Count -gt 0) {
@@ -51,6 +51,7 @@ jobs:
           node --check app.js
           node --check launcher-enhancements.js
           node --check game/cloud-save-ui.js
+          node --check game/custom-mods-runtime.js
           node --check tests/auth-smoke.mjs
           node --check tests/game-smoke-test.cjs
           node --check tests/farm-economy-test.cjs
@@ -65,6 +66,7 @@ jobs:
           node tests/cosmetic-collection-test.cjs
           node tests/adventure-history-test.cjs
           node tests/mod-workshop-test.cjs
+          node tests/custom-mod-runtime-test.cjs
           node tests/farm-economy-test.cjs
           node tests/singleplayer-village-test.cjs
           node tests/multiplayer-core-test.cjs
@@ -116,7 +118,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version + Game $($gameVersion): profile sync, friends and private chat; co-op room invitations; update center with rollback and repair; multi-service status and local performance monitor; cloud world backups; in-app notifications; SHA-256 diagnostics. Existing accounts and local worlds remain compatible."
+            notes = "SkyRealm Launcher $version + Game $($gameVersion): profile sync, friends and private chat; co-op room invitations; update center with rollback and repair; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. Existing accounts and local worlds remain compatible."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash

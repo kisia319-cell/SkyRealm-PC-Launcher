@@ -49,3 +49,16 @@ assert.ok(game.includes("if(k==='f'&&!paused"),'F must cycle spells');
 assert.ok(game.includes('magicMana=100'),'Magic must initialize with mana');
 assert.ok(launcherPy.includes('"full_magic"'),'Native launcher allowlist must accept full magic');
 console.log('25-mod workshop and full magic checks passed.');
+
+const additionalModIds=['swift_steps','guardian_oath','herbalist','deep_reserves','treasure_hunter','scavenger','marksman','restful_camp','merchant_guild','scholar'];
+for(const id of additionalModIds){
+  assert.ok(game.includes("id:'"+id+"'"),'Missing added mod '+id);
+  assert.ok(game.includes("isModInstalled('"+id+"')"),'Mod '+id+' has no gameplay effect hook');
+  assert.ok(launcherHtml.includes('data-install-mod="'+id+'"'),'Launcher card missing for '+id);
+  assert.ok(launcherPy.includes('"'+id+'"'),'Native launcher allow-list missing '+id);
+}
+assert.ok(game.includes("isModInstalled('bounty_hunter')&&/монстр|побед/i.test(String(reason))?1.2:1"),'Bounty Hunter must also increase combat XP.');
+assert.ok(game.includes("isModInstalled('scholar')?1.12:1"),'Scholar must increase XP.');
+assert.ok(game.includes('window.SkyRealmCustomModHost'),'Safe custom-mod host bridge must be exposed.');
+assert.ok(game.includes('!isCoopWorldSave()&&!isCoopWorldActive()'),'Custom scripts must not run in co-op.');
+console.log('35 built-in mods and effect hooks: OK');

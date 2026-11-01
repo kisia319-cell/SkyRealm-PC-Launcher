@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const runtime=fs.readFileSync('game/custom-mods-runtime.js','utf8');
+const game=fs.readFileSync('game/game.js','utf8');
+const html=fs.readFileSync('game/index.html','utf8');
+new vm.Script(runtime,{filename:'custom-mods-runtime.js'});
+for(const id of ['script-mod-name','script-mod-language','script-mod-code','script-mod-test','script-mod-save','user-mods-list','open-script-mod-creator','import-user-mod']) assert.ok(html.includes('id="'+id+'"'),'Missing script mod UI: '+id);
+assert.ok(html.includes('src="custom-mods-runtime.js"')&&html.includes('href="custom-mods.css"'));
+for(const fragment of ['sandbox','allow-scripts','worker-src blob:','onTick(context, state)','on_tick(context, state)','MAX_CODE=14000','MAX_ACTIVE=3','skyrealm-user-mod-host','event.source!==frame.contentWindow']) assert.ok(runtime.includes(fragment),'Missing runtime feature or isolation check: '+fragment);
+assert.ok(runtime.includes("PYODIDE_VERSION='0.29.5'"),'Python runtime version must be pinned.');
+assert.ok(game.includes('window.SkyRealmCustomModHost')&&game.includes('if(!canRunCustomScriptMods()'),'Game must validate custom script actions.');
+assert.ok(!runtime.includes('skyrealm_token')&&!runtime.includes('skyrealm_refresh_token'),'Custom scripts must never access authentication tokens.');
+console.log('JavaScript/Python custom mod studio tests: OK');

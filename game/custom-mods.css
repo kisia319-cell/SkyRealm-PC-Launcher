@@ -1,0 +1,17 @@
+.user-script-mods{margin:18px 0 14px;padding:14px;border:1px solid #314765;border-radius:14px;background:#0a1a2b}
+.user-mod-tools,.script-mod-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.script-mod-dialog{width:min(780px,96vw);max-height:92vh;overflow:auto;text-align:left}
+.script-mod-dialog h1,.script-mod-dialog .eyebrow,.script-mod-dialog .dialog-mark{text-align:center}
+.script-mod-dialog>label{display:block;margin:12px 0;color:#a8bddf;font-size:11px;font-weight:800}
+.script-mod-dialog input,.script-mod-dialog select,.script-mod-dialog textarea{display:block;width:100%;margin-top:6px;padding:11px 12px;border:1px solid #36527a;border-radius:9px;background:#071728;color:#e7efff;font:inherit;font-size:12px;box-sizing:border-box}
+.script-mod-dialog textarea{min-height:260px;resize:vertical;font-family:Consolas,monospace;font-size:12px;line-height:1.55;tab-size:2}
+.script-mod-help{padding:11px;border:1px solid #3c587b;border-radius:10px;background:#0e2136;color:#9fb4d4;font-size:11px;line-height:1.6}
+.script-mod-status{min-height:36px;margin-top:10px;padding:10px;border-radius:9px;background:#08182a;color:#a8c4ef;font-size:11px;line-height:1.55;white-space:pre-wrap}
+.script-mod-status.error{color:#ff9cae;background:#2a1420}.script-mod-status.success{color:#8de6bb;background:#10271f}
+.script-mod-actions{justify-content:flex-end}
+.user-mod-card{display:flex;align-items:flex-start;gap:10px;padding:11px;border:1px solid #314765;border-radius:10px;background:#0b1a2b;margin:8px 0}
+.user-mod-card-info{flex:1;min-width:0}.user-mod-card-info b{display:block;color:#eaf1ff;font-size:12px}
+.user-mod-card-info small{display:block;color:#8ea7cb;font-size:10px;margin:4px 0}.user-mod-card-info p{margin:0;color:#a7b9d5;font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.user-mod-card-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.user-mod-card-actions button{min-height:32px;padding:6px 9px;font-size:10px}
+.user-mod-empty{padding:14px;border:1px dashed #344c6e;border-radius:10px;color:#91a8c8;text-align:center;font-size:11px}
+.script-mod-dialog button:disabled{opacity:.5;cursor:wait}
