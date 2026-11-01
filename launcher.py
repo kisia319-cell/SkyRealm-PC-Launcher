@@ -566,7 +566,7 @@ class LauncherApi:
                 command = [sys.executable, str(Path(__file__).resolve()), "--skyrealm-game", str(installed_index)]
             creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) if os.name == "nt" else 0
             launch_env = os.environ.copy()
-            allowed_mod_ids = {"cartographer", "angler", "green_thumb", "miners_luck", "survivalist", "skill_expansion", "brutal_world", "blood_moon", "lost_dungeons", "sky_islands", "ancient_civs", "ocean_depths", "elemental_lords", "legendary_gear", "bounty_hunter", "arena_survival", "settlement_builder", "architect", "beast_companions", "trade_caravans", "magic_academy", "engineer_world", "banking", "parallel_dimensions", "full_magic", "__catalog__"}
+            allowed_mod_ids = {"cartographer", "angler", "green_thumb", "miners_luck", "survivalist", "skill_expansion", "brutal_world", "blood_moon", "lost_dungeons", "sky_islands", "ancient_civs", "ocean_depths", "elemental_lords", "legendary_gear", "bounty_hunter", "arena_survival", "settlement_builder", "architect", "beast_companions", "trade_caravans", "magic_academy", "engineer_world", "banking", "parallel_dimensions", "full_magic", "swift_steps", "guardian_oath", "herbalist", "deep_reserves", "treasure_hunter", "scavenger", "marksman", "restful_camp", "merchant_guild", "scholar", "__catalog__", "__creator__"}
             requested_mod = open_mod_id.strip() if isinstance(open_mod_id, str) else ""
             if requested_mod == "__cloud_saves__":
                 launch_env["SKYREALM_OPEN_CLOUD_SAVES"] = "1"

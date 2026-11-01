@@ -940,6 +940,7 @@
   $$('[data-install-mod]').forEach(button => button.addEventListener('click', () => launchGame(true, button.dataset.installMod)));
   $('#open-full-mod-catalog')?.addEventListener('click', () => launchGame(true, '__catalog__'));
   $('#create-own-mod')?.addEventListener('click', () => launchGame(true, '__creator__'));
+  $('#create-own-mod-script')?.addEventListener('click', () => launchGame(true, '__creator__'));
   $('#game-update-yes').addEventListener('click', () => { $('#game-update-overlay').hidden = true; launchGame(true); });
   $('#game-update-no').addEventListener('click', () => { $('#game-update-overlay').hidden = true; launchGame(false); });
 

@@ -499,7 +499,8 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function communityModBonus(key){return (communityMods||[]).filter(m=>installedCommunityMods.has(m.id)&&m.effect_key===key).reduce((sum,m)=>sum+Math.max(1,Math.min(10,Number(m.effect_strength)||1)),0);}
   function communityModBonus(key){return (communityMods||[]).filter(m=>installedCommunityMods.has(m.id)&&m.effect_key===key).reduce((sum,m)=>sum+Math.max(1,Math.min(10,Number(m.effect_strength)||1)),0);}
   function awardXP(amount,reason=''){
-    const gained=Math.max(0,Math.floor((Number(amount)||0)*(1+skills.crafter*.04+(classHas('ordinary')?0.05:0))));if(!gained)return;playerXP+=gained;let leveled=false;
+    const bountyBonus=isModInstalled('bounty_hunter')&&/монстр|побед/i.test(String(reason))?1.2:1;
+    const gained=Math.max(0,Math.floor((Number(amount)||0)*(1+skills.crafter*.04+(classHas('ordinary')?0.05:0))*bountyBonus*(isModInstalled('scholar')?1.12:1)));if(!gained)return;playerXP+=gained;let leveled=false;
     while(playerXP>=xpForNextLevel()){playerXP-=xpForNextLevel();playerLevel++;skillPoints++;leveled=true;player.hp=Math.min(100,player.hp+8);player.stamina=Math.min(100,player.stamina+12);}
     updateProgressHud();if(leveled){updateVitals();spawnVisualBurst(player.x,player.y,24,'spark','#8be9ff');playSound('craft');toast('НОВЫЙ УРОВЕНЬ '+playerLevel+'! +8 здоровья и +12 выносливости.');}else if(reason)toast('+'+gained+' опыта · '+reason);saveGame();
   }
@@ -527,6 +528,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     const cfg=difficultyConfig(),gold=5+Math.floor(Math.random()*11);
     const rewards=[{name:'Золото',count:gold},{name:'Кристалл',count:1},{name:'Малое зелье',count:1}];
     const chosen=rewards.filter((r,i)=>i===0||(i===1?Math.random()<cfg.chests.crystal:Math.random()<cfg.chests.potion));
+    if(isModInstalled('treasure_hunter')&&Math.random()<.30)chosen.push({name:'Кристалл',count:1});
     for(const r of chosen){if(r.name==='Золото')walletCents+=Math.round(r.count*100*(isModInstalled('ancient_civs')?1.25:1));else changeItem(r.name,r.count);}
     spawnVisualBurst(chest.x,chest.y,22,'spark','#ffd86b');playSound('coin');renderInventory();saveGame();drawMinimap();awardXP(45,'найден сундук');
     toast('Сундук открыт! Золота: '+gold+'; '+chosen.filter(r=>r.name!=='Золото').map(r=>r.name+' ×'+r.count).join(', '));
@@ -743,7 +745,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   }
   function sellNpcItem(npcId,name){
     const unit=(npcId==='farmer'?farmCropSellPrice(name):0)||((NPC_SELL_PRICES[npcId]||{})[name]),count=itemCount(name);if(!unit||count<=0){toast('У тебя нет этого товара для продажи.');return;}
-    const reputationSaleFactor=npcId==='farmer'?1+Math.min(.05,villageReputation*.0005):1+Math.min(.25,villageReputation*.005);const total=Math.max(1,Math.round(unit*reputationSaleFactor))*count;
+    const reputationSaleFactor=npcId==='farmer'?1+Math.min(.05,villageReputation*.0005):1+Math.min(.25,villageReputation*.005);const guildBonus=isModInstalled('merchant_guild')?1.10:1;const total=Math.max(1,Math.round(unit*reputationSaleFactor*guildBonus))*count;
     changeItem(name,-count);walletCents+=total;playSound('coin');renderInventory();updateWalletHud();renderShop();saveGame();
     toast('Продано: '+name+' × '+count+' за '+formatMoney(total)+'.');
   }
@@ -1527,7 +1529,17 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     {id:'engineer_world',name:'Инженерный мир',icon:'⚙️',category:'Технологии',version:'1.0.0',description:'Инженерные знания помогают экономить материалы при создании печей.',effect:'Для создания печи нужно меньше камня и древесины.',compatibility:'Одиночная игра и кооператив'},
     {id:'banking',name:'Банковская система',icon:'🏦',category:'Экономика',version:'1.0.0',description:'Накопительный счёт начисляет проценты от золота при наступлении нового игрового дня.',effect:'1% процентов от кошелька при каждом рассвете.',compatibility:'Одиночная игра и кооператив'},
     {id:'parallel_dimensions',name:'Параллельные измерения',icon:'🌀',category:'Новые миры',version:'1.0.0',description:'Межпространственные разломы иногда оставляют редкие кристаллы во время рассвета.',effect:'35% шанс получить межпространственный кристалл на рассвете.',compatibility:'Одиночная игра и кооператив'},
-    {id:'full_magic',name:'Полноценная магия',icon:'🔮',category:'Магия',version:'1.0.0',description:'Добавляет ману и четыре заклинания: Огненный шар, Ледяная буря, Цепная молния и Исцеляющий свет.',effect:'F — сменить заклинание · G — применить. Мана восстанавливается автоматически.',compatibility:'Одиночная игра и кооператив'}
+    {id:'full_magic',name:'Полноценная магия',icon:'🔮',category:'Магия',version:'1.0.0',description:'Добавляет ману и четыре заклинания: Огненный шар, Ледяная буря, Цепная молния и Исцеляющий свет.',effect:'F — сменить заклинание · G — применить. Мана восстанавливается автоматически.',compatibility:'Одиночная игра и кооператив'},
+    {id:'swift_steps',name:'Сапоги ветра',icon:'👟',category:'Передвижение',version:'1.0.0',description:'Ускоряет обычную ходьбу, бег и передвижение в шахте и подземельях.',effect:'Скорость передвижения +10%.',compatibility:'Одиночная игра и кооператив'},
+    {id:'guardian_oath',name:'Клятва стража',icon:'🛡️',category:'Защита',version:'1.0.0',description:'Укрепляет защиту героя от ударов монстров, ловушек и боссов.',effect:'Снижение получаемого урона усиливается на 8 процентных пунктов.',compatibility:'Одиночная игра и кооператив'},
+    {id:'herbalist',name:'Травник',icon:'🌿',category:'Лечение',version:'1.0.0',description:'Улучшает лечебные смеси и бинты, чтобы дольше оставаться в бою.',effect:'Малое зелье лечит на 15 HP больше, бинт — на 8 HP больше.',compatibility:'Одиночная игра и кооператив'},
+    {id:'deep_reserves',name:'Глубокий запас сил',icon:'💧',category:'Выносливость',version:'1.0.0',description:'Помогает быстрее восстанавливать силы после бега и перекатов.',effect:'Восстановление выносливости +30%.',compatibility:'Одиночная игра и кооператив'},
+    {id:'treasure_hunter',name:'Охотник за сокровищами',icon:'💠',category:'Сокровища',version:'1.0.0',description:'Иногда находит дополнительный кристалл в обычных сундуках.',effect:'30% шанс получить ещё один кристалл из сундука.',compatibility:'Одиночная игра и кооператив'},
+    {id:'scavenger',name:'Собиратель трофеев',icon:'🦴',category:'Добыча',version:'1.0.0',description:'После победы над обычным монстром может найти дополнительный трофей.',effect:'25% шанс получить дополнительный кристалл или малое зелье.',compatibility:'Одиночная игра и кооператив'},
+    {id:'marksman',name:'Меткий копейщик',icon:'🎯',category:'Снаряжение',version:'1.0.0',description:'Улучшает баланс и точность молниеносного копья.',effect:'Урон молниеносного копья +20%.',compatibility:'Одиночная игра и кооператив'},
+    {id:'restful_camp',name:'Уютный привал',icon:'🛏️',category:'Восстановление',version:'1.0.0',description:'Ускоряет восстановление здоровья, когда герой находится дома.',effect:'Домашнее восстановление здоровья +30%.',compatibility:'Одиночная игра и кооператив'},
+    {id:'merchant_guild',name:'Гильдия торговцев',icon:'💰',category:'Экономика',version:'1.0.0',description:'Помогает получать больше золота за продажу товаров жителям.',effect:'Выручка от продажи товаров +10%.',compatibility:'Одиночная игра и кооператив'},
+    {id:'scholar',name:'Учёный летописец',icon:'📖',category:'Развитие',version:'1.0.0',description:'Помогает быстрее получать опыт за исследование, задания и победы.',effect:'Получаемый опыт +12%.',compatibility:'Одиночная игра и кооператив'}
   ];
   function readInstalledMods(){
     try{const raw=JSON.parse(localStorage.getItem(MODS_STORAGE_KEY)||'[]');return Array.isArray(raw)?raw.filter(id=>MOD_CATALOG.some(mod=>mod.id===id)):[];}catch(_){return [];}
@@ -1666,6 +1678,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       loot.push({name:'Метеоритный осколок',count:rand(1,2)});if(Math.random()<.28)loot.push({name:'Кристалл',count:1});
     }
     if((skills.scout>0||skills.fortune>0)&&Math.random()<Math.min(.8,skills.scout*.04+skills.fortune*.02))loot.push({name:Math.random()<.5?'Кристалл':'Малое зелье',count:1});
+    if(isModInstalled('scavenger')&&Math.random()<.25)loot.push({name:Math.random()<.5?'Кристалл':'Малое зелье',count:1});
     if(isModInstalled('blood_moon')&&loot.length&&Math.random()<.35)loot.splice(Math.floor(Math.random()*loot.length),1);
     return loot;
   }
@@ -2192,8 +2205,8 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   }
   function upgradeHouse(){applyUpgrade('house');}
   function upgradeMine(){applyUpgrade('mine');}
-  function useBandage(){const item=inventoryItems.find(i=>i.name==='Бинт');if(!item||item.count<1){toast('Нет бинтов. Создай их у верстака.');return;}if(player.hp>=100){toast('Здоровье уже полное.');return;}item.count--;player.hp=Math.min(100,player.hp+20);updateVitals();renderInventory();saveGame();playSound('craft');toast('Бинт использован: +20 здоровья.');}
-  function useHealingPotion(){const potion=inventoryItems.find(i=>i.name==='Малое зелье');if(!potion||potion.count<1){toast('Нет лечебных зелий.');return;}if(player.hp>=100){toast('Здоровье уже полное.');return;}potion.count--;player.hp=Math.min(100,player.hp+35);playSound('craft');updateVitals();renderInventory();saveGame();toast('Зелье использовано: +35 здоровья.');}
+  function useBandage(){const item=inventoryItems.find(i=>i.name==='Бинт');if(!item||item.count<1){toast('Нет бинтов. Создай их у верстака.');return;}if(player.hp>=100){toast('Здоровье уже полное.');return;}const healing=20+(isModInstalled('herbalist')?8:0);item.count--;player.hp=Math.min(100,player.hp+healing);updateVitals();renderInventory();saveGame();playSound('craft');toast('Бинт использован: +'+healing+' здоровья.');}
+  function useHealingPotion(){const potion=inventoryItems.find(i=>i.name==='Малое зелье');if(!potion||potion.count<1){toast('Нет лечебных зелий.');return;}if(player.hp>=100){toast('Здоровье уже полное.');return;}const healing=35+(isModInstalled('herbalist')?15:0);potion.count--;player.hp=Math.min(100,player.hp+healing);playSound('craft');updateVitals();renderInventory();saveGame();toast('Зелье использовано: +'+healing+' здоровья.');}
   function eatMeat(){const meat=inventoryItems.find(i=>i.name==='Мясо'),fish=inventoryItems.find(i=>i.name==='Рыба'),food=meat&&meat.count>0?meat:fish&&fish.count>0?fish:null;if(!food){toast('Нет еды. Найди овцу или поймай рыбу на озере.');return;}food.count--;const restored=food.name==='Рыба'?12:10;hunger=Math.min(100,hunger+restored);questStage=Math.max(questStage,6);hungerElapsedMinutes=0;renderInventory();updateClockDisplay(true);saveGame();toast('Ты съел '+(food.name==='Рыба'?'рыбу':'мясо')+'. +'+restored+' голода.');}
   function updateSkipDayHud(){const t=document.getElementById('skip-day-timer'),b=document.getElementById('skip-day-button');if(!t||!b)return;const left=Math.max(0,Math.ceil(skipDayRealSeconds));t.textContent=left>0?`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'Готово';b.disabled=left>0||paused||inMainMenu;b.title=left>0?'Пропустить день можно после 5 минут реального времени':'Пропустить игровой день';}
   function skipGameDay(){if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;survivedNights++;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;skipDayRealSeconds=300;updateClockDisplay(true);saveGame();toast('День пропущен. Он засчитан как прожитый.');}
@@ -2300,9 +2313,9 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   const WEAPON_BASE_DAMAGE={'Деревянный меч':20,'Железный меч':35,'Огненный меч':50,'Стальной меч':62,'Меч титана':100,'Меч дракона':130,'Меч пустоты':170,'Ледяной посох':28,'Молниеносное копьё':46};
   const LEGENDARY_SWORDS=new Set(['Меч титана','Меч дракона','Меч пустоты']);
   const SWORD_DIFFICULTY_MULTIPLIER={easy:1,medium:1.25,hard:1.6,hell:2.1,impossible:2.75};
-  function weaponDamage(name=equipment.weapon){const base=((WEAPON_BASE_DAMAGE[name]||20)+(Math.max(0,Math.min(5,Number(weaponUpgrades[name])||0))*8))*(isModInstalled('legendary_gear')?1.18:1);const difficultyBonus=LEGENDARY_SWORDS.has(name)?(SWORD_DIFFICULTY_MULTIPLIER[currentDifficulty]||1):1;const classBonus=(classHas('swordsman')&&String(name).toLowerCase().includes('меч')?1.1:classHas('archer')&&name==='Молниеносное копьё'?1.2:classHas('mage')&&name==='Ледяной посох'?1.2:1)*(1+skills.warrior*.08+(name==='Молниеносное копьё'?skills.ranger*.06:0)+communityModBonus('damage')*.02);return Math.round(base*difficultyBonus*classBonus*(name==='Ледяной посох'?1.15:1)*(weaponEnchantments[name]?1.15:1)*(strengthPotionTimer>0?1.3:1));}
+  function weaponDamage(name=equipment.weapon){const base=((WEAPON_BASE_DAMAGE[name]||20)+(Math.max(0,Math.min(5,Number(weaponUpgrades[name])||0))*8))*(isModInstalled('legendary_gear')?1.18:1);const difficultyBonus=LEGENDARY_SWORDS.has(name)?(SWORD_DIFFICULTY_MULTIPLIER[currentDifficulty]||1):1;const classBonus=(classHas('swordsman')&&String(name).toLowerCase().includes('меч')?1.1:classHas('archer')&&name==='Молниеносное копьё'?1.2:classHas('mage')&&name==='Ледяной посох'?1.2:1)*(1+skills.warrior*.08+(name==='Молниеносное копьё'?skills.ranger*.06:0)+communityModBonus('damage')*.02);return Math.round(base*difficultyBonus*classBonus*(name==='Ледяной посох'?1.15:1)*(name==='Молниеносное копьё'&&isModInstalled('marksman')?1.2:1)*(weaponEnchantments[name]?1.15:1)*(strengthPotionTimer>0?1.3:1));}
   function weaponRange(name=equipment.weapon){return name==='Ледяной посох'?230:name==='Молниеносное копьё'?125:82;}
-  function armorReduction(){let r=equipment.armor==='Кожаная броня'?.4:equipment.armor==='Броня стража'?.52:equipment.armor==='Мантия мага'?.25:0;if(equipment.armor)r+=armorUpgrade*.035;r+=(equipment.helmet==='Шлем лесника'?.15:0)+(equipment.amulet==='Амулет стража'?.1:0)+(wardPotionTimer>0?.2:0)+skills.guardian*.025+communityModBonus('defense')*.015;return Math.min(.82,r);}
+  function armorReduction(){let r=equipment.armor==='Кожаная броня'?.4:equipment.armor==='Броня стража'?.52:equipment.armor==='Мантия мага'?.25:0;if(equipment.armor)r+=armorUpgrade*.035;r+=(equipment.helmet==='Шлем лесника'?.15:0)+(equipment.amulet==='Амулет стража'?.1:0)+(wardPotionTimer>0?.2:0)+skills.guardian*.025+communityModBonus('defense')*.015+(isModInstalled('guardian_oath')?.08:0);return Math.min(.88,r);}
   function itemCount(name){const i=inventoryItems.find(v=>v.name===name);return i?i.count:0;}
   function changeItem(name,delta){const i=inventoryItems.find(v=>v.name===name);if(!i)return false;if(i.count+delta<0)return false;i.count+=delta;return true;}
   function formatMoney(cents){return (Math.floor(cents/100))+','+String(Math.abs(cents%100)).padStart(2,'0')+' 🟡';}
@@ -3004,7 +3017,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       updateMagic(dt);playerAttackCooldown=Math.max(0,playerAttackCooldown-dt);combatAbilityCooldown=Math.max(0,combatAbilityCooldown-dt);dodgeCooldown=Math.max(0,dodgeCooldown-dt);dodgeTimer=Math.max(0,dodgeTimer-dt);
       if(sleeping){sleepSeconds+=dt;if(sleepSeconds>=5){sleeping=false;questStage=Math.max(questStage,4);const oldMinute=minuteOfDay(),oldDay=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(oldMinute<DAWN_MINUTE?oldDay:oldDay+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;if(oldMinute>=18*60&&oldMinute<NIGHT_MINUTE)survivedNights++;refreshMineDailyStock();lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;player.hp=100;updateVitals();updateClockDisplay(true);toast('Ты проспал 5 секунд. Наступил рассвет!');saveGame();}}
       updateWorldClock(dt);updateVillageNpcs(dt);updateVillageRaid(dt);strengthPotionTimer=Math.max(0,strengthPotionTimer-dt);wardPotionTimer=Math.max(0,wardPotionTimer-dt);speedPotionTimer=Math.max(0,speedPotionTimer-dt);updateWorldEvents(dt);updateFishing(dt);updateBiomeBosses(dt);
-      if(inHouse && !sleeping && player.hp<100){player.hp=Math.min(100,player.hp+dt*(1+(houseLevel-1)*.65+skillBonus('builder')*.4)*(isModInstalled('architect')?1.5:1));updateVitals();}
+      if(inHouse && !sleeping && player.hp<100){player.hp=Math.min(100,player.hp+dt*(1+(houseLevel-1)*.65+skillBonus('builder')*.4)*(isModInstalled('architect')?1.5:1)*(isModInstalled('restful_camp')?1.3:1));updateVitals();}
       pickUpLoot(dt);
       updateFarmPlots(dt);
       updateCaveBoss(dt);
@@ -3026,8 +3039,8 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       if(dodgeTimer>0){mx=dodgeVX;my=dodgeVY;}
       if (mx && my) { mx *= .7071; my *= .7071; }
       const sprinting=keys.has('shift')&&(mx||my)&&player.stamina>15&&!sleeping&&!mineMode;
-      const speed = dodgeTimer>0?500:((sprinting?235:155)*(equipment.boots==='Сапоги странника'?1.16:1)*(classHas('archer')?1.05:1)*(isModInstalled('sky_islands')&&!inHouse&&!mineMode?1.12:1)*(1+skills.scout*.02+communityModBonus('speed')*.015)*(speedPotionTimer>0?1.25:1));
-      if(sprinting){player.stamina=Math.max(0,player.stamina-dt*17);if(player.stamina<16&&sprintExhaustionToast<=0){toast('Выносливость закончилась. Передышка!');sprintExhaustionToast=5;}}else{player.stamina=Math.min(100,player.stamina+dt*4);sprintExhaustionToast=Math.max(0,sprintExhaustionToast-dt);}
+      const speed = dodgeTimer>0?500:((sprinting?235:155)*(equipment.boots==='Сапоги странника'?1.16:1)*(classHas('archer')?1.05:1)*(isModInstalled('sky_islands')&&!inHouse&&!mineMode?1.12:1)*(isModInstalled('swift_steps')?1.10:1)*(1+skills.scout*.02+communityModBonus('speed')*.015)*(speedPotionTimer>0?1.25:1));
+      if(sprinting){player.stamina=Math.max(0,player.stamina-dt*17);if(player.stamina<16&&sprintExhaustionToast<=0){toast('Выносливость закончилась. Передышка!');sprintExhaustionToast=5;}}else{player.stamina=Math.min(100,player.stamina+dt*4*(isModInstalled('deep_reserves')?1.3:1));sprintExhaustionToast=Math.max(0,sprintExhaustionToast-dt);}
       player.vx = mx * speed; player.vy = my * speed;
       if(mineMode && (mx||my)){if(mx&&my){mx*=.7071;my*=.7071;}minePlayerX=Math.max(48,Math.min(width-48,minePlayerX+mx*speed*dt));minePlayerY=Math.max(100,Math.min(height-70,(minePlayerY||height-108)+my*speed*dt));}
       if(dungeonMode && !sleeping && (mx||my)){player.face=Math.abs(mx)>Math.abs(my)?(mx<0?'left':'right'):(my<0?'up':'down');player.x=Math.max(58,Math.min(width-58,player.x+mx*speed*dt));player.y=Math.max(78,Math.min(height-72,player.y+my*speed*dt));}else if(caveMode && !sleeping && (mx||my)){player.face=Math.abs(mx)>Math.abs(my)?(mx<0?'left':'right'):(my<0?'up':'down');player.x=Math.max(80,Math.min(width-80,player.x+mx*speed*dt));player.y=Math.max(100,Math.min(height-80,player.y+my*speed*dt));} else if (!mineMode && !sleeping && (mx || my)) {
@@ -3039,7 +3052,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
         player.stamina = Math.max(35, player.stamina-dt*2.2);
       } else {
         player.vx = player.vy = 0;
-        player.stamina = Math.min(100, player.stamina+dt*(keys.has('shift')?2:4));
+        player.stamina = Math.min(100, player.stamina+dt*(keys.has('shift')?2:4)*(isModInstalled('deep_reserves')?1.3:1));
       }
       const d = Math.hypot(world.signs[0].x-player.x, world.signs[0].y-player.y);
       const houseD=Math.hypot(player.x-(36*TILE+40),player.y-(15*TILE+154));
@@ -3702,9 +3715,31 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     setTimeout(()=>{
       openModsCatalog();
       const requestedMod=launcherModParams.get('installMod');
-      if(requestedMod==='__creator__') { openModCreator(); return; }
+      if(requestedMod==='__creator__') { if(window.SkyRealmCustomMods?.openEditor)window.SkyRealmCustomMods.openEditor();else openModCreator(); return; }
       if(requestedMod&&MOD_CATALOG.some(mod=>mod.id===requestedMod)&&!isModInstalled(requestedMod))toggleMod(requestedMod);
     },350);
   }
+  const customModActionBudgets=new Map();
+  function customModContext(){return {health:Math.round(player.hp),stamina:Math.round(player.stamina),hunger:Math.round(hunger),level:playerLevel,experience:playerXP,day:Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY),night:isNightTime(),difficulty:currentDifficulty,inHouse,wallet:Math.floor(walletCents/100)};}
+  function canRunCustomScriptMods(){return !!currentWorldId&&!inMainMenu&&!paused&&!isCoopWorldSave()&&!isCoopWorldActive();}
+  function applyCustomScriptActions(modId,actions){
+    if(!canRunCustomScriptMods()||typeof modId!=='string'||!Array.isArray(actions)||actions.length>5)return {ok:false,reason:'Custom scripts are disabled outside single-player worlds.'};
+    const now=Date.now();let budget=customModActionBudgets.get(modId);
+    if(!budget||now-budget.started>60000){budget={started:now,heal:0,stamina:0,hunger:0,xp:0,gold:0,message:0};customModActionBudgets.set(modId,budget);}
+    let applied=0;
+    for(const action of actions){
+      if(!action||typeof action!=='object'||Array.isArray(action))continue;
+      const amount=Number(action.amount);
+      if(action.type==='heal'&&Number.isFinite(amount)&&amount>0&&budget.heal<15){const value=Math.min(5,amount,15-budget.heal,100-player.hp);if(value>0){player.hp+=value;budget.heal+=value;applied++;}}
+      else if(action.type==='stamina'&&Number.isFinite(amount)&&amount>0&&budget.stamina<24){const value=Math.min(8,amount,24-budget.stamina,100-player.stamina);if(value>0){player.stamina+=value;budget.stamina+=value;applied++;}}
+      else if(action.type==='hunger'&&Number.isFinite(amount)&&amount>0&&budget.hunger<12){const value=Math.min(4,amount,12-budget.hunger,100-hunger);if(value>0){hunger+=value;budget.hunger+=value;applied++;}}
+      else if(action.type==='xp'&&Number.isFinite(amount)&&amount>0&&budget.xp<24){const value=Math.min(8,Math.floor(amount),24-budget.xp);if(value>0){budget.xp+=value;awardXP(value,'пользовательский мод');applied++;}}
+      else if(action.type==='gold'&&Number.isFinite(amount)&&amount>0&&budget.gold<10){const value=Math.min(3,amount,10-budget.gold);if(value>0){walletCents+=Math.round(value*100);budget.gold+=value;updateWalletHud();applied++;}}
+      else if(action.type==='message'&&typeof action.text==='string'&&budget.message<1){const message=action.text.trim().slice(0,90);if(message){budget.message=1;toast('Мод: '+message);applied++;}}
+    }
+    if(applied){updateVitals();updateClockDisplay(true);saveGame();}
+    return {ok:true,applied};
+  }
+  window.SkyRealmCustomModHost={getContext:customModContext,canRun:canRunCustomScriptMods,applyActions:applyCustomScriptActions};
   setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
 })();
