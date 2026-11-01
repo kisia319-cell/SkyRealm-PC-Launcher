@@ -320,3 +320,10 @@ assert.match(game,/WORLD_FAVORITES_KEY/,'World favorites must persist locally');
 assert.match(game,/toggleFavoriteWorld/,'Players must be able to add and remove favorite worlds');
 assert.match(game,/data-favorite-world/,'Each world card must expose a favorite toggle');
 assert.ok(gameHtml.includes('id="world-filter"')&&gameHtml.includes('value="favorites"'),'World selector must offer a favorites filter');
+
+assert.ok(game.includes('const movementDirections = new Set()'), 'Movement input must be tracked independently from action keys');
+assert.ok(game.includes('MOVEMENT_DIRECTION_BY_ACTION'), 'WASD and arrow keys must resolve to movement directions');
+assert.ok(game.includes('movementDirections.add(movementDirection)'), 'Movement keydown must register a held direction');
+assert.ok(game.includes('movementDirections.delete(direction)'), 'Movement keyup must release the held direction');
+assert.ok(game.includes('movementDirections.clear()'), 'Movement input must be cleared on blur, hidden window, HUD edit mode and sleep');
+assert.ok(game.includes("if(movementDirections.has('up'))my--") && game.includes("if(movementDirections.has('right'))mx++"), 'Player movement must use the dedicated held-direction state');
