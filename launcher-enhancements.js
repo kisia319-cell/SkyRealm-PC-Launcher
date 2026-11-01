@@ -58,10 +58,11 @@
     refreshAll();
   }
   const CALENDAR_STORAGE_KEY='skyrealm_launcher_calendar_v1';
+  const calendarDateKey=date=>date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
   let calendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
-  let calendarSelectedDate=new Date().toISOString().slice(0,10);
+  let calendarSelectedDate=calendarDateKey(new Date());
   function readCalendarEvents(){
-    try{const value=JSON.parse(localStorage.getItem(CALENDAR_STORAGE_KEY)||'[]');return Array.isArray(value)?value.filter(item=>item&&/^\\d{4}-\\d{2}-\\d{2}$/.test(item.date)&&typeof item.title==='string'):[];}catch(_){return [];}
+    try{const value=JSON.parse(localStorage.getItem(CALENDAR_STORAGE_KEY)||'[]');return Array.isArray(value)?value.filter(item=>item&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)&&typeof item.title==='string'):[];}catch(_){return [];}
   }
   function saveCalendarEvents(events){localStorage.setItem(CALENDAR_STORAGE_KEY,JSON.stringify(events.slice(-300)));}
   function ensureCalendarPage(){
@@ -104,7 +105,7 @@
     }
     const list=$('#calendar-event-list');list.replaceChildren();
     const selected=events.filter(event=>event.date===calendarSelectedDate).sort((a,b)=>a.title.localeCompare(b.title));
-    const upcoming=selected.length?selected:events.filter(event=>event.date>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
+    const upcoming=selected.length?selected:events.filter(event=>event.date>=calendarDateKey(new Date())).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
     if(!upcoming.length){const empty=document.createElement('p');empty.className='calendar-status';empty.textContent='На эту дату событий нет. Добавь первое событие выше.';list.append(empty);}
     upcoming.forEach(event=>{
       const row=document.createElement('div');row.className='calendar-event-row';const info=document.createElement('div');
