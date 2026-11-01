@@ -1,9 +1,9 @@
 {
-  "game_sha256": "0e8aa680cf28ab667fdb70436cc490273b76dda13da145ed47853397a9301ace",
+  "game_sha256": "520d041bad7a9907bba271b6e7f991d542942bb6333e16e05654692dec1758aa",
   "game_version": "0.20.49.3",
-  "notes": "SkyRealm Launcher 1.2.3 + Game 0.20.49.3: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. Existing accounts and local worlds remain compatible.",
+  "notes": "SkyRealm Launcher 1.2.4 + Game 0.20.49.3: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. Existing accounts and local worlds remain compatible.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "version": "1.2.3",
-  "sha256": "e56c2c02346de50ed3aa954ef41d185def1b9835f3f301deead4bd17f9c22de0",
+  "version": "1.2.4",
+  "sha256": "e2c5a52a1bd57ebb5503930df476cb3a9ab40f58f6a4a43c282df09a84ecee63",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
