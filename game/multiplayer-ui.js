@@ -30,6 +30,14 @@ async function refresh(silent=false){
   if(busy)return;
   try{
     room=await client.current();render();
+    if(room?.status==='running'){
+      const activeRoomId=room.id;
+      const snapshot=await client.getWorldSnapshot().catch(()=>null);
+      const entry=snapshot?.payload?.coopWorldEntry;
+      if(room?.id===activeRoomId&&entry?.room_id===activeRoomId){
+        window.dispatchEvent(new CustomEvent('skyrealm-coop-world-enter',{detail:entry}));
+      }
+    }
     await refreshIncomingInvites();
     if(!room||room.status==='paused'||room.status==='closed'){
       await client.disconnectRealtime();
@@ -43,6 +51,12 @@ async function refresh(silent=false){
         },
         onStatus:status=>{
           if(status==='SUBSCRIBED')setMessage('Защищённый канал комнаты подключён. Список онлайн обновляется автоматически.');
+        },
+        onBroadcast:envelope=>{
+          const payload=envelope?.payload||envelope;
+          if(payload?.kind==='world-enter'&&payload.room_id===room?.id){
+            window.dispatchEvent(new CustomEvent('skyrealm-coop-world-enter',{detail:payload}));
+          }
         }
       }).catch(error=>{
         realtimeAttemptedRoom='';
