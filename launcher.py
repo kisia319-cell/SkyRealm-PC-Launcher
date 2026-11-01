@@ -7,6 +7,7 @@ import sys
 import time
 import json
 import hashlib
+import re
 import zipfile
 import urllib.request
 import urllib.error
@@ -47,6 +48,11 @@ DEFAULT_SETTINGS = {
     "sfxVolume": 70,
     "musicEnabled": False,
     "uiSoundEnabled": True,
+    "keyBindings": {
+        "up": "KeyW", "left": "KeyA", "down": "KeyS", "right": "KeyD",
+        "interact": "KeyE", "inventory": "KeyI", "map": "KeyL", "attack": "Space",
+        "dodge": "KeyQ", "ability": "KeyR", "heal": "KeyH", "buff": "KeyJ",
+    },
     "uiScale": "100",
     "showVitals": True,
     "showQuest": True,
@@ -83,6 +89,13 @@ def normalize_settings(value=None) -> dict:
             settings[key] = DEFAULT_SETTINGS[key]
     settings["musicEnabled"] = settings.get("musicEnabled") is True
     settings["uiSoundEnabled"] = settings.get("uiSoundEnabled") is not False
+    default_bindings = DEFAULT_SETTINGS["keyBindings"]
+    raw_bindings = settings.get("keyBindings") if isinstance(settings.get("keyBindings"), dict) else {}
+    valid_binding = lambda code: bool(re.fullmatch(r"(?:Key[A-Z]|Arrow(?:Up|Down|Left|Right)|Space|Digit[0-9])", str(code or "")))
+    bindings = {action: (str(raw_bindings.get(action)) if valid_binding(raw_bindings.get(action)) else default) for action, default in default_bindings.items()}
+    if len(set(bindings.values())) != len(default_bindings):
+        bindings = dict(default_bindings)
+    settings["keyBindings"] = bindings
     if str(settings.get("uiScale")) not in {"85", "100", "115"}:
         settings["uiScale"] = DEFAULT_SETTINGS["uiScale"]
     else:
