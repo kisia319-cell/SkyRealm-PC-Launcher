@@ -299,7 +299,7 @@ assert.ok(keydownStart >= 0 && movementDeclaration > keydownStart && movementUse
 assert.ok(game.includes("!editTarget.closest?.('[hidden], [aria-hidden=\"true\"]')"),
   'Hidden form controls must not swallow movement input after dialogs close');
 
-assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Keyboard releases must clear movement keys at window level');
+assert.ok(game.includes("window.addEventListener('keyup', e => {") && game.includes("keys.delete(released)"), 'Keyboard releases must clear movement keys at window level');
 assert.ok(game.includes("const hasBlockingShade=Array.from(document.querySelectorAll('.shade'))"), 'Pause recovery must check all visible modal overlays');
 assert.ok(game.includes('!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true'), 'A stale pause must recover only inside an active world with no visible pause dialog');
 
