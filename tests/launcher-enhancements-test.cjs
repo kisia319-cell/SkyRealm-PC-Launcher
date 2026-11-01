@@ -62,3 +62,9 @@ assert.match(launcher,/def open_screenshot_folder\(self\)/,'Launcher must expose
 assert.match(launcher,/skyrealm_screenshot_name_is_safe/,'Screenshot gallery must reject path traversal names');
 assert.match(enhancements,/function ensureScreenshotsPage\(\)/,'Launcher must create a separate screenshot gallery page');
 assert.match(enhancements,/function refreshScreenshots\(\)/,'Screenshot gallery must load saved screenshots');
+
+assert.match(enhancements,/function ensureCalendarPage\(\)/,'Launcher must provide a game calendar');
+assert.match(enhancements,/CALENDAR_STORAGE_KEY/,'Calendar events must persist locally');
+assert.match(enhancements,/function ensureSupportPage\(\)/,'Launcher must provide a support center');
+assert.match(enhancements,/function copySupportDiagnostics\(\)/,'Support center must generate a diagnostics report');
+assert.ok(enhancements.includes('issues/new')&&enhancements.includes('releases/latest'),'Support center must link to real issue and release pages');
