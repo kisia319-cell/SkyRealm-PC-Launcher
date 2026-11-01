@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta name="skyrealm-game-version" content="0.20.47">
+  <meta name="skyrealm-game-version" content="0.20.48">
 <meta charset="utf-8">
 <link rel="stylesheet" href="custom-mods.css">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -224,7 +224,7 @@
       <header class="main-menu-hero">
         <div class="main-menu-emblem">✦</div>
         <div class="main-menu-brand"><div class="main-menu-kicker">SKYREALM · ПЕРВЫЙ РАССВЕТ</div><h1>Твоя история <span>начинается здесь</span></h1><p>Создай мир, исследуй неизведанные земли и оставь след в долине.</p></div>
-        <div class="main-menu-version"><span class="live-pip"></span> 2D SURVIVAL · 0.20.47</div>
+        <div class="main-menu-version"><span class="live-pip"></span> 2D SURVIVAL · 0.20.48</div>
       </header>
       <div class="main-menu-content">
         <nav class="main-menu-actions" aria-label="Действия главного меню">
@@ -298,14 +298,31 @@
 </div><div class="community-mod-heading"><div><b>Моды игроков</b><small id="community-mod-status">Общий каталог безопасных готовых эффектов</small></div><button class="action secondary" id="open-mod-creator" type="button">＋ Создать мод-эффект</button></div><div id="community-mods-list" class="mods-catalog-list"></div><div class="mods-catalog-footer"><small>Моды игроков используют только безопасные встроенные эффекты. Установка не меняет миры и сохранения.</small><button class="action" id="close-mods-catalog" type="button">Вернуться в меню</button></div></section></div>
 <div class="shade custom-modal-shade script-mod-studio" id="script-mod-studio" hidden aria-hidden="true">
   <section class="dialog script-mod-dialog" role="dialog" aria-modal="true" aria-labelledby="script-mod-title">
-    <div class="dialog-mark">⌘</div><div class="eyebrow">SKYREALM · РЕДАКТОР КОДА</div><h1 id="script-mod-title">Создать свой мод</h1>
-    <p>Напиши функцию onTick(context, state) на JavaScript или on_tick(context, state) на Python. Код выполняется в отдельной песочнице и не получает доступ к сохранениям, аккаунту или токенам.</p>
-    <label>Название мода<input id="script-mod-name" maxlength="32" placeholder="Например, Тихий регенератор"></label>
-    <label>Язык<select id="script-mod-language"><option value="javascript">JavaScript</option><option value="python">Python</option></select></label>
-    <label>Код<textarea id="script-mod-code" spellcheck="false" rows="14"></textarea></label>
-    <div class="script-mod-help"><b>Доступные действия:</b> heal, stamina, hunger, xp, gold, message. Сила эффектов и частота ограничены; скриптовые моды отключаются в кооперативе. Для Python при первом запуске нужен интернет, чтобы загрузить Pyodide.</div>
-    <div class="script-mod-status" id="script-mod-status" role="status" aria-live="polite">Проверь код тестовым запуском перед сохранением.</div>
-    <div class="script-mod-actions"><button class="action secondary" id="script-mod-test" type="button">▶ Проверить код</button><button class="action" id="script-mod-save" type="button">Сохранить мод</button><button class="action secondary" id="script-mod-close" type="button">Закрыть</button></div>
+    <header class="mod-studio-topbar">
+      <div class="mod-studio-brand"><span>⌘</span><div><b>SKYREALM MOD STUDIO</b><small>Среда разработки модификаций</small></div></div>
+      <div class="mod-studio-top-actions"><span class="mod-studio-save-state" id="script-mod-save-state">Локальный проект</span><button class="action secondary" id="script-mod-close" type="button">✕ Закрыть</button></div>
+    </header>
+    <div class="mod-studio-workspace">
+      <aside class="mod-studio-sidebar">
+        <div class="mod-studio-side-title">ПРОЕКТ</div>
+        <div class="mod-studio-project-icon">🧩</div>
+        <label>Название проекта<input id="script-mod-name" maxlength="32" placeholder="Название твоего мода"></label>
+        <label>Краткое описание<textarea id="script-mod-description" maxlength="140" rows="3" placeholder="Что будет делать мод?"></textarea></label>
+        <label>Язык программирования<select id="script-mod-language"><option value="javascript">JavaScript</option><option value="python">Python</option></select></label>
+        <label>Стартовый файл<select id="script-mod-template"><option value="blank">Пустой файл — с нуля</option><option value="starter">Пример onTick</option></select></label>
+        <button class="action secondary mod-studio-wide" id="script-mod-blank" type="button">＋ Начать с нуля</button>
+        <button class="action secondary mod-studio-wide" id="script-mod-starter" type="button">Вставить пример</button>
+        <div class="mod-studio-side-note"><b>Памятка</b><span>Ctrl + Enter — проверить</span><span>Ctrl + S — сохранить</span><span>Tab — отступ</span></div>
+      </aside>
+      <main class="mod-studio-editor">
+        <div class="mod-studio-editor-head"><div><div class="eyebrow">РЕДАКТОР ИСХОДНОГО КОДА</div><h1 id="script-mod-title">Новый проект мода</h1></div><span class="mod-studio-file">main.js</span></div>
+        <div class="mod-studio-code-wrap"><textarea id="script-mod-code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Исходный код мода" placeholder="// Напиши код своего мода здесь.&#10;// Для запуска создай функцию onTick(context, state)."></textarea></div>
+        <div class="mod-studio-editor-foot"><span>Песочница · только разрешённые игровые действия</span><span>Максимум 14 КБ</span></div>
+        <div class="mod-studio-help"><b>API SkyRealm</b><code>context.health</code> <code>context.stamina</code> <code>context.hunger</code> <code>context.level</code> <code>context.day</code> <code>context.difficulty</code><p>Верни объект <code>{ state, actions }</code>. Действия: heal, stamina, hunger, xp, gold, message. Мод не получает доступ к файлам, аккаунту или сохранениям.</p></div>
+        <div class="script-mod-status" id="script-mod-status" role="status" aria-live="polite">Создай функцию, затем проверь код в изолированной среде.</div>
+        <div class="script-mod-actions"><button class="action secondary" id="script-mod-test" type="button">▶ Проверить запуск</button><button class="action" id="script-mod-save" type="button">Сохранить проект</button></div>
+      </main>
+    </div>
   </section>
 </div>
 <div class="shade custom-modal-shade" id="mod-creator-shade" hidden aria-hidden="true"><section class="dialog mod-creator-dialog" role="dialog" aria-modal="true" aria-labelledby="mod-creator-title"><div class="dialog-mark">🛠️</div><div class="eyebrow">SKYREALM · МАСТЕРСКАЯ АВТОРОВ</div><h1 id="mod-creator-title">Создать свой мод</h1><p>Придумай название и описание, выбери категорию и один из безопасных игровых эффектов. После публикации мод появится в общем каталоге.</p><form id="community-mod-form" class="mod-creator-form"><label>Название<input id="community-mod-name" maxlength="32" required placeholder="Например, Быстрый рудокоп"></label><label>Описание<textarea id="community-mod-description" maxlength="180" required minlength="10" placeholder="Что изменяет твой мод? (10–180 символов)"></textarea></label><div class="mod-creator-grid"><label>Категория<select id="community-mod-category"><option value="Выживание">Выживание</option><option value="Бой">Бой</option><option value="Исследование">Исследование</option><option value="Фермерство">Фермерство</option><option value="Добыча">Добыча</option></select></label><label>Значок<select id="community-mod-icon"><option>🧩</option><option>⚔️</option><option>🛡️</option><option>⛏️</option><option>🌱</option><option>🍀</option><option>🔥</option><option>🎣</option></select></label></div><label>Игровой эффект<select id="community-mod-effect"><option value="damage">Урон оружия</option><option value="speed">Скорость передвижения</option><option value="hunger">Замедление голода</option><option value="mining">Дополнительная руда</option><option value="farming">Рост урожая</option><option value="defense">Защита персонажа</option></select></label><label>Сила эффекта: <b id="community-mod-strength-label">3</b><input id="community-mod-strength" type="range" min="1" max="10" value="3" oninput="document.getElementById('community-mod-strength-label').textContent=this.value"></label><div id="mod-creator-status" class="settings-feedback">Для публикации нужен подтверждённый аккаунт SkyRealm.</div><button class="action" id="publish-community-mod" type="submit">Опубликовать в общий каталог</button></form><button class="action secondary" id="close-mod-creator" type="button">Назад</button></section></div>
