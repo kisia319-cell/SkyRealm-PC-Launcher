@@ -52,7 +52,7 @@ assert.ok(py.includes('installed_files_ok'), 'Play flow must repair missing or s
 assert.ok(launcherHtml.includes('v'+fs.readFileSync('launcher_version.txt','utf8').trim()), 'Launcher UI version must match launcher_version.txt');
 assert.ok(gameHtml.includes('360 × 260') && !gameHtml.includes('180 × 130 · Босс 8500 HP'), 'Difficulty picker must show actual expanded map dimensions');
 
-assert.match(version, /^\d+\.\d+\.\d+$/, 'game/version.txt must be a semantic version');
+assert.match(version, /^\d+\.\d+\.\d+\.\d+$/, 'game/version.txt must include the cumulative bug-fix counter');
 assert.ok(gameHtml.includes(version), 'game/index.html version label must match game/version.txt');
 
 for (const feature of [
@@ -284,3 +284,8 @@ assert.ok(game.includes("pauseShade?.hidden === true && !blockingOverlay && !sle
 assert.ok(game.includes("['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)"), 'Movement must accept physical WASD and arrow key codes in embedded WebViews');
 assert.ok(game.includes("document.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Movement key releases must be captured at document level');
 assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden) keys.clear(); })"), 'Hidden game windows must clear held movement keys');
+
+assert.ok(game.includes("window.addEventListener('keydown', e => {"), 'Keyboard input must be captured at the WebView window level');
+assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Keyboard releases must clear movement keys at window level');
+assert.ok(game.includes("const hasBlockingShade=Array.from(document.querySelectorAll('.shade'))"), 'Pause recovery must check all visible modal overlays');
+assert.ok(game.includes('!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true'), 'A stale pause must recover only inside an active world with no visible pause dialog');
