@@ -6,6 +6,9 @@
   let inMainMenu = true;
   let settingsOpenedFromMainMenu = false;
   const keys = new Set();
+  // Track movement separately from action keys so lost focus or modal transitions cannot strand the player.
+  const movementDirections = new Set();
+  const MOVEMENT_DIRECTION_BY_ACTION = {w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
   const DEFAULT_GAME_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
   const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
   let gameSettings = readInitialSettings();
@@ -3069,14 +3072,15 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       skipDayRealSeconds=Math.max(0,skipDayRealSeconds-dt);
       updateSkipDayHud();
       let mx = 0, my = 0;
-      if(hudMoveMode)keys.clear();
+      if(hudMoveMode){keys.clear();movementDirections.clear();}
       if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k=>keys.has(k)))tutorialMoveSeen=true;
       if(keys.has(' ')||keys.has('l'))tutorialCombatSeen=true;
       if(hudMoveMode){mx=0;my=0;}
-      if(sleeping){keys.clear();}else if(dungeonMode){if(keys.has('w')||keys.has('arrowup'))my--;if(keys.has('s')||keys.has('arrowdown'))my++;if(keys.has('a')||keys.has('arrowleft'))mx--;if(keys.has('d')||keys.has('arrowright'))mx++;}else if(caveMode){if(keys.has('w')||keys.has('arrowup'))my--;if(keys.has('s')||keys.has('arrowdown'))my++;if(keys.has('a')||keys.has('arrowleft'))mx--;if(keys.has('d')||keys.has('arrowright'))mx++;}else if(mineMode){if(keys.has('w')||keys.has('arrowup'))my--;if(keys.has('s')||keys.has('arrowdown'))my++;if(keys.has('a')||keys.has('arrowleft'))mx--;if(keys.has('d')||keys.has('arrowright'))mx++;}else if (keys.has('w') || keys.has('arrowup')) my--;
-      if (keys.has('s') || keys.has('arrowdown')) my++;
-      if (keys.has('a') || keys.has('arrowleft')) mx--;
-      if (keys.has('d') || keys.has('arrowright')) mx++;
+      if(sleeping){keys.clear();movementDirections.clear();}
+      if(movementDirections.has('up'))my--;
+      if(movementDirections.has('down'))my++;
+      if(movementDirections.has('left'))mx--;
+      if(movementDirections.has('right'))mx++;
       if(dodgeTimer>0){mx=dodgeVX;my=dodgeVY;}
       if (mx && my) { mx *= .7071; my *= .7071; }
       const sprinting=keys.has('shift')&&(mx||my)&&player.stamina>15&&!sleeping&&!mineMode;
@@ -3618,14 +3622,23 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if (k === ' ' && !paused && !signDialogOpen && !inventoryDialogOpen) { if(selectedInventoryItem()?.name==='Лопата')shovelSnowNearPlayer();else attackNearestMonster(); return; }
     if (k === 'i' && !paused && !signDialogOpen) { inventoryDialogOpen ? closeInventory() : openInventory(); return; }
     if (/^[1-4]$/.test(k) && !paused && !signDialogOpen && !inventoryDialogOpen) { selectSlot(Number(k)); return; }
-    if (!paused && !signDialogOpen && !inventoryDialogOpen) keys.add(k);
+    if (!paused && !signDialogOpen && !inventoryDialogOpen) {
+      keys.add(k);
+      const movementDirection=MOVEMENT_DIRECTION_BY_ACTION[k];
+      if(movementDirection) movementDirections.add(movementDirection);
+    }
   }, true);
   // Listen at document capture level as well: WebView keyboard focus can move
   // between the canvas and its wrapper, but key releases must always clear input.
-  window.addEventListener('keyup', e => keys.delete(gameKey(e)), true);
-  window.addEventListener('blur', () => keys.clear(), true);
-  document.addEventListener('visibilitychange', () => { if(document.hidden) keys.clear(); });
-  window.addEventListener('blur', () => keys.clear());
+  window.addEventListener('keyup', e => {
+    const released=gameKey(e);
+    keys.delete(released);
+    const direction=MOVEMENT_DIRECTION_BY_ACTION[released];
+    if(direction) movementDirections.delete(direction);
+  }, true);
+  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); }, true);
+  document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); } });
+  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); });
   window.addEventListener('beforeunload',()=>{try{saveGame();}catch(_){}});
   window.addEventListener('resize', resize);
   window.addEventListener('fullscreenchange',()=>{gameSettings.windowMode=document.fullscreenElement?'fullscreen':'windowed';document.getElementById('game-window-mode-select').value=gameSettings.windowMode;localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));});
