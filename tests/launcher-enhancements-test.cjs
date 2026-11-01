@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const launcher=fs.readFileSync('launcher.py','utf8');
+const app=fs.readFileSync('app.js','utf8');
 const ui=fs.readFileSync('launcher-enhancements.js','utf8');
 const html=fs.readFileSync('index.html','utf8');
 assert.match(launcher,/def get_update_status/);
@@ -33,4 +34,4 @@ assert.match(app,/reduce-motion-toggle/,'Reduced motion setting must be wired');
 assert.match(app,/high-contrast-toggle/,'High contrast setting must be wired');
 assert.match(app,/performance-saver-toggle/,'Resource-saving setting must be wired');
 assert.ok(html.includes('id="fps-limit-select"')&&html.includes('id="music-volume-range"')&&html.includes('id="sfx-volume-range"'),'FPS and audio controls must exist in the settings page');
-assert.ok(py.includes('"fpsLimit": 0')&&py.includes('"musicVolume": 35')&&py.includes('"sfxVolume": 70'),'Native settings must preserve audio and FPS preferences');
+assert.ok(launcher.includes('"fpsLimit": 0')&&launcher.includes('"musicVolume": 35')&&launcher.includes('"sfxVolume": 70'),'Native settings must preserve audio and FPS preferences');
