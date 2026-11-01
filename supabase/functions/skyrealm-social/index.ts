@@ -256,6 +256,36 @@ Deno.serve(async(req:Request)=>{
       await db("skyrealm_friendships?id=eq."+id,{method:"DELETE"});
       return reply({ok:true});
     }
+    if(route==="/api/social/active-room" && req.method==="GET") {
+      const memberships=await db("co_op_members?select=room_id,role,member_status&user_id=eq."+user.id+"&member_status=eq.active&limit=1");
+      if(!memberships?.length) return reply({room:null});
+      const rooms=await db("co_op_rooms?select=id,status,world_difficulty,owner_id,max_players&id=eq."+memberships[0].room_id+"&limit=1");
+      const room=rooms?.[0];
+      return reply({room:room&&["lobby","running"].includes(room.status)?{id:room.id,status:room.status,world_difficulty:room.world_difficulty,owner_id:room.owner_id,max_players:room.max_players,role:memberships[0].role}:null});
+    }
+    if(route==="/api/social/messages" && req.method==="GET") {
+      const peer=String(url.searchParams.get("with")||"");
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(peer)||peer===user.id) throw new ApiError(400,"INVALID_PEER","Выбери друга для переписки.");
+      const pair=orderedPair(user.id,peer);
+      const friendship=await db("skyrealm_friendships?select=id,status&user_a=eq."+pair.user_a+"&user_b=eq."+pair.user_b+"&limit=1");
+      if(!friendship?.length||friendship[0].status!=="accepted") throw new ApiError(403,"NOT_FRIENDS","Переписка доступна только друзьям.");
+      const rows=await db("skyrealm_messages?select=id,sender_id,recipient_id,body,created_at,read_at&or=(and(sender_id.eq."+user.id+",recipient_id.eq."+peer+"),and(sender_id.eq."+peer+",recipient_id.eq."+user.id+"))&order=created_at.desc&limit=100");
+      await db("skyrealm_messages?sender_id=eq."+peer+"&recipient_id=eq."+user.id+"&read_at=is.null",{method:"PATCH",body:JSON.stringify({read_at:new Date().toISOString()})});
+      return reply({messages:(rows||[]).reverse()});
+    }
+    if(route==="/api/social/messages" && req.method==="POST") {
+      const p=await body(req),peer=String(p.friend_id||""),message=typeof p.message==="string"?p.message.trim():"";
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(peer)||peer===user.id) throw new ApiError(400,"INVALID_PEER","Выбери друга для переписки.");
+      if(!message||message.length>1000) throw new ApiError(400,"INVALID_MESSAGE","Сообщение должно содержать от 1 до 1000 символов.");
+      const pair=orderedPair(user.id,peer);
+      const friendship=await db("skyrealm_friendships?select=id,status&user_a=eq."+pair.user_a+"&user_b=eq."+pair.user_b+"&limit=1");
+      if(!friendship?.length||friendship[0].status!=="accepted") throw new ApiError(403,"NOT_FRIENDS","Отправлять сообщения можно только друзьям.");
+      const since=new Date(Date.now()-60000).toISOString();
+      const recent=await db("skyrealm_messages?select=id&sender_id=eq."+user.id+"&created_at=gte."+encodeURIComponent(since));
+      if((recent||[]).length>=20) throw new ApiError(429,"MESSAGE_RATE_LIMIT","Слишком много сообщений. Подожди немного.");
+      const created=await db("skyrealm_messages",{method:"POST",body:JSON.stringify({sender_id:user.id,recipient_id:peer,body:message})});
+      return reply({message:created?.[0]||null},201);
+    }
     return reply({message:"Маршрут не найден.",code:"NOT_FOUND"},404);
   } catch(error) { return fail(error); }
 });
