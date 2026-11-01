@@ -737,6 +737,95 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
         return fallback_version()
 
 
+
+def _skyrealm_startup_game_update():
+    """Ask about a newer game build as soon as the launcher opens."""
+    if not getattr(sys, "frozen", False):
+        return False
+
+    appdata = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+    root = appdata / "SkyRealm"
+    install_dir = root / "game"
+    version_file = install_dir / "version.txt"
+    try:
+        config = json.loads(Path(resource_path("updater_config.json")).read_text(encoding="utf-8"))
+        manifest_url = str(config.get("manifest_url", "")).strip()
+        if not manifest_url.startswith("https://"):
+            return False
+        request = urllib.request.Request(
+            manifest_url,
+            headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0", "Cache-Control": "no-cache"},
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
+
+        latest = str(manifest.get("game_version", "")).strip()
+        latest_tuple = _skyrealm_version_tuple(latest)
+        if not latest_tuple:
+            return False
+
+        required = ("index.html", "game.js", "version.txt", "multiplayer-core.js",
+                    "multiplayer-client.js", "multiplayer-ui.js")
+        if not all((install_dir / name).is_file() for name in required):
+            # A fresh installation is handled by the Play button, not presented as an update.
+            return False
+        installed = version_file.read_text(encoding="utf-8").strip()
+        if _skyrealm_version_tuple(installed) >= latest_tuple:
+            return False
+
+        message = (
+            f"Внимание! Вышло обновление игры SkyRealm (версия {latest}).\\n"
+            f"Установлена версия: {installed}.\\n\\n"
+            "Хотите ли вы скачать и установить обновление сейчас?"
+        )
+        answer = 0
+        try:
+            if os.name == "nt":
+                import ctypes
+                answer = ctypes.windll.user32.MessageBoxW(
+                    None, message, "Обновление SkyRealm",
+                    0x00000004 | 0x00000040 | 0x00010000
+                )
+            else:
+                import tkinter
+                from tkinter import messagebox
+                dialog_root = tkinter.Tk()
+                dialog_root.withdraw()
+                answer = 6 if messagebox.askyesno("Обновление SkyRealm", message, parent=dialog_root) else 7
+                dialog_root.destroy()
+        except Exception as dialog_error:
+            try:
+                root.mkdir(parents=True, exist_ok=True)
+                with (root / "update.log").open("a", encoding="utf-8") as log:
+                    log.write(time.strftime("%Y-%m-%d %H:%M:%S") +
+                              " | game update prompt failed: " + str(dialog_error) + "\\n")
+            except OSError:
+                pass
+            return False
+
+        if answer != 6:  # IDYES
+            try:
+                root.mkdir(parents=True, exist_ok=True)
+                with (root / "update.log").open("a", encoding="utf-8") as log:
+                    log.write(time.strftime("%Y-%m-%d %H:%M:%S") +
+                              f" | game update declined: {installed} -> {latest}\\n")
+            except OSError:
+                pass
+            return False
+
+        result = _skyrealm_update_game(install_dir, latest, allow_update=True)
+        return _skyrealm_version_tuple(result) >= latest_tuple
+    except Exception as exc:
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with (root / "update.log").open("a", encoding="utf-8") as log:
+                log.write(time.strftime("%Y-%m-%d %H:%M:%S") +
+                          " | startup game update check: " + str(exc) + "\\n")
+        except OSError:
+            pass
+        return False
+
+
 def _skyrealm_startup_update():
     """Check GitHub Releases and apply a verified update before opening the UI."""
     if not getattr(sys, "frozen", False):
@@ -858,6 +947,7 @@ if __name__ == "__main__":
     else:
         if _skyrealm_startup_update():
             raise SystemExit(0)
+        _skyrealm_startup_game_update()
         html = Path(resource_path("index.html")).resolve().as_uri()
         api = LauncherApi()
         window = webview.create_window(
