@@ -137,12 +137,22 @@
     if(typeof input.blood_moon_active!=='boolean')return null;
     return {minute_total:Math.round(minute*1000)/1000,survived_nights:nights,blood_moon_active:input.blood_moon_active};
   }
-  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","meteorPoint","meteorShowerTimer","worldEventCamp","worldEventTraveler","lastWorldMeteorNight","lastWorldHordeNight","lastWorldCampDay","lastWorldTravelerDay"]);
+  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","meteorPoint","meteorShowerTimer","worldEventCamp","worldEventTraveler","lastWorldMeteorNight","lastWorldHordeNight","lastWorldCampDay","lastWorldTravelerDay"]);
   function sanitizeSharedWorldSnapshot(input){
     if(!input||typeof input!=='object'||Array.isArray(input))return null;
     const output={};
     for(const key of SHARED_WORLD_FIELDS){
       if(Object.prototype.hasOwnProperty.call(input,key))output[key]=input[key];
+    }
+    if(output.coopWorldEntry!==undefined){
+      const entry=output.coopWorldEntry;
+      const difficulties=['easy','medium','hard','hell','impossible'];
+      if(!entry||typeof entry!=='object'||Array.isArray(entry)||
+        typeof entry.room_id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(entry.room_id)||
+        entry.world_id!=='coop_'+entry.room_id||
+        typeof entry.world_name!=='string'||!entry.world_name.trim()||entry.world_name.length>32||
+        !difficulties.includes(entry.difficulty)||!Number.isSafeInteger(entry.started_at)||entry.started_at<0)return null;
+      output.coopWorldEntry={room_id:entry.room_id,world_id:entry.world_id,world_name:entry.world_name.trim(),difficulty:entry.difficulty,started_at:entry.started_at};
     }
     if(output.adventureQuestProgress&&typeof output.adventureQuestProgress==='object'&&!Array.isArray(output.adventureQuestProgress)){
       const sourceProgress=output.adventureQuestProgress;
