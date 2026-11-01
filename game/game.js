@@ -3231,15 +3231,19 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   function writeWorlds(worlds){localStorage.setItem(WORLD_LIST_KEY,JSON.stringify(worlds));}
   function formatWorldDate(value){try{return new Date(value||Date.now()).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}catch(_){return 'SkyRealm';}}
+  const WORLD_FAVORITES_KEY='skyrealm_world_favorites_v1';
+  function readFavoriteWorldIds(){try{const value=JSON.parse(localStorage.getItem(WORLD_FAVORITES_KEY)||'[]');return Array.isArray(value)?value.filter(id=>typeof id==='string'&&id.length<=80):[];}catch(_){return [];}}
+  function toggleFavoriteWorld(id){const favorites=new Set(readFavoriteWorldIds());if(favorites.has(id))favorites.delete(id);else favorites.add(id);localStorage.setItem(WORLD_FAVORITES_KEY,JSON.stringify([...favorites]));}
   function renderWorldList(){
     const worlds=readWorlds(),list=document.getElementById('worlds-list'),empty=document.getElementById('worlds-empty');
     document.getElementById('world-count').textContent=worlds.length+' '+(worlds.length===1?'мир':'миров');
     empty.hidden=worlds.length>0;list.innerHTML='';
     const query=String(document.getElementById('world-search')?.value||'').trim().toLocaleLowerCase();
     const sort=document.getElementById('world-sort')?.value||'recent';
-    const visible=worlds.filter(w=>!query||String(w.name||'').toLocaleLowerCase().includes(query));
+    const favorites=readFavoriteWorldIds(),favoriteOnly=document.getElementById('world-filter')?.value==='favorites';
+    const visible=worlds.filter(w=>(!favoriteOnly||favorites.includes(w.id))&&(!query||String(w.name||'').toLocaleLowerCase().includes(query)));
     visible.sort((a,b)=>sort==='name'?String(a.name||'').localeCompare(String(b.name||''),'ru'):sort==='oldest'?(a.createdAt||0)-(b.createdAt||0):(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
-    if(worlds.length&&visible.length===0)list.innerHTML='<p class="world-filter-empty">По запросу «'+escapeHtml(query)+'» миры не найдены.</p>';
+    if(worlds.length&&visible.length===0)list.innerHTML='<p class="world-filter-empty">'+(favoriteOnly?'В избранном пока нет миров.':'По запросу «'+escapeHtml(query)+'» миры не найдены.')+'</p>';
     visible.forEach(w=>{
       const card=document.createElement('article');card.className='world-card';
       const level=DIFFICULTIES[w.difficulty];let saved=null;try{saved=JSON.parse(localStorage.getItem(worldSaveKey(w.id))||'null');}catch(_){}
@@ -3250,9 +3254,11 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       const percent=Math.min(100,Math.floor(explored/total*100));
       const size=saved?Math.max(1,Math.ceil(JSON.stringify(saved).length/1024)):0;
       const stats=saved?('День '+days+' · Уровень '+lvl+' · Карта '+percent+'% · '+size+' КБ'):'Сохранение ещё не создано';
-      card.innerHTML='<div class="world-card-art"><span>✦</span></div><div class="world-card-main"><b>'+escapeHtml(w.name)+'</b><small>Сложность: '+escapeHtml(level?level.name:'не выбрана')+' · Последний вход: '+escapeHtml(formatWorldDate(w.updatedAt||w.createdAt))+'</small><small class="world-card-stats">'+stats+'</small></div><div class="world-card-actions"><button class="world-enter-button" type="button" data-enter-world="'+escapeHtml(w.id)+'">Войти в мир <span>→</span></button><button class="world-rename-button" type="button" data-rename-world="'+escapeHtml(w.id)+'">✎ Имя</button><button class="world-rename-button world-export-button" type="button" data-export-world="'+escapeHtml(w.id)+'" title="Скачать резервную копию">⇩ Копия</button><button class="world-delete-button" type="button" data-delete-world="'+escapeHtml(w.id)+'" aria-label="Удалить мир '+escapeHtml(w.name)+'">✕</button></div>';
+      const isFavorite=favorites.includes(w.id);
+      card.innerHTML='<div class="world-card-art"><span>✦</span></div><div class="world-card-main"><b>'+escapeHtml(w.name)+'</b><small>Сложность: '+escapeHtml(level?level.name:'не выбрана')+' · Последний вход: '+escapeHtml(formatWorldDate(w.updatedAt||w.createdAt))+'</small><small class="world-card-stats">'+stats+'</small></div><div class="world-card-actions"><button class="world-favorite-button" type="button" data-favorite-world="'+escapeHtml(w.id)+'" aria-pressed="'+String(isFavorite)+'" title="Добавить в избранное">'+(isFavorite?'★':'☆')+'</button><button class="world-enter-button" type="button" data-enter-world="'+escapeHtml(w.id)+'">Войти в мир <span>→</span></button><button class="world-rename-button" type="button" data-rename-world="'+escapeHtml(w.id)+'">✎ Имя</button><button class="world-rename-button world-export-button" type="button" data-export-world="'+escapeHtml(w.id)+'" title="Скачать резервную копию">⇩ Копия</button><button class="world-delete-button" type="button" data-delete-world="'+escapeHtml(w.id)+'" aria-label="Удалить мир '+escapeHtml(w.name)+'">✕</button></div>';
       list.appendChild(card);
     });
+    list.querySelectorAll('[data-favorite-world]').forEach(btn=>btn.addEventListener('click',()=>{toggleFavoriteWorld(btn.dataset.favoriteWorld);renderWorldList();}));
     list.querySelectorAll('[data-enter-world]').forEach(btn=>btn.addEventListener('click',()=>enterWorld(btn.dataset.enterWorld)));
     list.querySelectorAll('[data-rename-world]').forEach(btn=>btn.addEventListener('click',()=>openRenameWorld(btn.dataset.renameWorld)));
     list.querySelectorAll('[data-export-world]').forEach(btn=>btn.addEventListener('click',()=>downloadWorldBackup(btn.dataset.exportWorld)));
@@ -3679,6 +3685,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('open-mod-creator')?.addEventListener('click',openModCreator);document.getElementById('close-mod-creator')?.addEventListener('click',closeModCreator);document.getElementById('community-mod-form')?.addEventListener('submit',publishCommunityMod);
    document.getElementById('world-search')?.addEventListener('input',renderWorldList);
    document.getElementById('world-sort')?.addEventListener('change',renderWorldList);
+   document.getElementById('world-filter')?.addEventListener('change',renderWorldList);
    document.getElementById('import-world-button').addEventListener('click',()=>document.getElementById('import-world-file').click());
    document.getElementById('import-world-file').addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)importWorldBackupFile(file);else e.target.value='';});
   document.getElementById('empty-create-world').addEventListener('click',openWorldCreate);
