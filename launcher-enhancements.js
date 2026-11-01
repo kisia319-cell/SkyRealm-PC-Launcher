@@ -69,13 +69,13 @@
       const page=document.createElement('section');page.className='page inner-page screenshots-page';page.id='page-screenshots';
       page.innerHTML=`
         <div class="page-heading"><div><div class="section-kicker">SKYREALM · ГАЛЕРЕЯ</div><h1>Мои <span>скриншоты</span></h1><p>Снимки игрового мира, сделанные клавишей F12. Файлы хранятся локально на этом компьютере.</p></div><div class="system-actions"><button class="secondary-btn" id="screenshots-refresh" type="button">↻ Обновить</button><button class="secondary-btn" id="screenshots-open-folder" type="button">Открыть папку</button></div></div>
-        <div class="screenshots-grid" id="screenshots-grid"><div class="screenshots-empty">Загружаем галерею…</div></div>
+        <p class="screenshots-status" id="screenshots-status" aria-live="polite"></p><div class="screenshots-grid" id="screenshots-grid"><div class="screenshots-empty">Загружаем галерею…</div></div>
         <div class="screenshot-viewer" id="screenshot-viewer" hidden aria-hidden="true"><div class="screenshot-viewer-panel"><div class="screenshot-viewer-head"><b id="screenshot-viewer-title">Скриншот</b><button class="secondary-btn" id="screenshot-viewer-close" type="button">Закрыть</button></div><img id="screenshot-viewer-image" alt="Скриншот SkyRealm"></div></div>`;
       main.append(page);
     }
     if(!$('#screenshots-refresh')?.dataset.bound){
       $('#screenshots-refresh').dataset.bound='1';$('#screenshots-refresh').addEventListener('click',refreshScreenshots);
-      $('#screenshots-open-folder').addEventListener('click',async()=>{try{const result=await window.pywebview?.api?.open_screenshot_folder?.();if(!result?.ok)throw new Error(result?.message||'Папка скриншотов недоступна.');}catch(error){toast(error.message||'Не удалось открыть папку скриншотов.');}});
+      $('#screenshots-open-folder').addEventListener('click',async()=>{try{const result=await window.pywebview?.api?.open_screenshot_folder?.();if(!result?.ok)throw new Error(result?.message||'Папка скриншотов недоступна.');}catch(error){screenshotNotice(error.message||'Не удалось открыть папку скриншотов.');}});
       $('#screenshot-viewer-close').addEventListener('click',closeScreenshotViewer);
       $('#screenshot-viewer').addEventListener('click',event=>{if(event.target.id==='screenshot-viewer')closeScreenshotViewer();});
     }
@@ -88,6 +88,7 @@
     if($('.main'))$('.main').scrollTop=0;
     refreshScreenshots();
   }
+  function screenshotNotice(message){const status=$('#screenshots-status');if(status)status.textContent=message;else console.warn('[SkyRealm screenshots]',message);}
   function closeScreenshotViewer(){
     const viewer=$('#screenshot-viewer');if(!viewer)return;viewer.hidden=true;viewer.setAttribute('aria-hidden','true');$('#screenshot-viewer-image').removeAttribute('src');
   }
@@ -110,7 +111,7 @@
           try{const image=await api.get_screenshot_data(item.name);if(!image?.ok)throw new Error(image?.message||'Не удалось открыть скриншот.');
             $('#screenshot-viewer-title').textContent=item.name;$('#screenshot-viewer-image').src=image.data_url;
             const viewer=$('#screenshot-viewer');viewer.hidden=false;viewer.setAttribute('aria-hidden','false');
-          }catch(error){toast(error.message||'Не удалось открыть скриншот.');}
+          }catch(error){screenshotNotice(error.message||'Не удалось открыть скриншот.');}
         });
         details.append(title,meta,open);card.append(preview,details);grid.append(card);
       });
