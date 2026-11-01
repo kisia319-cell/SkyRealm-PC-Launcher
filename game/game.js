@@ -2320,6 +2320,14 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function renderAchievements(){
     const {state}=evaluateAchievements(true),list=document.getElementById('achievement-list'),count=document.getElementById('achievement-count');if(!list)return;
     const unlocked=Object.keys(state.unlocked||{}).length;if(count)count.textContent=unlocked+' / '+ACHIEVEMENTS.length+' открыто';
+    const stats=document.getElementById('progress-stats-grid');
+    if(stats){
+      const playtime=Math.max(0,Number(state.stats?.profilePlaytimeSeconds)||0);
+      const hours=(playtime/3600).toFixed(1);
+      const worldCount=readWorlds().length;
+      const level=Math.max(1,Number(state.stats?.playerLevel)||1);
+      stats.innerHTML='<article><small>Время в игре</small><b>'+hours+' ч</b></article><article><small>Создано миров</small><b>'+worldCount+'</b></article><article><small>Уровень игрока</small><b>'+level+'</b></article><article><small>Достижения</small><b>'+unlocked+' / '+ACHIEVEMENTS.length+'</b></article>';
+    }
     list.innerHTML=ACHIEVEMENTS.map(item=>{const value=item.id==='cave_guardian'?(state.stats?.caveBossDefeated?1:0):Math.max(0,Number(state.stats?.[item.id==='first_step'?'questStage':item.id==='first_night'?'survivedNights':item.id==='explorer'?'exploredCells':item.id==='veteran'?'playerLevel':item.id==='angler'?'fishCaught':item.id==='villager_friend'?'villageReputation':'profilePlaytimeSeconds'])||0);const done=!!state.unlocked[item.id],shown=Math.min(item.target,value),progress=item.target>=3600?Math.floor(shown/60)+' / 60 мин':shown+' / '+item.target;return '<article class="achievement-card '+(done?'is-unlocked':'')+'"><span class="achievement-icon">'+(done?'🏆':'🔒')+'</span><div class="achievement-copy"><b>'+item.title+'</b><small>'+item.desc+'</small><small class="achievement-reward">'+(done?'Награда получена: ':'Награда: ')+item.reward+'</small><div class="achievement-progress"><i style="width:'+Math.round(shown/item.target*100)+'%"></i></div><small>'+progress+'</small></div><span class="achievement-status">'+(done?'Открыто':'В процессе')+'</span></article>';}).join('');
   }
 
