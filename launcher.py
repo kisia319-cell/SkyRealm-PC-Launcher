@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 import json
+import base64
 import hashlib
 import re
 import zipfile
@@ -144,6 +145,16 @@ def skyrealm_game_dir(settings=None) -> Path:
     return skyrealm_data_root(settings) / "game"
 
 
+def skyrealm_screenshot_dir() -> Path:
+    directory = skyrealm_default_data_root() / "screenshots"
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def skyrealm_screenshot_name_is_safe(name) -> bool:
+    return bool(re.fullmatch(r"SkyRealm_[0-9]{8}_[0-9]{6}-[0-9]{9}\\.png", str(name or "")))
+
+
 def resolution_size(settings: dict) -> tuple[int, int]:
     try:
         width, height = str(settings.get("resolution", "1280x720")).split("x", 1)
@@ -193,6 +204,43 @@ class LauncherApi:
             return {"ok": True, "path": str(directory)}
         except Exception as exc:
             return {"ok": False, "message": "Не удалось открыть папку данных: " + str(exc)}
+
+    def get_screenshots(self):
+        try:
+            directory = skyrealm_screenshot_dir()
+            files = sorted((p for p in directory.glob("SkyRealm_*.png") if p.is_file()), key=lambda p: p.stat().st_mtime, reverse=True)[:50]
+            return {"ok": True, "screenshots": [
+                {"name": p.name, "size_kb": round(p.stat().st_size / 1024, 1),
+                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(p.stat().st_mtime))}
+                for p in files
+            ]}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось загрузить список скриншотов: " + str(exc)}
+
+    def get_screenshot_data(self, name):
+        try:
+            if not skyrealm_screenshot_name_is_safe(name):
+                return {"ok": False, "message": "Некорректное имя файла скриншота."}
+            path = skyrealm_screenshot_dir() / name
+            if not path.is_file() or path.stat().st_size > 8 * 1024 * 1024:
+                return {"ok": False, "message": "Скриншот не найден или слишком большой."}
+            encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+            return {"ok": True, "data_url": "data:image/png;base64," + encoded}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось открыть скриншот: " + str(exc)}
+
+    def open_screenshot_folder(self):
+        try:
+            directory = skyrealm_screenshot_dir()
+            if os.name == "nt":
+                os.startfile(str(directory))
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(directory)])
+            else:
+                subprocess.Popen(["xdg-open", str(directory)])
+            return {"ok": True, "path": str(directory)}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось открыть папку скриншотов: " + str(exc)}
 
     def _skyrealm_webview_profile_dir(self):
         app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
@@ -681,6 +729,22 @@ class GameApi:
         # profile sync and reconnects). Keep the token in this short-lived game
         # process so native profile sync continues working after the first read.
         return {"token": self._session_token}
+
+    def save_screenshot(self, data_url):
+        """Save a validated PNG screenshot from the game canvas."""
+        try:
+            if not isinstance(data_url, str) or len(data_url) > 12_000_000 or not data_url.startswith("data:image/png;base64,"):
+                return {"ok": False, "message": "Некорректный формат скриншота."}
+            raw = base64.b64decode(data_url.split(",", 1)[1], validate=True)
+            if not raw.startswith(b"\\x89PNG\\r\\n\\x1a\\n") or len(raw) > 8 * 1024 * 1024:
+                return {"ok": False, "message": "Скриншот повреждён или превышает лимит 8 МБ."}
+            directory = skyrealm_screenshot_dir()
+            name = "SkyRealm_" + time.strftime("%Y%m%d_%H%M%S") + "-" + str(time.time_ns() % 1_000_000_000).zfill(9) + ".png"
+            destination = directory / name
+            destination.write_bytes(raw)
+            return {"ok": True, "name": name, "bytes": len(raw), "path": str(destination)}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось сохранить скриншот: " + str(exc)}
 
     def sync_profile_stats(self, stats):
         """Send bounded, non-sensitive game progress to the authenticated profile API."""
