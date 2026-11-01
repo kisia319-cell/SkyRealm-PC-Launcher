@@ -278,3 +278,9 @@ assert.ok(py.includes('file_sha256(runner_path) != file_sha256(bundled_runner)')
 
 assert.ok(releaseWorkflow.includes('"game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js"'), 'Windows release build must fail early if any multiplayer script is missing');
 assert.ok(releaseWorkflow.includes('notes = "SkyRealm Launcher $version + Game $($gameVersion)'), 'Release notes must use the actual launcher and game versions instead of a stale hard-coded version');
+
+assert.ok(game.includes("const visible = id => { const el=document.getElementById(id); return !!el && !el.hidden; }"), 'Movement recovery must check actual overlay visibility without treating missing elements as blockers');
+assert.ok(game.includes("pauseShade?.hidden === true && !blockingOverlay && !sleeping"), 'A movement key must recover a stale pause state when no blocking modal is visible');
+assert.ok(game.includes("['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)"), 'Movement must accept physical WASD and arrow key codes in embedded WebViews');
+assert.ok(game.includes("document.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Movement key releases must be captured at document level');
+assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden) keys.clear(); })"), 'Hidden game windows must clear held movement keys');
