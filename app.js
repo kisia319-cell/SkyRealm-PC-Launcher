@@ -329,7 +329,7 @@
   function setAuthEntryState(authenticated) {
     const isAuthenticated = authenticated === true;
     document.body.classList.toggle('is-authenticated', isAuthenticated);
-    $('[data-auth-mode], #top-create-account').forEach(button => {
+    $$('[data-auth-mode], #top-create-account').forEach(button => {
       button.hidden = isAuthenticated;
       button.setAttribute('aria-hidden', String(isAuthenticated));
     });
