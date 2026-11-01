@@ -35,3 +35,8 @@ assert.match(app,/high-contrast-toggle/,'High contrast setting must be wired');
 assert.match(app,/performance-saver-toggle/,'Resource-saving setting must be wired');
 assert.ok(html.includes('id="fps-limit-select"')&&html.includes('id="music-volume-range"')&&html.includes('id="sfx-volume-range"'),'FPS and audio controls must exist in the settings page');
 assert.ok(launcher.includes('"fpsLimit": 0')&&launcher.includes('"musicVolume": 35')&&launcher.includes('"sfxVolume": 70'),'Native settings must preserve audio and FPS preferences');
+
+assert.match(app,/DEFAULT_KEY_BINDINGS/,'Launcher must expose editable default key bindings');
+assert.match(app,/renderKeyBindings/,'Launcher must render the key-binding editor');
+assert.ok(html.includes('id="key-bindings-list"')&&html.includes('id="reset-key-bindings"'),'Keyboard remapping controls must exist');
+assert.ok(launcher.includes('"keyBindings"')&&launcher.includes('"up": "KeyW"'),'Native launcher settings must persist keyboard bindings');
