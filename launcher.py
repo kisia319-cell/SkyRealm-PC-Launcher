@@ -315,6 +315,158 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Ошибка диагностики: " + str(exc)}
 
+    def get_update_status(self):
+        """Return release metadata and local version state without modifying files."""
+        try:
+            config = json.loads(Path(resource_path("updater_config.json")).read_text(encoding="utf-8"))
+            manifest_url = str(config.get("manifest_url", "")).strip()
+            if not manifest_url.startswith("https://"):
+                raise ValueError("В конфигурации отсутствует HTTPS-ссылка на манифест.")
+            request = urllib.request.Request(manifest_url, headers={"User-Agent": "SkyRealmLauncher-UpdateCenter/1.0", "Cache-Control": "no-cache"})
+            with urllib.request.urlopen(request, timeout=8) as response:
+                manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
+            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+            root = app_data / "SkyRealm"
+            install_dir = root / "game"
+            installed_game = ""
+            previous_game = ""
+            try:
+                installed_game = (install_dir / "version.txt").read_text(encoding="utf-8").strip()
+            except OSError:
+                pass
+            try:
+                previous_game = (install_dir.with_name("game.previous") / "version.txt").read_text(encoding="utf-8").strip()
+            except OSError:
+                pass
+            launcher_version = Path(resource_path("launcher_version.txt")).read_text(encoding="utf-8").strip()
+            latest_launcher = str(manifest.get("version", "")).strip()
+            latest_game = str(manifest.get("game_version", "")).strip()
+            return {
+                "ok": True, "launcher_version": launcher_version, "latest_launcher_version": latest_launcher,
+                "launcher_update_available": bool(_skyrealm_version_tuple(latest_launcher) and _skyrealm_version_tuple(latest_launcher) > _skyrealm_version_tuple(launcher_version)),
+                "game_version": installed_game or "не установлена", "latest_game_version": latest_game,
+                "game_update_available": bool(_skyrealm_version_tuple(latest_game) and _skyrealm_version_tuple(latest_game) > _skyrealm_version_tuple(installed_game)),
+                "game_installed": bool(installed_game),
+                "rollback_available": bool(install_dir.with_name("game.previous").is_dir() and previous_game),
+                "previous_game_version": previous_game,
+                "notes": str(manifest.get("notes", ""))[:1200],
+                "release_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest",
+                "checked_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            }
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось проверить обновления: " + str(exc)}
+
+    def install_game_update(self):
+        """Install the latest game package without starting the game."""
+        try:
+            if self._skyrealm_game_is_running():
+                return {"ok": False, "message": "Сначала закрой SkyRealm, затем устанавливай обновление."}
+            state = self.get_update_status()
+            if not state.get("ok"):
+                return state
+            if not state.get("game_update_available"):
+                return {"ok": True, "updated": False, "version": state.get("game_version"), "message": "Установлена последняя версия игры."}
+            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+            install_dir = app_data / "SkyRealm" / "game"
+            bundled_version = Path(resource_path("game/version.txt")).read_text(encoding="utf-8").strip()
+            installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True)
+            if installed != state.get("latest_game_version"):
+                return {"ok": False, "message": "Обновление не установилось. Проверь журнал; прежняя версия сохранена.", "version": installed}
+            return {"ok": True, "updated": True, "version": installed, "message": "Игра обновлена. Предыдущая версия сохранена для отката."}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось установить обновление: " + str(exc)}
+
+    def repair_game_files(self):
+        """Reinstall the verified release archive, keeping a rollback copy."""
+        try:
+            if self._skyrealm_game_is_running():
+                return {"ok": False, "message": "Сначала полностью закрой SkyRealm, затем запускай восстановление."}
+            state = self.get_update_status()
+            if not state.get("ok"):
+                return state
+            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+            install_dir = app_data / "SkyRealm" / "game"
+            bundled_version = Path(resource_path("game/version.txt")).read_text(encoding="utf-8").strip()
+            installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True, force=True)
+            required = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
+            missing = [name for name in required if not (install_dir / name).is_file()]
+            if missing or installed != state.get("latest_game_version"):
+                return {"ok": False, "message": "Восстановление не завершилось. Нет файлов: " + ", ".join(missing), "version": installed}
+            return {"ok": True, "version": installed, "message": "Файлы игры заново скачаны, проверены по SHA-256 и восстановлены."}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось восстановить файлы игры: " + str(exc)}
+
+    def rollback_game_update(self):
+        """Swap the current game directory with the preserved previous release."""
+        try:
+            if self._skyrealm_game_is_running():
+                return {"ok": False, "message": "Закрой игру перед откатом версии."}
+            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+            root = app_data / "SkyRealm"
+            install_dir = root / "game"
+            previous = root / "game.previous"
+            failed = root / "game.failed"
+            if not previous.is_dir() or not (previous / "version.txt").is_file():
+                return {"ok": False, "message": "Предыдущая версия не найдена. Откат пока недоступен."}
+            new_version = (previous / "version.txt").read_text(encoding="utf-8").strip()
+            if failed.exists():
+                shutil.rmtree(failed, ignore_errors=True)
+            if install_dir.exists():
+                os.replace(install_dir, failed)
+            try:
+                os.replace(previous, install_dir)
+            except Exception:
+                if failed.exists() and not install_dir.exists():
+                    os.replace(failed, install_dir)
+                raise
+            return {"ok": True, "version": new_version, "message": "Возвращена предыдущая версия игры."}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось выполнить откат: " + str(exc)}
+
+    def get_system_metrics(self):
+        """Read local CPU, RAM and disk metrics; no telemetry is transmitted."""
+        try:
+            result = {"ok": True, "cpu_percent": None, "ram_percent": None, "ram_used_mb": None,
+                      "ram_total_mb": None, "process_memory_mb": None, "disk_free_gb": None,
+                      "disk_total_gb": None, "game_size_mb": None}
+            try:
+                import psutil
+                memory = psutil.virtual_memory()
+                result.update({
+                    "cpu_percent": round(psutil.cpu_percent(interval=0.15), 1),
+                    "ram_percent": round(memory.percent, 1),
+                    "ram_used_mb": round((memory.total - memory.available) / (1024 * 1024)),
+                    "ram_total_mb": round(memory.total / (1024 * 1024)),
+                    "process_memory_mb": round(psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024), 1),
+                })
+            except Exception:
+                if os.name == "nt":
+                    import ctypes
+                    class MEMORYSTATUSEX(ctypes.Structure):
+                        _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                                    ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                                    ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                                    ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+                    status = MEMORYSTATUSEX()
+                    status.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+                    if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+                        result.update({"ram_percent": float(status.dwMemoryLoad),
+                                       "ram_used_mb": round((status.ullTotalPhys-status.ullAvailPhys)/(1024*1024)),
+                                       "ram_total_mb": round(status.ullTotalPhys/(1024*1024))})
+            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+            root = app_data / "SkyRealm"
+            usage = shutil.disk_usage(root if root.exists() else app_data)
+            result["disk_free_gb"] = round(usage.free / (1024 ** 3), 2)
+            result["disk_total_gb"] = round(usage.total / (1024 ** 3), 2)
+            game_dir = root / "game"
+            if game_dir.exists():
+                size = sum(item.stat().st_size for item in game_dir.rglob("*") if item.is_file())
+                result["game_size_mb"] = round(size / (1024 * 1024), 1)
+            return result
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось получить показатели компьютера: " + str(exc)}
+
     def launch_game(self, settings=None, allow_game_update=True, session_token=None, open_mod_id=None):
         """Install the bundled prototype into LocalAppData and start it in a new process."""
         try:
@@ -416,7 +568,11 @@ class LauncherApi:
             launch_env = os.environ.copy()
             allowed_mod_ids = {"cartographer", "angler", "green_thumb", "miners_luck", "survivalist", "skill_expansion", "brutal_world", "blood_moon", "lost_dungeons", "sky_islands", "ancient_civs", "ocean_depths", "elemental_lords", "legendary_gear", "bounty_hunter", "arena_survival", "settlement_builder", "architect", "beast_companions", "trade_caravans", "magic_academy", "engineer_world", "banking", "parallel_dimensions", "full_magic", "__catalog__"}
             requested_mod = open_mod_id.strip() if isinstance(open_mod_id, str) else ""
-            if requested_mod in allowed_mod_ids:
+            if requested_mod == "__cloud_saves__":
+                launch_env["SKYREALM_OPEN_CLOUD_SAVES"] = "1"
+                launch_env.pop("SKYREALM_OPEN_MOD_CATALOG", None)
+                launch_env.pop("SKYREALM_OPEN_MOD_ID", None)
+            elif requested_mod in allowed_mod_ids:
                 launch_env["SKYREALM_OPEN_MOD_CATALOG"] = "1"
                 launch_env["SKYREALM_OPEN_MOD_ID"] = "" if requested_mod == "__catalog__" else requested_mod
             else:
@@ -478,6 +634,41 @@ class GameApi:
             return {"ok": False, "message": message}
         except Exception:
             return {"ok": False, "message": "Не удалось синхронизировать профиль. Проверь интернет."}
+
+    def _cloud_save_request(self, method="GET", body=None):
+        if not self._session_token:
+            return {"ok": False, "message": "Войди в аккаунт в лаунчере, чтобы использовать облачные сохранения."}
+        endpoint = "https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-auth?route=%2Fapi%2Fcloud%2Fsave"
+        publishable_key = "sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL"
+        raw = json.dumps(body, ensure_ascii=False).encode("utf-8") if body is not None else None
+        if raw is not None and len(raw) > 1_900_000:
+            return {"ok": False, "message": "Архив миров слишком большой для облачной копии (лимит около 1,9 МБ)."}
+        request = urllib.request.Request(endpoint, data=raw, method=method, headers={
+            "apikey": publishable_key, "Authorization": "Bearer " + self._session_token,
+            "Content-Type": "application/json", "User-Agent": "SkyRealm-Game/1.0",
+        })
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                data = json.loads(response.read(2_100_000).decode("utf-8"))
+            return {"ok": True, **data}
+        except urllib.error.HTTPError as exc:
+            try:
+                data = json.loads(exc.read(32_000).decode("utf-8"))
+                message = data.get("detail", {}).get("message") or data.get("message") or "Облачное сохранение отклонено."
+                code = data.get("detail", {}).get("code") or data.get("code") or ""
+            except Exception:
+                message, code = "Облачное сохранение отклонено сервером.", ""
+            return {"ok": False, "message": message, "code": code, "status": exc.code}
+        except Exception:
+            return {"ok": False, "message": "Не удалось связаться с облаком. Проверь интернет."}
+
+    def get_cloud_save(self):
+        return self._cloud_save_request("GET")
+
+    def upload_cloud_save(self, bundle, expected_revision):
+        if not isinstance(bundle, dict) or not isinstance(expected_revision, int) or expected_revision < 0:
+            return {"ok": False, "message": "Некорректные данные облачного архива."}
+        return self._cloud_save_request("POST", {"bundle": bundle, "expected_revision": expected_revision})
 
     def close(self):
         try:
@@ -558,6 +749,8 @@ def run_game_window(game_html: str) -> None:
         requested_mod = os.environ.get("SKYREALM_OPEN_MOD_ID", "")
         if requested_mod:
             launch_params["installMod"] = requested_mod
+    if os.environ.get("SKYREALM_OPEN_CLOUD_SAVES") == "1":
+        launch_params["cloudSaves"] = "1
     page_url = "http://127.0.0.1:" + str(port) + "/" + file_path.name + "?" + urlencode(launch_params)
     try:
         game_window = webview.create_window(
@@ -591,7 +784,7 @@ def _skyrealm_version_tuple(value):
 
 
 
-def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update: bool = True) -> str:
+def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update: bool = True, force: bool = False) -> str:
     """Download and atomically install the latest game package before launching it."""
     root = install_dir.parent
     version_file = install_dir / "version.txt"
@@ -651,7 +844,7 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
             selected = installed_version if game_ok and installed_version else bundled_version
             write_update_log(f"game update declined: installed={installed_version or 'missing'}, latest={latest}, selected={selected}")
             return selected
-        if game_ok and installed_tuple and installed_tuple >= latest_tuple:
+        if game_ok and installed_tuple and installed_tuple >= latest_tuple and not force:
             write_update_log(f"game update already current: installed={installed_version}, latest={latest}")
             return installed_version
 
@@ -718,9 +911,10 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
             if backup.exists() and not install_dir.exists():
                 os.replace(backup, install_dir)
             raise
-        shutil.rmtree(backup, ignore_errors=True)
+        # Keep one previous installation so the user can roll back if the new build
+        # has a runtime problem. It contains game binaries only; world saves live elsewhere.
         archive_path.unlink(missing_ok=True)
-        write_update_log(f"game update installed successfully: {installed_version or 'missing'} -> {latest}")
+        write_update_log(f"game update installed successfully: {installed_version or 'missing'} -> {latest}; previous build preserved={backup.exists()}")
         return latest
     except Exception as exc:
         try:

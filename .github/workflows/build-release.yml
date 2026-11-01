@@ -35,7 +35,7 @@ jobs:
           $required = @(
             "launcher.py", "update_helper.py", "launcher_version.txt",
             "game_runner_version.txt", "updater_config.json", "index.html",
-            "style.css", "app.js", "config.js", "realm.jpg", "icon.png",
+            "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "config.js", "realm.jpg", "icon.png",
             "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt",
             "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js"
           )
@@ -49,6 +49,8 @@ jobs:
           node --check game/multiplayer-client.js
           node --check game/multiplayer-ui.js
           node --check app.js
+          node --check launcher-enhancements.js
+          node --check game/cloud-save-ui.js
           node --check tests/auth-smoke.mjs
           node --check tests/game-smoke-test.cjs
           node --check tests/farm-economy-test.cjs
@@ -69,6 +71,8 @@ jobs:
           node tests/multiplayer-client-test.cjs
           node tests/coop-ui-integration-test.cjs
           node tests/auth-smoke.mjs
+          node tests/launcher-enhancements-test.cjs
+          node tests/cloud-save-ui-test.cjs
           node tests/supabase-migration-history-test.cjs
 
       - name: Install build tools
@@ -83,7 +87,7 @@ jobs:
       - name: Build launcher executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" launcher.py
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" launcher.py
           if (-not (Test-Path "dist/SkyRealm.exe")) { throw "SkyRealm.exe was not created" }
 
       - name: Prepare update archives and manifest
@@ -111,7 +115,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version + Game $($gameVersion): profile sync, friend requests, private chat and co-op room invitations; SHA-256 diagnostics and world backup/restore; 8 persistent achievements; free achievement-earned cosmetic sets; searchable and sortable world library with level/day/map summaries; and recent adventure history. Existing accounts, worlds and single-player saves remain compatible."
+            notes = "SkyRealm Launcher $version + Game $($gameVersion): profile sync, friends and private chat; co-op room invitations; update center with rollback and repair; multi-service status and local performance monitor; cloud world backups; in-app notifications; SHA-256 diagnostics. Existing accounts and local worlds remain compatible."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
