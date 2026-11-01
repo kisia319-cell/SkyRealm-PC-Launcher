@@ -143,6 +143,15 @@ window.SkyRealmCoopClient=Object.freeze({
   get isRoomOwner(){return !!currentRoom&&currentRoom.owner_id===userId;},
   connectRealtime,
   disconnectRealtime,
+  async broadcastWorldEntry(entry){
+    if(!this.isRoomOwner||!currentRoom||currentRoom.status!=='running'||!realtimeChannel||realtimeRoomId!==currentRoom.id)return false;
+    const safe=typeof safeSharedSnapshot==='function'?safeSharedSnapshot({coopWorldEntry:entry}):null;
+    if(!safe?.coopWorldEntry||safe.coopWorldEntry.room_id!==currentRoom.id)return false;
+    try{
+      const status=await realtimeChannel.send({type:'broadcast',event:'room-event',payload:{kind:'world-enter',...safe.coopWorldEntry}});
+      return status==='ok';
+    }catch(_){return false;}
+  },
   async sendPosition(position){
     if(!realtimeChannel||!userId)return false;
     const safe=typeof safePosition==='function'?safePosition({...position,user_id:userId}):null;
