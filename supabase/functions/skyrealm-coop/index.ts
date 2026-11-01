@@ -5,7 +5,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_PATTERN = /^[A-HJ-NP-Z2-9]{8}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SHARED_SNAPSHOT_FIELDS = new Set(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","lastWorldCampDay","lastWorldHordeNight","lastWorldMeteorNight","lastWorldTravelerDay","meteorPoint","meteorShowerTimer","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","worldEventCamp","worldEventTraveler"]);
+const SHARED_SNAPSHOT_FIELDS = new Set(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","lastWorldCampDay","lastWorldHordeNight","lastWorldMeteorNight","lastWorldTravelerDay","meteorPoint","meteorShowerTimer","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","worldEventCamp","worldEventTraveler"]);
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
@@ -77,6 +77,23 @@ function sanitizeSharedSnapshot(value: unknown): Record<string, unknown> {
       throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "В снимке есть личные или неизвестные данные.");
     }
     output[key] = entry;
+  }
+  if (output.coopWorldEntry !== undefined) {
+    const entry = output.coopWorldEntry as Record<string, unknown>;
+    const difficulties = ["easy","medium","hard","hell","impossible"];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry) ||
+        typeof entry.room_id !== "string" || !UUID_PATTERN.test(entry.room_id) ||
+        entry.world_id !== "coop_" + entry.room_id ||
+        typeof entry.world_name !== "string" || !entry.world_name.trim() || entry.world_name.length > 32 ||
+        !difficulties.includes(String(entry.difficulty)) ||
+        !Number.isSafeInteger(entry.started_at) || Number(entry.started_at) < 0) {
+      throw new ApiError(400,"INVALID_SNAPSHOT_PAYLOAD","Некорректные данные запуска общего мира.");
+    }
+    output.coopWorldEntry = {
+      room_id: entry.room_id, world_id: entry.world_id,
+      world_name: entry.world_name.trim(), difficulty: entry.difficulty,
+      started_at: entry.started_at,
+    };
   }
   if (output.adventureQuestProgress && typeof output.adventureQuestProgress === "object" && !Array.isArray(output.adventureQuestProgress)) {
     const source = output.adventureQuestProgress as Record<string, unknown>;
