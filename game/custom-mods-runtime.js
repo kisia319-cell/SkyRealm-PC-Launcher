@@ -22,7 +22,6 @@
       'function send(type,payload){parent.postMessage(Object.assign({channel:"skyrealm-user-mod",id:MOD_ID,type:type},payload||{}),"*");}',
       'function buildWorkerSource(){',
       'if(LANG==="javascript"){return [',
-      '"use strict;",',
       '"const SOURCE="+JSON.stringify(SOURCE)+";let state={};let tickFn=null;try{const factory=new Function(SOURCE+String.fromCharCode(10)+\\\"return onTick;\\\")();if(typeof factory!==\\\"function\\\")throw new Error(\\\"Нужна функция onTick(context, state).\\\");tickFn=factory;postMessage({type:\\\"ready\\\"});}catch(e){postMessage({type:\\\"error\\\",message:String(e&&e.message||e)});}",',
       '"onmessage=async function(event){if(event.data&&event.data.type===\\\"stop\\\"){close();return;}try{const result=await tickFn(event.data.context||{},state)||{};if(result.state&&typeof result.state===\\\"object\\\"&&!Array.isArray(result.state))state=result.state;postMessage({type:\\\"result\\\",request:event.data.request,result:result});}catch(e){postMessage({type:\\\"error\\\",request:event.data.request,message:String(e&&e.message||e)});}};"',
       '].join(String.fromCharCode(10));}',
