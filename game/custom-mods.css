@@ -15,3 +15,35 @@
 .user-mod-card-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.user-mod-card-actions button{min-height:32px;padding:6px 9px;font-size:10px}
 .user-mod-empty{padding:14px;border:1px dashed #344c6e;border-radius:10px;color:#91a8c8;text-align:center;font-size:11px}
 .script-mod-dialog button:disabled{opacity:.5;cursor:wait}
+
+/* Full 16:9 Mod Studio workspace */
+.script-mod-studio{z-index:1200;padding:2vh 2vw;background:rgba(2,7,16,.92);backdrop-filter:blur(14px)}
+.script-mod-dialog{width:min(96vw,1440px);height:min(94vh,810px);max-height:94vh;aspect-ratio:16/9;overflow:hidden;padding:0;border:1px solid #38577e;border-radius:18px;background:#081525;box-shadow:0 28px 100px #000b;display:flex;flex-direction:column;text-align:left}
+.mod-studio-topbar{height:64px;min-height:64px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #263d5b;background:#0c1d31}
+.mod-studio-brand{display:flex;align-items:center;gap:12px}.mod-studio-brand>span{width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:#1b3760;color:#a9c8ff;font-size:23px}
+.mod-studio-brand b{display:block;font-size:12px;letter-spacing:1.8px}.mod-studio-brand small{display:block;color:#829bbd;font-size:10px;margin-top:3px}
+.mod-studio-top-actions{display:flex;align-items:center;gap:12px}.mod-studio-save-state{font-size:10px;color:#8fa9cc}
+.mod-studio-workspace{display:grid;grid-template-columns:270px minmax(0,1fr);flex:1;min-height:0}
+.mod-studio-sidebar{padding:18px;overflow:auto;border-right:1px solid #263d5b;background:#0a192a}
+.mod-studio-side-title{font-size:9px;letter-spacing:2px;color:#7593ba;font-weight:900}.mod-studio-project-icon{width:48px;height:48px;margin:15px 0 12px;display:grid;place-items:center;border:1px solid #3b5b83;border-radius:13px;background:#122944;font-size:25px}
+.mod-studio-sidebar label{display:block;margin:12px 0;color:#9bb2d2;font-size:10px;font-weight:800}
+.mod-studio-sidebar input,.mod-studio-sidebar select,.mod-studio-sidebar textarea{display:block;width:100%;margin-top:6px;padding:9px 10px;border:1px solid #304c70;border-radius:8px;background:#071321;color:#e7efff;font:inherit;font-size:11px;box-sizing:border-box}
+.mod-studio-sidebar textarea{resize:vertical;min-height:62px}
+.mod-studio-wide{width:100%;margin-top:7px;justify-content:center}
+.mod-studio-side-note{display:grid;gap:7px;margin-top:18px;padding:12px;border:1px solid #294464;border-radius:10px;background:#0d2137;color:#8fa8c9;font-size:10px}
+.mod-studio-side-note b{color:#c4d8f5;font-size:11px;margin-bottom:2px}
+.mod-studio-editor{padding:18px 20px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:auto}
+.mod-studio-editor-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mod-studio-editor-head .eyebrow{font-size:9px;letter-spacing:1.8px;color:#7e9bc1}.mod-studio-editor-head h1{font-size:21px;margin:5px 0 0;text-align:left}
+.mod-studio-file{padding:7px 11px;border:1px solid #2d496b;border-radius:7px;background:#0d2036;color:#b6cae8;font:11px Consolas,monospace}
+.mod-studio-code-wrap{flex:1;min-height:210px;border:1px solid #304b6c;border-radius:10px;overflow:hidden;background:#06111e}
+.mod-studio-code-wrap textarea{display:block;width:100%;height:100%;min-height:210px;resize:vertical;padding:18px;border:0;outline:none;background:transparent;color:#d9e8ff;font:13px/1.65 Consolas,"Cascadia Code",monospace;tab-size:2;white-space:pre;overflow:auto}
+.mod-studio-code-wrap textarea::placeholder{color:#58708f}
+.mod-studio-editor-foot{display:flex;justify-content:space-between;gap:10px;padding:7px 2px;color:#6f89ad;font-size:9px}
+.mod-studio-help{padding:11px 13px;border:1px solid #294665;border-radius:9px;background:#0b1e32;color:#9eb5d5;font-size:10px;line-height:1.6}
+.mod-studio-help b{display:block;margin-bottom:5px;color:#c6d9f5;font-size:11px}
+.mod-studio-help code{display:inline-block;margin:2px 4px 2px 0;padding:2px 5px;border-radius:4px;background:#172e4a;color:#b9d2fa;font:10px Consolas,monospace}
+.mod-studio-help p{margin:5px 0 0}
+.mod-studio-editor .script-mod-status{margin-top:9px;min-height:34px}
+.mod-studio-editor .script-mod-actions{margin-top:9px}
+@media(max-width:760px){.script-mod-studio{padding:0}.script-mod-dialog{width:100vw;height:100dvh;max-height:100dvh;aspect-ratio:auto;border-radius:0}.mod-studio-workspace{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.mod-studio-sidebar{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;padding:10px 14px;border-right:0;border-bottom:1px solid #263d5b;max-height:38vh}.mod-studio-side-title,.mod-studio-project-icon,.mod-studio-side-note{display:none}.mod-studio-sidebar label{margin:5px 0}.mod-studio-wide{margin:5px 0}.mod-studio-editor{padding:12px}.mod-studio-brand small,.mod-studio-save-state{display:none}.mod-studio-editor-head h1{font-size:17px}}
