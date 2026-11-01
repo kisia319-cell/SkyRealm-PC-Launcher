@@ -7,6 +7,11 @@ const gameHtml = fs.readFileSync('game/index.html', 'utf8');
 const launcherHtml = fs.readFileSync('index.html', 'utf8');
 const version = fs.readFileSync('game/version.txt', 'utf8').trim();
 
+const bugFixCounter = fs.readFileSync('game/bugfix_counter.txt', 'utf8').trim();
+assert.match(bugFixCounter, /^\d+$/, 'The cumulative bug-fix counter must be a non-negative integer');
+assert.equal(Number(version.split('.')[3]), Number(bugFixCounter), 'The fourth game version component must match the cumulative bug-fix counter');
+
+
 new vm.Script(game, { filename: 'game/game.js' });
 assert.ok(game.includes("water:[520,340,'sine',.16]"), 'Fishing catch sound must use a dedicated water preset');
 assert.ok(game.includes('function fishingShoreRatio()'), 'Fishing must be restricted to the lake shoreline');
