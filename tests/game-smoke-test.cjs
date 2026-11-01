@@ -309,3 +309,6 @@ assert.ok(game.includes('fpsGateAt=0') && game.includes('1000/fpsLimit'), 'Game 
 assert.ok(game.includes('Number(gameSettings.sfxVolume??70)'), 'Game sound effects must use the saved sound volume');
 assert.ok(game.includes('Number(gameSettings.musicVolume??35)'), 'Game ambient music must use the saved music volume');
 assert.ok(game.includes('gameSettings.musicEnabled=skyMusicEnabled'), 'Game music toggle must persist its enabled state');
+
+assert.ok(game.includes('DEFAULT_GAME_KEY_BINDINGS')&&game.includes('keyByAction'), 'Game must support remappable keyboard bindings');
+assert.ok(game.includes('bindings[ action ]')||game.includes('bindings[action]'), 'Game must resolve configured key codes');
