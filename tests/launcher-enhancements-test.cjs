@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const launcher=fs.readFileSync('launcher.py','utf8');
+const ui=fs.readFileSync('launcher-enhancements.js','utf8');
+const html=fs.readFileSync('index.html','utf8');
+assert.match(launcher,/def get_update_status/);
+assert.match(launcher,/def install_game_update/);
+assert.match(launcher,/def repair_game_files/);
+assert.match(launcher,/def rollback_game_update/);
+assert.match(launcher,/def get_system_metrics/);
+assert.match(launcher,/previous build preserved/);
+for(const id of ['system-auth-dot','system-coop-dot','system-social-dot','system-install-update','system-repair','system-rollback','system-open-cloud','system-cpu','system-ram']) assert.ok(ui.includes(id),'Missing management UI: '+id);
+assert.ok(ui.includes('/api/social/notifications'));
+assert.ok(ui.includes('__cloud_saves__'));
+assert.ok(html.includes('launcher-enhancements.js')&&html.includes('launcher-enhancements.css'));
+console.log('Launcher enhancements: OK');

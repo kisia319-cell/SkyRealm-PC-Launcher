@@ -238,7 +238,7 @@
         </nav>
         <section class="world-selector-panel" aria-label="Сохранённые миры">
           <div class="world-selector-heading"><div><div class="main-menu-kicker">ТВОИ СОХРАНЕНИЯ</div><h2>Выбери мир</h2></div><span class="world-count" id="world-count">0 миров</span></div>
-          <div class="world-import-row"><button class="world-import-button" id="import-world-button" type="button">⇧ Импорт резервной копии</button><input id="import-world-file" type="file" accept=".json,application/json" hidden></div>
+          <div class="world-import-row"><button class="world-import-button" id="import-world-button" type="button">⇧ Импорт резервной копии</button><button class="world-import-button" id="cloud-save-open" type="button">☁ Облачные сохранения</button><input id="import-world-file" type="file" accept=".json,application/json" hidden></div>
           <div class="world-tools-row"><input id="world-search" type="search" maxlength="32" placeholder="Найти мир по названию" aria-label="Поиск мира"><select id="world-sort" aria-label="Сортировка миров"><option value="recent">Сначала недавние</option><option value="name">По названию</option><option value="oldest">Сначала старые</option></select></div>
           <p class="world-selector-intro">Продолжи путешествие или создай новый мир. Можно хранить до 50 отдельных миров; список прокручивается.</p>
           <div class="worlds-empty" id="worlds-empty"><div class="worlds-empty-icon">⌁</div><b>Пока нет миров</b><p>Создай первый мир — он появится в этом списке, и ты сможешь вернуться в него в любое время.</p><button class="text-action" id="empty-create-world" type="button">Создать первый мир <span>→</span></button></div>
@@ -374,6 +374,20 @@
 </div>
 <div class="toast" id="toast"></div>
 </div>
+<div class="shade custom-modal-shade" id="cloud-save-shade" hidden aria-hidden="true">
+  <div class="dialog custom-modal cloud-save-dialog" role="dialog" aria-modal="true" aria-labelledby="cloud-save-title">
+    <div class="dialog-mark">☁</div><div class="eyebrow">SKYREALM · ОБЛАЧНОЕ ХРАНИЛИЩЕ</div>
+    <h1 id="cloud-save-title">Облачные сохранения</h1>
+    <p id="cloud-save-description">Создай резервную копию своих миров в аккаунте или восстанови её на этом компьютере.</p>
+    <div class="cloud-save-status" id="cloud-save-status" role="status" aria-live="polite">Проверяем облачный архив…</div>
+    <div class="cloud-save-actions">
+      <button class="action" id="cloud-save-upload" type="button">↑ Сохранить миры в облако</button>
+      <button class="action secondary" id="cloud-save-restore" type="button">↓ Восстановить из облака</button>
+      <button class="action secondary" id="cloud-save-close" type="button">Закрыть</button>
+    </div>
+    <p class="cloud-save-footnote">В облако отправляются только игровые сохранения. Перед восстановлением автоматически скачивается страховочная копия текущих миров. Локальные миры не удаляются.</p>
+  </div>
+</div>
 <script>
 (() => {
   const intro = document.getElementById('skyrealm-intro');
@@ -392,5 +406,6 @@
 <script src="multiplayer-core.js"></script>
 <script src="multiplayer-client.js"></script>
 <script src="multiplayer-ui.js"></script>
+<script src="cloud-save-ui.js"></script>
 </body>
 </html>

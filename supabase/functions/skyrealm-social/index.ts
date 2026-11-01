@@ -53,7 +53,40 @@ Deno.serve(async(req:Request)=>{
   try {
     const url=new URL(req.url);
     const route=url.searchParams.get("route")||"/";
+    if(route==="/health" && req.method==="GET") return reply({status:"ok",service:"skyrealm-social",version:"1.0.0"});
     const user=await authenticate(req);
+    if(route==="/api/social/notifications" && req.method==="GET") {
+      const [friendRows,messageRows,inviteRows]=await Promise.all([
+        db("skyrealm_friendships?select=id,user_a,user_b,requested_by,created_at&status=eq.pending&or=(user_a.eq."+user.id+",user_b.eq."+user.id+")&order=created_at.desc&limit=30"),
+        db("skyrealm_messages?select=id,sender_id,body,created_at&recipient_id=eq."+user.id+"&read_at=is.null&order=created_at.desc&limit=20"),
+        db("skyrealm_room_invites?select=id,room_id,inviter_id,created_at,expires_at&invitee_id=eq."+user.id+"&status=eq.pending&expires_at=gt."+encodeURIComponent(new Date().toISOString())+"&order=created_at.desc&limit=20")
+      ]);
+      const incomingFriends=(friendRows||[]).filter((row:any)=>row.requested_by!==user.id);
+      const ids=[...new Set([
+        ...incomingFriends.map((row:any)=>row.requested_by),
+        ...(messageRows||[]).map((row:any)=>row.sender_id),
+        ...(inviteRows||[]).map((row:any)=>row.inviter_id)
+      ])];
+      const people=await profiles(ids), byId=new Map(people.map((p:any)=>[p.id,p]));
+      const notifications:any[]=[];
+      for(const row of incomingFriends) {
+        const person=byId.get(row.requested_by);
+        notifications.push({id:"friend:"+row.id,type:"friend",created_at:row.created_at,
+          title:"Новая заявка в друзья",body:"Игрок "+(person?.display_name||person?.username||"SkyRealm")+" хочет добавить тебя в друзья."});
+      }
+      for(const row of (messageRows||[])) {
+        const person=byId.get(row.sender_id);
+        notifications.push({id:"message:"+row.id,type:"message",created_at:row.created_at,
+          title:"Новое личное сообщение",body:(person?.display_name||person?.username||"Игрок")+": "+String(row.body||"").slice(0,100)});
+      }
+      for(const row of (inviteRows||[])) {
+        const person=byId.get(row.inviter_id);
+        notifications.push({id:"room:"+row.id,type:"room",created_at:row.created_at,
+          title:"Приглашение в кооператив",body:(person?.display_name||person?.username||"Друг")+" приглашает тебя в игровую комнату."});
+      }
+      notifications.sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at));
+      return reply({notifications:notifications.slice(0,50),unread_count:notifications.length});
+    }
     if(route==="/api/social/mods" && req.method==="GET") {
       const rows=await db("skyrealm_community_mods?select=id,creator_id,name,description,category,icon,effect_key,effect_strength,created_at&status=eq.published&order=created_at.desc&limit=60");
       const ids=[...new Set((rows||[]).map((x:any)=>String(x.creator_id)))];

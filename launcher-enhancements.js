@@ -1,0 +1,247 @@
+(() => {
+  'use strict';
+  const $ = (selector) => document.querySelector(selector);
+  const config = window.SKYREALM_CONFIG || {};
+  const authUrl = String(config.apiBaseUrl || '').trim().replace(/\/+$/,'');
+  const apiKey = String(config.supabaseAnonKey || '');
+  const socialUrl = authUrl.replace('skyrealm-auth','skyrealm-social');
+  const coopUrl = authUrl.replace('skyrealm-auth','skyrealm-coop');
+  const manifestUrl = 'https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json';
+  const currentTime = () => new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  let notificationPanel = null, notificationList = null, notificationCount = null;
+  let cachedNotifications = [], cachedUpdate = null, pollTimer = null;
+
+  function ensureSystemPage() {
+    const nav = $('.nav');
+    const main = $('.main');
+    if (!nav || !main) return;
+    if (!$('[data-page="system"]')) {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'nav-item'; button.dataset.page = 'system';
+      button.innerHTML = '<span class="nav-ico">◈</span><span>Центр управления</span>';
+      nav.insertBefore(button, $('[data-page="community"]') || null);
+      button.addEventListener('click', () => openSystemPage());
+    }
+    if (!$('#page-system')) {
+      const page = document.createElement('section');
+      page.className = 'page inner-page system-page'; page.id = 'page-system';
+      page.innerHTML = `
+        <div class="page-heading system-intro"><div><div class="section-kicker">SKYREALM · КОНТРОЛЬ</div><h1>Центр <span>управления</span></h1><p>Обновления, состояние сервисов, диагностика, облачные сохранения и показатели компьютера.</p></div><button class="secondary-btn" id="system-refresh" type="button">↻ Обновить всё</button></div>
+        <div><div class="section-heading"><div><div class="section-kicker">СЕТЬ</div><h2>Состояние сервисов</h2></div><span class="heading-note" id="system-checked-at">Ещё не проверяли</span></div><div class="system-grid">
+          <article class="system-card"><div class="system-state"><i class="system-dot checking" id="system-auth-dot"></i><span id="system-auth-title">Авторизация: проверка</span></div><p id="system-auth-copy">Вход и регистрация игроков</p></article>
+          <article class="system-card"><div class="system-state"><i class="system-dot checking" id="system-coop-dot"></i><span id="system-coop-title">Кооператив: проверка</span></div><p id="system-coop-copy">Комнаты и совместные игровые сессии</p></article>
+          <article class="system-card"><div class="system-state"><i class="system-dot checking" id="system-social-dot"></i><span id="system-social-title">Сообщество: проверка</span></div><p id="system-social-copy">Друзья, сообщения и приглашения</p></article>
+        </div></div>
+        <div><div class="section-heading"><div><div class="section-kicker">ВЕРСИИ И ФАЙЛЫ</div><h2>Центр обновлений</h2></div></div><article class="system-card">
+          <div class="system-version-line"><span>Лаунчер</span><b id="system-launcher-version">—</b></div>
+          <div class="system-version-line"><span>Игра</span><b id="system-game-version">—</b></div>
+          <div class="system-version-line"><span>Доступно</span><b id="system-new-versions">Проверка…</b></div>
+          <p class="system-note" id="system-update-message">Проверка версии не изменяет файлы. Обновление игры устанавливается отдельно от миров.</p>
+          <div class="system-changelog" id="system-changelog">Описание последнего релиза появится после проверки манифеста.</div>
+          <div class="system-actions"><button class="secondary-btn" id="system-check-updates" type="button">Проверить обновления</button><button class="primary-btn" id="system-install-update" type="button" disabled>Установить обновление игры</button><button class="secondary-btn" id="system-repair" type="button">Восстановить файлы</button><button class="secondary-btn" id="system-rollback" type="button" disabled>Откатить версию</button><a class="secondary-btn" id="system-release-link" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest" target="_blank" rel="noreferrer">Релизы лаунчера ↗</a></div>
+        </article></div>
+        <div><div class="section-heading"><div><div class="section-kicker">ПРОИЗВОДИТЕЛЬНОСТЬ</div><h2>Показатели компьютера</h2></div><span class="heading-note">Локально · не отправляется на сервер</span></div><article class="system-card"><div class="system-metrics">
+          <div class="system-metric"><small>Процессор</small><b id="system-cpu">—</b></div><div class="system-metric"><small>Оперативная память</small><b id="system-ram">—</b></div><div class="system-metric"><small>Лаунчер</small><b id="system-process">—</b></div><div class="system-metric"><small>Место на диске</small><b id="system-disk">—</b></div>
+        </div><p class="system-note" id="system-metrics-note">Показатели обновляются при открытии центра и по кнопке «Обновить всё».</p></article></div>
+        <div><div class="section-heading"><div><div class="section-kicker">СОХРАНЕНИЯ</div><h2>Облачные миры</h2></div></div><article class="system-card"><h3>Резервная копия для другого компьютера</h3><p>Открой игру в режиме облачных сохранений. В меню выбора миров появятся кнопки загрузки в облако и безопасного восстановления. Перед восстановлением скачивается страховочная копия, а несовпадающие локальные миры сохраняются.</p><div class="system-actions"><button class="primary-btn" id="system-open-cloud" type="button">Открыть облачные сохранения в игре</button></div><p class="system-note">Для доступа требуется подтверждённый аккаунт. Облачный архив принадлежит только твоему аккаунту.</p></article></div>
+        <div><div class="section-heading"><div><div class="section-kicker">ВОССТАНОВЛЕНИЕ</div><h2>Автоматическая диагностика</h2></div></div><article class="system-card"><p id="system-diagnostics-copy">Проверим наличие игровых файлов, версию, целостность и локальное хранилище миров. Ничего не удаляется.</p><div class="system-actions"><button class="secondary-btn" id="system-run-diagnostics" type="button">Проверить файлы игры</button><button class="secondary-btn" id="system-open-log" type="button">Открыть журнал</button><button class="secondary-btn" id="system-open-folder" type="button">Папка игры</button></div></article></div>
+      `;
+      main.append(page);
+    }
+  }
+  function openSystemPage() {
+    ensureSystemPage();
+    document.querySelectorAll('.page').forEach(page => page.classList.toggle('active',page.id==='page-system'));
+    document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active',button.dataset.page==='system'));
+    if ($('#crumb-label')) $('#crumb-label').textContent='ЦЕНТР УПРАВЛЕНИЯ';
+    if ($('.main')) $('.main').scrollTop=0;
+    refreshAll();
+  }
+  function setService(key,ok,detail) {
+    const dot=$('#system-'+key+'-dot'),title=$('#system-'+key+'-title'),copy=$('#system-'+key+'-copy');
+    if(!dot||!title||!copy)return;
+    dot.className='system-dot '+(ok?'online':'offline');
+    const labels={auth:'Авторизация',coop:'Кооператив',social:'Сообщество'};
+    title.textContent=labels[key]+(ok?' · работает':' · нет связи');
+    copy.textContent=detail|| (ok?'Сервис отвечает':'Проверь интернет или попробуй позже.');
+  }
+  async function pingService(url) {
+    if(!url||!apiKey)return {ok:false,message:'URL или ключ сервиса не настроен.'};
+    const endpoint=new URL(url); endpoint.searchParams.set('route','/health');
+    const response=await fetch(endpoint.toString(),{headers:{apikey:apiKey,Authorization:'Bearer '+apiKey},cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok||data.status!=='ok')throw new Error(data.message||'HTTP '+response.status);
+    return {ok:true,message:'Версия сервиса '+(data.version||'доступна')};
+  }
+  async function getAccessToken() {
+    let token=localStorage.getItem('skyrealm_token')||sessionStorage.getItem('skyrealm_token')||'';
+    if(!token)return '';
+    const expires=Number(localStorage.getItem('skyrealm_token_expires_at')||0);
+    const refresh=localStorage.getItem('skyrealm_refresh_token')||'';
+    if(refresh&&expires&&expires<Date.now()+60_000){
+      const endpoint=new URL(authUrl);endpoint.searchParams.set('route','/api/auth/refresh');
+      const response=await fetch(endpoint.toString(),{method:'POST',headers:{apikey:apiKey,Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh}),cache:'no-store'});
+      const data=await response.json();
+      if(response.ok&&data.access_token){
+        token=data.access_token;localStorage.setItem('skyrealm_token',token);
+        if(data.refresh_token)localStorage.setItem('skyrealm_refresh_token',data.refresh_token);
+        localStorage.setItem('skyrealm_token_expires_at',String(Date.now()+Math.max(60,Number(data.expires_in)||3600)*1000));
+      }
+    }
+    return token;
+  }
+  async function socialGet(route) {
+    const token=await getAccessToken();
+    if(!token)throw new Error('Войди в аккаунт, чтобы видеть уведомления.');
+    const endpoint=new URL(socialUrl);endpoint.searchParams.set('route',route);
+    const response=await fetch(endpoint.toString(),{headers:{apikey:apiKey,Authorization:'Bearer '+token},cache:'no-store'});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.message||'Ошибка сервиса уведомлений.');
+    return data;
+  }
+  function addNotificationControl() {
+    const actions=$('.top-actions');
+    if(!actions||$('#system-notification-trigger'))return;
+    const button=document.createElement('button');button.type='button';button.className='system-notification-button';
+    button.id='system-notification-trigger';button.setAttribute('aria-label','Открыть уведомления');button.setAttribute('aria-expanded','false');
+    button.innerHTML='♧<span class="system-notification-count" id="system-notification-count" hidden>0</span>';
+    const status=$('#cloud-status-pill');if(status)actions.insertBefore(button,status.nextSibling);else actions.prepend(button);
+    notificationCount=$('#system-notification-count');
+    notificationPanel=document.createElement('div');notificationPanel.id='system-notification-panel';notificationPanel.className='system-notification-panel';notificationPanel.hidden=true;
+    notificationPanel.innerHTML='<div class="system-notification-head"><b>Уведомления</b><button class="secondary-btn" id="system-notification-refresh" type="button">Обновить</button></div><div class="system-notification-list" id="system-notification-list"><div class="system-empty">Загружаем уведомления…</div></div>';
+    document.body.append(notificationPanel);notificationList=$('#system-notification-list');
+    button.addEventListener('click',()=>{notificationPanel.hidden=!notificationPanel.hidden;button.setAttribute('aria-expanded',String(!notificationPanel.hidden));if(!notificationPanel.hidden)refreshNotifications();});
+    $('#system-notification-refresh').addEventListener('click',refreshNotifications);
+    document.addEventListener('click',event=>{if(!notificationPanel.contains(event.target)&&!button.contains(event.target)){notificationPanel.hidden=true;button.setAttribute('aria-expanded','false');}});
+  }
+  function renderNotifications(items,error='') {
+    if(!notificationList)return;
+    notificationList.replaceChildren();
+    if(error){const e=document.createElement('div');e.className='system-empty system-error';e.textContent=error;notificationList.append(e);return;}
+    if(!items.length){const e=document.createElement('div');e.className='system-empty';e.textContent='Новых уведомлений нет.';notificationList.append(e);return;}
+    items.forEach(item=>{
+      const button=document.createElement('button');button.type='button';button.className='system-notification-item';
+      const title=document.createElement('b');title.textContent=item.title||'Уведомление';
+      const body=document.createElement('span');body.textContent=item.body||'';
+      const time=document.createElement('small');time.textContent=item.created_at?new Date(item.created_at).toLocaleString():'';
+      button.append(title,body,time);
+      button.addEventListener('click',()=>{
+        notificationPanel.hidden=true;
+        if(item.type==='update'){openSystemPage();return;}
+        const community=document.querySelector('[data-page="community"]');if(community)community.click();
+      });
+      notificationList.append(button);
+    });
+  }
+  async function refreshNotifications() {
+    if(!notificationList)return;
+    try{
+      const data=await socialGet('/api/social/notifications');
+      cachedNotifications=Array.isArray(data.notifications)?data.notifications:[];
+      const count=Number(data.unread_count)||cachedNotifications.length;
+      if(notificationCount){notificationCount.hidden=count===0;notificationCount.textContent=count>99?'99+':String(count);}
+      renderNotifications(cachedNotifications);
+    }catch(error){renderNotifications([],error.message||'Не удалось загрузить уведомления.');if(notificationCount)notificationCount.hidden=true;}
+  }
+  async function checkUpdates() {
+    const status=$('#system-update-message');if(status)status.textContent='Проверяем manifest и текущую установку…';
+    try{
+      let result=null;
+      if(window.pywebview?.api?.get_update_status)result=await window.pywebview.api.get_update_status();
+      else{
+        const response=await fetch(manifestUrl+'?ts='+Date.now(),{cache:'no-store'});
+        if(!response.ok)throw new Error('HTTP '+response.status);
+        const manifest=await response.json();result={ok:true,launcher_version:'предпросмотр',latest_launcher_version:manifest.version,game_version:'—',latest_game_version:manifest.game_version,launcher_update_available:false,game_update_available:false,rollback_available:false,notes:manifest.notes,release_url:'https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest'};
+      }
+      if(!result?.ok)throw new Error(result?.message||'Не удалось получить сведения об обновлении.');
+      cachedUpdate=result;
+      $('#system-launcher-version').textContent=(result.launcher_version||'—')+' → '+(result.latest_launcher_version||'—');
+      $('#system-game-version').textContent=(result.game_version||'—')+' → '+(result.latest_game_version||'—');
+      const available=[];
+      if(result.launcher_update_available)available.push('новый лаунчер');
+      if(result.game_update_available)available.push('новая игра');
+      $('#system-new-versions').textContent=available.join(', ')||'нет';
+      $('#system-install-update').disabled=!result.game_update_available;
+      $('#system-rollback').disabled=!result.rollback_available;
+      $('#system-update-message').textContent=result.launcher_update_available?'Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.':(result.game_update_available?'Доступно обновление игры. Перед установкой закрой игру.':'Установлены последние версии.');
+      $('#system-changelog').textContent=result.notes||'В манифесте нет описания этого релиза.';
+      $('#system-release-link').href=result.release_url||'https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest';
+      return result;
+    }catch(error){if(status)status.textContent=error.message||'Проверка обновлений не удалась.';return null;}
+  }
+  async function runUpdateAction(action,buttonId) {
+    const button=$(buttonId),message=$('#system-update-message');
+    if(!window.pywebview?.api?.[action]){if(message)message.textContent='Операция доступна в установленном Windows-лаунчере.';return;}
+    if(button)button.disabled=true;
+    if(message)message.textContent='Выполняется операция. Не закрывай лаунчер…';
+    try{
+      const result=await window.pywebview.api[action]();
+      if(!result?.ok)throw new Error(result?.message||'Операция не выполнена.');
+      if(message)message.textContent=result.message||'Готово.';
+      await checkUpdates();
+    }catch(error){if(message)message.textContent=error.message||'Операция не выполнена.';}
+    finally{if(button)button.disabled=false;}
+  }
+  async function refreshServices() {
+    const checks=[['auth',authUrl],['coop',coopUrl],['social',socialUrl]];
+    await Promise.all(checks.map(async([key,url])=>{try{const result=await pingService(url);setService(key,result.ok,result.message);}catch(error){setService(key,false,error.message||'Сервис не отвечает');}}));
+    $('#system-checked-at').textContent='Проверено в '+currentTime();
+  }
+  async function refreshMetrics() {
+    const api=window.pywebview?.api;
+    if(!api?.get_system_metrics){$('#system-metrics-note').textContent='Показатели доступны в установленной Windows-версии.';return;}
+    try{
+      const m=await api.get_system_metrics();if(!m?.ok)throw new Error(m?.message||'Метрики недоступны');
+      $('#system-cpu').textContent=m.cpu_percent==null?'—':m.cpu_percent+'%';
+      $('#system-ram').textContent=m.ram_percent==null?'—':m.ram_percent+'% · '+(m.ram_used_mb||0)+' / '+(m.ram_total_mb||0)+' МБ';
+      $('#system-process').textContent=m.process_memory_mb==null?'—':m.process_memory_mb+' МБ';
+      $('#system-disk').textContent=m.disk_free_gb==null?'—':m.disk_free_gb+' ГБ свободно';
+      $('#system-metrics-note').textContent='Игра занимает '+(m.game_size_mb==null?'—':m.game_size_mb+' МБ')+'. Данные вычислены на этом компьютере.';
+    }catch(error){$('#system-metrics-note').textContent=error.message||'Не удалось прочитать метрики.';}
+  }
+  async function refreshDiagnostics() {
+    const node=$('#system-diagnostics-copy');
+    if(!window.pywebview?.api?.get_diagnostics){node.textContent='Полная проверка файлов доступна в Windows-лаунчере.';return;}
+    node.textContent='Проверяем игровые файлы и локальные данные…';
+    try{
+      const result=await window.pywebview.api.get_diagnostics();if(!result?.ok)throw new Error(result?.message||'Диагностика не выполнена');
+      node.textContent=(result.healthy?'Основные файлы на месте. ':'Нужен ремонт. ')+'Версия: '+result.version+'. Отсутствуют: '+((result.missing||[]).join(', ')||'нет')+'. Хранилище миров: '+(result.world_storage_found?'найдено':'ещё не создано')+'.';
+    }catch(error){node.textContent=error.message||'Ошибка диагностики.';}
+  }
+  async function refreshAll() {
+    await Promise.all([refreshServices(),checkUpdates(),refreshMetrics(),refreshDiagnostics(),refreshNotifications()]);
+  }
+  function bindSystemActions() {
+    $('#system-refresh')?.addEventListener('click',refreshAll);
+    $('#system-check-updates')?.addEventListener('click',checkUpdates);
+    $('#system-install-update')?.addEventListener('click',()=>runUpdateAction('install_game_update','#system-install-update'));
+    $('#system-repair')?.addEventListener('click',()=>runUpdateAction('repair_game_files','#system-repair'));
+    $('#system-rollback')?.addEventListener('click',async()=>{
+      if(!confirm('Вернуть предыдущую версию игры? Сохранения миров не затрагиваются.'))return;
+      await runUpdateAction('rollback_game_update','#system-rollback');
+    });
+    $('#system-run-diagnostics')?.addEventListener('click',refreshDiagnostics);
+    $('#system-open-log')?.addEventListener('click',()=>window.pywebview?.api?.open_update_log?.());
+    $('#system-open-folder')?.addEventListener('click',()=>window.pywebview?.api?.open_game_folder?.());
+    $('#system-open-cloud')?.addEventListener('click',async()=>{
+      const message=$('#system-update-message');
+      try{
+        const token=await getAccessToken();
+        if(!token)throw new Error('Сначала войди в аккаунт SkyRealm.');
+        if(!window.pywebview?.api?.launch_game)throw new Error('Облачные сохранения открываются из Windows-лаунчера.');
+        const result=await window.pywebview.api.launch_game(null,true,token,'__cloud_saves__');
+        if(!result?.ok)throw new Error(result?.message||'Не удалось открыть игру.');
+        await window.pywebview.api.close();
+      }catch(error){if(message)message.textContent=error.message||'Не удалось открыть облачные сохранения.';}
+    });
+  }
+  function init() {
+    ensureSystemPage();addNotificationControl();bindSystemActions();
+    refreshServices();refreshNotifications();
+    pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();},45_000);
+    if(document.querySelector('[data-page="system"]')) {
+      document.querySelector('[data-page="system"]').addEventListener('click',openSystemPage);
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();

@@ -25,8 +25,66 @@ function publicUser(user: any) {
     created_at: user?.created_at ?? "",
   };
 }
-async function readJson(req: Request): Promise<any> {
-  try { return await req.json(); } catch { return {}; }
+async function readJson(req: Request, maxBytes = 64_000): Promise<any> {
+  const raw = await req.text();
+  if (new TextEncoder().encode(raw).byteLength > maxBytes) {
+    const error: any = new Error("Размер облачного архива превышает допустимый лимит.");
+    error.status = 413;
+    error.code = "CLOUD_SAVE_TOO_LARGE";
+    throw error;
+  }
+  try { return raw ? JSON.parse(raw) : {}; } catch { return {}; }
+}
+async function cloudSaveDb(path: string, init: RequestInit = {}) {
+  const response = await fetch(SUPABASE_URL + "/rest/v1/" + path, {
+    ...init,
+    headers: {
+      "apikey": SERVICE_KEY,
+      "Authorization": "Bearer " + SERVICE_KEY,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation",
+      ...(init.headers || {}),
+    },
+  });
+  const raw = await response.text();
+  let data: any = null;
+  try { data = raw ? JSON.parse(raw) : null; } catch { data = raw; }
+  if (!response.ok) {
+    const error: any = new Error(data?.message || "Cloud save database error.");
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  return data;
+}
+function validateCloudBundle(input: any) {
+  if (!input || typeof input !== "object" || Array.isArray(input) || input.format !== 1 ||
+      !Array.isArray(input.items) || input.items.length < 1 || input.items.length > 52) return null;
+  const allowedKey = (key: string) =>
+    key === "skyrealm_worlds_v1" || key === "skyrealm_game_save_v1" ||
+    /^skyrealm_game_save_v2_[A-Za-z0-9_-]{1,64}$/.test(key);
+  const seen = new Set<string>();
+  const items: {key:string;value:string}[] = [];
+  let totalBytes = 0;
+  for (const raw of input.items) {
+    if (!raw || typeof raw !== "object" || typeof raw.key !== "string" ||
+        typeof raw.value !== "string" || !allowedKey(raw.key) || seen.has(raw.key)) return null;
+    seen.add(raw.key);
+    const size = new TextEncoder().encode(raw.value).byteLength;
+    totalBytes += size;
+    if (size > 1_500_000 || totalBytes > 1_800_000) return null;
+    let parsed: any;
+    try { parsed = JSON.parse(raw.value); } catch { return null; }
+    if (raw.key === "skyrealm_worlds_v1") {
+      if (!Array.isArray(parsed) || parsed.length > 50 ||
+          parsed.some((world:any) => !world || typeof world !== "object" ||
+            typeof world.id !== "string" || typeof world.name !== "string" ||
+            world.id.length > 64 || world.name.length > 32)) return null;
+    } else if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    items.push({key:raw.key,value:raw.value});
+  }
+  if (!seen.has("skyrealm_worlds_v1") && !seen.has("skyrealm_game_save_v1")) return null;
+  return {format:1,items,created_at:typeof input.created_at==="string" ? input.created_at.slice(0,40) : new Date().toISOString()};
 }
 async function authRequest(path: string, method = "GET", body?: unknown, accessToken?: string) {
   const headers: Record<string, string> = {
@@ -102,12 +160,62 @@ Deno.serve(async (req: Request) => {
   // The client therefore sends its desired endpoint explicitly via ?route=/api/auth/...
   let path = url.searchParams.get("route") || rawPath || "/";
   if (!path.startsWith("/")) path = "/" + path;
-  const payload = req.method === "POST" ? await readJson(req) : {};
+  const payload = req.method === "POST" ? await readJson(req, path === "/api/cloud/save" ? 2_000_000 : 64_000) : {};
   if ((path === "/" || path === "") && req.method === "GET") path = "/health";
   if (path === "/health" && req.method === "GET") {
     return json({ status: "ok", service: "skyrealm-auth", version: "1.0.2" });
   }
   try {
+    if (path === "/api/cloud/save" && req.method === "GET") {
+      const authorization = req.headers.get("Authorization") || "";
+      if (!authorization.toLowerCase().startsWith("bearer ")) return fail(401, "Войди в аккаунт для облачных сохранений.", "NO_SESSION");
+      const token = authorization.slice(7).trim();
+      const verified = await authRequest("user", "GET", undefined, token);
+      const userId = String(verified?.id || "");
+      if (!userId || (!verified.email_confirmed_at && !verified.confirmed_at)) {
+        return fail(403, "Сначала подтверди почту.", "EMAIL_NOT_VERIFIED");
+      }
+      const rows = await cloudSaveDb("skyrealm_cloud_saves?select=revision,payload,updated_at&user_id=eq." + encodeURIComponent(userId) + "&limit=1");
+      return json({save: rows?.[0] || null});
+    }
+    if (path === "/api/cloud/save" && req.method === "POST") {
+      const authorization = req.headers.get("Authorization") || "";
+      if (!authorization.toLowerCase().startsWith("bearer ")) return fail(401, "Войди в аккаунт для облачных сохранений.", "NO_SESSION");
+      const token = authorization.slice(7).trim();
+      const verified = await authRequest("user", "GET", undefined, token);
+      const userId = String(verified?.id || "");
+      if (!userId || (!verified.email_confirmed_at && !verified.confirmed_at)) {
+        return fail(403, "Сначала подтверди почту.", "EMAIL_NOT_VERIFIED");
+      }
+      const expected = Number(payload.expected_revision);
+      const bundle = validateCloudBundle(payload.bundle);
+      if (!Number.isSafeInteger(expected) || expected < 0 || !bundle) {
+        return fail(400, "Архив миров повреждён или содержит недопустимые данные.", "INVALID_CLOUD_SAVE");
+      }
+      const existing = await cloudSaveDb("skyrealm_cloud_saves?select=revision&user_id=eq." + encodeURIComponent(userId) + "&limit=1");
+      const currentRevision = existing?.length ? Number(existing[0].revision) : 0;
+      if (currentRevision !== expected) {
+        return json({detail:{message:"Облачная копия изменилась на другом устройстве. Сначала обнови сведения об облачном архиве.",code:"CLOUD_SAVE_CONFLICT",revision:currentRevision}},409);
+      }
+      const updatedAt = new Date().toISOString();
+      let saved: any[] = [];
+      if (currentRevision === 0) {
+        try {
+          saved = await cloudSaveDb("skyrealm_cloud_saves", {method:"POST",body:JSON.stringify({user_id:userId,revision:1,payload:bundle,updated_at:updatedAt})});
+        } catch (error:any) {
+          if (error?.status === 409 || error?.status === 400) {
+            return json({detail:{message:"Архив уже создан на другом устройстве. Обнови сведения и попробуй ещё раз.",code:"CLOUD_SAVE_CONFLICT"}},409);
+          }
+          throw error;
+        }
+      } else {
+        saved = await cloudSaveDb("skyrealm_cloud_saves?user_id=eq." + encodeURIComponent(userId) + "&revision=eq." + currentRevision, {
+          method:"PATCH",body:JSON.stringify({revision:currentRevision+1,payload:bundle,updated_at:updatedAt})
+        });
+        if (!saved?.length) return json({detail:{message:"Архив уже изменён на другом устройстве. Обнови сведения и попробуй ещё раз.",code:"CLOUD_SAVE_CONFLICT"}},409);
+      }
+      return json({save:saved[0] || {revision:currentRevision+1,payload:bundle,updated_at:updatedAt},message:"Облачная копия сохранена."});
+    }
     if (path === "/api/auth/register" && req.method === "POST") {
       const usernameRaw = typeof payload.username === "string" ? payload.username.trim() : "";
       const username = usernameRaw.toLocaleLowerCase("ru-RU");

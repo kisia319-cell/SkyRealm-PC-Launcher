@@ -750,7 +750,7 @@ def run_game_window(game_html: str) -> None:
         if requested_mod:
             launch_params["installMod"] = requested_mod
     if os.environ.get("SKYREALM_OPEN_CLOUD_SAVES") == "1":
-        launch_params["cloudSaves"] = "1
+        launch_params["cloudSaves"] = "1"
     page_url = "http://127.0.0.1:" + str(port) + "/" + file_path.name + "?" + urlencode(launch_params)
     try:
         game_window = webview.create_window(

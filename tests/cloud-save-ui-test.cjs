@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('game/index.html','utf8');
+const ui=fs.readFileSync('game/cloud-save-ui.js','utf8');
+const launcher=fs.readFileSync('launcher.py','utf8');
+const auth=fs.readFileSync('supabase/functions/skyrealm-auth/index.ts','utf8');
+const migration=fs.readFileSync('supabase/migrations/20261101140000_skyrealm_cloud_saves.sql','utf8');
+assert.ok(html.includes('id="cloud-save-open"')&&html.includes('id="cloud-save-shade"'));
+assert.ok(html.includes('src="cloud-save-ui.js"'));
+assert.ok(ui.includes('skyrealm_worlds_v1')&&ui.includes('skyrealm_game_save_v2_'));
+assert.ok(ui.includes('downloadSafetyCopy')&&ui.includes('mergeAndRestore'));
+assert.ok(launcher.includes('def get_cloud_save')&&launcher.includes('def upload_cloud_save'));
+assert.ok(auth.includes('/api/cloud/save')&&auth.includes('validateCloudBundle'));
+assert.ok(migration.includes('enable row level security')&&migration.includes('revoke all'));
+console.log('Cloud save UI and API wiring: OK');
