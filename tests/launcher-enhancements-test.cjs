@@ -68,3 +68,8 @@ assert.match(enhancements,/CALENDAR_STORAGE_KEY/,'Calendar events must persist l
 assert.match(enhancements,/function ensureSupportPage\(\)/,'Launcher must provide a support center');
 assert.match(enhancements,/function copySupportDiagnostics\(\)/,'Support center must generate a diagnostics report');
 assert.ok(enhancements.includes('issues/new')&&enhancements.includes('releases/latest'),'Support center must link to real issue and release pages');
+
+assert.match(auth,/async function restoreSession\(\)/,'Launcher must restore the signed-in session on startup');
+assert.ok(auth.includes("requestApi('/api/auth/me'"),'Launcher must validate a saved login against the account service');
+assert.ok(auth.includes("$$('[data-auth-mode], #top-create-account')"),'All create-account and sign-in entry buttons must be hidden for a verified session');
+assert.ok(auth.includes("$('#auth-form').hidden = true") && auth.includes("$('.auth-tabs').hidden = true"),'Verified accounts must not see the login/register form or tabs');
