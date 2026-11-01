@@ -728,7 +728,10 @@
   restoreSession();
 
   const GAME_PREFERENCES_KEY = 'skyrealm_game_preferences';
-  const DEFAULT_GAME_PREFERENCES = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, uiSoundEnabled:true, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, adminMode:false, moderatorMode:false };
+  const DEFAULT_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
+  const KEY_BIND_LABELS = {up:'Движение вверх',left:'Движение влево',down:'Движение вниз',right:'Движение вправо',interact:'Взаимодействие',inventory:'Инвентарь',map:'Карта',attack:'Атака',dodge:'Уклонение',ability:'Боевой навык',heal:'Лечение',buff:'Зелье усиления'};
+  let currentKeyBindings = {...DEFAULT_KEY_BINDINGS};
+  const DEFAULT_GAME_PREFERENCES = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', keyBindings:{...DEFAULT_KEY_BINDINGS}, fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, uiSoundEnabled:true, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, adminMode:false, moderatorMode:false };
   function normalizeGamePreferences(value = {}) {
     const p = {...DEFAULT_GAME_PREFERENCES, ...(value && typeof value === 'object' ? value : {})};
     if (!['1280x720','1600x900','1920x1080','1280x960','1440x900'].includes(p.resolution)) p.resolution = DEFAULT_GAME_PREFERENCES.resolution;
@@ -738,6 +741,12 @@
     for (const key of ['musicVolume','sfxVolume']) p[key] = Math.max(0,Math.min(100,Math.round(Number(p[key])||0)));
     p.musicEnabled = p.musicEnabled === true;
     p.uiSoundEnabled = p.uiSoundEnabled !== false;
+    const rawBindings=p.keyBindings&&typeof p.keyBindings==='object'?p.keyBindings:{};
+    const codes=Object.values(DEFAULT_KEY_BINDINGS).map(()=>null);
+    const validCode=code=>/^(Key[A-Z]|Arrow(Up|Down|Left|Right)|Space|Digit[0-9])$/.test(String(code||''));
+    const bindings={};Object.keys(DEFAULT_KEY_BINDINGS).forEach(action=>{bindings[action]=validCode(rawBindings[action])?String(rawBindings[action]):DEFAULT_KEY_BINDINGS[action];});
+    const used=new Set(Object.values(bindings));
+    if(used.size!==Object.keys(DEFAULT_KEY_BINDINGS).length)p.keyBindings={...DEFAULT_KEY_BINDINGS};else p.keyBindings=bindings;
     if (!['85','100','115','130'].includes(String(p.uiScale))) p.uiScale = '100';
     ['showVitals','showQuest','showControls','showInventory'].forEach(k => p[k] = p[k] !== false);
     p.adminMode = p.adminMode === true;
@@ -759,6 +768,7 @@
       sfxVolume: $('#sfx-volume-range') ? Number($('#sfx-volume-range').value) : savedGamePreferences().sfxVolume,
       musicEnabled: $('#launcher-music-toggle') ? $('#launcher-music-toggle').checked : savedGamePreferences().musicEnabled,
       uiSoundEnabled: $('#ui-sounds-toggle') ? $('#ui-sounds-toggle').checked : savedGamePreferences().uiSoundEnabled,
+      keyBindings: currentKeyBindings,
       adminMode: $('#admin-tools-toggle') ? $('#admin-tools-toggle').checked : savedGamePreferences().adminMode,
       moderatorMode: $('#moderator-tools-toggle') ? $('#moderator-tools-toggle').checked : savedGamePreferences().moderatorMode
     });
@@ -812,11 +822,36 @@
     document.body.classList.toggle('high-contrast',$('#high-contrast-toggle')?.checked===true);
     document.body.classList.toggle('performance-saver',$('#performance-saver-toggle')?.checked===true);
   }
+  function keyCodeLabel(code){return ({Space:'Пробел',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→'})[code]||String(code).replace(/^Key/,'').replace(/^Digit/,'');}
+  function renderKeyBindings(){
+    const root=$('#key-bindings-list');if(!root)return;root.replaceChildren();
+    Object.entries(KEY_BIND_LABELS).forEach(([action,label])=>{
+      const row=document.createElement('div');row.className='key-binding-row';
+      const name=document.createElement('span');name.textContent=label;
+      const button=document.createElement('button');button.type='button';button.className='secondary-btn';button.textContent=keyCodeLabel(currentKeyBindings[action]);button.setAttribute('aria-label','Изменить клавишу: '+label);
+      button.addEventListener('click',()=>{
+        button.textContent='Нажми клавишу…';button.disabled=true;
+        const capture=event=>{
+          event.preventDefault();event.stopPropagation();
+          if(event.code==='Escape'){button.disabled=false;renderKeyBindings();return;}
+          const code=String(event.code||'');
+          if(!/^(Key[A-Z]|Arrow(Up|Down|Left|Right)|Space|Digit[0-9])$/.test(code)){button.disabled=false;renderKeyBindings();toast('Выбери буквенную клавишу, стрелку, цифру или пробел.');return;}
+          const previous=currentKeyBindings[action],conflict=Object.keys(currentKeyBindings).find(key=>key!==action&&currentKeyBindings[key]===code);
+          currentKeyBindings[action]=code;if(conflict)currentKeyBindings[conflict]=previous;
+          button.disabled=false;persistGamePreferences(true);renderKeyBindings();
+        };
+        window.addEventListener('keydown',capture,{once:true,capture:true});
+      });
+      row.append(name,button);root.append(row);
+    });
+  }
+  $('#reset-key-bindings').addEventListener('click',()=>{currentKeyBindings={...DEFAULT_KEY_BINDINGS};persistGamePreferences(true);renderKeyBindings();});
   function loadSettings() {
     $('#effects-toggle').checked = localStorage.getItem('skyrealm_effects') !== 'false';
     $('#compact-toggle').checked = localStorage.getItem('skyrealm_compact') === 'true';
     $('#greeting-toggle').checked = localStorage.getItem('skyrealm_greeting') !== 'false';
     const p = savedGamePreferences();
+    currentKeyBindings={...p.keyBindings};renderKeyBindings();
     $('#admin-tools-toggle').checked = p.adminMode === true;
     $('#moderator-tools-toggle').checked = p.moderatorMode === true;
     $('#screen-resolution-select').value = p.resolution;
@@ -855,6 +890,7 @@
       const response = await window.pywebview.api.get_launcher_settings();
       if (!response?.ok || !response.settings) return;
       const preferences = normalizeGamePreferences(response.settings);
+      currentKeyBindings={...preferences.keyBindings};renderKeyBindings();
       localStorage.setItem(GAME_PREFERENCES_KEY, JSON.stringify(preferences));
       $('#screen-resolution-select').value = preferences.resolution;
       $('#window-mode-select').value = preferences.windowMode;
