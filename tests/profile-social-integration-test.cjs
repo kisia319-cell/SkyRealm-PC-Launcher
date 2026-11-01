@@ -43,7 +43,7 @@ for(const feature of ['sendRoomInvite','getRoomInvites','respondRoomInvite']) as
 assert.ok(coopUi.includes('refreshIncomingInvites')&&coopUi.includes('showFriendInviteChoices'));
 console.log('SkyRealm profile/social integration checks passed.');
 
-const presenceMigration=fs.readFileSync('supabase/migrations/20261102100000_social_presence_status.sql','utf8');
+const presenceMigration=fs.readFileSync('supabase/migrations/20261101172558_social_presence_status.sql','utf8');
 assert.ok(edge.includes('/api/social/presence')&&edge.includes('INVALID_PRESENCE'),'Social API must read and update the current player presence');
 assert.ok(edge.includes('presence_status')&&edge.includes('in_game'),'Friend cards must receive saved status and active co-op presence');
 assert.ok(app.includes("requestSocial('/api/social/presence'")&&app.includes('saveSocialPresence'),'Community UI must load and save the current presence status');
