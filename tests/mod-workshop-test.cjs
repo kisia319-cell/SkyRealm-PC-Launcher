@@ -62,3 +62,8 @@ assert.ok(game.includes("isModInstalled('scholar')?1.12:1"),'Scholar must increa
 assert.ok(game.includes('window.SkyRealmCustomModHost'),'Safe custom-mod host bridge must be exposed.');
 assert.ok(game.includes('!isCoopWorldSave()&&!isCoopWorldActive()'),'Custom scripts must not run in co-op.');
 console.log('35 built-in mods and effect hooks: OK');
+
+assert.ok(game.includes("const MOD_PROFILES_STORAGE_KEY='skyrealm_mod_profiles_v1'"),'Mod profiles must persist locally');
+assert.ok(game.includes('function saveCurrentModProfile()')&&game.includes('function applyModProfile()')&&game.includes('function deleteModProfile()'),'Mod profiles must support save, apply and delete');
+assert.ok(game.includes('MOD_CATALOG.some(mod=>mod.id===id)'),'Restored mod profiles must validate every mod ID against the built-in catalog');
+for(const id of ['mod-profile-name','mod-profile-save','mod-profile-select','mod-profile-apply','mod-profile-delete'])assert.ok(html.includes('id="'+id+'"'),'Missing mod profile control '+id);
