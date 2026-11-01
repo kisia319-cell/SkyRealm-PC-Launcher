@@ -1,0 +1,247 @@
+name: Build SkyRealm Windows Launcher (Beta)
+
+on:
+  push:
+    branches:
+      - beta
+    paths-ignore:
+      - "manifest.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: skyrealm-windows-build-beta-v1
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check required source files
+        shell: pwsh
+        run: |
+          $required = @(
+            "launcher.py", "update_helper.py", "launcher_version.txt",
+            "game_runner_version.txt", "updater_config.json", "index.html",
+            "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "config.js", "realm.jpg", "icon.png",
+            "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt", "game/bugfix_counter.txt",
+            "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css"
+          )
+          $missing = @($required | Where-Object { -not (Test-Path $_) })
+          if ($missing.Count -gt 0) {
+            Write-Error ("Missing project files: " + ($missing -join ", "))
+          }
+          python -m py_compile launcher.py update_helper.py
+          node --check game/game.js
+          node --check game/multiplayer-core.js
+          node --check game/multiplayer-client.js
+          node --check game/multiplayer-ui.js
+          node --check app.js
+          node --check launcher-enhancements.js
+          node --check game/cloud-save-ui.js
+          node --check game/custom-mods-runtime.js
+          node --check tests/auth-smoke.mjs
+          node --check tests/game-smoke-test.cjs
+          node --check tests/farm-economy-test.cjs
+          node --check tests/singleplayer-village-test.cjs
+          node --check tests/multiplayer-core-test.cjs
+          node --check tests/multiplayer-client-test.cjs
+          node --check tests/coop-ui-integration-test.cjs
+          node --check tests/supabase-migration-history-test.cjs
+          node tests/game-smoke-test.cjs
+          node tests/achievement-system-test.cjs
+          node tests/world-library-test.cjs
+          node tests/cosmetic-collection-test.cjs
+          node tests/adventure-history-test.cjs
+          node tests/mod-workshop-test.cjs
+          node tests/custom-mod-runtime-test.cjs
+          node tests/farm-economy-test.cjs
+          node tests/singleplayer-village-test.cjs
+          node tests/multiplayer-core-test.cjs
+          node tests/multiplayer-client-test.cjs
+          node tests/coop-ui-integration-test.cjs
+          node tests/auth-smoke.mjs
+          node tests/launcher-enhancements-test.cjs
+          node tests/cloud-save-ui-test.cjs
+          node tests/cloud-save-api-test.cjs
+          node tests/supabase-migration-history-test.cjs
+
+      - name: Install build tools
+        run: python -m pip install --upgrade pip pywebview pyinstaller psutil
+
+      - name: Build game window executable
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
+
+      - name: Build updater helper
+        run: python -m PyInstaller --noconfirm --clean --onefile --console --name SkyRealmUpdater --distpath updater_dist --workpath build_updater/work --specpath build_updater update_helper.py
+
+      - name: Build launcher executable
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" launcher.py
+          if (-not (Test-Path "dist/SkyRealm.exe")) { throw "SkyRealm.exe was not created" }
+
+      - name: Prepare update archives and manifest
+        shell: pwsh
+        run: |
+          $version = (Get-Content launcher_version.txt -Raw).Trim()
+          if (-not $version) { throw "launcher_version.txt is empty" }
+          $betaTag = "v" + $version + "-beta"
+          New-Item -ItemType Directory -Force update_release | Out-Null
+
+          # The updater consumes this small manifest+EXE archive.
+          Compress-Archive -Path "dist/SkyRealm.exe","launcher_version.txt" -DestinationPath "update_release/SkyRealm_Update.zip" -Force
+          $hash = (Get-FileHash "update_release/SkyRealm_Update.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+
+          # Publish both a directly downloadable executable and a convenient portable ZIP.
+          Copy-Item "dist/SkyRealm.exe" "update_release/SkyRealm.exe" -Force
+          Copy-Item "launcher_version.txt" "update_release/launcher_version.txt" -Force
+          Copy-Item "README.md" "update_release/README.txt" -Force
+          Compress-Archive -Path "update_release/SkyRealm.exe","update_release/launcher_version.txt","update_release/README.txt" -DestinationPath "update_release/SkyRealm_Windows.zip" -Force
+
+          $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
+          if (-not $gameVersion) { throw "game/version.txt is empty" }
+          Compress-Archive -Path "game\\*" -DestinationPath "update_release/SkyRealm_Game.zip" -Force
+          $gameHash = (Get-FileHash "update_release/SkyRealm_Game.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          $manifest = @{
+            version = $version
+            download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/$betaTag/SkyRealm_Update.zip"
+            sha256 = $hash
+            notes = "SkyRealm Launcher $version + Game $($gameVersion): verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible."
+            game_version = $gameVersion
+            game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/$betaTag/SkyRealm_Game.zip"
+            game_sha256 = $gameHash
+            release_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/tag/$betaTag"
+          } | ConvertTo-Json
+          Set-Content -Path update_release/manifest.json -Value $manifest -Encoding utf8
+          Copy-Item update_release/manifest.json manifest.json -Force
+
+      - name: Reject stale release builds
+        shell: pwsh
+        run: |
+          git fetch origin beta
+          $builtCommit = "${{ github.sha }}"
+          git diff --quiet $builtCommit origin/beta -- . ':(exclude)manifest.json'
+          if ($LASTEXITCODE -ne 0) {
+            throw "Skipping stale build $builtCommit; source files on beta have changed"
+          }
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() + "-beta"
+          $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) (Beta)"
+          $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
+          $notes = "SkyRealm TEST CHANNEL: Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. Includes profile sync, friend requests, private chat, online/away/do-not-disturb/in-game presence, co-op room invitations, saved mod profiles, player statistics, VSync low-latency option, robust keyboard movement, verified login UI, SHA-256 diagnostics and world backup/restore, achievements and cosmetic rewards, searchable world library, and adventure history. Existing accounts, worlds and single-player saves remain compatible."
+          $assets = @(
+            "dist/SkyRealm.exe",
+            "update_release/SkyRealm_Windows.zip",
+            "update_release/SkyRealm_Update.zip",
+            "update_release/SkyRealm_Game.zip",
+            "update_release/manifest.json"
+          )
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title $title --notes $notes --prerelease
+            if ($LASTEXITCODE -ne 0) { throw "Could not create release $tag" }
+          } else {
+            gh release edit $tag --title $title --notes $notes --prerelease
+            if ($LASTEXITCODE -ne 0) { throw "Could not update release metadata for $tag" }
+          }
+
+          # Upload each asset independently. GitHub occasionally returns transient 5xx
+          # responses for large files; retry only the failed asset instead of aborting
+          # the entire release upload batch.
+          foreach ($asset in $assets) {
+            $uploaded = $false
+            for ($attempt = 1; $attempt -le 5; $attempt++) {
+              gh release upload $tag $asset --clobber
+              if ($LASTEXITCODE -eq 0) {
+                $uploaded = $true
+                break
+              }
+              Write-Warning "Upload failed for $asset (attempt $attempt/5); retrying..."
+              Start-Sleep -Seconds (5 * $attempt)
+            }
+            if (-not $uploaded) { throw "Failed to upload release asset after 5 attempts: $asset" }
+          }
+
+          # Verify every expected asset is visible before marking publication complete.
+          $releaseJson = gh release view $tag --json assets | ConvertFrom-Json
+          $publishedNames = @($releaseJson.assets | ForEach-Object { $_.name })
+          foreach ($asset in $assets) {
+            $expectedName = [System.IO.Path]::GetFileName($asset)
+            if ($publishedNames -notcontains $expectedName) {
+              throw "Release asset missing after upload: $expectedName"
+            }
+          }
+
+      - name: Reject stale manifest publication
+        shell: pwsh
+        run: |
+          git fetch origin beta
+          $builtCommit = "${{ github.sha }}"
+          git diff --quiet $builtCommit origin/beta -- . ':(exclude)manifest.json'
+          if ($LASTEXITCODE -ne 0) {
+            throw "Refusing stale manifest publication $builtCommit; source files on beta have changed"
+          }
+
+      - name: Commit updated manifest
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          $pushed = $false
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            git fetch origin beta
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Could not fetch main (attempt $attempt/5)"
+              Start-Sleep -Seconds (5 * $attempt)
+              continue
+            }
+            git reset --hard origin/beta
+            if ($LASTEXITCODE -ne 0) { throw "Could not reset to origin/beta" }
+            git diff --quiet $builtCommit origin/beta -- . ':(exclude)manifest.json'
+            if ($LASTEXITCODE -ne 0) { throw "Source files changed during manifest publication; refusing stale launcher metadata" }
+            $builtManifest = Get-Content update_release/manifest.json -Raw | ConvertFrom-Json
+            $currentManifest = Get-Content manifest.json -Raw | ConvertFrom-Json
+            # This release contains the game archive built from game/ on the same commit.
+            # Publish launcher and game metadata together so players always receive the newest game.
+            $currentManifest.version = $builtManifest.version
+            $currentManifest.download_url = $builtManifest.download_url
+            $currentManifest.sha256 = $builtManifest.sha256
+            $currentManifest.game_version = $builtManifest.game_version
+            $currentManifest.game_download_url = $builtManifest.game_download_url
+            $currentManifest.game_sha256 = $builtManifest.game_sha256
+            $currentManifest.notes = $builtManifest.notes
+            $currentManifest | ConvertTo-Json -Depth 10 | Set-Content manifest.json -Encoding utf8
+            git add manifest.json
+            git diff --cached --quiet
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Manifest is already current"
+              $pushed = $true
+              break
+            }
+            git commit -m "Update release manifest"
+            if ($LASTEXITCODE -ne 0) { throw "Could not commit updated manifest" }
+            git push origin beta
+            if ($LASTEXITCODE -eq 0) {
+              $pushed = $true
+              break
+            }
+            Write-Warning "Push failed (attempt $attempt/5); refreshing beta and retrying..."
+            Start-Sleep -Seconds (5 * $attempt)
+          }
+          if (-not $pushed) { throw "Could not publish manifest to beta after 5 attempts" }
