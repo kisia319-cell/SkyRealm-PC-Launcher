@@ -42,6 +42,11 @@ DEFAULT_SETTINGS = {
     "resolution": "1280x720",
     "windowMode": "windowed",
     "graphicsQuality": "medium",
+    "fpsLimit": 0,
+    "musicVolume": 35,
+    "sfxVolume": 70,
+    "musicEnabled": False,
+    "uiSoundEnabled": True,
     "uiScale": "100",
     "showVitals": True,
     "showQuest": True,
@@ -69,6 +74,15 @@ def normalize_settings(value=None) -> dict:
         settings["windowMode"] = DEFAULT_SETTINGS["windowMode"]
     if settings.get("graphicsQuality") not in {"low", "medium", "high"}:
         settings["graphicsQuality"] = DEFAULT_SETTINGS["graphicsQuality"]
+    if settings.get("fpsLimit") not in {0, 30, 60, 120, 144}:
+        settings["fpsLimit"] = 0
+    for key in ("musicVolume", "sfxVolume"):
+        try:
+            settings[key] = max(0, min(100, int(settings.get(key, DEFAULT_SETTINGS[key]))))
+        except (TypeError, ValueError):
+            settings[key] = DEFAULT_SETTINGS[key]
+    settings["musicEnabled"] = settings.get("musicEnabled") is True
+    settings["uiSoundEnabled"] = settings.get("uiSoundEnabled") is not False
     if str(settings.get("uiScale")) not in {"85", "100", "115"}:
         settings["uiScale"] = DEFAULT_SETTINGS["uiScale"]
     else:
