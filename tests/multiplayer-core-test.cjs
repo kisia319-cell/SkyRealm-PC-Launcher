@@ -97,6 +97,12 @@ assert.equal(m.sanitizeWorldAction('pickup_loot',{
 assert.equal(m.sanitizeWorldAction('pickup_loot',{
   loot_id:'123e4567-e89b-42d3-a456-426614174099',x:200,y:240,world_mode:'trade'
 }),null);
+const coOpWorldId='123e4567-e89b-42d3-a456-426614174000';
+const coOpEntry={room_id:coOpWorldId,world_id:'coop_'+coOpWorldId,world_name:'Мир друзей',difficulty:'medium',started_at:1761972000000};
+assert.deepEqual(m.sanitizeSharedWorldSnapshot({coopWorldEntry:coOpEntry}),{coopWorldEntry:coOpEntry},
+  'The owner world-entry signal must be safe to persist for members who poll after the broadcast.');
+assert.equal(m.sanitizeSharedWorldSnapshot({coopWorldEntry:{...coOpEntry,world_id:'other'}}),null,
+  'A world-entry signal cannot point to another room.');
 const sharedSnapshot=m.sanitizeSharedWorldSnapshot({
   placedStructures:[{type:'house',x:20,y:40}],
   farmCrops:[{crop:'wheat',x:10,y:10}],
