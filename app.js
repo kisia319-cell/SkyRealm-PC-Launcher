@@ -754,13 +754,14 @@
   const DEFAULT_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
   const KEY_BIND_LABELS = {up:'Движение вверх',left:'Движение влево',down:'Движение вниз',right:'Движение вправо',interact:'Взаимодействие',inventory:'Инвентарь',map:'Карта',attack:'Атака',dodge:'Уклонение',ability:'Боевой навык',heal:'Лечение',buff:'Зелье усиления'};
   let currentKeyBindings = {...DEFAULT_KEY_BINDINGS};
-  const DEFAULT_GAME_PREFERENCES = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', installRoot:'', keyBindings:{...DEFAULT_KEY_BINDINGS}, fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, uiSoundEnabled:true, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, adminMode:false, moderatorMode:false };
+  const DEFAULT_GAME_PREFERENCES = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', installRoot:'', keyBindings:{...DEFAULT_KEY_BINDINGS}, fpsLimit:0, vsync:true, musicVolume:35, sfxVolume:70, musicEnabled:false, uiSoundEnabled:true, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, adminMode:false, moderatorMode:false };
   function normalizeGamePreferences(value = {}) {
     const p = {...DEFAULT_GAME_PREFERENCES, ...(value && typeof value === 'object' ? value : {})};
     if (!['1280x720','1600x900','1920x1080','1280x960','1440x900'].includes(p.resolution)) p.resolution = DEFAULT_GAME_PREFERENCES.resolution;
     if (!['windowed','fullscreen'].includes(p.windowMode)) p.windowMode = DEFAULT_GAME_PREFERENCES.windowMode;
     if (!['low','medium','high'].includes(p.graphicsQuality)) p.graphicsQuality = DEFAULT_GAME_PREFERENCES.graphicsQuality;
     if (![0,30,60,120,144].includes(Number(p.fpsLimit))) p.fpsLimit = 0; else p.fpsLimit = Number(p.fpsLimit);
+    p.vsync = p.vsync !== false;
     for (const key of ['musicVolume','sfxVolume']) p[key] = Math.max(0,Math.min(100,Math.round(Number(p[key])||0)));
     p.musicEnabled = p.musicEnabled === true;
     p.uiSoundEnabled = p.uiSoundEnabled !== false;
@@ -788,6 +789,7 @@
       windowMode: $('#window-mode-select')?.value || DEFAULT_GAME_PREFERENCES.windowMode,
       graphicsQuality: $('#graphics-quality-select')?.value || DEFAULT_GAME_PREFERENCES.graphicsQuality,
       fpsLimit: $('#fps-limit-select') ? Number($('#fps-limit-select').value) : savedGamePreferences().fpsLimit,
+      vsync: $('#vsync-toggle') ? $('#vsync-toggle').checked : savedGamePreferences().vsync,
       musicVolume: $('#music-volume-range') ? Number($('#music-volume-range').value) : savedGamePreferences().musicVolume,
       sfxVolume: $('#sfx-volume-range') ? Number($('#sfx-volume-range').value) : savedGamePreferences().sfxVolume,
       musicEnabled: $('#launcher-music-toggle') ? $('#launcher-music-toggle').checked : savedGamePreferences().musicEnabled,
@@ -884,6 +886,7 @@
     $('#graphics-quality-select').value = p.graphicsQuality;
     $('#install-folder-path').textContent = p.installRoot || 'По умолчанию: папка SkyRealm в AppData';
     $('#fps-limit-select').value = String(p.fpsLimit);
+    $('#vsync-toggle').checked = p.vsync !== false;
     $('#music-volume-range').value = String(p.musicVolume); $('#music-volume-value').textContent=p.musicVolume+'%';
     $('#sfx-volume-range').value = String(p.sfxVolume); $('#sfx-volume-value').textContent=p.sfxVolume+'%';
     $('#launcher-music-toggle').checked = p.musicEnabled;
@@ -897,7 +900,7 @@
   $('#effects-toggle').addEventListener('change', e => { localStorage.setItem('skyrealm_effects', e.target.checked); document.body.classList.toggle('no-effects', !e.target.checked); toast(currentLanguage === 'en' ? 'Interface effects saved.' : 'Настройка эффектов сохранена.'); });
   $('#compact-toggle').addEventListener('change', e => { localStorage.setItem('skyrealm_compact', e.target.checked); document.body.classList.toggle('compact', e.target.checked); toast(currentLanguage === 'en' ? 'Interface setting saved.' : 'Настройка интерфейса сохранена.'); });
   $('#greeting-toggle').addEventListener('change', e => { localStorage.setItem('skyrealm_greeting', e.target.checked); $('.hero-copy').style.display = e.target.checked ? '' : 'none'; toast(currentLanguage === 'en' ? 'Welcome message setting saved.' : 'Настройка приветствия сохранена.'); });
-  ['#screen-resolution-select','#window-mode-select','#graphics-quality-select','#fps-limit-select','#music-volume-range','#sfx-volume-range'].forEach(selector => $(selector).addEventListener('change', () => {
+  ['#screen-resolution-select','#window-mode-select','#graphics-quality-select','#fps-limit-select','#vsync-toggle','#music-volume-range','#sfx-volume-range'].forEach(selector => $(selector).addEventListener('change', () => {
     if(selector==='#music-volume-range')$('#music-volume-value').textContent=$('#music-volume-range').value+'%';
     if(selector==='#sfx-volume-range')$('#sfx-volume-value').textContent=$('#sfx-volume-range').value+'%';
     persistGamePreferences(true);applyLauncherAudioSettings();
