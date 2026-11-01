@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const launcher=fs.readFileSync('launcher.py','utf8');
 const app=fs.readFileSync('app.js','utf8');
+const auth=app;
 const enhancements=fs.readFileSync('launcher-enhancements.js','utf8');
 const ui=fs.readFileSync('launcher-enhancements.js','utf8');
 const html=fs.readFileSync('index.html','utf8');
