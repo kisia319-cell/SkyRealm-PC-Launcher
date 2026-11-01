@@ -352,6 +352,7 @@
     verificationEmail = '';
     sessionStorage.removeItem('skyrealm_pending_email');
     loadPlayerProfile();
+    loadSocialPresence();
   }
 
   const SOCIAL_URL = (() => {
@@ -376,6 +377,20 @@
     const el=$('#social-message'); if(!el) return;
     el.textContent=message||''; el.classList.toggle('error',!!isError); el.classList.toggle('success',!!message&&!isError);
   }
+  async function loadSocialPresence(){
+    const select=$('#social-presence-select');if(!select)return;
+    const signedIn=!!currentToken();select.disabled=!signedIn;
+    if(!signedIn)return;
+    try{const data=await requestSocial('/api/social/presence');select.value=['online','away','dnd'].includes(data.status)?data.status:'online';}
+    catch(error){setSocialMessage(error.message,true);}
+  }
+  async function saveSocialPresence(){
+    const select=$('#social-presence-select');if(!select||!currentToken())return;
+    select.disabled=true;
+    try{const data=await requestSocial('/api/social/presence',{method:'PATCH',body:{status:select.value}});select.value=data.status||select.value;setSocialMessage('Статус обновлён.');loadSocialFriends();}
+    catch(error){setSocialMessage(error.message,true);await loadSocialPresence();}
+    finally{select.disabled=!currentToken();}
+  }
   function socialPlayerCard(player, actions=[]) {
     const card=document.createElement('div'); card.className='social-player';
     const avatar=document.createElement('div'); avatar.className='social-avatar'; avatar.textContent=({warrior:'⚔',mage:'✦',ranger:'➶',miner:'⚒',farmer:'♧',wanderer:'✧'})[player.avatar_key]||'✦';
@@ -383,7 +398,13 @@
     const name=document.createElement('b'); name.textContent=player.display_name||player.username||'Игрок';
     const sub=document.createElement('small'); sub.textContent='@'+(player.username||'player')+' · ур. '+(player.level||1);
     const seen=player.last_seen_at?Date.parse(player.last_seen_at):0, online=seen>0&&Date.now()-seen<120000;
-    const status=document.createElement('small'); status.className=online?'social-online':'social-offline'; status.textContent=online?'● В сети':'○ Не в сети';
+    const presence=String(player.presence_status||'online');
+    const status=document.createElement('small');
+    if(!online){status.className='social-offline';status.textContent='○ Не в сети';}
+    else if(player.in_game){status.className='social-in-game';status.textContent='🎮 В игре';}
+    else if(presence==='dnd'){status.className='social-dnd';status.textContent='⛔ Не беспокоить';}
+    else if(presence==='away'){status.className='social-away';status.textContent='◷ Отошёл';}
+    else{status.className='social-online';status.textContent='● В сети';}
     info.append(name,sub,status); card.append(avatar,info);
     actions.forEach(action=>{
       const button=document.createElement('button'); button.type='button'; button.textContent=action.label;
@@ -481,7 +502,9 @@
     setSocialMessage(''); searchSocialPlayers(q);
   });
   const socialRefresh=$('#social-refresh');
-  if(socialRefresh) socialRefresh.addEventListener('click',()=>{loadSocialFriends();refreshSocialInvites();setSocialMessage('Список обновлён.');});
+  if(socialRefresh) socialRefresh.addEventListener('click',()=>{loadSocialPresence();loadSocialFriends();refreshSocialInvites();setSocialMessage('Список обновлён.');});
+  const socialPresenceSelect=$('#social-presence-select');
+  if(socialPresenceSelect)socialPresenceSelect.addEventListener('change',saveSocialPresence);
 
   function showAuthAfterLogout() {
     setAuthEntryState(false);
