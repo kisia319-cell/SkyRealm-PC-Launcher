@@ -48,6 +48,7 @@ DEFAULT_SETTINGS = {
     "sfxVolume": 70,
     "musicEnabled": False,
     "uiSoundEnabled": True,
+    "installRoot": "",
     "keyBindings": {
         "up": "KeyW", "left": "KeyA", "down": "KeyS", "right": "KeyD",
         "interact": "KeyE", "inventory": "KeyI", "map": "KeyL", "attack": "Space",
@@ -89,6 +90,7 @@ def normalize_settings(value=None) -> dict:
             settings[key] = DEFAULT_SETTINGS[key]
     settings["musicEnabled"] = settings.get("musicEnabled") is True
     settings["uiSoundEnabled"] = settings.get("uiSoundEnabled") is not False
+    settings["installRoot"] = str(settings.get("installRoot") or "").strip()[:512]
     default_bindings = DEFAULT_SETTINGS["keyBindings"]
     raw_bindings = settings.get("keyBindings") if isinstance(settings.get("keyBindings"), dict) else {}
     valid_binding = lambda code: bool(re.fullmatch(r"(?:Key[A-Z]|Arrow(?:Up|Down|Left|Right)|Space|Digit[0-9])", str(code or "")))
@@ -118,6 +120,28 @@ def save_user_settings(value) -> dict:
     settings = normalize_settings(value)
     settings_file().write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
     return settings
+
+
+def skyrealm_default_data_root() -> Path:
+    app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+    return app_data / "SkyRealm"
+
+
+def skyrealm_data_root(settings=None) -> Path:
+    current = settings if isinstance(settings, dict) else read_user_settings()
+    configured = str(current.get("installRoot") or "").strip()
+    if configured:
+        try:
+            candidate = Path(configured).expanduser()
+            if candidate.is_absolute():
+                return candidate / "SkyRealm"
+        except (OSError, ValueError):
+            pass
+    return skyrealm_default_data_root()
+
+
+def skyrealm_game_dir(settings=None) -> Path:
+    return skyrealm_data_root(settings) / "game"
 
 
 def resolution_size(settings: dict) -> tuple[int, int]:
@@ -272,11 +296,42 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Не удалось сохранить настройки: " + str(exc)}
 
+    def select_install_folder(self):
+        """Choose the parent directory that will contain the SkyRealm/game folder."""
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+            current = read_user_settings()
+            initial = str(current.get("installRoot") or skyrealm_default_data_root().parent)
+            root = tk.Tk()
+            root.withdraw()
+            try:
+                root.attributes("-topmost", True)
+                selected = filedialog.askdirectory(title="Выбери папку установки SkyRealm", initialdir=initial, mustexist=True)
+            finally:
+                root.destroy()
+            if not selected:
+                return {"ok": False, "cancelled": True, "message": "Выбор папки отменён."}
+            current["installRoot"] = str(Path(selected).resolve())
+            saved = save_user_settings(current)
+            return {"ok": True, "path": saved["installRoot"], "settings": saved,
+                    "message": "Папка установки сохранена. Игра будет установлена туда при следующем запуске."}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось выбрать папку установки: " + str(exc)}
+
+    def reset_install_folder(self):
+        try:
+            current = read_user_settings()
+            current["installRoot"] = ""
+            saved = save_user_settings(current)
+            return {"ok": True, "settings": saved, "path": "", "message": "Возвращена папка установки по умолчанию."}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось сбросить папку установки: " + str(exc)}
+
     def open_game_folder(self):
         """Open the installed game directory without changing its contents."""
         try:
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            directory = app_data / "SkyRealm" / "game"
+            directory = skyrealm_game_dir()
             directory.mkdir(parents=True, exist_ok=True)
             if os.name == "nt":
                 os.startfile(str(directory))
@@ -291,8 +346,7 @@ class LauncherApi:
     def open_update_log(self):
         """Open the updater log in the default text editor."""
         try:
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            root = app_data / "SkyRealm"
+            root = skyrealm_data_root()
             root.mkdir(parents=True, exist_ok=True)
             log_path = root / "update.log"
             if not log_path.exists():
@@ -310,8 +364,7 @@ class LauncherApi:
     def get_diagnostics(self):
         """Inspect the installed game without modifying files or save data."""
         try:
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            root = app_data / "SkyRealm"
+            root = skyrealm_data_root()
             install_dir = root / "game"
             required = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
             missing = [name for name in required if not (install_dir / name).is_file()]
@@ -326,7 +379,7 @@ class LauncherApi:
                 last_log = "\\n".join(log_path.read_text(encoding="utf-8", errors="replace").splitlines()[-8:])
             except OSError:
                 pass
-            profile_dir = root / "webview-profile"
+            profile_dir = skyrealm_default_data_root() / "webview-profile"
             storage_dirs = [p for p in profile_dir.rglob("Local Storage") if p.is_dir() and (p / "leveldb").is_dir()] if profile_dir.exists() else []
             storage_bytes = sum(item.stat().st_size for folder in storage_dirs for item in folder.rglob("*") if item.is_file())
             fingerprints = {}
@@ -352,8 +405,7 @@ class LauncherApi:
             request = urllib.request.Request(manifest_url, headers={"User-Agent": "SkyRealmLauncher-UpdateCenter/1.0", "Cache-Control": "no-cache"})
             with urllib.request.urlopen(request, timeout=8) as response:
                 manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            root = app_data / "SkyRealm"
+            root = skyrealm_data_root()
             install_dir = root / "game"
             installed_game = ""
             previous_game = ""
@@ -393,8 +445,7 @@ class LauncherApi:
                 return state
             if not state.get("game_update_available"):
                 return {"ok": True, "updated": False, "version": state.get("game_version"), "message": "Установлена последняя версия игры."}
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            install_dir = app_data / "SkyRealm" / "game"
+            install_dir = skyrealm_game_dir()
             bundled_version = Path(resource_path("game/version.txt")).read_text(encoding="utf-8").strip()
             installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True)
             if installed != state.get("latest_game_version"):
@@ -411,8 +462,7 @@ class LauncherApi:
             state = self.get_update_status()
             if not state.get("ok"):
                 return state
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            install_dir = app_data / "SkyRealm" / "game"
+            install_dir = skyrealm_game_dir()
             bundled_version = Path(resource_path("game/version.txt")).read_text(encoding="utf-8").strip()
             installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True, force=True)
             required = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
@@ -428,8 +478,7 @@ class LauncherApi:
         try:
             if self._skyrealm_game_is_running():
                 return {"ok": False, "message": "Закрой игру перед откатом версии."}
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            root = app_data / "SkyRealm"
+            root = skyrealm_data_root()
             install_dir = root / "game"
             previous = root / "game.previous"
             failed = root / "game.failed"
@@ -481,9 +530,8 @@ class LauncherApi:
                         result.update({"ram_percent": float(status.dwMemoryLoad),
                                        "ram_used_mb": round((status.ullTotalPhys-status.ullAvailPhys)/(1024*1024)),
                                        "ram_total_mb": round(status.ullTotalPhys/(1024*1024))})
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            root = app_data / "SkyRealm"
-            usage = shutil.disk_usage(root if root.exists() else app_data)
+            root = skyrealm_data_root()
+            usage = shutil.disk_usage(root if root.exists() else root.parent)
             result["disk_free_gb"] = round(usage.free / (1024 ** 3), 2)
             result["disk_total_gb"] = round(usage.total / (1024 ** 3), 2)
             game_dir = root / "game"
@@ -505,8 +553,7 @@ class LauncherApi:
                 return {"ok": False, "message": "В сборке лаунчера отсутствуют файлы игры. Пересобери EXE из полного архива."}
 
             bundled_version = source_version.read_text(encoding="utf-8").strip()
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            install_dir = app_data / "SkyRealm" / "game"
+            install_dir = skyrealm_game_dir(preferences)
             installed_index = install_dir / "index.html"
             installed_version_file = install_dir / "version.txt"
             _js_update(8, "Проверяем обновления…", "Проверяем версию игры и загружаем обновления при необходимости")
@@ -964,8 +1011,7 @@ def _skyrealm_startup_game_update():
     if not getattr(sys, "frozen", False):
         return False
 
-    appdata = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-    root = appdata / "SkyRealm"
+    root = skyrealm_data_root()
     install_dir = root / "game"
     version_file = install_dir / "version.txt"
     try:
