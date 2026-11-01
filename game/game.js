@@ -2382,6 +2382,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function openSignDialog(){
     signDialogOpen = true;
     keys.clear();
+    movementDirections.clear();
     discovered = true;
     questStage=Math.max(questStage,1);
     saveGame();
@@ -3527,7 +3528,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function teleportFromMap(event){if(!fullMapOpen||!currentWorldId)return;const c=document.getElementById('full-map-canvas'),r=c.getBoundingClientRect(),mx=(event.clientX-r.left)/r.width*c.width,my=(event.clientY-r.top)/r.height*c.height,pad=12,tx=Math.floor((mx-pad)/((c.width-pad*2)/COLS)),ty=Math.floor((my-pad)/((c.height-pad*2)/ROWS));if(tx<0||ty<0||tx>=COLS||ty>=ROWS||!exploredCells.has(tileKey(tx,ty))){toast('Телепортироваться можно только в исследованные места.');return;}const x=tx*TILE+TILE/2,y=ty*TILE+TILE/2;if(blocked(x,y)){toast('В этой точке препятствие. Выбери соседнюю открытую область.');return;}player.x=x;player.y=y;player.vx=player.vy=0;saveGame();drawMinimap();drawFullMap();closeFullMap();toast('Телепортация выполнена.');}
   function settingsViewOpen(){return !document.getElementById('pause-settings-view').hidden;}
   function showPauseMain(){document.getElementById('pause-main-view').hidden=false;document.getElementById('pause-settings-view').hidden=true;}
-  function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;if(paused){keys.clear();showPauseMain();}else{keys.clear();canvas.focus();}}
+  function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;keys.clear();movementDirections.clear();if(paused){showPauseMain();}else{canvas.focus();}}
   function syncSettingsControls(){
     document.getElementById('game-quality-select').value=gameSettings.graphicsQuality;
     const performanceSelect=document.getElementById('game-performance-select');if(performanceSelect)performanceSelect.value=gameSettings.performanceMode;
