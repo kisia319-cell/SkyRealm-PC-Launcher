@@ -59,7 +59,7 @@ async function action(fn,successMessage){
   try{
     const result=await fn();if(result?.room)room=result.room;
     if(result?.inviteCode){inviteCode=result.inviteCode;room=result.room;}
-    render();setMessage(successMessage);busy=false;await refresh(true);
+    render();setMessage(typeof successMessage==='function'?successMessage(result):successMessage);busy=false;await refresh(true);
   }catch(error){setMessage(error.message||String(error),true);}
   finally{busy=false;}
 }
@@ -162,7 +162,7 @@ $('menu-coop').addEventListener('click',open);$('coop-close').addEventListener('
 $('coop-create').addEventListener('click',()=>action(()=>client.create($('coop-difficulty').value),'Комната создана. Отправь код друзьям; когда они войдут, запускай сессию.'));
 $('coop-join').addEventListener('click',()=>{const code=$('coop-code').value.trim().toUpperCase().replace(/[-\s]/g,'');action(()=>client.join(code),'Ты присоединился к комнате.');});
 $('coop-refresh').addEventListener('click',()=>refresh());
-$('coop-leave').addEventListener('click',()=>action(async()=>{if(!room)return;const owner=isOwner();await client.leave(room.id);await client.disconnectRealtime();realtimeAttemptedRoom='';inviteCode='';room=null;return {room:null,owner};},'Ты вышел из комнаты. Владение передано следующему игроку; комната приостановлена до возобновления новым владельцем.'));
+$('coop-leave').addEventListener('click',()=>action(async()=>{if(!room)return;const owner=isOwner();const leaveResult=await client.leave(room.id);await client.disconnectRealtime();realtimeAttemptedRoom='';inviteCode='';room=null;return {room:null,owner,leaveResult:leaveResult?.room||null};},result=>!result?.owner?'Ты вышел из комнаты.':result.leaveResult?.transferred?'Ты вышел. Права владельца переданы следующему игроку, комната приостановлена — новый владелец может её возобновить.':result.leaveResult?.closed_by_owner?'Ты вышел. Других игроков не было, поэтому комната закрыта.':'Ты вышел из комнаты.'));
 $('coop-resume').addEventListener('click',()=>action(()=>client.resume(room.id),'Комната возобновлена владельцем.'));
 $('coop-start').addEventListener('click',()=>action(async()=>{const started=await client.start(room.id);close();return started;},'Сетевая сессия запущена. Теперь выбери мир той же сложности.'));
 $('coop-pvp').addEventListener('change',event=>action(()=>client.setPvp(room.id,event.target.checked),'Настройка PvP сохранена.'));
