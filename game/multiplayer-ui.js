@@ -10,6 +10,7 @@ function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&'
 function render(){
   $('coop-no-room').classList.toggle('coop-hidden',!!room);$('coop-has-room').classList.toggle('coop-hidden',!room);if(!room)return;
   $('coop-room-status').textContent=statusText(room.status);$('coop-room-id').textContent='ID: '+room.id+' · Сложность: '+({easy:'Легко',medium:'Средняя',hard:'Сложно',hell:'Жар',impossible:'Невозможно'}[room.world_difficulty]||'Средняя');
+  $('coop-leave').textContent=isOwner()?'⏹ Выйти и закрыть комнату':'↩ Покинуть комнату';
   $('coop-resume').hidden=!(isOwner()&&room.status==='paused');
   $('coop-start').hidden=!(isOwner()&&room.status==='lobby');
   $('coop-pvp-row').classList.toggle('coop-hidden',!isOwner());$('coop-pvp').checked=!!room.pvp_enabled;
@@ -161,7 +162,7 @@ $('menu-coop').addEventListener('click',open);$('coop-close').addEventListener('
 $('coop-create').addEventListener('click',()=>action(()=>client.create($('coop-difficulty').value),'Комната создана. Отправь код друзьям; когда они войдут, запускай сессию.'));
 $('coop-join').addEventListener('click',()=>{const code=$('coop-code').value.trim().toUpperCase().replace(/[-\s]/g,'');action(()=>client.join(code),'Ты присоединился к комнате.');});
 $('coop-refresh').addEventListener('click',()=>refresh());
-$('coop-leave').addEventListener('click',()=>action(async()=>{if(!room)return;await client.leave(room.id);await client.disconnectRealtime();realtimeAttemptedRoom='';inviteCode='';room=null;},'Ты покинул комнату. Если ты владелец, комната поставлена на паузу.'));
+$('coop-leave').addEventListener('click',()=>action(async()=>{if(!room)return;const owner=isOwner();await client.leave(room.id);await client.disconnectRealtime();realtimeAttemptedRoom='';inviteCode='';room=null;return {room:null,owner};},'Ты вышел из комнаты. Если ты владелец, комната закрыта для всех участников.'));
 $('coop-resume').addEventListener('click',()=>action(()=>client.resume(room.id),'Комната возобновлена владельцем.'));
 $('coop-start').addEventListener('click',()=>action(async()=>{const started=await client.start(room.id);close();return started;},'Сетевая сессия запущена. Теперь выбери мир той же сложности.'));
 $('coop-pvp').addEventListener('change',event=>action(()=>client.setPvp(room.id,event.target.checked),'Настройка PvP сохранена.'));
