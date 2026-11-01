@@ -100,3 +100,16 @@
 .social-chat .social-search{margin-bottom:0}
 .social-chat .social-search input{min-width:0}
 @media(max-width:650px){.social-player{flex-wrap:wrap}.social-player-info{min-width:calc(100% - 60px)}.social-chat .social-search{flex-wrap:wrap}.social-chat .social-search button{width:100%}}
+
+.social-presence-control{display:flex;align-items:center;gap:7px;color:#a9bad3;font-size:11px;white-space:nowrap}
+.social-presence-control select{padding:8px 10px;border:1px solid #526d94;border-radius:9px;background:#142945;color:#eff5ff;font:inherit}
+.social-in-game{color:#80d8ff}.social-away{color:#e9c47d}.social-dnd{color:#f08e9b}
+@media(max-width:650px){.social-toolbar{flex-wrap:wrap}.social-presence-control{order:3;width:100%;justify-content:space-between}.social-presence-control select{flex:1}}
+
+body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+body.high-contrast{color:#fff!important}
+body.high-contrast p,body.high-contrast small,body.high-contrast label,body.high-contrast .muted{color:#fff!important}
+body.high-contrast button,body.high-contrast input,body.high-contrast select,body.high-contrast textarea,body.high-contrast .setting-row,body.high-contrast .social-player,body.high-contrast .system-card{border:2px solid #fff!important;color:#fff!important}
+body.high-contrast button:focus-visible,body.high-contrast input:focus-visible,body.high-contrast select:focus-visible{outline:3px solid #ffdf65!important;outline-offset:2px}
+body.performance-saver *,body.performance-saver *::before,body.performance-saver *::after{box-shadow:none!important;text-shadow:none!important;backdrop-filter:none!important}
+body.performance-saver .hero-orb,body.performance-saver .floating-island,body.performance-saver .ambient-particle,body.performance-saver .background-particle{display:none!important}

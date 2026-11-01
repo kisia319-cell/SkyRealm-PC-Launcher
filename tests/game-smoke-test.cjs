@@ -287,8 +287,8 @@ assert.ok(releaseWorkflow.includes('notes = "SkyRealm Launcher $version + Game $
 assert.ok(game.includes("const visible = id => { const el=document.getElementById(id); return !!el && !el.hidden; }"), 'Movement recovery must check actual overlay visibility without treating missing elements as blockers');
 assert.ok(game.includes("pauseShade?.hidden === true && !blockingOverlay && !sleeping"), 'A movement key must recover a stale pause state when no blocking modal is visible');
 assert.ok(game.includes("['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)"), 'Movement must accept physical WASD and arrow key codes in embedded WebViews');
-assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Movement key releases must be captured at window level');
-assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden) keys.clear(); })"), 'Hidden game windows must clear held movement keys');
+assert.ok(game.includes("window.addEventListener('keyup', e => {") && game.includes("keys.delete(released)"), 'Movement key releases must be captured at window level');
+assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); } })"), 'Hidden game windows must clear held movement keys');
 
 assert.ok(game.includes("window.addEventListener('keydown', e => {"), 'Keyboard input must be captured at the WebView window level');
 const keydownStart = game.indexOf("window.addEventListener('keydown'");
@@ -299,7 +299,7 @@ assert.ok(keydownStart >= 0 && movementDeclaration > keydownStart && movementUse
 assert.ok(game.includes("!editTarget.closest?.('[hidden], [aria-hidden=\"true\"]')"),
   'Hidden form controls must not swallow movement input after dialogs close');
 
-assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Keyboard releases must clear movement keys at window level');
+assert.ok(game.includes("window.addEventListener('keyup', e => {") && game.includes("keys.delete(released)"), 'Keyboard releases must clear movement keys at window level');
 assert.ok(game.includes("const hasBlockingShade=Array.from(document.querySelectorAll('.shade'))"), 'Pause recovery must check all visible modal overlays');
 assert.ok(game.includes('!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true'), 'A stale pause must recover only inside an active world with no visible pause dialog');
 
@@ -320,3 +320,13 @@ assert.match(game,/WORLD_FAVORITES_KEY/,'World favorites must persist locally');
 assert.match(game,/toggleFavoriteWorld/,'Players must be able to add and remove favorite worlds');
 assert.match(game,/data-favorite-world/,'Each world card must expose a favorite toggle');
 assert.ok(gameHtml.includes('id="world-filter"')&&gameHtml.includes('value="favorites"'),'World selector must offer a favorites filter');
+
+assert.ok(game.includes('const movementDirections = new Set()'), 'Movement input must be tracked independently from action keys');
+assert.ok(game.includes('MOVEMENT_DIRECTION_BY_ACTION'), 'WASD and arrow keys must resolve to movement directions');
+assert.ok(game.includes('movementDirections.add(movementDirection)'), 'Movement keydown must register a held direction');
+assert.ok(game.includes('movementDirections.delete(direction)'), 'Movement keyup must release the held direction');
+assert.ok(game.includes('movementDirections.clear()'), 'Movement input must be cleared on blur, hidden window, HUD edit mode and sleep');
+assert.ok(game.includes("if(movementDirections.has('up'))my--") && game.includes("if(movementDirections.has('right'))mx++"), 'Player movement must use the dedicated held-direction state');
+
+assert.ok(game.includes('desynchronized: !initialVsyncEnabled()'),'VSync preference must be passed to the canvas low-latency hint when disabled');
+assert.ok(game.includes('s.vsync = s.vsync !== false'),'Game settings must normalize VSync to enabled by default');

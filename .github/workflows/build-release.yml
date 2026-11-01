@@ -118,7 +118,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version + Game $($gameVersion): verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites with a favorites-only filter; existing accounts and local worlds remain compatible."
+            notes = "SkyRealm Launcher $version + Game $($gameVersion): verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
@@ -145,7 +145,7 @@ jobs:
           if ($tag -eq "main" -or $tag -eq "") { $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() }
           $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
           $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
-          $notes = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. Includes profile sync, friend requests, private chat and co-op room invitations; SHA-256 diagnostics and world backup/restore; 8 persistent achievements; free achievement-earned cosmetic sets; searchable and sortable world library with level/day/map summaries; and recent adventure history. Existing accounts, worlds and single-player saves remain compatible."
+          $notes = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. Includes profile sync, friend requests, private chat, online/away/do-not-disturb/in-game presence, co-op room invitations, saved mod profiles, player statistics, VSync low-latency option, robust keyboard movement, verified login UI, SHA-256 diagnostics and world backup/restore, achievements and cosmetic rewards, searchable world library, and adventure history. Existing accounts, worlds and single-player saves remain compatible."
           $assets = @(
             "dist/SkyRealm.exe",
             "update_release/SkyRealm_Windows.zip",
