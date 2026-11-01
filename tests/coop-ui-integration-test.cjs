@@ -47,6 +47,14 @@ assert.match(client,/reportSharedDeath/);
 assert.match(client,/setWorldClock/);
 assert.match(game,/syncCoopSharedDeath/);
 assert.match(ui,/refresh\(true\);/);
+assert.match(ui,/skyrealm-coop-world-enter/,'Co-op UI must deliver owner world-entry signals to the game.');
+assert.match(ui,/getWorldSnapshot\(\)/,'Co-op UI must poll the persisted launch signal for members who miss the live broadcast.');
+assert.match(ui,/onBroadcast/,'Co-op UI must listen for the live world-entry broadcast.');
+assert.match(client,/broadcastWorldEntry/,'The co-op client must expose an owner-only world-entry broadcast.');
+assert.match(game,/receiveCoopWorldEntry/,'The game must auto-enter the world announced by the room owner.');
+assert.match(game,/coopWorldEntry:isCoopWorldSave\(\)\?coopWorldEntry:null/,'World launch metadata must be persisted in the shared world snapshot.');
+assert.ok(edge.includes('"coopWorldEntry"')&&edge.includes('Некорректные данные запуска общего мира'),'The server must validate persisted co-op launch metadata.');
+
 
 const coopRoutes = ['create','join','start','current','leave','resume','pvp','heartbeat','recover-owner','clock','death','snapshot/get','snapshot/save','claim','actions/enqueue','actions/pending','actions/status','actions/commit','actions/commit-farm','actions/commit-mine','actions/commit-tree','actions/commit-enemy','actions/reject'];
 for (const route of coopRoutes) {
