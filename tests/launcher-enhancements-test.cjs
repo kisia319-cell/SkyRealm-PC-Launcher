@@ -74,3 +74,8 @@ assert.match(auth,/async function restoreSession\(\)/,'Launcher must restore the
 assert.ok(auth.includes("requestApi('/api/auth/me'"),'Launcher must validate a saved login against the account service');
 assert.ok(auth.includes("$$('[data-auth-mode], #top-create-account')"),'All create-account and sign-in entry buttons must be hidden for a verified session');
 assert.ok(auth.includes("$('#auth-form').hidden = true") && auth.includes("$('.auth-tabs').hidden = true"),'Verified accounts must not see the login/register form or tabs');
+
+assert.ok(app.includes('vsync: $('#vsync-toggle') ? $('#vsync-toggle').checked : savedGamePreferences().vsync'),'Launcher must persist the VSync preference');
+assert.ok(app.includes("p.vsync = p.vsync !== false"),'VSync must default to enabled for existing settings');
+assert.ok(html.includes('id="vsync-toggle"'),'Settings must expose a VSync toggle');
+assert.ok(css.includes('body.reduce-motion')&&css.includes('body.high-contrast')&&css.includes('body.performance-saver'),'Accessibility and resource-saving toggles must have working styles');
