@@ -112,13 +112,13 @@
   function editorKeydown(event){
     const area=event.currentTarget;
     if(event.key==='Tab'){event.preventDefault();const start=area.selectionStart,end=area.selectionEnd;
-      if(event.shiftKey){const lineStart=area.value.lastIndexOf('\\n',Math.max(0,start-1))+1;if(area.value.slice(lineStart,lineStart+2)==='  '){area.setRangeText('',lineStart,lineStart+2,'end');area.selectionStart=area.selectionEnd=Math.max(lineStart,start-2);}}
+      if(event.shiftKey){const lineStart=area.value.lastIndexOf('\n',Math.max(0,start-1))+1;if(area.value.slice(lineStart,lineStart+2)==='  '){area.setRangeText('',lineStart,lineStart+2,'end');area.selectionStart=area.selectionEnd=Math.max(lineStart,start-2);}}
       else{area.setRangeText('  ',start,end,'end');}
     }else if(event.key==='Enter'&&area.selectionStart===area.selectionEnd){
-      const start=area.selectionStart,lineStart=area.value.lastIndexOf('\\n',start-1)+1;
-      const indent=(area.value.slice(lineStart,start).match(/^\\s*/)||[''])[0];
-      const extra=/[{:[]\\s*$/.test(area.value.slice(lineStart,start))?'  ':'';
-      event.preventDefault();area.setRangeText('\\n'+indent+extra,start,start,'end');
+      const start=area.selectionStart,lineStart=area.value.lastIndexOf('\n',start-1)+1;
+      const indent=(area.value.slice(lineStart,start).match(/^\s*/)||[''])[0];
+      const extra=/[{:]\s*$/.test(area.value.slice(lineStart,start))?'  ':'';
+      event.preventDefault();area.setRangeText('\n'+indent+extra,start,start,'end');
     }else if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();testSource();}
     else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveEditorMod();}
   }
