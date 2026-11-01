@@ -1517,6 +1517,56 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function closeModCreator(){const shade=document.getElementById('mod-creator-shade');if(shade)shade.hidden=true;}
   async function publishCommunityMod(event){event.preventDefault();const form=event.currentTarget,button=document.getElementById('publish-community-mod'),status=document.getElementById('mod-creator-status');const payload={name:document.getElementById('community-mod-name').value.trim(),description:document.getElementById('community-mod-description').value.trim(),category:document.getElementById('community-mod-category').value,icon:document.getElementById('community-mod-icon').value,effect_key:document.getElementById('community-mod-effect').value,effect_strength:Number(document.getElementById('community-mod-strength').value)};if(!payload.name||payload.name.length>32||payload.description.length<10||payload.description.length>180){if(status)status.textContent='Название: 1–32 символа. Описание: 10–180 символов.';return;}button.disabled=true;if(status)status.textContent='Проверяем аккаунт и публикуем мод…';try{const result=await communityRequest('/api/social/mods','POST',payload);if(result.mod){communityMods.unshift(result.mod);renderCommunityMods();}form.reset();if(status)status.textContent='Мод опубликован! Он появится в общем каталоге у игроков.';toast('Мод опубликован в каталоге сообщества!');}catch(error){if(status)status.textContent=error.message;toast(error.message);}finally{button.disabled=false;}}
 
+
+  const MOD_PROFILES_STORAGE_KEY='skyrealm_mod_profiles_v1';
+  function readModProfiles(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(MOD_PROFILES_STORAGE_KEY)||'[]');
+      if(!Array.isArray(raw))return [];
+      return raw.filter(p=>p&&typeof p.id==='string'&&typeof p.name==='string'&&Array.isArray(p.mods))
+        .map(p=>({id:p.id.slice(0,64),name:p.name.trim().slice(0,24),mods:[...new Set(p.mods.filter(id=>MOD_CATALOG.some(mod=>mod.id===id)))],updatedAt:Number(p.updatedAt)||0}))
+        .filter(p=>p.name);
+    }catch(_){return [];}
+  }
+  function saveModProfiles(profiles){try{localStorage.setItem(MOD_PROFILES_STORAGE_KEY,JSON.stringify(profiles.slice(-20)));return true;}catch(error){toast('Не удалось сохранить профили модов.');return false;}}
+  function renderModProfiles(){
+    const select=document.getElementById('mod-profile-select');if(!select)return;
+    const profiles=readModProfiles(),selected=select.value;
+    select.replaceChildren();
+    const empty=document.createElement('option');empty.value='';empty.textContent='Выбери профиль';select.append(empty);
+    profiles.forEach(profile=>{const option=document.createElement('option');option.value=profile.id;option.textContent=profile.name+' · '+profile.mods.length+' модов';select.append(option);});
+    if(profiles.some(profile=>profile.id===selected))select.value=selected;
+    const status=document.getElementById('mod-profile-status');
+    if(status)status.textContent=profiles.length+' / 20 профилей сохранено';
+  }
+  function saveCurrentModProfile(){
+    const input=document.getElementById('mod-profile-name'),name=String(input?.value||'').trim().slice(0,24);
+    if(name.length<2){toast('Название профиля должно содержать хотя бы 2 символа.');return;}
+    const profiles=readModProfiles(),existing=profiles.find(p=>p.name.toLocaleLowerCase()===name.toLocaleLowerCase());
+    const id=existing?.id||('mod-profile-'+Date.now().toString(36));
+    const next={id,name,mods:Array.from(installedMods),updatedAt:Date.now()};
+    const updated=[...profiles.filter(p=>p.id!==id),next];
+    if(!saveModProfiles(updated))return;
+    renderModProfiles();const select=document.getElementById('mod-profile-select');if(select)select.value=id;
+    if(input)input.value='';toast('Профиль модов «'+name+'» сохранён.');
+  }
+  function applyModProfile(){
+    const id=document.getElementById('mod-profile-select')?.value,profile=readModProfiles().find(p=>p.id===id);
+    if(!profile){toast('Сначала выбери сохранённый профиль.');return;}
+    const previous=installedMods;installedMods=new Set(profile.mods);
+    if(!saveInstalledMods()){installedMods=previous;return;}
+    renderModCatalog();if(currentWorldId)saveGame();
+    toast('Профиль «'+profile.name+'» применён. Активно модов: '+installedMods.size+'.');
+  }
+  function deleteModProfile(){
+    const id=document.getElementById('mod-profile-select')?.value;
+    if(!id){toast('Сначала выбери профиль для удаления.');return;}
+    const profiles=readModProfiles(),profile=profiles.find(p=>p.id===id);
+    if(!profile)return;
+    if(!window.confirm('Удалить профиль модов «'+profile.name+'»? Установленные моды не изменятся.'))return;
+    saveModProfiles(profiles.filter(p=>p.id!==id));renderModProfiles();toast('Профиль удалён. Текущий набор модов не изменён.');
+  }
+
   const MODS_STORAGE_KEY='skyrealm_installed_mods_v1';
   const MOD_CATALOG=[
     {id:'cartographer',name:'Око картографа',icon:'🧭',category:'Исследование',version:'1.0.0',description:'Открывает больше территории вокруг персонажа на мини-карте.',effect:'Радиус открытия карты увеличен с 3 до 5 блоков.',compatibility:'Одиночная игра и кооператив'},
@@ -1570,7 +1620,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     const root=document.getElementById('mods-catalog-list'),count=document.getElementById('mods-installed-count');if(!root)return;
     if(count)count.textContent=installedMods.size+' / '+MOD_CATALOG.length+' установлено';
     root.innerHTML=MOD_CATALOG.map(mod=>{const active=isModInstalled(mod.id);return '<article class="mod-catalog-card '+(active?'mod-installed':'')+'"><div class="mod-card-icon">'+mod.icon+'</div><div class="mod-card-content"><div class="mod-card-title-row"><b>'+escapeHtml(mod.name)+'</b><span class="mod-version">v'+mod.version+'</span></div><div class="mod-card-meta">'+escapeHtml(mod.category)+' · '+escapeHtml(mod.compatibility)+'</div><p>'+escapeHtml(mod.description)+'</p><div class="mod-card-effect"><b>Что добавляет:</b> '+escapeHtml(mod.effect)+'</div></div><button type="button" class="mod-install-button '+(active?'installed':'')+'" data-mod-toggle="'+mod.id+'">'+(active?'Удалить':'Установить')+'</button></article>';}).join('');
-    root.querySelectorAll('[data-mod-toggle]').forEach(button=>button.addEventListener('click',()=>toggleMod(button.dataset.modToggle)));renderCommunityMods();
+    root.querySelectorAll('[data-mod-toggle]').forEach(button=>button.addEventListener('click',()=>toggleMod(button.dataset.modToggle)));renderModProfiles();renderCommunityMods();
   }
   function toggleMod(id){
     const mod=MOD_CATALOG.find(item=>item.id===id);if(!mod)return;
@@ -1599,7 +1649,12 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     updateWalletHud();toast(spell.name+': поражено '+hits+' · побеждено '+kills+' · мана '+Math.floor(magicMana)+'/100');saveGame();
   }
   function openModsCatalog(){
-    renderModCatalog();const shade=document.getElementById('mods-catalog-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');loadCommunityMods();
+    renderModCatalog();
+    if(!document.getElementById('mod-profile-save')?.dataset.bound){
+      const bind=(id,handler)=>{const el=document.getElementById(id);if(el){el.dataset.bound='1';el.addEventListener('click',handler);}};
+      bind('mod-profile-save',saveCurrentModProfile);bind('mod-profile-apply',applyModProfile);bind('mod-profile-delete',deleteModProfile);
+    }
+    const shade=document.getElementById('mods-catalog-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');loadCommunityMods();
   }
   function closeModsCatalog(){
     const shade=document.getElementById('mods-catalog-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');
