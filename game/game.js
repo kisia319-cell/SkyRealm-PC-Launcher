@@ -3516,7 +3516,16 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   window.addEventListener('keydown', e => {
     if(e.code==='F11'||e.key==='F11'){e.preventDefault();toggleFullscreen();return;}
     const k = gameKey(e);
-    const formTarget = e.target && (e.target.matches?.('input,textarea,select') || e.target.isContentEditable);
+    const editTarget = e.target && (e.target.matches?.('input,textarea,select') || e.target.isContentEditable);
+    // WebView can leave focus on a hidden search/name field after its dialog closes.
+    // A hidden editor must never swallow WASD/arrow input for the game.
+    const formTarget = !!(editTarget && !editTarget.disabled &&
+      !editTarget.closest?.('[hidden], [aria-hidden="true"]') &&
+      editTarget.getClientRects?.().length > 0 &&
+      getComputedStyle(editTarget).visibility !== 'hidden');
+    if (editTarget && !formTarget && movementKey && !inMainMenu) {
+      try { canvas.focus(); } catch (_) {}
+    }
     // Recover from a stale paused flag after first world entry. This can happen
     // when the character-entry overlay closes without completing its resume callback.
     const movementKey = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k) ||
