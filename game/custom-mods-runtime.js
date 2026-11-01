@@ -22,7 +22,7 @@
       'function send(type,payload){parent.postMessage(Object.assign({channel:"skyrealm-user-mod",id:MOD_ID,type:type},payload||{}),"*");}',
       'function buildWorkerSource(){',
       'if(LANG==="javascript"){return [',
-      '"use strict";',
+      '"use strict;",',
       '"const SOURCE="+JSON.stringify(SOURCE)+";let state={};let tickFn=null;try{const factory=new Function(SOURCE+String.fromCharCode(10)+\\\"return onTick;\\\")();if(typeof factory!==\\\"function\\\")throw new Error(\\\"Нужна функция onTick(context, state).\\\");tickFn=factory;postMessage({type:\\\"ready\\\"});}catch(e){postMessage({type:\\\"error\\\",message:String(e&&e.message||e)});}",',
       '"onmessage=async function(event){if(event.data&&event.data.type===\\\"stop\\\"){close();return;}try{const result=await tickFn(event.data.context||{},state)||{};if(result.state&&typeof result.state===\\\"object\\\"&&!Array.isArray(result.state))state=result.state;postMessage({type:\\\"result\\\",request:event.data.request,result:result});}catch(e){postMessage({type:\\\"error\\\",request:event.data.request,message:String(e&&e.message||e)});}};"',
       '].join(String.fromCharCode(10));}',
@@ -134,6 +134,6 @@
     $('user-mod-import-file')?.addEventListener('change',function(event){const file=event.target.files?.[0];if(file)importModFile(file);event.target.value='';});
     $('script-mod-studio')?.addEventListener('click',function(event){if(event.target===$('script-mod-studio'))closeEditor();});
     if(new URLSearchParams(location.search).get('installMod')==='__creator__')setTimeout(openEditor,450);window.setInterval(step,500);}
-  window.SkyRealmCustomMods={openEditor:openEditor,render:renderMods};
+  window.SkyRealmCustomMods={openEditor:openEditor,render:renderMods,buildSandboxDocument:frameDocument};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
