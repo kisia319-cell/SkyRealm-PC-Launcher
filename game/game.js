@@ -2493,6 +2493,16 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     document.getElementById('inventory-shade').setAttribute('aria-hidden', 'true');
     canvas.focus();
   }
+  async function saveGameScreenshot(){
+    try{
+      if(!canvas||typeof canvas.toDataURL!=='function')throw new Error('Игровой экран недоступен.');
+      const api=window.pywebview?.api;
+      if(typeof api?.save_screenshot!=='function')throw new Error('Сохранение скриншотов доступно в Windows-версии игры.');
+      const result=await api.save_screenshot(canvas.toDataURL('image/png'));
+      if(!result?.ok)throw new Error(result?.message||'Не удалось сохранить скриншот.');
+      toast('Скриншот сохранён: '+result.name);
+    }catch(error){toast(error?.message||'Не удалось сделать скриншот.');}
+  }
   function gameKey(e){
     const keyByAction={up:'w',left:'a',down:'s',right:'d',interact:'e',inventory:'i',map:'l',attack:' ',dodge:'q',ability:'r',heal:'h',buff:'j'};
     const bindings=gameSettings.keyBindings||DEFAULT_GAME_KEY_BINDINGS;
@@ -3533,6 +3543,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('npc-quest-close')?.addEventListener('click',closeNpcQuestDialog);
   window.addEventListener('keydown', e => {
     if(e.code==='F11'||e.key==='F11'){e.preventDefault();toggleFullscreen();return;}
+    if(e.code==='F12'||e.key==='F12'){e.preventDefault();saveGameScreenshot();return;}
     const k = gameKey(e);
     const movementKey = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k) ||
       ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code);

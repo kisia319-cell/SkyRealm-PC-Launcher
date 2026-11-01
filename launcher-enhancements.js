@@ -57,6 +57,66 @@
     if ($('.main')) $('.main').scrollTop=0;
     refreshAll();
   }
+  function ensureScreenshotsPage() {
+    const nav=$('.nav'),main=$('.main');if(!nav||!main)return;
+    if(!$('[data-page="screenshots"]')){
+      const button=document.createElement('button');button.type='button';button.className='nav-item';button.dataset.page='screenshots';
+      button.innerHTML='<span class="nav-ico">▧</span><span>Скриншоты</span>';
+      nav.insertBefore(button,$('[data-page="system"]')||null);
+      button.addEventListener('click',openScreenshotsPage);
+    }
+    if(!$('#page-screenshots')){
+      const page=document.createElement('section');page.className='page inner-page screenshots-page';page.id='page-screenshots';
+      page.innerHTML=`
+        <div class="page-heading"><div><div class="section-kicker">SKYREALM · ГАЛЕРЕЯ</div><h1>Мои <span>скриншоты</span></h1><p>Снимки игрового мира, сделанные клавишей F12. Файлы хранятся локально на этом компьютере.</p></div><div class="system-actions"><button class="secondary-btn" id="screenshots-refresh" type="button">↻ Обновить</button><button class="secondary-btn" id="screenshots-open-folder" type="button">Открыть папку</button></div></div>
+        <p class="screenshots-status" id="screenshots-status" aria-live="polite"></p><div class="screenshots-grid" id="screenshots-grid"><div class="screenshots-empty">Загружаем галерею…</div></div>
+        <div class="screenshot-viewer" id="screenshot-viewer" hidden aria-hidden="true"><div class="screenshot-viewer-panel"><div class="screenshot-viewer-head"><b id="screenshot-viewer-title">Скриншот</b><button class="secondary-btn" id="screenshot-viewer-close" type="button">Закрыть</button></div><img id="screenshot-viewer-image" alt="Скриншот SkyRealm"></div></div>`;
+      main.append(page);
+    }
+    if(!$('#screenshots-refresh')?.dataset.bound){
+      $('#screenshots-refresh').dataset.bound='1';$('#screenshots-refresh').addEventListener('click',refreshScreenshots);
+      $('#screenshots-open-folder').addEventListener('click',async()=>{try{const result=await window.pywebview?.api?.open_screenshot_folder?.();if(!result?.ok)throw new Error(result?.message||'Папка скриншотов недоступна.');}catch(error){screenshotNotice(error.message||'Не удалось открыть папку скриншотов.');}});
+      $('#screenshot-viewer-close').addEventListener('click',closeScreenshotViewer);
+      $('#screenshot-viewer').addEventListener('click',event=>{if(event.target.id==='screenshot-viewer')closeScreenshotViewer();});
+    }
+  }
+  function openScreenshotsPage(){
+    ensureScreenshotsPage();
+    document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id==='page-screenshots'));
+    document.querySelectorAll('.nav-item').forEach(button=>button.classList.toggle('active',button.dataset.page==='screenshots'));
+    if($('#crumb-label'))$('#crumb-label').textContent='СКРИНШОТЫ';
+    if($('.main'))$('.main').scrollTop=0;
+    refreshScreenshots();
+  }
+  function screenshotNotice(message){const status=$('#screenshots-status');if(status)status.textContent=message;else console.warn('[SkyRealm screenshots]',message);}
+  function closeScreenshotViewer(){
+    const viewer=$('#screenshot-viewer');if(!viewer)return;viewer.hidden=true;viewer.setAttribute('aria-hidden','true');$('#screenshot-viewer-image').removeAttribute('src');
+  }
+  async function refreshScreenshots(){
+    const grid=$('#screenshots-grid');if(!grid)return;grid.replaceChildren();
+    const api=window.pywebview?.api;
+    if(typeof api?.get_screenshots!=='function'){grid.textContent='Галерея доступна в установленной Windows-версии лаунчера.';return;}
+    try{
+      const result=await api.get_screenshots();if(!result?.ok)throw new Error(result?.message||'Не удалось загрузить скриншоты.');
+      const items=Array.isArray(result.screenshots)?result.screenshots:[];
+      if(!items.length){grid.innerHTML='<div class="screenshots-empty"><b>Пока нет скриншотов</b><span>Запусти игру и нажми F12, чтобы сделать первый снимок.</span></div>';return;}
+      items.forEach(item=>{
+        const card=document.createElement('article');card.className='screenshot-card';
+        const preview=document.createElement('div');preview.className='screenshot-card-preview';preview.textContent='▧';
+        const details=document.createElement('div');details.className='screenshot-card-details';
+        const title=document.createElement('b');title.textContent=item.name||'Скриншот';
+        const meta=document.createElement('small');meta.textContent=(item.created_at||'')+' · '+(item.size_kb||0)+' КБ';
+        const open=document.createElement('button');open.type='button';open.className='secondary-btn';open.textContent='Просмотреть';
+        open.addEventListener('click',async()=>{
+          try{const image=await api.get_screenshot_data(item.name);if(!image?.ok)throw new Error(image?.message||'Не удалось открыть скриншот.');
+            $('#screenshot-viewer-title').textContent=item.name;$('#screenshot-viewer-image').src=image.data_url;
+            const viewer=$('#screenshot-viewer');viewer.hidden=false;viewer.setAttribute('aria-hidden','false');
+          }catch(error){screenshotNotice(error.message||'Не удалось открыть скриншот.');}
+        });
+        details.append(title,meta,open);card.append(preview,details);grid.append(card);
+      });
+    }catch(error){grid.textContent=error.message||'Галерея временно недоступна.';}
+  }
   function setService(key,ok,detail) {
     const dot=$('#system-'+key+'-dot'),title=$('#system-'+key+'-title'),copy=$('#system-'+key+'-copy');
     if(!dot||!title||!copy)return;
@@ -236,7 +296,7 @@
     });
   }
   function init() {
-    ensureSystemPage();addNotificationControl();bindSystemActions();
+    ensureSystemPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();
     refreshServices();refreshNotifications();
     pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();},45_000);
   }
