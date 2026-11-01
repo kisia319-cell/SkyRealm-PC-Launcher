@@ -111,6 +111,8 @@
   }
   function editorKeydown(event){
     const area=event.currentTarget;
+    if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();testSource();return;}
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveEditorMod();return;}
     if(event.key==='Tab'){event.preventDefault();const start=area.selectionStart,end=area.selectionEnd;
       if(event.shiftKey){const lineStart=area.value.lastIndexOf('\n',Math.max(0,start-1))+1;if(area.value.slice(lineStart,lineStart+2)==='  '){area.setRangeText('',lineStart,lineStart+2,'end');area.selectionStart=area.selectionEnd=Math.max(lineStart,start-2);}}
       else{area.setRangeText('  ',start,end,'end');}
@@ -119,8 +121,7 @@
       const indent=(area.value.slice(lineStart,start).match(/^\s*/)||[''])[0];
       const extra=/[{:]\s*$/.test(area.value.slice(lineStart,start))?'  ':'';
       event.preventDefault();area.setRangeText('\n'+indent+extra,start,start,'end');
-    }else if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();testSource();}
-    else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveEditorMod();}
+    }
   }
   function validateSource(name,language,source){if(name.length<1||name.length>32)throw new Error('Название должно содержать от 1 до 32 символов.');if(!['javascript','python'].includes(language))throw new Error('Выбери JavaScript или Python.');
     if(source.length<10||source.length>MAX_CODE)throw new Error('Код должен содержать от 10 до '+MAX_CODE+' символов.');
