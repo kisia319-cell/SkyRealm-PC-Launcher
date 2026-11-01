@@ -90,9 +90,38 @@
       actions.append(toggle,edit,exp,remove);card.append(info,actions);root.append(card);
     });
   }
-  function openEditor(mod){editingId=mod?.id||null;$('script-mod-name').value=mod?.name||'Мой первый мод';$('script-mod-language').value=mod?.language||'javascript';$('script-mod-code').value=mod?.source||templates($('script-mod-language').value);
-    $('script-mod-status').textContent='Сначала нажми «Проверить код». Скрипт будет испытан в отдельном процессе.';$('script-mod-status').className='script-mod-status';$('script-mod-studio').hidden=false;$('script-mod-studio').setAttribute('aria-hidden','false');}
+  function openEditor(mod){
+    editingId=mod?.id||null;
+    $('script-mod-name').value=mod?.name||'Мой первый мод';
+    $('script-mod-description').value=mod?.description||'';
+    $('script-mod-language').value=mod?.language||'javascript';
+    $('script-mod-code').value=mod?.source||'';
+    $('script-mod-template').value='blank';
+    $('script-mod-title').textContent=mod?'Редактировать мод':'Новый проект мода';
+    setStatus('Новый проект открыт. Напиши код с нуля или выбери стартовый шаблон.');
+    $('script-mod-studio').hidden=false;$('script-mod-studio').setAttribute('aria-hidden','false');
+    $('script-mod-code').focus();
+  }
   function closeEditor(){$('script-mod-studio').hidden=true;$('script-mod-studio').setAttribute('aria-hidden','true');}
+  function applyTemplate(){
+    const language=$('script-mod-language').value,choice=$('script-mod-template').value;
+    if(choice==='blank'){$('script-mod-code').value='';setStatus('Пустой файл готов. Напиши свою функцию onTick(context, state).');}
+    else if(choice==='starter'){$('script-mod-code').value=templates(language);setStatus('Добавлен стартовый пример. Измени его под свою идею.');}
+    $('script-mod-code').focus();
+  }
+  function editorKeydown(event){
+    const area=event.currentTarget;
+    if(event.key==='Tab'){event.preventDefault();const start=area.selectionStart,end=area.selectionEnd;
+      if(event.shiftKey){const lineStart=area.value.lastIndexOf('\\n',Math.max(0,start-1))+1;if(area.value.slice(lineStart,lineStart+2)==='  '){area.setRangeText('',lineStart,lineStart+2,'end');area.selectionStart=area.selectionEnd=Math.max(lineStart,start-2);}}
+      else{area.setRangeText('  ',start,end,'end');}
+    }else if(event.key==='Enter'&&area.selectionStart===area.selectionEnd){
+      const start=area.selectionStart,lineStart=area.value.lastIndexOf('\\n',start-1)+1;
+      const indent=(area.value.slice(lineStart,start).match(/^\\s*/)||[''])[0];
+      const extra=/[{:[]\\s*$/.test(area.value.slice(lineStart,start))?'  ':'';
+      event.preventDefault();area.setRangeText('\\n'+indent+extra,start,start,'end');
+    }else if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();testSource();}
+    else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveEditorMod();}
+  }
   function validateSource(name,language,source){if(name.length<1||name.length>32)throw new Error('Название должно содержать от 1 до 32 символов.');if(!['javascript','python'].includes(language))throw new Error('Выбери JavaScript или Python.');
     if(source.length<10||source.length>MAX_CODE)throw new Error('Код должен содержать от 10 до '+MAX_CODE+' символов.');
     if(language==='javascript'&&!/function\s+onTick\s*\(/.test(source))throw new Error('В JavaScript нужна функция function onTick(context, state).');
@@ -110,11 +139,13 @@
     limit=setTimeout(function(){cleanup();setStatus(language==='python'?'Python не загрузился. Проверь интернет.':'JavaScript не ответил.',true);},language==='python'?90000:3000);
     window.addEventListener('message',listen);
   }
-  function saveEditorMod(){const name=safeText($('script-mod-name').value,32),language=$('script-mod-language').value,source=$('script-mod-code').value;
+  function saveEditorMod(){
+    const name=safeText($('script-mod-name').value,32),description=safeText($('script-mod-description').value,140),language=$('script-mod-language').value,source=$('script-mod-code').value;
     try{validateSource(name,language,source);}catch(error){setStatus(error.message,true);return;}
-    const old=editingId?mods.find(m=>m.id===editingId):null,mod={id:old?.id||idForNewMod(),name:name,description:'Пользовательский скрипт',language:language,source:source,enabled:old?.enabled===true,createdAt:old?.createdAt||Date.now()};
+    const old=editingId?mods.find(m=>m.id===editingId):null;
+    const mod={id:old?.id||idForNewMod(),name:name,description:description||'Пользовательский скрипт',language:language,source:source,enabled:old?.enabled===true,createdAt:old?.createdAt||Date.now()};
     const next=old?mods.map(m=>m.id===mod.id?mod:m):mods.concat([mod]);if(next.length>MAX_SAVED){setStatus('Можно сохранить не более '+MAX_SAVED+' собственных модов.',true);return;}
-    mods=next;if(!saveMods())return;renderMods();setStatus('Мод сохранён. Включи его в списке «Мои скриптовые моды».',false,true);
+    mods=next;if(!saveMods())return;renderMods();setStatus('Мод сохранён в локальную мастерскую. Теперь его можно включить, экспортировать или продолжить редактировать.',false,true);
   }
   function exportMod(mod){const blob=new Blob([JSON.stringify({format:'skyrealm-user-mod',version:1,mod:mod},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SkyRealm-Mod-'+mod.id+'.json';document.body.append(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1500);}
   function importModFile(file){const reader=new FileReader();reader.onload=function(){try{const payload=JSON.parse(String(reader.result||'')),raw=payload.mod||payload;validateSource(safeText(raw.name,32),raw.language,String(raw.source||''));
@@ -129,7 +160,11 @@
     mods.filter(m=>m.enabled).forEach(function(mod){let runner=runners.get(mod.id);if(!runner)runner=createRunner(mod);if(runner.ready&&!runner.busy)sendTick(runner,context);});}
   function init(){mods=readMods();renderMods();$('open-script-mod-creator')?.addEventListener('click',function(){openEditor();});
     $('script-mod-close')?.addEventListener('click',closeEditor);$('script-mod-test')?.addEventListener('click',testSource);$('script-mod-save')?.addEventListener('click',saveEditorMod);
-    $('script-mod-language')?.addEventListener('change',function(){if(confirm('Заменить текущий код примером для выбранного языка?'))$('script-mod-code').value=templates($('script-mod-language').value);});
+    $('script-mod-language')?.addEventListener('change',function(){if($('script-mod-template').value==='starter')applyTemplate();});
+    $('script-mod-template')?.addEventListener('change',applyTemplate);
+    $('script-mod-code')?.addEventListener('keydown',editorKeydown);
+    $('script-mod-blank')?.addEventListener('click',function(){if(confirm('Очистить редактор и начать с пустого файла?')){$('script-mod-template').value='blank';applyTemplate();}});
+    $('script-mod-starter')?.addEventListener('click',function(){$('script-mod-template').value='starter';applyTemplate();});
     $('import-user-mod')?.addEventListener('click',function(){$('user-mod-import-file')?.click();});
     $('user-mod-import-file')?.addEventListener('change',function(event){const file=event.target.files?.[0];if(file)importModFile(file);event.target.value='';});
     $('script-mod-studio')?.addEventListener('click',function(event){if(event.target===$('script-mod-studio'))closeEditor();});
