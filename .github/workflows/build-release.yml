@@ -36,7 +36,7 @@ jobs:
             "launcher.py", "update_helper.py", "launcher_version.txt",
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "config.js", "realm.jpg", "icon.png",
-            "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt",
+            "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt", "game/bugfix_counter.txt",
             "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
