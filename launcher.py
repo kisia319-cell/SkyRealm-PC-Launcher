@@ -761,20 +761,30 @@ def _skyrealm_startup_update():
         # for this session; the question is shown again on the next start while an
         # update remains available.
         try:
-            import tkinter as tk
-            from tkinter import messagebox
-            prompt_root = tk.Tk()
-            prompt_root.withdraw()
+            # Prefer a native Windows dialog: reliable in a --windowed PyInstaller build.
+            import ctypes
+            message = f"Доступно обновление лаунчера: {current} → {version}.\\n\\nВы хотите установить обновление?"
+            result = ctypes.windll.user32.MessageBoxW(
+                None, message, "Обновление SkyRealm",
+                0x00000004 | 0x00000040 | 0x00040000
+            )
+            accepted = result == 6  # IDYES
+        except Exception:
             try:
-                prompt_root.attributes("-topmost", True)
-                accepted = messagebox.askyesno(
-                    "Обновление SkyRealm",
-                    f"Доступно обновление лаунчера: {current} → {version}.\\n\\nВы хотите установить обновление?",
-                    parent=prompt_root,
-                )
-            finally:
-                prompt_root.destroy()
-        except Exception as prompt_error:
+                import tkinter as tk
+                from tkinter import messagebox
+                prompt_root = tk.Tk()
+                prompt_root.withdraw()
+                try:
+                    prompt_root.attributes("-topmost", True)
+                    accepted = messagebox.askyesno(
+                        "Обновление SkyRealm",
+                        f"Доступно обновление лаунчера: {current} → {version}.\\n\\nВы хотите установить обновление?",
+                        parent=prompt_root,
+                    )
+                finally:
+                    prompt_root.destroy()
+            except Exception as prompt_error:
             try:
                 root.mkdir(parents=True, exist_ok=True)
                 with (root / "update.log").open("a", encoding="utf-8") as log:
@@ -859,4 +869,7 @@ if __name__ == "__main__":
             text_select=False,
             js_api=api,
         )
-        webview.start(debug=False)
+        # Keep launcher auth storage separate from the game WebView profile.
+        launcher_profile = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "launcher-profile"
+        launcher_profile.mkdir(parents=True, exist_ok=True)
+        webview.start(debug=False, private_mode=False, storage_path=str(launcher_profile))
