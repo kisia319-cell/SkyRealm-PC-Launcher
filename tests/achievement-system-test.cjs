@@ -16,3 +16,6 @@ for(const id of ['first_step','first_night','explorer','veteran','angler','cave_
 for(const id of ['open-achievements','achievements-shade','achievement-list','achievement-count','close-achievements'])assert.ok(html.includes('id="'+id+'"'),'Missing achievement UI element '+id);
 assert.ok(html.includes('.achievement-card.is-unlocked'),'Unlocked rewards must have a distinct visible state');
 console.log('Achievement system syntax and UI integration passed.');
+
+assert.ok(game.includes("id==='progress-stats-grid'")&&game.includes('readWorlds().length'),'Progress center must show total playtime, created worlds, level and achievement count');
+assert.ok(html.includes('id="progress-stats-grid"'),'Progress center must include the player statistics grid');
