@@ -57,6 +57,104 @@
     if ($('.main')) $('.main').scrollTop=0;
     refreshAll();
   }
+  const CALENDAR_STORAGE_KEY='skyrealm_launcher_calendar_v1';
+  let calendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  let calendarSelectedDate=new Date().toISOString().slice(0,10);
+  function readCalendarEvents(){
+    try{const value=JSON.parse(localStorage.getItem(CALENDAR_STORAGE_KEY)||'[]');return Array.isArray(value)?value.filter(item=>item&&/^\\d{4}-\\d{2}-\\d{2}$/.test(item.date)&&typeof item.title==='string'):[];}catch(_){return [];}
+  }
+  function saveCalendarEvents(events){localStorage.setItem(CALENDAR_STORAGE_KEY,JSON.stringify(events.slice(-300)));}
+  function ensureCalendarPage(){
+    const nav=$('.nav'),main=$('.main');if(!nav||!main)return;
+    if(!$('[data-page="calendar"]')){
+      const button=document.createElement('button');button.type='button';button.className='nav-item';button.dataset.page='calendar';button.innerHTML='<span class="nav-ico">▦</span><span>Календарь</span>';
+      nav.insertBefore(button,$('[data-page="screenshots"]')||null);button.addEventListener('click',openCalendarPage);
+    }
+    if(!$('#page-calendar')){
+      const page=document.createElement('section');page.className='page inner-page calendar-page';page.id='page-calendar';
+      page.innerHTML=`
+        <div class="page-heading"><div><div class="section-kicker">SKYREALM · ПЛАНЫ</div><h1>Игровой <span>календарь</span></h1><p>Планируй игровые сессии, испытания и личные события. Записи сохраняются локально на этом компьютере.</p></div></div>
+        <div class="calendar-layout"><section class="calendar-panel"><div class="calendar-month-head"><button class="secondary-btn" id="calendar-prev" type="button">←</button><b id="calendar-month-label"></b><button class="secondary-btn" id="calendar-next" type="button">→</button></div><div class="calendar-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class="calendar-days" id="calendar-days"></div></section>
+        <section class="calendar-panel"><h2>Добавить событие</h2><label class="calendar-field">Название<input id="calendar-event-title" maxlength="70" placeholder="Например, вечер кооператива"></label><label class="calendar-field">Дата<input id="calendar-event-date" type="date"></label><label class="calendar-field">Тип<select id="calendar-event-type"><option value="session">Игровая сессия</option><option value="challenge">Испытание</option><option value="update">Обновление</option><option value="community">Событие сообщества</option></select></label><button class="primary-btn" id="calendar-event-add" type="button">Добавить в календарь</button><p class="calendar-status" id="calendar-status" aria-live="polite"></p><div class="calendar-event-list" id="calendar-event-list"></div></section></div>`;
+      main.append(page);
+    }
+    if(!$('#calendar-prev')?.dataset.bound){
+      $('#calendar-prev').dataset.bound='1';$('#calendar-prev').addEventListener('click',()=>{calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);renderCalendar();});
+      $('#calendar-next').addEventListener('click',()=>{calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);renderCalendar();});
+      $('#calendar-event-date').value=calendarSelectedDate;
+      $('#calendar-event-add').addEventListener('click',()=>{
+        const title=$('#calendar-event-title').value.trim(),date=$('#calendar-event-date').value,type=$('#calendar-event-type').value;
+        if(!title||!date){$('#calendar-status').textContent='Укажи название и дату события.';return;}
+        const events=readCalendarEvents();events.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),title,date,type});
+        saveCalendarEvents(events);calendarSelectedDate=date;calendarMonth=new Date(date+'T12:00:00');$('#calendar-event-title').value='';$('#calendar-status').textContent='Событие сохранено.';renderCalendar();
+      });
+    }
+  }
+  function renderCalendar(){
+    const grid=$('#calendar-days');if(!grid)return;grid.replaceChildren();
+    const year=calendarMonth.getFullYear(),month=calendarMonth.getMonth(),first=new Date(year,month,1),days=new Date(year,month+1,0).getDate(),offset=(first.getDay()+6)%7;
+    $('#calendar-month-label').textContent=calendarMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    const events=readCalendarEvents();
+    for(let i=0;i<offset;i++){const blank=document.createElement('span');blank.className='calendar-day blank';grid.append(blank);}
+    for(let day=1;day<=days;day++){
+      const date=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0'),count=events.filter(event=>event.date===date).length;
+      const button=document.createElement('button');button.type='button';button.className='calendar-day'+(date===calendarSelectedDate?' selected':'')+(count?' has-events':'');button.textContent=String(day);
+      if(count){const mark=document.createElement('i');mark.textContent=String(count);button.append(mark);}
+      button.addEventListener('click',()=>{calendarSelectedDate=date;$('#calendar-event-date').value=date;renderCalendar();});grid.append(button);
+    }
+    const list=$('#calendar-event-list');list.replaceChildren();
+    const selected=events.filter(event=>event.date===calendarSelectedDate).sort((a,b)=>a.title.localeCompare(b.title));
+    const upcoming=selected.length?selected:events.filter(event=>event.date>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
+    if(!upcoming.length){const empty=document.createElement('p');empty.className='calendar-status';empty.textContent='На эту дату событий нет. Добавь первое событие выше.';list.append(empty);}
+    upcoming.forEach(event=>{
+      const row=document.createElement('div');row.className='calendar-event-row';const info=document.createElement('div');
+      const title=document.createElement('b');title.textContent=event.title;const meta=document.createElement('small');meta.textContent=event.date+' · '+({session:'Игровая сессия',challenge:'Испытание',update:'Обновление',community:'Событие сообщества'}[event.type]||'Событие');
+      const remove=document.createElement('button');remove.type='button';remove.className='secondary-btn';remove.textContent='Удалить';remove.addEventListener('click',()=>{saveCalendarEvents(readCalendarEvents().filter(item=>item.id!==event.id));renderCalendar();});
+      info.append(title,meta);row.append(info,remove);list.append(row);
+    });
+  }
+  function openCalendarPage(){
+    ensureCalendarPage();document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id==='page-calendar'));
+    document.querySelectorAll('.nav-item').forEach(button=>button.classList.toggle('active',button.dataset.page==='calendar'));
+    if($('#crumb-label'))$('#crumb-label').textContent='КАЛЕНДАРЬ';if($('.main'))$('.main').scrollTop=0;renderCalendar();
+  }
+  function ensureSupportPage(){
+    const nav=$('.nav'),main=$('.main');if(!nav||!main)return;
+    if(!$('[data-page="support"]')){
+      const button=document.createElement('button');button.type='button';button.className='nav-item';button.dataset.page='support';button.innerHTML='<span class="nav-ico">?</span><span>Поддержка</span>';
+      nav.insertBefore(button,$('[data-page="settings"]')||null);button.addEventListener('click',openSupportPage);
+    }
+    if(!$('#page-support')){
+      const page=document.createElement('section');page.className='page inner-page support-page';page.id='page-support';
+      page.innerHTML=`
+        <div class="page-heading"><div><div class="section-kicker">SKYREALM · ПОМОЩЬ</div><h1>Центр <span>поддержки</span></h1><p>Если что-то не работает, собери диагностику и отправь отчёт разработчику.</p></div></div>
+        <div class="support-grid"><article class="support-card"><b>Сообщить об ошибке</b><p>Опиши проблему и приложи скопированный диагностический отчёт.</p><a class="primary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/issues/new" target="_blank" rel="noopener">Создать обращение</a></article>
+        <article class="support-card"><b>Обновления и инструкции</b><p>Открыть исходный код, описание проекта и последние версии лаунчера.</p><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher" target="_blank" rel="noopener">Репозиторий GitHub</a><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest" target="_blank" rel="noopener">Последний релиз</a></article></div>
+        <article class="support-card support-diagnostics"><b>Диагностический отчёт</b><p id="support-diagnostics-status">Отчёт содержит версии, состояние файлов и локальные показатели компьютера. Пароли и токены авторизации в него не включаются.</p><button class="primary-btn" id="support-copy-diagnostics" type="button">Скопировать отчёт</button></article>`;
+      main.append(page);
+    }
+    if(!$('#support-copy-diagnostics')?.dataset.bound){
+      $('#support-copy-diagnostics').dataset.bound='1';$('#support-copy-diagnostics').addEventListener('click',copySupportDiagnostics);
+    }
+  }
+  function openSupportPage(){
+    ensureSupportPage();document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id==='page-support'));
+    document.querySelectorAll('.nav-item').forEach(button=>button.classList.toggle('active',button.dataset.page==='support'));
+    if($('#crumb-label'))$('#crumb-label').textContent='ПОДДЕРЖКА';if($('.main'))$('.main').scrollTop=0;
+  }
+  async function copySupportDiagnostics(){
+    const status=$('#support-diagnostics-status');if(status)status.textContent='Собираем диагностику…';
+    try{
+      const api=window.pywebview?.api;if(!api?.get_diagnostics)throw new Error('Диагностика доступна в установленном Windows-лаунчере.');
+      const [diagnostics,metrics]=await Promise.all([api.get_diagnostics(),api.get_system_metrics?.()||Promise.resolve({ok:false})]);
+      const report={created_at:new Date().toISOString(),launcher_version:document.querySelector('.side-version')?.textContent||'',diagnostics,metrics};
+      const content=JSON.stringify(report,null,2);
+      if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(content);
+      else{const area=document.createElement('textarea');area.value=content;document.body.append(area);area.select();document.execCommand('copy');area.remove();}
+      if(status)status.textContent='Диагностический отчёт скопирован. Прикрепи его к обращению.';
+    }catch(error){if(status)status.textContent=error.message||'Не удалось собрать отчёт.';}
+  }
+
   function ensureScreenshotsPage() {
     const nav=$('.nav'),main=$('.main');if(!nav||!main)return;
     if(!$('[data-page="screenshots"]')){
@@ -296,7 +394,7 @@
     });
   }
   function init() {
-    ensureSystemPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();
+    ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();
     refreshServices();refreshNotifications();
     pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();},45_000);
   }
