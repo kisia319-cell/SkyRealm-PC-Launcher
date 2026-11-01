@@ -291,6 +291,14 @@ assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameK
 assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden) keys.clear(); })"), 'Hidden game windows must clear held movement keys');
 
 assert.ok(game.includes("window.addEventListener('keydown', e => {"), 'Keyboard input must be captured at the WebView window level');
+const keydownStart = game.indexOf("window.addEventListener('keydown'");
+const movementDeclaration = game.indexOf('const movementKey =', keydownStart);
+const movementUse = game.indexOf('if (editTarget && !formTarget && movementKey', keydownStart);
+assert.ok(keydownStart >= 0 && movementDeclaration > keydownStart && movementUse > movementDeclaration,
+  'movementKey must be declared before it is used; otherwise every keydown throws a temporal-dead-zone ReferenceError');
+assert.ok(game.includes("!editTarget.closest?.('[hidden], [aria-hidden=\"true\"]')"),
+  'Hidden form controls must not swallow movement input after dialogs close');
+
 assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Keyboard releases must clear movement keys at window level');
 assert.ok(game.includes("const hasBlockingShade=Array.from(document.querySelectorAll('.shade'))"), 'Pause recovery must check all visible modal overlays');
 assert.ok(game.includes('!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true'), 'A stale pause must recover only inside an active world with no visible pause dialog');
