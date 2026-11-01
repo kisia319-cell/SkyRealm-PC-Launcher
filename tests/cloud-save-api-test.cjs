@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const auth=fs.readFileSync('supabase/functions/skyrealm-auth/index.ts','utf8');
+const social=fs.readFileSync('supabase/functions/skyrealm-social/index.ts','utf8');
+assert.match(auth,/if \(path === "\/api\/cloud\/save" && req\.method === "GET"\)/);
+assert.match(auth,/if \(path === "\/api\/cloud\/save" && req\.method === "POST"\)/);
+assert.match(auth,/authRequest\("user", "GET", undefined, token\)/);
+assert.match(auth,/grant|cloudSaveDb/);
+assert.match(auth,/currentRevision !== expected/);
+assert.match(auth,/validateCloudBundle/);
+assert.match(social,/route===\"\/api\/social\/notifications\" && req\.method===\"GET\"/);
+assert.match(social,/skyrealm_messages/);
+assert.match(social,/skyrealm_room_invites/);
+console.log('Cloud save and notification API security tests: OK');

@@ -37,7 +37,7 @@ jobs:
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "config.js", "realm.jpg", "icon.png",
             "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt",
-            "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js"
+            "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/cloud-save-ui.js"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
           if ($missing.Count -gt 0) {
@@ -73,10 +73,11 @@ jobs:
           node tests/auth-smoke.mjs
           node tests/launcher-enhancements-test.cjs
           node tests/cloud-save-ui-test.cjs
+          node tests/cloud-save-api-test.cjs
           node tests/supabase-migration-history-test.cjs
 
       - name: Install build tools
-        run: python -m pip install --upgrade pip pywebview pyinstaller
+        run: python -m pip install --upgrade pip pywebview pyinstaller psutil
 
       - name: Build game window executable
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py

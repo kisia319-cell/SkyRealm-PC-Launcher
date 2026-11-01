@@ -239,9 +239,6 @@
     ensureSystemPage();addNotificationControl();bindSystemActions();
     refreshServices();refreshNotifications();
     pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();},45_000);
-    if(document.querySelector('[data-page="system"]')) {
-      document.querySelector('[data-page="system"]').addEventListener('click',openSystemPage);
-    }
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
