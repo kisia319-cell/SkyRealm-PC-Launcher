@@ -334,13 +334,16 @@
     <div id="coop-message" class="coop-status" role="status">Проверяем аккаунт и состояние комнаты…</div>
     <section id="coop-no-room">
       <div class="coop-fields">
-        <label class="coop-muted" for="coop-difficulty">Сложность общей карты</label>
+        <strong>Присоединиться к существующей комнате</strong>
+        <label class="coop-muted" for="coop-code">Введи 8-значный код, который прислал владелец</label>
+        <input class="coop-input" id="coop-code" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="КОД ПРИГЛАШЕНИЯ · 8 СИМВОЛОВ" aria-label="Код приглашения">
+        <button class="action" id="coop-join" type="button">↪ Присоединиться к комнате</button>
+        <div class="coop-muted">Или создай собственную комнату:</div>
+        <label class="coop-muted" for="coop-difficulty">Сложность новой общей карты</label>
         <select class="coop-input" id="coop-difficulty" aria-label="Сложность общей карты">
           <option value="easy">Легко</option><option value="medium" selected>Средняя</option><option value="hard">Сложно</option><option value="hell">Жар</option><option value="impossible">Невозможно</option>
         </select>
-        <button class="action" id="coop-create" type="button">＋ Создать комнату</button>
-        <input class="coop-input" id="coop-code" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="КОД ПРИГЛАШЕНИЯ · 8 СИМВОЛОВ" aria-label="Код приглашения">
-        <button class="action secondary" id="coop-join" type="button">Войти по коду</button>
+        <button class="action secondary" id="coop-create" type="button">＋ Создать новую комнату</button>
       </div>
     </section>
     <section class="coop-room-card coop-friend-inbox" id="coop-incoming-invites" hidden>
