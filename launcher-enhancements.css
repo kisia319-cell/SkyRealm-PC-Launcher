@@ -52,3 +52,21 @@ body.performance-saver .art-orb, body.performance-saver .live-dot, body.performa
 .key-binding-row span { min-width:0; color:var(--text,#e8f0ff); font-size:12px; }
 .key-binding-row button { min-width:68px; margin:0; padding:7px 10px; }
 @media(max-width:640px){.key-bindings-grid{grid-template-columns:1fr;}}
+
+.screenshots-page .page-heading { align-items:flex-start; }
+.screenshots-page .page-heading .system-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.screenshots-status { min-height:18px; color:var(--muted,#91a5c5); font-size:12px; }
+.screenshots-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
+.screenshot-card { overflow:hidden; border:1px solid var(--line,#2d4568); border-radius:14px; background:rgba(8,20,37,.72); }
+.screenshot-card-preview { display:grid; place-items:center; aspect-ratio:16/9; color:#9ab8e8; font-size:42px; background:linear-gradient(145deg,#102b49,#081522); }
+.screenshot-card-details { display:grid; gap:8px; padding:12px; }
+.screenshot-card-details b { overflow-wrap:anywhere; color:var(--text,#e8f0ff); font-size:12px; }
+.screenshot-card-details small { color:var(--muted,#91a5c5); font-size:11px; }
+.screenshot-card-details button { justify-self:start; }
+.screenshots-empty { grid-column:1/-1; display:grid; gap:8px; padding:36px 20px; text-align:center; color:var(--muted,#91a5c5); border:1px dashed var(--line,#2d4568); border-radius:14px; }
+.screenshots-empty b { color:var(--text,#e8f0ff); }
+.screenshot-viewer { position:fixed; inset:0; z-index:1200; display:grid; place-items:center; padding:24px; background:rgba(1,7,16,.88); }
+.screenshot-viewer[hidden] { display:none; }
+.screenshot-viewer-panel { display:grid; gap:12px; max-width:min(1200px,96vw); max-height:92vh; padding:14px; border:1px solid var(--line,#2d4568); border-radius:16px; background:#081522; }
+.screenshot-viewer-head { display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--text,#e8f0ff); }
+.screenshot-viewer-panel img { display:block; max-width:100%; max-height:78vh; object-fit:contain; }
