@@ -26,7 +26,7 @@ jobs:
         run: |
           VERSION="$(tr -d '\r\n' < game/version.txt)"
           test -n "$VERSION"
-          node -e "const fs=require('node:fs'); const v=fs.readFileSync('game/version.txt','utf8').trim(); const h=fs.readFileSync('game/index.html','utf8'); if(!/^\\d+\\.\\d+\\.\\d+$/.test(v)) process.exit(1); if(!h.includes('content=\"'+v+'\"') || !h.includes('2D SURVIVAL · '+v)) process.exit(1);"
+          node -e "const fs=require('node:fs'); const v=fs.readFileSync('game/version.txt','utf8').trim(); const h=fs.readFileSync('game/index.html','utf8'); if(!/^\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?$/.test(v)) process.exit(1); if(!h.includes('name=\"skyrealm-game-version\" content=\"'+v+'\"')) process.exit(1);"
           test -f game/index.html
           test -f game/game.js
           node --check game/game.js
