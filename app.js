@@ -731,7 +731,7 @@
   const DEFAULT_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
   const KEY_BIND_LABELS = {up:'Движение вверх',left:'Движение влево',down:'Движение вниз',right:'Движение вправо',interact:'Взаимодействие',inventory:'Инвентарь',map:'Карта',attack:'Атака',dodge:'Уклонение',ability:'Боевой навык',heal:'Лечение',buff:'Зелье усиления'};
   let currentKeyBindings = {...DEFAULT_KEY_BINDINGS};
-  const DEFAULT_GAME_PREFERENCES = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', keyBindings:{...DEFAULT_KEY_BINDINGS}, fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, uiSoundEnabled:true, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, adminMode:false, moderatorMode:false };
+  const DEFAULT_GAME_PREFERENCES = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', installRoot:'', keyBindings:{...DEFAULT_KEY_BINDINGS}, fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, uiSoundEnabled:true, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, adminMode:false, moderatorMode:false };
   function normalizeGamePreferences(value = {}) {
     const p = {...DEFAULT_GAME_PREFERENCES, ...(value && typeof value === 'object' ? value : {})};
     if (!['1280x720','1600x900','1920x1080','1280x960','1440x900'].includes(p.resolution)) p.resolution = DEFAULT_GAME_PREFERENCES.resolution;
@@ -741,6 +741,7 @@
     for (const key of ['musicVolume','sfxVolume']) p[key] = Math.max(0,Math.min(100,Math.round(Number(p[key])||0)));
     p.musicEnabled = p.musicEnabled === true;
     p.uiSoundEnabled = p.uiSoundEnabled !== false;
+    p.installRoot = String(p.installRoot || '').trim().slice(0,512);
     const rawBindings=p.keyBindings&&typeof p.keyBindings==='object'?p.keyBindings:{};
     const codes=Object.values(DEFAULT_KEY_BINDINGS).map(()=>null);
     const validCode=code=>/^(Key[A-Z]|Arrow(Up|Down|Left|Right)|Space|Digit[0-9])$/.test(String(code||''));
@@ -769,6 +770,7 @@
       musicEnabled: $('#launcher-music-toggle') ? $('#launcher-music-toggle').checked : savedGamePreferences().musicEnabled,
       uiSoundEnabled: $('#ui-sounds-toggle') ? $('#ui-sounds-toggle').checked : savedGamePreferences().uiSoundEnabled,
       keyBindings: currentKeyBindings,
+      installRoot: savedGamePreferences().installRoot,
       adminMode: $('#admin-tools-toggle') ? $('#admin-tools-toggle').checked : savedGamePreferences().adminMode,
       moderatorMode: $('#moderator-tools-toggle') ? $('#moderator-tools-toggle').checked : savedGamePreferences().moderatorMode
     });
@@ -857,6 +859,7 @@
     $('#screen-resolution-select').value = p.resolution;
     $('#window-mode-select').value = p.windowMode;
     $('#graphics-quality-select').value = p.graphicsQuality;
+    $('#install-folder-path').textContent = p.installRoot || 'По умолчанию: папка SkyRealm в AppData';
     $('#fps-limit-select').value = String(p.fpsLimit);
     $('#music-volume-range').value = String(p.musicVolume); $('#music-volume-value').textContent=p.musicVolume+'%';
     $('#sfx-volume-range').value = String(p.sfxVolume); $('#sfx-volume-value').textContent=p.sfxVolume+'%';
@@ -876,6 +879,29 @@
     if(selector==='#sfx-volume-range')$('#sfx-volume-value').textContent=$('#sfx-volume-range').value+'%';
     persistGamePreferences(true);applyLauncherAudioSettings();
   }));
+  $('#select-install-folder').addEventListener('click',async()=>{
+    if(!window.pywebview?.api?.select_install_folder){toast('Выбор папки доступен в установленном Windows-лаунчере.');return;}
+    const button=$('#select-install-folder');button.disabled=true;
+    try{
+      const result=await window.pywebview.api.select_install_folder();
+      if(!result?.ok){if(!result?.cancelled)throw new Error(result?.message||'Не удалось выбрать папку.');return;}
+      const preferences=normalizeGamePreferences(result.settings||{...savedGamePreferences(),installRoot:result.path||''});
+      localStorage.setItem(GAME_PREFERENCES_KEY,JSON.stringify(preferences));
+      $('#install-folder-path').textContent=result.path||'По умолчанию: папка SkyRealm в AppData';
+      toast(result.message||'Папка установки сохранена.');
+    }catch(error){toast(error.message||'Не удалось выбрать папку.');}
+    finally{button.disabled=false;}
+  });
+  $('#reset-install-folder').addEventListener('click',async()=>{
+    if(!window.pywebview?.api?.reset_install_folder){toast('Сброс папки доступен в Windows-лаунчере.');return;}
+    try{
+      const result=await window.pywebview.api.reset_install_folder();if(!result?.ok)throw new Error(result?.message||'Не удалось сбросить папку.');
+      const preferences=normalizeGamePreferences(result.settings||{...savedGamePreferences(),installRoot:''});
+      localStorage.setItem(GAME_PREFERENCES_KEY,JSON.stringify(preferences));
+      $('#install-folder-path').textContent='По умолчанию: папка SkyRealm в AppData';
+      toast(result.message||'Папка установки сброшена.');
+    }catch(error){toast(error.message||'Не удалось сбросить папку.');}
+  });
   $('#launcher-music-toggle').addEventListener('change',()=>{persistGamePreferences(true);applyLauncherAudioSettings();});
   $('#ui-sounds-toggle').addEventListener('change',()=>persistGamePreferences(true));
   $('#launcher-scale-select').addEventListener('change',e=>{localStorage.setItem('skyrealm_launcher_scale',e.target.value);applyLauncherAccessibility();});
@@ -892,6 +918,7 @@
       const preferences = normalizeGamePreferences(response.settings);
       currentKeyBindings={...preferences.keyBindings};renderKeyBindings();
       localStorage.setItem(GAME_PREFERENCES_KEY, JSON.stringify(preferences));
+      $('#install-folder-path').textContent=preferences.installRoot||'По умолчанию: папка SkyRealm в AppData';
       $('#screen-resolution-select').value = preferences.resolution;
       $('#window-mode-select').value = preferences.windowMode;
       $('#graphics-quality-select').value = preferences.graphicsQuality;
