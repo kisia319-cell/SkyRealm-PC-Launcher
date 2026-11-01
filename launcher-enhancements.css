@@ -40,3 +40,9 @@
 /* Authenticated accounts never see duplicate sign-up/login entry points. */
 button[hidden], [hidden] { display: none !important; }
 body.is-authenticated [data-auth-mode], body.is-authenticated #top-create-account { display: none !important; }
+
+/* Launcher accessibility and resource-saving preferences. */
+body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+body.high-contrast { --muted:#c4d3eb; --muted2:#a9bddb; --line:#7188ad; }
+body.high-contrast .settings-card, body.high-contrast .panel, body.high-contrast .system-card { border-color:#7188ad !important; }
+body.performance-saver .art-orb, body.performance-saver .live-dot, body.performance-saver .hero-art::after { animation:none !important; }
