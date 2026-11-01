@@ -312,3 +312,6 @@ assert.ok(game.includes('gameSettings.musicEnabled=skyMusicEnabled'), 'Game musi
 
 assert.ok(game.includes('DEFAULT_GAME_KEY_BINDINGS')&&game.includes('keyByAction'), 'Game must support remappable keyboard bindings');
 assert.ok(game.includes('code===e.code&&keyByAction[action]'), 'Game must resolve configured key codes to actions');
+
+assert.ok(game.includes('async function saveGameScreenshot')&&game.includes("e.code==='F12'"), 'F12 must capture a game screenshot');
+assert.ok(game.includes('api.save_screenshot'), 'Game screenshots must be sent to the native safe-save API');
