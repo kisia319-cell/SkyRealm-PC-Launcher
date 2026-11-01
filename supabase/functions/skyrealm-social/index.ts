@@ -42,7 +42,7 @@ async function db(path: string, init: RequestInit={}) {
   return data;
 }
 function orderedPair(a:string,b:string) { return a<b?{user_a:a,user_b:b}:{user_a:b,user_b:a}; }
-const profileFields="id,username,display_name,avatar_key,bio,player_class,level,experience,playtime_seconds,last_seen_at,created_at";
+const profileFields="id,username,display_name,avatar_key,bio,player_class,level,experience,playtime_seconds,last_seen_at,presence_status,created_at";
 async function profiles(ids:string[]) {
   if(!ids.length) return [];
   return await db("profiles?select="+profileFields+"&id=in.("+ids.join(",")+")") || [];
@@ -104,6 +104,16 @@ Deno.serve(async(req:Request)=>{
       const row=created?.[0];
       return reply({mod:row?{...row,creator_name:user.email.split("@")[0]}:null,message:"Мод опубликован."},201);
     }
+    if(route==="/api/social/presence" && req.method==="GET") {
+      const rows=await db("profiles?select=presence_status&id=eq."+user.id+"&limit=1");
+      return reply({status:rows?.[0]?.presence_status||"online"});
+    }
+    if(route==="/api/social/presence" && req.method==="PATCH") {
+      const p=await body(req), status=String(p.status||"");
+      if(!["online","away","dnd"].includes(status)) throw new ApiError(400,"INVALID_PRESENCE","Выбери доступный статус.");
+      const rows=await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify({presence_status:status,last_seen_at:new Date().toISOString()})});
+      return reply({ok:true,status:rows?.[0]?.presence_status||status});
+    }
     if(route==="/api/social/profile" && req.method==="GET") {
       await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify({last_seen_at:new Date().toISOString()})});
       const rows=await db("profiles?select="+profileFields+"&id=eq."+user.id);
@@ -149,13 +159,16 @@ Deno.serve(async(req:Request)=>{
     if(route==="/api/social/search" && req.method==="GET") {
       const q=(url.searchParams.get("q")||"").trim();
       if(!/^[A-Za-zА-Яа-яЁё0-9_]{3,20}$/.test(q)) throw new ApiError(400,"INVALID_QUERY","Введи ник: от 3 до 20 букв, цифр или _.");
-      const rows=await db("profiles?select=id,username,display_name,avatar_key,player_class,level,last_seen_at&username=ilike."+encodeURIComponent(q)+"&id=neq."+user.id+"&limit=10");
+      const rows=await db("profiles?select=id,username,display_name,avatar_key,player_class,level,last_seen_at,presence_status&username=ilike."+encodeURIComponent(q)+"&id=neq."+user.id+"&limit=10");
       return reply({players:rows||[]});
     }
     if(route==="/api/social/friends" && req.method==="GET") {
       const rel=await db("skyrealm_friendships?select=id,user_a,user_b,requested_by,status,created_at&or=(user_a.eq."+user.id+",user_b.eq."+user.id+")&order=updated_at.desc");
       const ids=[...new Set((rel||[]).map((x:any)=>x.user_a===user.id?x.user_b:x.user_a))];
-      const people=await profiles(ids), byId=new Map(people.map((p:any)=>[p.id,p]));
+      const people=await profiles(ids);
+      const activeMembers=ids.length?await db("co_op_members?select=user_id&user_id=in.("+ids.join(",")+")&member_status=eq.active"): [];
+      const inGameIds=new Set((activeMembers||[]).map((m:any)=>m.user_id));
+      const byId=new Map(people.map((p:any)=>[p.id,{...p,in_game:inGameIds.has(p.id)}]));
       return reply({relationships:(rel||[]).map((x:any)=>({id:x.id,status:x.status,direction:x.requested_by===user.id?"outgoing":"incoming",player:byId.get(x.user_a===user.id?x.user_b:x.user_a)||null,created_at:x.created_at}))});
     }
     if(route==="/api/social/request" && req.method==="POST") {
