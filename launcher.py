@@ -462,7 +462,7 @@ class LauncherApi:
             state = self.get_update_status()
             if not state.get("ok"):
                 return state
-            install_dir = skyrealm_game_dir(preferences)
+            install_dir = skyrealm_game_dir()
             bundled_version = Path(resource_path("game/version.txt")).read_text(encoding="utf-8").strip()
             installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True, force=True)
             required = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
@@ -478,8 +478,7 @@ class LauncherApi:
         try:
             if self._skyrealm_game_is_running():
                 return {"ok": False, "message": "Закрой игру перед откатом версии."}
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            root = app_data / "SkyRealm"
+            root = skyrealm_data_root()
             install_dir = root / "game"
             previous = root / "game.previous"
             failed = root / "game.failed"
@@ -554,8 +553,7 @@ class LauncherApi:
                 return {"ok": False, "message": "В сборке лаунчера отсутствуют файлы игры. Пересобери EXE из полного архива."}
 
             bundled_version = source_version.read_text(encoding="utf-8").strip()
-            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
-            install_dir = app_data / "SkyRealm" / "game"
+            install_dir = skyrealm_game_dir(preferences)
             installed_index = install_dir / "index.html"
             installed_version_file = install_dir / "version.txt"
             _js_update(8, "Проверяем обновления…", "Проверяем версию игры и загружаем обновления при необходимости")
