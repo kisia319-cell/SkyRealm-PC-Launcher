@@ -311,4 +311,4 @@ assert.ok(game.includes('Number(gameSettings.musicVolume??35)'), 'Game ambient m
 assert.ok(game.includes('gameSettings.musicEnabled=skyMusicEnabled'), 'Game music toggle must persist its enabled state');
 
 assert.ok(game.includes('DEFAULT_GAME_KEY_BINDINGS')&&game.includes('keyByAction'), 'Game must support remappable keyboard bindings');
-assert.ok(game.includes('bindings[ action ]')||game.includes('bindings[action]'), 'Game must resolve configured key codes');
+assert.ok(game.includes('code===e.code&&keyByAction[action]'), 'Game must resolve configured key codes to actions');
