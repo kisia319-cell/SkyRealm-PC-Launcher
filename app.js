@@ -326,7 +326,21 @@
     $('#auth-foot').innerHTML = t('verifyFoot');
     $('#verification-code').focus();
   }
+  function setAuthEntryState(authenticated) {
+    const isAuthenticated = authenticated === true;
+    document.body.classList.toggle('is-authenticated', isAuthenticated);
+    $('[data-auth-mode], #top-create-account').forEach(button => {
+      button.hidden = isAuthenticated;
+      button.setAttribute('aria-hidden', String(isAuthenticated));
+    });
+    const intro = $('.home-intro p');
+    if (intro) intro.textContent = isAuthenticated
+      ? (currentLanguage === 'en' ? 'Your SkyRealm account is connected. Your worlds and adventures are waiting.' : 'Твой аккаунт SkyRealm подключён. Твои миры и приключения ждут тебя.')
+      : (currentLanguage === 'en' ? 'Create an account, verify your email, and get ready for a fantasy adventure.' : 'Создай аккаунт, подтверди почту и подготовься к путешествию по фэнтезийному миру.');
+  }
+
   function showProfile(user) {
+    setAuthEntryState(true);
     hideVerification();
     $('#auth-form').hidden = true;
     $('.auth-tabs').hidden = true;
@@ -470,6 +484,7 @@
   if(socialRefresh) socialRefresh.addEventListener('click',()=>{loadSocialFriends();refreshSocialInvites();setSocialMessage('Список обновлён.');});
 
   function showAuthAfterLogout() {
+    setAuthEntryState(false);
     hideVerification();
     $('#profile-view').hidden = true;
     $('#auth-form').hidden = false;
@@ -693,16 +708,21 @@
   if (savedLogin) $('#username').value = savedLogin;
 
   async function restoreSession() {
-    if (!currentToken() || !apiConfigured()) return;
+    // A saved token is only a hint. The server's /me endpoint is the source of truth.
+    // Never hide account-entry controls permanently until the session is verified.
+    if (!currentToken() || !apiConfigured()) {
+      setAuthEntryState(false);
+      return;
+    }
     try {
       const token = await getValidToken();
       const result = await requestApi('/api/auth/me', {token});
+      if (!result?.user) throw new Error('Сервер не вернул профиль пользователя.');
       showProfile(result.user);
     } catch (error) {
-      // Do not erase a valid saved session during a temporary network outage.
-      // Clear it only when the server explicitly rejects the access/refresh token.
       if (error && (error.status === 401 || error.status === 403)) clearToken();
-      else if (error) console.warn('[SkyRealm auth] Session restore deferred:', error.message || error);
+      setAuthEntryState(false);
+      if (error) console.warn('[SkyRealm auth] Session restore deferred:', error.message || error);
     }
   }
   restoreSession();
