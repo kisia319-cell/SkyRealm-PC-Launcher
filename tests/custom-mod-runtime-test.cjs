@@ -51,3 +51,10 @@ function validateGeneratedWorker(language,source){
 validateGeneratedWorker('javascript','function onTick(context,state){return {state:state,actions:[]};}');
 validateGeneratedWorker('python','def on_tick(context, state):\n    return {"state": state, "actions": []}\n');
 console.log('JavaScript/Python custom mod studio and generated worker syntax tests passed.');
+
+for(const id of ['script-mod-description','script-mod-template','script-mod-blank','script-mod-starter']) assert.ok(html.includes('id="'+id+'"'),'Missing Mod Studio workflow control: '+id);
+assert.ok(fs.readFileSync('game/custom-mods.css','utf8').includes('aspect-ratio:16/9'),'Mod Studio must use a 16:9 workspace on desktop.');
+assert.ok(html.includes('Начать с нуля')&&html.includes('Пустой файл — с нуля'),'A blank-from-scratch project must be available.');
+assert.ok(runtime.includes("event.key==='Tab'")&&runtime.includes("event.key==='Enter'")&&runtime.includes("event.key.toLowerCase()==='s'"),'Code editor must support indentation and keyboard shortcuts.');
+assert.ok(runtime.includes('description:safeText(m.description,140)'),'Mod descriptions must survive reload and editing.');
+assert.ok(runtime.includes('script-mod-template')&&runtime.includes('applyTemplate()'),'Language-specific starter templates must be selectable.');
