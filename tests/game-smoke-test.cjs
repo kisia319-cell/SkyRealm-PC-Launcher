@@ -315,3 +315,8 @@ assert.ok(game.includes('code===e.code&&keyByAction[action]'), 'Game must resolv
 
 assert.ok(game.includes('async function saveGameScreenshot')&&game.includes("e.code==='F12'"), 'F12 must capture a game screenshot');
 assert.ok(game.includes('api.save_screenshot'), 'Game screenshots must be sent to the native safe-save API');
+
+assert.match(game,/WORLD_FAVORITES_KEY/,'World favorites must persist locally');
+assert.match(game,/toggleFavoriteWorld/,'Players must be able to add and remove favorite worlds');
+assert.match(game,/data-favorite-world/,'Each world card must expose a favorite toggle');
+assert.ok(gameHtml.includes('id="world-filter"')&&gameHtml.includes('value="favorites"'),'World selector must offer a favorites filter');
