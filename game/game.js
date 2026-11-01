@@ -3506,15 +3506,21 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const formTarget = e.target && (e.target.matches?.('input,textarea,select') || e.target.isContentEditable);
     // Recover from a stale paused flag after first world entry. This can happen
     // when the character-entry overlay closes without completing its resume callback.
-    const movementKey = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k);
+    const movementKey = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k) ||
+      ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code);
     const pauseShade = document.getElementById('pause-shade');
+    const visible = id => { const el=document.getElementById(id); return !!el && !el.hidden; };
     const blockingOverlay = signDialogOpen || inventoryDialogOpen || workbenchDialogOpen ||
       shopDialogOpen || npcQuestDialogOpen || storageDialogOpen || fullMapOpen ||
-      !document.getElementById('character-editor-shade')?.hidden ||
-      !document.getElementById('tutorial-shade')?.hidden ||
-      !document.getElementById('class-select-shade')?.hidden;
+      visible('character-editor-shade') || visible('tutorial-shade') ||
+      visible('class-select-shade') || visible('skill-tree-shade') ||
+      visible('admin-panel-shade') || visible('moderator-panel-shade') ||
+      visible('admin-password-shade') || visible('world-create-shade') ||
+      visible('world-rename-shade') || visible('difficulty-shade');
+    // Some embedded WebView builds can leave the internal pause flag stale after
+    // a modal closes. Resume on the first movement key only when no modal is visible.
     if (movementKey && !formTarget && !inMainMenu && paused &&
-        pauseShade?.hidden && !blockingOverlay && !sleeping) {
+        pauseShade?.hidden === true && !blockingOverlay && !sleeping) {
       paused = false;
       keys.clear();
       last = performance.now();
@@ -3560,7 +3566,12 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if (/^[1-4]$/.test(k) && !paused && !signDialogOpen && !inventoryDialogOpen) { selectSlot(Number(k)); return; }
     if (!paused && !signDialogOpen && !inventoryDialogOpen) keys.add(k);
   }, true);
+  // Listen at document capture level as well: WebView keyboard focus can move
+  // between the canvas and its wrapper, but key releases must always clear input.
+  document.addEventListener('keyup', e => keys.delete(gameKey(e)), true);
   window.addEventListener('keyup', e => keys.delete(gameKey(e)), true);
+  window.addEventListener('blur', () => keys.clear(), true);
+  document.addEventListener('visibilitychange', () => { if(document.hidden) keys.clear(); });
   window.addEventListener('blur', () => keys.clear());
   window.addEventListener('beforeunload',()=>{try{saveGame();}catch(_){}});
   window.addEventListener('resize', resize);
