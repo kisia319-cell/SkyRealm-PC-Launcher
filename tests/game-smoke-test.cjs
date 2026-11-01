@@ -291,8 +291,24 @@ assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameK
 assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden) keys.clear(); })"), 'Hidden game windows must clear held movement keys');
 
 assert.ok(game.includes("window.addEventListener('keydown', e => {"), 'Keyboard input must be captured at the WebView window level');
+const keydownStart = game.indexOf("window.addEventListener('keydown'");
+const movementDeclaration = game.indexOf('const movementKey =', keydownStart);
+const movementUse = game.indexOf('if (editTarget && !formTarget && movementKey', keydownStart);
+assert.ok(keydownStart >= 0 && movementDeclaration > keydownStart && movementUse > movementDeclaration,
+  'movementKey must be declared before it is used; otherwise every keydown throws a temporal-dead-zone ReferenceError');
+assert.ok(game.includes("!editTarget.closest?.('[hidden], [aria-hidden=\"true\"]')"),
+  'Hidden form controls must not swallow movement input after dialogs close');
+
 assert.ok(game.includes("window.addEventListener('keyup', e => keys.delete(gameKey(e)), true)"), 'Keyboard releases must clear movement keys at window level');
 assert.ok(game.includes("const hasBlockingShade=Array.from(document.querySelectorAll('.shade'))"), 'Pause recovery must check all visible modal overlays');
 assert.ok(game.includes('!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true'), 'A stale pause must recover only inside an active world with no visible pause dialog');
 
 assert.ok(game.includes("canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused)canvas.focus();},true)"), 'Clicking the world canvas must restore keyboard focus');
+
+assert.ok(game.includes('fpsGateAt=0') && game.includes('1000/fpsLimit'), 'Game must enforce the selected FPS limit without stopping requestAnimationFrame');
+assert.ok(game.includes('Number(gameSettings.sfxVolume??70)'), 'Game sound effects must use the saved sound volume');
+assert.ok(game.includes('Number(gameSettings.musicVolume??35)'), 'Game ambient music must use the saved music volume');
+assert.ok(game.includes('gameSettings.musicEnabled=skyMusicEnabled'), 'Game music toggle must persist its enabled state');
+
+assert.ok(game.includes('DEFAULT_GAME_KEY_BINDINGS')&&game.includes('keyByAction'), 'Game must support remappable keyboard bindings');
+assert.ok(game.includes('code===e.code&&keyByAction[action]'), 'Game must resolve configured key codes to actions');

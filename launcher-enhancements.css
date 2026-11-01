@@ -36,3 +36,19 @@
 .system-error{color:#ff9eae!important}
 @media(max-width:1050px){.system-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.system-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.system-grid{grid-template-columns:1fr}.system-notification-panel{right:14px;top:62px}.system-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Authenticated accounts never see duplicate sign-up/login entry points. */
+button[hidden], [hidden] { display: none !important; }
+body.is-authenticated [data-auth-mode], body.is-authenticated #top-create-account { display: none !important; }
+
+/* Launcher accessibility and resource-saving preferences. */
+body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+body.high-contrast { --muted:#c4d3eb; --muted2:#a9bddb; --line:#7188ad; }
+body.high-contrast .settings-card, body.high-contrast .panel, body.high-contrast .system-card { border-color:#7188ad !important; }
+body.performance-saver .art-orb, body.performance-saver .live-dot, body.performance-saver .hero-art::after { animation:none !important; }
+
+.key-bindings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:10px 0 18px; }
+.key-binding-row { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; padding:9px 11px; border:1px solid var(--line,#2d4568); border-radius:10px; background:rgba(8,20,37,.55); }
+.key-binding-row span { min-width:0; color:var(--text,#e8f0ff); font-size:12px; }
+.key-binding-row button { min-width:68px; margin:0; padding:7px 10px; }
+@media(max-width:640px){.key-bindings-grid{grid-template-columns:1fr;}}

@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const launcher=fs.readFileSync('launcher.py','utf8');
+const app=fs.readFileSync('app.js','utf8');
 const ui=fs.readFileSync('launcher-enhancements.js','utf8');
 const html=fs.readFileSync('index.html','utf8');
 assert.match(launcher,/def get_update_status/);
@@ -14,4 +15,28 @@ for(const id of ['system-auth-dot','system-coop-dot','system-social-dot','system
 assert.ok(ui.includes('/api/social/notifications'));
 assert.ok(ui.includes('__cloud_saves__'));
 assert.ok(html.includes('launcher-enhancements.js')&&html.includes('launcher-enhancements.css'));
+
+assert.match(app,/function setAuthEntryState\(authenticated\)/,'Auth entry state helper must exist');
+assert.match(app,/\$\$\('\[data-auth-mode\], #top-create-account'\)/,'All register/login entry buttons must be toggled');
+assert.match(app,/setAuthEntryState\(true\)/,'Verified profile must hide account entry buttons');
+assert.match(app,/setAuthEntryState\(false\)/,'Logout or invalid session must restore account entry buttons');
+assert.match(app,/requestApi\('\/api\/auth\/me'/,'Saved sessions must be verified with the server');
+assert.match(app,/if \(!currentToken\(\) \|\| !apiConfigured\(\)\)/,'Missing session must leave account entry available');
 console.log('Launcher enhancements: OK');
+
+assert.match(app,/\$\$\('\[data-auth-mode\], #top-create-account'\)/,'Account buttons must be toggled through querySelectorAll, not querySelector');
+assert.match(app,/fpsLimit/,'Launcher FPS preference must be normalized and persisted');
+assert.match(app,/musicVolume/,'Launcher music volume must be wired');
+assert.match(app,/sfxVolume/,'Launcher sound volume must be wired');
+assert.match(app,/applyLauncherAudioSettings/,'Launcher music setting must control the background audio');
+assert.match(app,/launcher-scale-select/,'Launcher text scale must be wired');
+assert.match(app,/reduce-motion-toggle/,'Reduced motion setting must be wired');
+assert.match(app,/high-contrast-toggle/,'High contrast setting must be wired');
+assert.match(app,/performance-saver-toggle/,'Resource-saving setting must be wired');
+assert.ok(html.includes('id="fps-limit-select"')&&html.includes('id="music-volume-range"')&&html.includes('id="sfx-volume-range"'),'FPS and audio controls must exist in the settings page');
+assert.ok(launcher.includes('"fpsLimit": 0')&&launcher.includes('"musicVolume": 35')&&launcher.includes('"sfxVolume": 70'),'Native settings must preserve audio and FPS preferences');
+
+assert.match(app,/DEFAULT_KEY_BINDINGS/,'Launcher must expose editable default key bindings');
+assert.match(app,/renderKeyBindings/,'Launcher must render the key-binding editor');
+assert.ok(html.includes('id="key-bindings-list"')&&html.includes('id="reset-key-bindings"'),'Keyboard remapping controls must exist');
+assert.ok(launcher.includes('"keyBindings"')&&launcher.includes('"up": "KeyW"'),'Native launcher settings must persist keyboard bindings');

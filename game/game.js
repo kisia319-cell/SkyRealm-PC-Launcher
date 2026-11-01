@@ -6,7 +6,8 @@
   let inMainMenu = true;
   let settingsOpenedFromMainMenu = false;
   const keys = new Set();
-  const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
+  const DEFAULT_GAME_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
+  const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
   let gameSettings = readInitialSettings();
   const world = { trees: [], rocks: [], flowers: [], fireflies: [], signs: [], fences: [] };
   let treeChops=[],felledTrees=[];
@@ -190,12 +191,14 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   const NPC_NAMES={merchant:'Борис',alchemist:'Лира',hunter:'Рен',farmer:'Мира',miner:'Торн',builder:'Оскар',mage:'Элиан',guard:'Кай'};
   const NPC_COLORS={merchant:'#c18b4d',alchemist:'#8d70b8',hunter:'#63865a',farmer:'#bd8b58',miner:'#74899a',builder:'#a8754c',mage:'#6b77bd',guard:'#667c91'};
   let audioContext=null;
-  function playSound(kind='tap'){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!audioContext)audioContext=new AC();if(audioContext.state==='suspended')audioContext.resume();const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();const presets={wood:[150,85,'triangle',.12],stone:[280,115,'square',.09],iron:[620,240,'triangle',.14],coal:[190,130,'square',.1],step:[105,70,'sine',.045],hit:[230,95,'sawtooth',.07],sheep:[500,380,'sine',.1],craft:[390,780,'triangle',.18],coin:[900,1250,'sine',.12],portal:[180,660,'sine',.32],water:[520,340,'sine',.16],tap:[350,240,'sine',.06]};const q=presets[kind]||presets.tap;osc.type=q[2];osc.frequency.setValueAtTime(q[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(40,q[1]),now+q[3]);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.07,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+q[3]);osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+q[3]+.02);}catch(_){}}
+  function playSound(kind='tap'){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!audioContext)audioContext=new AC();if(audioContext.state==='suspended')audioContext.resume();const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();const presets={wood:[150,85,'triangle',.12],stone:[280,115,'square',.09],iron:[620,240,'triangle',.14],coal:[190,130,'square',.1],step:[105,70,'sine',.045],hit:[230,95,'sawtooth',.07],sheep:[500,380,'sine',.1],craft:[390,780,'triangle',.18],coin:[900,1250,'sine',.12],portal:[180,660,'sine',.32],water:[520,340,'sine',.16],tap:[350,240,'sine',.06]};const q=presets[kind]||presets.tap;osc.type=q[2];osc.frequency.setValueAtTime(q[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(40,q[1]),now+q[3]);gain.gain.setValueAtTime(.0001,now);const volume=Math.max(0,Math.min(100,Number(gameSettings.sfxVolume??70)))/100;if(volume<=0)return;gain.gain.exponentialRampToValueAtTime(.07*volume,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+q[3]);osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+q[3]+.02);}catch(_){}}
   // Original procedural sound effects are kept. Add optional original ambient music using Web Audio.
   let skyMusic=null;
   let skyMusicEnabled=false;
   function setSkyMusic(enabled){
     skyMusicEnabled=!!enabled;
+    gameSettings.musicEnabled=skyMusicEnabled;
+    try{localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));}catch(_){}
     const button=document.getElementById('menu-music-toggle');
     if(button){button.setAttribute('aria-pressed',String(skyMusicEnabled));button.innerHTML=skyMusicEnabled?'♫ <span>Музыка: вкл.</span>':'♫ <span>Музыка: выкл.</span>';}
     try{
@@ -207,7 +210,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
         const master=audioContext.createGain();master.gain.value=.0001;master.connect(audioContext.destination);
         const notes=[110,164.81,220,261.63];
         const voices=notes.map((freq,index)=>{const osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type=index===0?'sine':'triangle';osc.frequency.value=freq;gain.gain.value=index===0?.10:.035;osc.connect(gain);gain.connect(master);osc.start();return osc;});
-        const now=audioContext.currentTime;master.gain.setTargetAtTime(.18,now,.9);
+        const now=audioContext.currentTime,volume=Math.max(0,Math.min(100,Number(gameSettings.musicVolume??35)))/100;master.gain.setTargetAtTime(Math.max(.0001,.18*volume),now,.9);
         skyMusic={master,voices};
       }else if(!skyMusicEnabled&&skyMusic){
         const current=skyMusic;skyMusic=null;current.master.gain.setTargetAtTime(.0001,audioContext.currentTime,.12);
@@ -215,6 +218,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       }
     }catch(_){}
   }
+  document.addEventListener('pointerdown',()=>{if(gameSettings.musicEnabled&&!skyMusicEnabled)setSkyMusic(true);},{once:true,capture:true});
   function playUiSound(kind='tap'){if(skyMusicEnabled||kind==='tap')playSound(kind);}
   let furnaceCrafted=false;
   let houseLevel=1;
@@ -389,6 +393,13 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if (!['windowed','fullscreen'].includes(s.windowMode)) s.windowMode = DEFAULT_GAME_SETTINGS.windowMode;
     if (!['low','medium','high'].includes(s.graphicsQuality)) s.graphicsQuality = DEFAULT_GAME_SETTINGS.graphicsQuality;
     if (!['balanced','boost'].includes(s.performanceMode)) s.performanceMode = DEFAULT_GAME_SETTINGS.performanceMode;
+    if (![0,30,60,120,144].includes(Number(s.fpsLimit))) s.fpsLimit = 0; else s.fpsLimit = Number(s.fpsLimit);
+    for (const key of ['musicVolume','sfxVolume']) s[key] = Math.max(0,Math.min(100,Math.round(Number(s[key])||0)));
+    s.musicEnabled = s.musicEnabled === true;
+    const rawBindings=s.keyBindings&&typeof s.keyBindings==='object'?s.keyBindings:{};
+    const validBinding=code=>/^(Key[A-Z]|Arrow(Up|Down|Left|Right)|Space|Digit[0-9])$/.test(String(code||''));
+    const bindings={};Object.keys(DEFAULT_GAME_KEY_BINDINGS).forEach(action=>{bindings[action]=validBinding(rawBindings[action])?String(rawBindings[action]):DEFAULT_GAME_KEY_BINDINGS[action];});
+    if(new Set(Object.values(bindings)).size!==Object.keys(DEFAULT_GAME_KEY_BINDINGS).length)s.keyBindings={...DEFAULT_GAME_KEY_BINDINGS};else s.keyBindings=bindings;
     if (!['85','100','115'].includes(String(s.uiScale))) s.uiScale = '100'; else s.uiScale = String(s.uiScale);
     ['showVitals','showQuest','showControls','showInventory','showMinimap'].forEach(k => s[k] = s[k] !== false);
     s.adminMode = s.adminMode === true;
@@ -2483,6 +2494,9 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     canvas.focus();
   }
   function gameKey(e){
+    const keyByAction={up:'w',left:'a',down:'s',right:'d',interact:'e',inventory:'i',map:'l',attack:' ',dodge:'q',ability:'r',heal:'h',buff:'j'};
+    const bindings=gameSettings.keyBindings||DEFAULT_GAME_KEY_BINDINGS;
+    for(const [action,code] of Object.entries(bindings)){if(code===e.code&&keyByAction[action])return keyByAction[action];}
     const byCode = {
       KeyW:'w', KeyA:'a', KeyS:'s', KeyD:'d', KeyE:'e', KeyI:'i', KeyL:'l', KeyK:'k',
       ArrowUp:'arrowup', ArrowDown:'arrowdown', ArrowLeft:'arrowleft', ArrowRight:'arrowright',
@@ -2998,7 +3012,11 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       }
     }).catch(()=>{});
   }
+  let fpsGateAt=0;
   function tick(now){
+    const fpsLimit=Number(gameSettings.fpsLimit)||0;
+    if(fpsLimit>0&&fpsGateAt&&now-fpsGateAt<(1000/fpsLimit)-0.5){requestAnimationFrame(tick);return;}
+    fpsGateAt=now;
     try { tickFrame(now); } catch (error) {
       console.error('SkyRealm frame error:', error);
       try { drawEmergencyWorld(); } catch (renderError) { console.error('SkyRealm emergency render error:', renderError); }
@@ -3516,11 +3534,20 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   window.addEventListener('keydown', e => {
     if(e.code==='F11'||e.key==='F11'){e.preventDefault();toggleFullscreen();return;}
     const k = gameKey(e);
-    const formTarget = e.target && (e.target.matches?.('input,textarea,select') || e.target.isContentEditable);
-    // Recover from a stale paused flag after first world entry. This can happen
-    // when the character-entry overlay closes without completing its resume callback.
     const movementKey = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k) ||
       ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code);
+    const editTarget = e.target && (e.target.matches?.('input,textarea,select') || e.target.isContentEditable);
+    // WebView can leave focus on a hidden search/name field after its dialog closes.
+    // A hidden editor must never swallow WASD/arrow input for the game.
+    const formTarget = !!(editTarget && !editTarget.disabled &&
+      !editTarget.closest?.('[hidden], [aria-hidden="true"]') &&
+      editTarget.getClientRects?.().length > 0 &&
+      getComputedStyle(editTarget).visibility !== 'hidden');
+    if (editTarget && !formTarget && movementKey && !inMainMenu) {
+      try { canvas.focus(); } catch (_) {}
+    }
+    // Recover from a stale paused flag after first world entry. This can happen
+    // when the character-entry overlay closes without completing its resume callback.
     const pauseShade = document.getElementById('pause-shade');
     const visible = id => { const el=document.getElementById(id); return !!el && !el.hidden; };
     const blockingOverlay = signDialogOpen || inventoryDialogOpen || workbenchDialogOpen ||

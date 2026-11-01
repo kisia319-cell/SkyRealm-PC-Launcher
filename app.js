@@ -326,7 +326,21 @@
     $('#auth-foot').innerHTML = t('verifyFoot');
     $('#verification-code').focus();
   }
+  function setAuthEntryState(authenticated) {
+    const isAuthenticated = authenticated === true;
+    document.body.classList.toggle('is-authenticated', isAuthenticated);
+    $$('[data-auth-mode], #top-create-account').forEach(button => {
+      button.hidden = isAuthenticated;
+      button.setAttribute('aria-hidden', String(isAuthenticated));
+    });
+    const intro = $('.home-intro p');
+    if (intro) intro.textContent = isAuthenticated
+      ? (currentLanguage === 'en' ? 'Your SkyRealm account is connected. Your worlds and adventures are waiting.' : 'Твой аккаунт SkyRealm подключён. Твои миры и приключения ждут тебя.')
+      : (currentLanguage === 'en' ? 'Create an account, verify your email, and get ready for a fantasy adventure.' : 'Создай аккаунт, подтверди почту и подготовься к путешествию по фэнтезийному миру.');
+  }
+
   function showProfile(user) {
+    setAuthEntryState(true);
     hideVerification();
     $('#auth-form').hidden = true;
     $('.auth-tabs').hidden = true;
@@ -470,6 +484,7 @@
   if(socialRefresh) socialRefresh.addEventListener('click',()=>{loadSocialFriends();refreshSocialInvites();setSocialMessage('Список обновлён.');});
 
   function showAuthAfterLogout() {
+    setAuthEntryState(false);
     hideVerification();
     $('#profile-view').hidden = true;
     $('#auth-form').hidden = false;
@@ -693,28 +708,46 @@
   if (savedLogin) $('#username').value = savedLogin;
 
   async function restoreSession() {
-    if (!currentToken() || !apiConfigured()) return;
+    // A saved token is only a hint. The server's /me endpoint is the source of truth.
+    // Never hide account-entry controls permanently until the session is verified.
+    if (!currentToken() || !apiConfigured()) {
+      setAuthEntryState(false);
+      return;
+    }
     try {
       const token = await getValidToken();
       const result = await requestApi('/api/auth/me', {token});
+      if (!result?.user) throw new Error('Сервер не вернул профиль пользователя.');
       showProfile(result.user);
     } catch (error) {
-      // Do not erase a valid saved session during a temporary network outage.
-      // Clear it only when the server explicitly rejects the access/refresh token.
       if (error && (error.status === 401 || error.status === 403)) clearToken();
-      else if (error) console.warn('[SkyRealm auth] Session restore deferred:', error.message || error);
+      setAuthEntryState(false);
+      if (error) console.warn('[SkyRealm auth] Session restore deferred:', error.message || error);
     }
   }
   restoreSession();
 
   const GAME_PREFERENCES_KEY = 'skyrealm_game_preferences';
-  const DEFAULT_GAME_PREFERENCES = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, adminMode:false, moderatorMode:false };
+  const DEFAULT_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
+  const KEY_BIND_LABELS = {up:'Движение вверх',left:'Движение влево',down:'Движение вниз',right:'Движение вправо',interact:'Взаимодействие',inventory:'Инвентарь',map:'Карта',attack:'Атака',dodge:'Уклонение',ability:'Боевой навык',heal:'Лечение',buff:'Зелье усиления'};
+  let currentKeyBindings = {...DEFAULT_KEY_BINDINGS};
+  const DEFAULT_GAME_PREFERENCES = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', keyBindings:{...DEFAULT_KEY_BINDINGS}, fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, uiSoundEnabled:true, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, adminMode:false, moderatorMode:false };
   function normalizeGamePreferences(value = {}) {
     const p = {...DEFAULT_GAME_PREFERENCES, ...(value && typeof value === 'object' ? value : {})};
     if (!['1280x720','1600x900','1920x1080','1280x960','1440x900'].includes(p.resolution)) p.resolution = DEFAULT_GAME_PREFERENCES.resolution;
     if (!['windowed','fullscreen'].includes(p.windowMode)) p.windowMode = DEFAULT_GAME_PREFERENCES.windowMode;
     if (!['low','medium','high'].includes(p.graphicsQuality)) p.graphicsQuality = DEFAULT_GAME_PREFERENCES.graphicsQuality;
-    if (!['85','100','115'].includes(String(p.uiScale))) p.uiScale = '100';
+    if (![0,30,60,120,144].includes(Number(p.fpsLimit))) p.fpsLimit = 0; else p.fpsLimit = Number(p.fpsLimit);
+    for (const key of ['musicVolume','sfxVolume']) p[key] = Math.max(0,Math.min(100,Math.round(Number(p[key])||0)));
+    p.musicEnabled = p.musicEnabled === true;
+    p.uiSoundEnabled = p.uiSoundEnabled !== false;
+    const rawBindings=p.keyBindings&&typeof p.keyBindings==='object'?p.keyBindings:{};
+    const codes=Object.values(DEFAULT_KEY_BINDINGS).map(()=>null);
+    const validCode=code=>/^(Key[A-Z]|Arrow(Up|Down|Left|Right)|Space|Digit[0-9])$/.test(String(code||''));
+    const bindings={};Object.keys(DEFAULT_KEY_BINDINGS).forEach(action=>{bindings[action]=validCode(rawBindings[action])?String(rawBindings[action]):DEFAULT_KEY_BINDINGS[action];});
+    const used=new Set(Object.values(bindings));
+    if(used.size!==Object.keys(DEFAULT_KEY_BINDINGS).length)p.keyBindings={...DEFAULT_KEY_BINDINGS};else p.keyBindings=bindings;
+    if (!['85','100','115','130'].includes(String(p.uiScale))) p.uiScale = '100';
     ['showVitals','showQuest','showControls','showInventory'].forEach(k => p[k] = p[k] !== false);
     p.adminMode = p.adminMode === true;
     p.moderatorMode = p.moderatorMode === true;
@@ -730,6 +763,12 @@
       resolution: $('#screen-resolution-select')?.value || DEFAULT_GAME_PREFERENCES.resolution,
       windowMode: $('#window-mode-select')?.value || DEFAULT_GAME_PREFERENCES.windowMode,
       graphicsQuality: $('#graphics-quality-select')?.value || DEFAULT_GAME_PREFERENCES.graphicsQuality,
+      fpsLimit: $('#fps-limit-select') ? Number($('#fps-limit-select').value) : savedGamePreferences().fpsLimit,
+      musicVolume: $('#music-volume-range') ? Number($('#music-volume-range').value) : savedGamePreferences().musicVolume,
+      sfxVolume: $('#sfx-volume-range') ? Number($('#sfx-volume-range').value) : savedGamePreferences().sfxVolume,
+      musicEnabled: $('#launcher-music-toggle') ? $('#launcher-music-toggle').checked : savedGamePreferences().musicEnabled,
+      uiSoundEnabled: $('#ui-sounds-toggle') ? $('#ui-sounds-toggle').checked : savedGamePreferences().uiSoundEnabled,
+      keyBindings: currentKeyBindings,
       adminMode: $('#admin-tools-toggle') ? $('#admin-tools-toggle').checked : savedGamePreferences().adminMode,
       moderatorMode: $('#moderator-tools-toggle') ? $('#moderator-tools-toggle').checked : savedGamePreferences().moderatorMode
     });
@@ -742,21 +781,107 @@
     } catch (_) { /* browser mode has no native API; local storage remains the source */ }
     if (announce) toast(currentLanguage === 'en' ? 'Game settings saved. They apply next time you launch.' : 'Настройки игры сохранены. Они применятся при следующем запуске.');
   }
+  let launcherAudioContext = null, launcherMusicNodes = null;
+  function launcherAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!launcherAudioContext) launcherAudioContext = new AC();
+    if (launcherAudioContext.state === 'suspended') launcherAudioContext.resume().catch(() => {});
+    return launcherAudioContext;
+  }
+  function applyLauncherAudioSettings() {
+    const ctx = launcherAudio();
+    if (!ctx) return;
+    const enabled = $('#launcher-music-toggle')?.checked === true;
+    const volume = Math.max(0,Math.min(100,Number($('#music-volume-range')?.value ?? 35)))/100;
+    if (!launcherMusicNodes) {
+      const master=ctx.createGain();master.gain.value=0.0001;master.connect(ctx.destination);
+      const voices=[110,164.81,220,261.63].map((frequency,index)=>{
+        const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type=index===0?'sine':'triangle';osc.frequency.value=frequency;gain.gain.value=index===0?.10:.035;osc.connect(gain);gain.connect(master);osc.start();return osc;
+      });
+      launcherMusicNodes={master,voices};
+    }
+    launcherMusicNodes.master.gain.setTargetAtTime(enabled?Math.max(0.0001,volume*0.075):0.0001,ctx.currentTime,enabled?0.8:0.18);
+  }
+  function playLauncherUiSound() {
+    if ($('#ui-sounds-toggle')?.checked === false) return;
+    const volume=Math.max(0,Math.min(100,Number($('#sfx-volume-range')?.value ?? 70)))/100;
+    if(volume<=0)return;
+    const ctx=launcherAudio();if(!ctx)return;
+    const osc=ctx.createOscillator(),gain=ctx.createGain(),now=ctx.currentTime;
+    osc.type='sine';osc.frequency.setValueAtTime(420,now);osc.frequency.exponentialRampToValueAtTime(280,now+0.055);
+    gain.gain.setValueAtTime(0.0001,now);gain.gain.exponentialRampToValueAtTime(0.035*volume,now+0.008);gain.gain.exponentialRampToValueAtTime(0.0001,now+0.07);
+    osc.connect(gain);gain.connect(ctx.destination);osc.start(now);osc.stop(now+0.08);
+  }
+  document.addEventListener('click',event=>{if(event.target.closest?.('button,.nav-item,.main-menu-action'))playLauncherUiSound();},true);
+  document.addEventListener('pointerdown',()=>{if($('#launcher-music-toggle')?.checked)applyLauncherAudioSettings();},{once:true});
+  function applyLauncherAccessibility() {
+    const scale=$('#launcher-scale-select')?.value||'100';
+    document.documentElement.style.fontSize=scale+'%';
+    document.body.classList.toggle('reduce-motion',$('#reduce-motion-toggle')?.checked===true);
+    document.body.classList.toggle('high-contrast',$('#high-contrast-toggle')?.checked===true);
+    document.body.classList.toggle('performance-saver',$('#performance-saver-toggle')?.checked===true);
+  }
+  function keyCodeLabel(code){return ({Space:'Пробел',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→'})[code]||String(code).replace(/^Key/,'').replace(/^Digit/,'');}
+  function renderKeyBindings(){
+    const root=$('#key-bindings-list');if(!root)return;root.replaceChildren();
+    Object.entries(KEY_BIND_LABELS).forEach(([action,label])=>{
+      const row=document.createElement('div');row.className='key-binding-row';
+      const name=document.createElement('span');name.textContent=label;
+      const button=document.createElement('button');button.type='button';button.className='secondary-btn';button.textContent=keyCodeLabel(currentKeyBindings[action]);button.setAttribute('aria-label','Изменить клавишу: '+label);
+      button.addEventListener('click',()=>{
+        button.textContent='Нажми клавишу…';button.disabled=true;
+        const capture=event=>{
+          event.preventDefault();event.stopPropagation();
+          if(event.code==='Escape'){button.disabled=false;renderKeyBindings();return;}
+          const code=String(event.code||'');
+          if(!/^(Key[A-Z]|Arrow(Up|Down|Left|Right)|Space|Digit[0-9])$/.test(code)){button.disabled=false;renderKeyBindings();toast('Выбери буквенную клавишу, стрелку, цифру или пробел.');return;}
+          const previous=currentKeyBindings[action],conflict=Object.keys(currentKeyBindings).find(key=>key!==action&&currentKeyBindings[key]===code);
+          currentKeyBindings[action]=code;if(conflict)currentKeyBindings[conflict]=previous;
+          button.disabled=false;persistGamePreferences(true);renderKeyBindings();
+        };
+        window.addEventListener('keydown',capture,{once:true,capture:true});
+      });
+      row.append(name,button);root.append(row);
+    });
+  }
+  $('#reset-key-bindings').addEventListener('click',()=>{currentKeyBindings={...DEFAULT_KEY_BINDINGS};persistGamePreferences(true);renderKeyBindings();});
   function loadSettings() {
     $('#effects-toggle').checked = localStorage.getItem('skyrealm_effects') !== 'false';
     $('#compact-toggle').checked = localStorage.getItem('skyrealm_compact') === 'true';
     $('#greeting-toggle').checked = localStorage.getItem('skyrealm_greeting') !== 'false';
     const p = savedGamePreferences();
+    currentKeyBindings={...p.keyBindings};renderKeyBindings();
     $('#admin-tools-toggle').checked = p.adminMode === true;
     $('#moderator-tools-toggle').checked = p.moderatorMode === true;
     $('#screen-resolution-select').value = p.resolution;
     $('#window-mode-select').value = p.windowMode;
     $('#graphics-quality-select').value = p.graphicsQuality;
+    $('#fps-limit-select').value = String(p.fpsLimit);
+    $('#music-volume-range').value = String(p.musicVolume); $('#music-volume-value').textContent=p.musicVolume+'%';
+    $('#sfx-volume-range').value = String(p.sfxVolume); $('#sfx-volume-value').textContent=p.sfxVolume+'%';
+    $('#launcher-music-toggle').checked = p.musicEnabled;
+    $('#ui-sounds-toggle').checked = p.uiSoundEnabled;
+    $('#launcher-scale-select').value = localStorage.getItem('skyrealm_launcher_scale') || '100';
+    $('#reduce-motion-toggle').checked = localStorage.getItem('skyrealm_reduce_motion') === 'true';
+    $('#high-contrast-toggle').checked = localStorage.getItem('skyrealm_high_contrast') === 'true';
+    $('#performance-saver-toggle').checked = localStorage.getItem('skyrealm_performance_saver') === 'true';
+    applyLauncherAccessibility();
   }
   $('#effects-toggle').addEventListener('change', e => { localStorage.setItem('skyrealm_effects', e.target.checked); document.body.classList.toggle('no-effects', !e.target.checked); toast(currentLanguage === 'en' ? 'Interface effects saved.' : 'Настройка эффектов сохранена.'); });
   $('#compact-toggle').addEventListener('change', e => { localStorage.setItem('skyrealm_compact', e.target.checked); document.body.classList.toggle('compact', e.target.checked); toast(currentLanguage === 'en' ? 'Interface setting saved.' : 'Настройка интерфейса сохранена.'); });
   $('#greeting-toggle').addEventListener('change', e => { localStorage.setItem('skyrealm_greeting', e.target.checked); $('.hero-copy').style.display = e.target.checked ? '' : 'none'; toast(currentLanguage === 'en' ? 'Welcome message setting saved.' : 'Настройка приветствия сохранена.'); });
-  ['#screen-resolution-select','#window-mode-select','#graphics-quality-select'].forEach(selector => $(selector).addEventListener('change', () => persistGamePreferences(true)));
+  ['#screen-resolution-select','#window-mode-select','#graphics-quality-select','#fps-limit-select','#music-volume-range','#sfx-volume-range'].forEach(selector => $(selector).addEventListener('change', () => {
+    if(selector==='#music-volume-range')$('#music-volume-value').textContent=$('#music-volume-range').value+'%';
+    if(selector==='#sfx-volume-range')$('#sfx-volume-value').textContent=$('#sfx-volume-range').value+'%';
+    persistGamePreferences(true);applyLauncherAudioSettings();
+  }));
+  $('#launcher-music-toggle').addEventListener('change',()=>{persistGamePreferences(true);applyLauncherAudioSettings();});
+  $('#ui-sounds-toggle').addEventListener('change',()=>persistGamePreferences(true));
+  $('#launcher-scale-select').addEventListener('change',e=>{localStorage.setItem('skyrealm_launcher_scale',e.target.value);applyLauncherAccessibility();});
+  $('#reduce-motion-toggle').addEventListener('change',e=>{localStorage.setItem('skyrealm_reduce_motion',String(e.target.checked));applyLauncherAccessibility();});
+  $('#high-contrast-toggle').addEventListener('change',e=>{localStorage.setItem('skyrealm_high_contrast',String(e.target.checked));applyLauncherAccessibility();});
+  $('#performance-saver-toggle').addEventListener('change',e=>{localStorage.setItem('skyrealm_performance_saver',String(e.target.checked));applyLauncherAccessibility();});
   $('#admin-tools-toggle').addEventListener('change', () => persistGamePreferences(true));
   $('#moderator-tools-toggle').addEventListener('change', () => persistGamePreferences(true));
   async function syncPreferencesFromDesktop() {
@@ -765,10 +890,17 @@
       const response = await window.pywebview.api.get_launcher_settings();
       if (!response?.ok || !response.settings) return;
       const preferences = normalizeGamePreferences(response.settings);
+      currentKeyBindings={...preferences.keyBindings};renderKeyBindings();
       localStorage.setItem(GAME_PREFERENCES_KEY, JSON.stringify(preferences));
       $('#screen-resolution-select').value = preferences.resolution;
       $('#window-mode-select').value = preferences.windowMode;
       $('#graphics-quality-select').value = preferences.graphicsQuality;
+      $('#fps-limit-select').value = String(preferences.fpsLimit);
+      $('#music-volume-range').value = String(preferences.musicVolume); $('#music-volume-value').textContent=preferences.musicVolume+'%';
+      $('#sfx-volume-range').value = String(preferences.sfxVolume); $('#sfx-volume-value').textContent=preferences.sfxVolume+'%';
+      $('#launcher-music-toggle').checked = preferences.musicEnabled;
+      $('#ui-sounds-toggle').checked = preferences.uiSoundEnabled;
+      applyLauncherAudioSettings();
       $('#admin-tools-toggle').checked = preferences.adminMode === true;
       $('#moderator-tools-toggle').checked = preferences.moderatorMode === true;
     } catch (_) { /* browser preview intentionally has no native settings API */ }

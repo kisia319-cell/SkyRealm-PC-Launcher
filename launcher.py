@@ -7,6 +7,7 @@ import sys
 import time
 import json
 import hashlib
+import re
 import zipfile
 import urllib.request
 import urllib.error
@@ -42,6 +43,16 @@ DEFAULT_SETTINGS = {
     "resolution": "1280x720",
     "windowMode": "windowed",
     "graphicsQuality": "medium",
+    "fpsLimit": 0,
+    "musicVolume": 35,
+    "sfxVolume": 70,
+    "musicEnabled": False,
+    "uiSoundEnabled": True,
+    "keyBindings": {
+        "up": "KeyW", "left": "KeyA", "down": "KeyS", "right": "KeyD",
+        "interact": "KeyE", "inventory": "KeyI", "map": "KeyL", "attack": "Space",
+        "dodge": "KeyQ", "ability": "KeyR", "heal": "KeyH", "buff": "KeyJ",
+    },
     "uiScale": "100",
     "showVitals": True,
     "showQuest": True,
@@ -69,6 +80,22 @@ def normalize_settings(value=None) -> dict:
         settings["windowMode"] = DEFAULT_SETTINGS["windowMode"]
     if settings.get("graphicsQuality") not in {"low", "medium", "high"}:
         settings["graphicsQuality"] = DEFAULT_SETTINGS["graphicsQuality"]
+    if settings.get("fpsLimit") not in {0, 30, 60, 120, 144}:
+        settings["fpsLimit"] = 0
+    for key in ("musicVolume", "sfxVolume"):
+        try:
+            settings[key] = max(0, min(100, int(settings.get(key, DEFAULT_SETTINGS[key]))))
+        except (TypeError, ValueError):
+            settings[key] = DEFAULT_SETTINGS[key]
+    settings["musicEnabled"] = settings.get("musicEnabled") is True
+    settings["uiSoundEnabled"] = settings.get("uiSoundEnabled") is not False
+    default_bindings = DEFAULT_SETTINGS["keyBindings"]
+    raw_bindings = settings.get("keyBindings") if isinstance(settings.get("keyBindings"), dict) else {}
+    valid_binding = lambda code: bool(re.fullmatch(r"(?:Key[A-Z]|Arrow(?:Up|Down|Left|Right)|Space|Digit[0-9])", str(code or "")))
+    bindings = {action: (str(raw_bindings.get(action)) if valid_binding(raw_bindings.get(action)) else default) for action, default in default_bindings.items()}
+    if len(set(bindings.values())) != len(default_bindings):
+        bindings = dict(default_bindings)
+    settings["keyBindings"] = bindings
     if str(settings.get("uiScale")) not in {"85", "100", "115"}:
         settings["uiScale"] = DEFAULT_SETTINGS["uiScale"]
     else:
