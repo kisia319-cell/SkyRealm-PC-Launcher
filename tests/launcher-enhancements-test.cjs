@@ -15,7 +15,7 @@ for(const id of ['system-auth-dot','system-coop-dot','system-social-dot','system
 assert.ok(ui.includes('/api/social/notifications'));
 assert.ok(ui.includes('__cloud_saves__'));
 assert.ok(html.includes('launcher-enhancements.js')&&html.includes('launcher-enhancements.css'));
-const app=fs.readFileSync('app.js','utf8');
+
 assert.match(app,/function setAuthEntryState\(authenticated\)/,'Auth entry state helper must exist');
 assert.match(app,/\$\$\('\[data-auth-mode\], #top-create-account'\)/,'All register/login entry buttons must be toggled');
 assert.match(app,/setAuthEntryState\(true\)/,'Verified profile must hide account entry buttons');
