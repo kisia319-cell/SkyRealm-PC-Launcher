@@ -124,7 +124,7 @@
     $('#crumb-label').textContent = pageNames[name] || pageNames.home;
     $('.main').scrollTop = 0;
     if (name === 'settings') loadSettings();
-    if (name === 'community' && currentToken()) loadSocialFriends();
+    if (name === 'community' && currentToken()) { loadSocialFriends(); refreshSocialInvites(); requestSocial('/api/social/active-room').then(x=>socialActiveRoom=x.room).catch(()=>{}); }
   }
   $$('[data-page]').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
   $$('.news-item').forEach(b => b.addEventListener('click', () => showPage('news')));
@@ -377,6 +377,24 @@
     });
     return card;
   }
+
+  let socialActiveRoom=null, socialChatPeer=null, socialChatTimer=null;
+  async function refreshSocialInvites(){
+    const list=$('#social-invites-list'); if(!list||!currentToken())return;
+    try{const data=await requestSocial('/api/social/room-invites');list.replaceChildren();const invites=data.invites||[];
+      if(!invites.length){const e=document.createElement('div');e.className='social-empty';e.textContent='Новых приглашений пока нет.';list.append(e);return;}
+      invites.forEach(inv=>{const card=document.createElement('div');card.className='social-player';const info=document.createElement('div');info.className='social-player-info';const title=document.createElement('b');title.textContent='Комната от '+(inv.inviter?.display_name||inv.inviter?.username||'друга');const sub=document.createElement('small');sub.textContent='Сложность: '+(inv.room?.world_difficulty||'неизвестно')+' · '+(inv.room?.max_players||8)+' мест';info.append(title,sub);card.append(info);
+        const accept=document.createElement('button');accept.type='button';accept.textContent='Принять';accept.addEventListener('click',async()=>{accept.disabled=true;try{const r=await requestSocial('/api/social/room-invites/respond',{method:'POST',body:{invite_id:inv.id,decision:'accept'}});card.remove();setSocialMessage(r.message||'Ты вступил в комнату. Открой игру → Кооператив.');if(!list.children.length)refreshSocialInvites();}catch(e){accept.disabled=false;setSocialMessage(e.message,true);}});
+        const reject=document.createElement('button');reject.type='button';reject.textContent='Отклонить';reject.addEventListener('click',async()=>{reject.disabled=true;try{await requestSocial('/api/social/room-invites/respond',{method:'POST',body:{invite_id:inv.id,decision:'reject'}});card.remove();}catch(e){reject.disabled=false;setSocialMessage(e.message,true);}});card.append(accept,reject);list.append(card);});
+    }catch(e){list.textContent=e.message;}
+  }
+  async function sendSocialRoomInvite(friend){try{if(!socialActiveRoom){const active=await requestSocial('/api/social/active-room');socialActiveRoom=active.room;}if(!socialActiveRoom){setSocialMessage('Сначала создай комнату и войди в неё в игре.',true);return;}const result=await requestSocial('/api/social/room-invites',{method:'POST',body:{room_id:socialActiveRoom.id,friend_id:friend.id}});setSocialMessage(result.message||'Приглашение отправлено.');}catch(e){setSocialMessage(e.message,true);}}
+  function renderSocialMessages(messages){const box=$('#social-chat-messages');if(!box)return;const near=box.scrollHeight-box.scrollTop-box.clientHeight<70;box.replaceChildren();(messages||[]).forEach(m=>{const bubble=document.createElement('div');bubble.className='social-chat-bubble'+(m.sender_id===socialChatPeer.selfId?' mine':'');const body=document.createElement('span');body.textContent=m.body;const time=document.createElement('small');time.textContent=new Date(m.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});bubble.append(body,time);box.append(bubble);});if(near)box.scrollTop=box.scrollHeight;}
+  async function refreshSocialChat(){if(!socialChatPeer)return;try{const endpoint=new URL(SOCIAL_URL);endpoint.searchParams.set('route','/api/social/messages');endpoint.searchParams.set('with',socialChatPeer.id);const token=await getValidToken();const response=await fetch(endpoint.toString(),{headers:{apikey:API_KEY,Authorization:'Bearer '+token},cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.message||'Не удалось загрузить чат.');renderSocialMessages(data.messages||[]);}catch(e){setSocialMessage(e.message,true);}}
+  async function openSocialChat(player){socialChatPeer={id:player.id,selfId:''};$('#social-chat').hidden=false;$('#social-chat-title').textContent='Чат с '+(player.display_name||player.username);await refreshSocialChat();if(socialChatTimer)clearInterval(socialChatTimer);socialChatTimer=setInterval(()=>{if(!$('#social-chat').hidden)refreshSocialChat();},3000);$('#social-chat-input').focus();}
+  $('#social-chat-close')?.addEventListener('click',()=>{$('#social-chat').hidden=true;socialChatPeer=null;if(socialChatTimer)clearInterval(socialChatTimer);});
+  $('#social-chat-form')?.addEventListener('submit',async ev=>{ev.preventDefault();if(!socialChatPeer)return;const input=$('#social-chat-input'),message=input.value.trim();if(!message)return;const button=$('#social-chat-form button');button.disabled=true;try{await requestSocial('/api/social/messages',{method:'POST',body:{friend_id:socialChatPeer.id,message}});input.value='';await refreshSocialChat();}catch(e){setSocialMessage(e.message,true);}finally{button.disabled=false;input.focus();}});
+  $('#social-invites-refresh')?.addEventListener('click',refreshSocialInvites);
   async function loadSocialFriends() {
     const list=$('#social-friends-list'); if(!list) return;
     if(!currentToken()){list.textContent='Войди в аккаунт, чтобы пользоваться друзьями.';return;}
@@ -392,7 +410,7 @@
           actions=[{label:'Принять',run:async()=>{try{await requestSocial('/api/social/respond',{method:'POST',body:{id:rel.id,decision:'accept'}});loadSocialFriends();}catch(e){setSocialMessage(e.message,true);}}},
                    {label:'Отклонить',run:async()=>{try{await requestSocial('/api/social/respond',{method:'POST',body:{id:rel.id,decision:'reject'}});loadSocialFriends();}catch(e){setSocialMessage(e.message,true);}}}];
         } else if(rel.status==='accepted') {
-          actions=[{label:'Удалить',run:async()=>{if(!confirm('Удалить игрока из друзей?'))return;try{await requestSocial('/api/social/remove',{method:'POST',body:{id:rel.id}});loadSocialFriends();}catch(e){setSocialMessage(e.message,true);}}}];
+          actions=[{label:'Чат',run:()=>openSocialChat(rel.player)},{label:'В комнату',run:()=>sendSocialRoomInvite(rel.player)},{label:'Удалить',run:async()=>{if(!confirm('Удалить игрока из друзей?'))return;try{await requestSocial('/api/social/remove',{method:'POST',body:{id:rel.id}});loadSocialFriends();}catch(e){setSocialMessage(e.message,true);}}}];
         } else {
           const waiting=document.createElement('small'); waiting.textContent='Заявка отправлена'; actions=[];
         }
@@ -449,7 +467,7 @@
     setSocialMessage(''); searchSocialPlayers(q);
   });
   const socialRefresh=$('#social-refresh');
-  if(socialRefresh) socialRefresh.addEventListener('click',()=>{loadSocialFriends();setSocialMessage('Список обновлён.');});
+  if(socialRefresh) socialRefresh.addEventListener('click',()=>{loadSocialFriends();refreshSocialInvites();setSocialMessage('Список обновлён.');});
 
   function showAuthAfterLogout() {
     hideVerification();
