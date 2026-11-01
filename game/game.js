@@ -1,6 +1,14 @@
 (() => {
   const canvas = document.getElementById('world');
-  const ctx = canvas.getContext('2d', { alpha: false });
+  function initialVsyncEnabled(){
+    try{
+      const params=new URLSearchParams(window.location.search),raw=params.get('settings');
+      const prefs=raw?JSON.parse(raw):JSON.parse(localStorage.getItem('skyrealm_game_preferences')||'{}');
+      return prefs.vsync!==false;
+    }catch(_){return true;}
+  }
+  // Canvas desynchronization is a browser hint; requestAnimationFrame remains display-paced when VSync is enabled.
+  const ctx = canvas.getContext('2d', { alpha: false, desynchronized: !initialVsyncEnabled() });
   const TILE = 32; let COLS = 220, ROWS = 164;
   let width = 0, height = 0, dpr = 1, last = performance.now(), paused = true;
   let inMainMenu = true;
@@ -10,7 +18,7 @@
   const movementDirections = new Set();
   const MOVEMENT_DIRECTION_BY_ACTION = {w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
   const DEFAULT_GAME_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
-  const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, musicVolume:35, sfxVolume:70, musicEnabled:false, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
+  const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, vsync:true, musicVolume:35, sfxVolume:70, musicEnabled:false, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
   let gameSettings = readInitialSettings();
   const world = { trees: [], rocks: [], flowers: [], fireflies: [], signs: [], fences: [] };
   let treeChops=[],felledTrees=[];
@@ -397,6 +405,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if (!['low','medium','high'].includes(s.graphicsQuality)) s.graphicsQuality = DEFAULT_GAME_SETTINGS.graphicsQuality;
     if (!['balanced','boost'].includes(s.performanceMode)) s.performanceMode = DEFAULT_GAME_SETTINGS.performanceMode;
     if (![0,30,60,120,144].includes(Number(s.fpsLimit))) s.fpsLimit = 0; else s.fpsLimit = Number(s.fpsLimit);
+    s.vsync = s.vsync !== false;
     for (const key of ['musicVolume','sfxVolume']) s[key] = Math.max(0,Math.min(100,Math.round(Number(s[key])||0)));
     s.musicEnabled = s.musicEnabled === true;
     const rawBindings=s.keyBindings&&typeof s.keyBindings==='object'?s.keyBindings:{};
