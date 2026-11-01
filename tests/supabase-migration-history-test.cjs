@@ -40,7 +40,8 @@ const expected = [
   '20261101060045_coop_owner_leave_constraint_fix.sql',
   '20261101120000_skyrealm_private_messages.sql',
   '20261101140643_skyrealm_cloud_saves.sql',
-  '20261101140737_skyrealm_cloud_saves_deny_policy.sql'
+  '20261101140737_skyrealm_cloud_saves_deny_policy.sql',
+  '20261102100000_social_presence_status.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
