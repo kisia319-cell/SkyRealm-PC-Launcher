@@ -22,3 +22,15 @@ assert.match(app,/setAuthEntryState\(false\)/,'Logout or invalid session must re
 assert.match(app,/requestApi\('\/api\/auth\/me'/,'Saved sessions must be verified with the server');
 assert.match(app,/if \(!currentToken\(\) \|\| !apiConfigured\(\)\)/,'Missing session must leave account entry available');
 console.log('Launcher enhancements: OK');
+
+assert.match(app,/\$\$\('\[data-auth-mode\], #top-create-account'\)/,'Account buttons must be toggled through querySelectorAll, not querySelector');
+assert.match(app,/fpsLimit/,'Launcher FPS preference must be normalized and persisted');
+assert.match(app,/musicVolume/,'Launcher music volume must be wired');
+assert.match(app,/sfxVolume/,'Launcher sound volume must be wired');
+assert.match(app,/applyLauncherAudioSettings/,'Launcher music setting must control the background audio');
+assert.match(app,/launcher-scale-select/,'Launcher text scale must be wired');
+assert.match(app,/reduce-motion-toggle/,'Reduced motion setting must be wired');
+assert.match(app,/high-contrast-toggle/,'High contrast setting must be wired');
+assert.match(app,/performance-saver-toggle/,'Resource-saving setting must be wired');
+assert.ok(html.includes('id="fps-limit-select"')&&html.includes('id="music-volume-range"')&&html.includes('id="sfx-volume-range"'),'FPS and audio controls must exist in the settings page');
+assert.ok(py.includes('"fpsLimit": 0')&&py.includes('"musicVolume": 35')&&py.includes('"sfxVolume": 70'),'Native settings must preserve audio and FPS preferences');
