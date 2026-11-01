@@ -1,9 +1,9 @@
 {
-  "game_sha256": "a501a22037b4237aa995fdb39dedd4f2eabd4136a6f70644c7f03e3008940bb0",
+  "game_sha256": "d8486cfbf943b7770e1c4d15b8e23de867ca4f7b94d5445848c4e466f48560d2",
   "game_version": "0.20.46",
-  "notes": "SkyRealm Launcher 1.2.0 + Game 0.20.46: profile sync, friends and private chat; co-op room invitations; update center with rollback and repair; multi-service status and local performance monitor; cloud world backups; in-app notifications; SHA-256 diagnostics. Existing accounts and local worlds remain compatible.",
+  "notes": "SkyRealm Launcher 1.2.0 + Game 0.20.46: profile sync, friends and private chat; co-op room invitations; update center with rollback and repair; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. Existing accounts and local worlds remain compatible.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.0",
-  "sha256": "392724475bc21534f6c3568e306b0676a9c3daffd0ddd7bf575bd9a50e0445d7",
+  "sha256": "2f6f85eadd3f53e5a22b108796bd75ff35f9fe2032358361cbf48eb1c201a01a",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
