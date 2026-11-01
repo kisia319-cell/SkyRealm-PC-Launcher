@@ -3581,6 +3581,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         pauseShade?.hidden === true && !blockingOverlay && !sleeping) {
       paused = false;
       keys.clear();
+      movementDirections.clear();
       last = performance.now();
       canvas.focus();
     }
