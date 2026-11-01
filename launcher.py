@@ -152,7 +152,7 @@ def skyrealm_screenshot_dir() -> Path:
 
 
 def skyrealm_screenshot_name_is_safe(name) -> bool:
-    return bool(re.fullmatch(r"SkyRealm_[0-9]{8}_[0-9]{6}-[0-9]{9}\\.png", str(name or "")))
+    return bool(re.fullmatch(r"SkyRealm_[0-9]{8}_[0-9]{6}-[0-9]{9}\.png", str(name or "")))
 
 
 def resolution_size(settings: dict) -> tuple[int, int]:
@@ -736,7 +736,7 @@ class GameApi:
             if not isinstance(data_url, str) or len(data_url) > 12_000_000 or not data_url.startswith("data:image/png;base64,"):
                 return {"ok": False, "message": "Некорректный формат скриншота."}
             raw = base64.b64decode(data_url.split(",", 1)[1], validate=True)
-            if not raw.startswith(b"\\x89PNG\\r\\n\\x1a\\n") or len(raw) > 8 * 1024 * 1024:
+            if not raw.startswith(b"\x89PNG\r\n\x1a\n") or len(raw) > 8 * 1024 * 1024:
                 return {"ok": False, "message": "Скриншот повреждён или превышает лимит 8 МБ."}
             directory = skyrealm_screenshot_dir()
             name = "SkyRealm_" + time.strftime("%Y%m%d_%H%M%S") + "-" + str(time.time_ns() % 1_000_000_000).zfill(9) + ".png"
