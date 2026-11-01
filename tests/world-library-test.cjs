@@ -7,7 +7,7 @@ const html=fs.readFileSync('game/index.html','utf8');
 new vm.Script(game,{filename:'game/game.js'});
 assert.ok(game.includes("getElementById('world-search')?.addEventListener('input',renderWorldList)"),'World search must refresh the list as the user types');
 assert.ok(game.includes("getElementById('world-sort')?.addEventListener('change',renderWorldList)"),'World sorting must refresh the list');
-assert.ok(game.includes("const visible=worlds.filter(w=>!query||String(w.name||'').toLocaleLowerCase().includes(query))"),'World search must filter by name');
+assert.ok(game.includes("const visible=worlds.filter(w=>(!favoriteOnly||favorites.includes(w.id))&&(!query||String(w.name||'').toLocaleLowerCase().includes(query)))"),'World search must filter by name while preserving favorites-only filtering');
 assert.ok(game.includes("sort==='name'")&&game.includes("sort==='oldest'"),'Worlds must support name and creation-date sorting');
 for(const field of ['gameMinuteTotal','playerLevel','exploredCells'])assert.ok(game.includes('saved.'+field)||game.includes('saved?.'+field),'World cards must show saved '+field+' metadata');
 assert.ok(game.includes('function downloadWorldBackup(id)')&&game.includes('function importWorldBackupFile(file)'),'World backup export and restore must remain available');
