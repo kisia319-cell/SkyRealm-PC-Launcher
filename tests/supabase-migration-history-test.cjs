@@ -36,7 +36,8 @@ const expected = [
   '20261031150000_deny_direct_social_table_access.sql',
   '20261031170000_skyrealm_community_mods.sql',
   '20261031170500_skyrealm_community_mods_defense_effect.sql',
-  '20261031171000_skyrealm_community_mods_service_policy.sql'
+  '20261031171000_skyrealm_community_mods_service_policy.sql',
+  '20261101120000_skyrealm_private_messages.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
@@ -80,5 +81,7 @@ assert.ok(read(expected[28]).includes('profiles_no_direct_client_access'));
 assert.ok(read(expected[28]).includes('friendships_no_direct_client_access'));
 assert.ok(read(expected[28]).includes('room_invites_no_direct_client_access'));
 assert.ok(read(expected[28]).includes('skyrealm_friendships_requested_by_idx'));
+assert.ok(read(expected[32]).includes('create table if not exists public.skyrealm_messages'));
+assert.ok(read(expected[32]).includes('skyrealm_messages_no_direct_client_access'));
 
 console.log('SkyRealm Supabase migration history tests passed.');
