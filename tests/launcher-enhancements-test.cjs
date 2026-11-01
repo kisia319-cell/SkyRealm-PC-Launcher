@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const launcher=fs.readFileSync('launcher.py','utf8');
 const app=fs.readFileSync('app.js','utf8');
+const enhancements=fs.readFileSync('launcher-enhancements.js','utf8');
 const ui=fs.readFileSync('launcher-enhancements.js','utf8');
 const html=fs.readFileSync('index.html','utf8');
 assert.match(launcher,/def get_update_status/);
@@ -53,3 +54,11 @@ assert.match(launcher,/root = skyrealm_data_root\(\)\s+install_dir = root \/ "ga
 const previewWorkflow=fs.readFileSync('.github/workflows/publish-coop-preview.yml','utf8');
 assert.match(previewWorkflow,/\\d\+\\\\\.\\\\d\+\\\\\.\\\\d\+\(\?:\\\\\.\\\\d\+\)\?/, 'Co-op preview workflow must accept the current four-part game version');
 assert.match(previewWorkflow,/name=\\\"skyrealm-game-version\\\" content=\\\"/, 'Co-op preview validation must use the real game version metadata');
+
+assert.match(launcher,/def save_screenshot\(self, data_url\)/,'Game window must expose safe screenshot saving');
+assert.match(launcher,/def get_screenshots\(self\)/,'Launcher must list saved screenshots');
+assert.match(launcher,/def get_screenshot_data\(self, name\)/,'Launcher must open a selected screenshot');
+assert.match(launcher,/def open_screenshot_folder\(self\)/,'Launcher must expose the screenshot folder');
+assert.match(launcher,/skyrealm_screenshot_name_is_safe/,'Screenshot gallery must reject path traversal names');
+assert.match(enhancements,/function ensureScreenshotsPage\(\)/,'Launcher must create a separate screenshot gallery page');
+assert.match(enhancements,/function refreshScreenshots\(\)/,'Screenshot gallery must load saved screenshots');
