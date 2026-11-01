@@ -1,9 +1,9 @@
 {
-  "game_sha256": "8f162382a9a903229360bee3eae43ea4a56589ef547ded3d7e3ea88c899f2eca",
-  "game_version": "0.20.49.4",
-  "notes": "SkyRealm Launcher 1.2.5 + Game 0.20.49.4: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites with a favorites-only filter; existing accounts and local worlds remain compatible.",
+  "game_sha256": "baa07b9c3490e5dbc313039938532dcc49a88873ebf89e757157daec531f54f3",
+  "game_version": "0.20.49.6",
+  "notes": "SkyRealm 0.20.49.6: shared co-op monsters and boss health, owner-validated combat, and one-time shared loot drops. Every player keeps a separate inventory, wallet, equipment and XP; only the player who picks up a shared drop receives it. Existing worlds and single-player saves remain compatible. Co-op remains a preview.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.5",
   "sha256": "d3fb314426f6cd218fb708d2cae3bc2800f4f96c5faec119c2980afc35345ef9",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-c16a17d/SkyRealm_Game.zip"
 }
