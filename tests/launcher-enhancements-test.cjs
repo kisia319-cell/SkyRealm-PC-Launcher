@@ -48,3 +48,8 @@ assert.match(launcher,/install_dir = skyrealm_game_dir\(preferences\)/,'Game ins
 assert.ok(html.includes('id="select-install-folder"')&&html.includes('id="reset-install-folder"')&&html.includes('id="install-folder-path"'),'Installation folder controls must exist in launcher settings');
 assert.match(app,/select_install_folder/,'Launcher UI must call the native folder picker');
 assert.match(app,/reset_install_folder/,'Launcher UI must call the default folder reset action');
+
+assert.match(launcher,/root = skyrealm_data_root\(\)\s+install_dir = root \/ "game"/,'Startup update checks must respect the selected installation root');
+const previewWorkflow=fs.readFileSync('.github/workflows/publish-coop-preview.yml','utf8');
+assert.match(previewWorkflow,/\\d\+\\\\\.\\\\d\+\\\\\.\\\\d\+\(\?:\\\\\.\\\\d\+\)\?/, 'Co-op preview workflow must accept the current four-part game version');
+assert.match(previewWorkflow,/name=\\\"skyrealm-game-version\\\" content=\\\"/, 'Co-op preview validation must use the real game version metadata');
