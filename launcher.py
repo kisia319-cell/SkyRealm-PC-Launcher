@@ -593,6 +593,9 @@ class LauncherApi:
     def launch_game(self, settings=None, allow_game_update=True, session_token=None, open_mod_id=None):
         """Install the bundled prototype into LocalAppData and start it in a new process."""
         try:
+            # The standalone game runner is installed beside the user's persistent SkyRealm data.
+            # Keep this base path local to launch_game; runner_dir below must not reference an undefined name.
+            app_data = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
             preferences = save_user_settings(settings if isinstance(settings, dict) else read_user_settings())
             source_dir = Path(resource_path("game")).resolve()
             source_index = source_dir / "index.html"
