@@ -97,6 +97,13 @@ assert.equal(m.sanitizeWorldAction('pickup_loot',{
 assert.equal(m.sanitizeWorldAction('pickup_loot',{
   loot_id:'123e4567-e89b-42d3-a456-426614174099',x:200,y:240,world_mode:'trade'
 }),null);
+const sharedTimeSettings=m.sanitizeSharedWorldSnapshot({worldTimeMultiplier:3,lastYetiSpawnDay:12});
+assert.deepEqual(sharedTimeSettings,{worldTimeMultiplier:3,lastYetiSpawnDay:12},
+  'World time speed and the daily Yeti marker must synchronize with the co-op host.');
+assert.equal(m.sanitizeSharedWorldSnapshot({worldTimeMultiplier:5}),null,
+  'Unsupported world time multipliers must be rejected.');
+assert.equal(m.sanitizeSharedWorldSnapshot({lastYetiSpawnDay:-2}),null,
+  'Invalid Yeti day markers must be rejected.');
 const coOpWorldId='123e4567-e89b-42d3-a456-426614174000';
 const coOpEntry={room_id:coOpWorldId,world_id:'coop_'+coOpWorldId,world_name:'Мир друзей',difficulty:'medium',started_at:1761972000000};
 assert.deepEqual(m.sanitizeSharedWorldSnapshot({coopWorldEntry:coOpEntry}),{coopWorldEntry:coOpEntry},
