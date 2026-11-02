@@ -22,6 +22,8 @@ jobs:
       - run: node tests/profile-social-integration-test.cjs
       - run: node tests/profile-social-api-smoke.mjs
       - run: node --check app.js
+      - run: node --check launcher-enhancements.js
+      - run: node tests/launcher-enhancements-test.cjs
       - run: node tests/singleplayer-village-test.cjs
       - run: node tests/game-smoke-test.cjs
       - run: node tests/achievement-system-test.cjs
@@ -33,7 +35,7 @@ jobs:
       - run: node --check game/multiplayer-client.js
       - run: node --check game/multiplayer-ui.js
       - run: node --check game/game.js
-      - run: python -m py_compile launcher.py
+      - run: python -m py_compile launcher.py update_helper.py
       - name: Smoke-test deployed co-op API
         run: |
           node --input-type=module <<'NODE'
