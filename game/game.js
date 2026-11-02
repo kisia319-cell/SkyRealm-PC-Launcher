@@ -2553,8 +2553,8 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       const pager=document.getElementById('inventory-page-label');
       const prev=document.getElementById('inventory-page-prev'),next=document.getElementById('inventory-page-next');
       if(pager)pager.textContent='Страница '+(inventoryPage+1)+' из '+pageCount+' · '+owned.length+' предметов';
-      if(prev)prev.disabled=inventoryPage<=0;
-      if(next)next.disabled=inventoryPage>=pageCount-1;
+      if(prev){prev.disabled=inventoryPage<=0;prev.onclick=()=>{inventoryPage=Math.max(0,inventoryPage-1);renderInventory();};}
+      if(next){next.disabled=inventoryPage>=pageCount-1;next.onclick=()=>{inventoryPage=Math.min(pageCount-1,inventoryPage+1);renderInventory();};}
     }
     const selected=inventoryItems.find(item=>item.name===quickbarItemNames[selectedSlot-1]&&item.count>0);
     const status=document.getElementById('inventory-selected-note');
