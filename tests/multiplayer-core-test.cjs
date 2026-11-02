@@ -97,6 +97,13 @@ assert.equal(m.sanitizeWorldAction('pickup_loot',{
 assert.equal(m.sanitizeWorldAction('pickup_loot',{
   loot_id:'123e4567-e89b-42d3-a456-426614174099',x:200,y:240,world_mode:'trade'
 }),null);
+const sharedDungeonMobs=m.sanitizeSharedWorldSnapshot({dungeonRoomMobs:[
+  {id:'dungeon-1-skeleton',type:'skeleton',name:'Скелет-страж',x:320,y:240,hp:20,maxHp:40,speed:36,damageScale:1,attackCooldown:.5,color:'#c8c5b8'},
+  {id:'bad',type:'unknown',x:320,y:240,hp:10,maxHp:10}
+]});
+assert.equal(sharedDungeonMobs.dungeonRoomMobs.length,1,
+  'Only the four supported dungeon enemy types may be shared.');
+assert.equal(sharedDungeonMobs.dungeonRoomMobs[0].type,'skeleton');
 const sharedTimeSettings=m.sanitizeSharedWorldSnapshot({worldTimeMultiplier:3,lastYetiSpawnDay:12});
 assert.deepEqual(sharedTimeSettings,{worldTimeMultiplier:3,lastYetiSpawnDay:12},
   'World time speed and the daily Yeti marker must synchronize with the co-op host.');
