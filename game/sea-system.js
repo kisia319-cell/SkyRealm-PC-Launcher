@@ -12,6 +12,7 @@
     chartFound: false, bossHp: 0, bossAttack: 0, stormDamageAt: 0,
     diveCooldown: 0, mapMarks: []
   };
+  const DEFAULT_STATE=JSON.parse(JSON.stringify(state));
   const W = 220, H = 164, TILE = 32;
   let root, canvas, ctx, raf = 0, last = 0, keys = new Set(), active = false;
   const rand = (a,b) => a + Math.random()*(b-a);
@@ -25,7 +26,7 @@
   function load(){
     try {
       const d=JSON.parse(localStorage.getItem(KEY())||'null');
-      if(!d || d.version!==VERSION) return;
+      if(!d || d.version!==VERSION){Object.assign(state,JSON.parse(JSON.stringify(DEFAULT_STATE)));return;}
       Object.assign(state,d);
       state.x=clamp(Number(state.x)||8,3,W-3); state.y=clamp(Number(state.y)||82,3,H-3);
       state.sharks=Array.isArray(d.sharks)?d.sharks:[]; state.monsters=Array.isArray(d.monsters)?d.monsters:[];
@@ -113,7 +114,7 @@
   function openTreasure(t){
     if(state.underwater&&state.air<=0){msg('Нельзя открывать сундук без воздуха!');return;}
     state.opened.push(t.id);const b=bridge();const roll=Math.random();
-    if(t.kind==='wreck'&&roll<.38){const chart={name:'Карта сокровищ',icon:'🗺️',description:'Отмечает один тайник с редкой добычей в море.'};b?.addItem?.(chart.name,1,chart.description);state.chartFound=true;state.mapMarks.push({x:rand(12,W-12),y:rand(8,H-8)});msg('Найдена карта сокровищ! На морской карте появилась новая отметка.');}
+    if(t.kind==='wreck'&&roll<.38){const chart={name:'Карта сокровищ',icon:'🗺️',description:'Отмечает один тайник с редкой добычей в море.'};b?.addItem?.(chart.name,1,chart.description);state.chartFound=true;const mark={x:rand(12,W-12),y:rand(8,H-8)};state.mapMarks.push(mark);state.treasures.push({id:'charted-'+Date.now(),x:mark.x,y:mark.y,kind:'chest'});msg('Найдена карта сокровищ! На карте отмечен настоящий сундук с редкой добычей.');}
     else if(roll<.25){b?.addItem?.('Кристалл',2);b?.addGold?.(180);msg('В сундуке кристаллы и 180 золотых.');}
     else {const q=UNIQUE_LOOT[Math.floor(Math.random()*UNIQUE_LOOT.length)];b?.addItem?.(q[0],1,q[2]);state.relics.push(q[0]);msg('Редкая находка: '+q[1]+' '+q[0]+'! Этот предмет нельзя создать на верстаке.');}
     if(state.underwater)state.air=Math.max(0,state.air-5);save();b?.save?.();
@@ -184,6 +185,7 @@
     const horizon=h*.17;ctx.fillStyle='#8ed8e9';ctx.fillRect(0,horizon,w,3);ctx.fillStyle='#c2f1ff';ctx.globalAlpha=.18;ctx.fillRect(0,horizon-36,w,36);ctx.globalAlpha=1;
     const scale=Math.min(w/(W*.7),h/(H*.7)),ox=w/2-state.x*scale,oy=h/2-state.y*scale;
     ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);
+    ctx.fillStyle='#bca36b';ctx.fillRect(0,0,8*32,H*32);ctx.fillStyle='#d9c58d';ctx.fillRect(6*32,0,2*32,H*32);
     for(let x=Math.floor(state.x-w/scale/2)-2;x<state.x+w/scale/2+2;x+=1){for(let y=Math.floor(state.y-h/scale/2)-2;y<state.y+h/scale/2+2;y+=1){const wave=Math.sin(x*.47+state.wave)*.12+Math.cos(y*.38-state.wave*.7)*.08;ctx.fillStyle=state.weather==='storm'?'rgba(205,232,244,'+(0.04+Math.abs(wave)) +')':'rgba(150,226,245,'+(0.035+Math.abs(wave))+')';ctx.fillRect(x*32,y*32,32,32);}}
     for(const t of state.treasures){if(state.opened.includes(t.id))continue;ctx.fillStyle=t.kind==='wreck'?'#b88c54':'#e5c46b';ctx.fillRect(t.x*32-9,t.y*32-7,18,14);ctx.fillStyle='#563d2b';ctx.fillRect(t.x*32-9,t.y*32-1,18,3);ctx.fillStyle='#fff0a5';ctx.fillRect(t.x*32-2,t.y*32-7,4,4);}
     for(const s of state.sharks){ctx.fillStyle='#6e9fb4';ctx.beginPath();ctx.moveTo(s.x*32+12,s.y*32);ctx.lineTo(s.x*32-10,s.y*32-7);ctx.lineTo(s.x*32-5,s.y*32);ctx.lineTo(s.x*32-10,s.y*32+7);ctx.closePath();ctx.fill();}
