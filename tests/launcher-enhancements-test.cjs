@@ -129,4 +129,17 @@ assert.ok(html.includes('id="install-version-label"')&&enhancements.includes("$(
 assert.ok(html.includes('id="launcher-version-label"')&&app.includes('launcher-version-label'),'Sidebar version label must be populated from launcher metadata');
 assert.ok(!html.includes('nav-badge">2')&&!html.includes('nav-badge">8'),'Navigation must not display stale hard-coded notification counts');
 assert.ok(html.includes('id="mods-catalog-count"'),'Mod catalog badge must be calculated from the real catalog');
+assert.ok(html.includes('id="mod-catalog-search"')&&html.includes('id="mod-catalog-category"')&&html.includes('id="mod-catalog-sort"'),'Mod workshop must expose search, category and sorting controls');
+assert.ok(html.includes('id="mod-catalog-results-count"')&&html.includes('id="mod-catalog-empty"')&&html.includes('id="mod-catalog-clear"'),'Mod search must show result counts, an empty state and a filter reset');
+assert.match(enhancements,/function initModCatalogFilters\(\)/,'Mod workshop filter controller must be initialized');
+assert.ok(enhancements.includes('skyrealm_mod_catalog_filters_v1')&&enhancements.includes('localStorage.setItem(MOD_FILTER_STORAGE_KEY'),'Mod catalogue filters must persist locally');
+assert.ok(enhancements.includes('normalize(card.querySelector')||enhancements.includes('normalize([titleOf(card)'),'Search must include localized text, descriptions, metadata and the mod ID');
+assert.ok(enhancements.includes("sort==='name-asc'")&&enhancements.includes("sort==='name-desc'")&&enhancements.includes("sort==='category'"),'Mod catalogue must support alphabetical and category sorting');
+assert.ok(enhancements.includes('matchesCategory&&(!query||haystack.includes(query))'),'Search and category filters must be applied together');
+assert.ok(enhancements.includes("if(empty)empty.hidden=visible.length!==0"),'Empty search results must be shown accessibly');
+assert.ok(enhancements.includes("event.key==='Escape'"),'Escape must clear the active mod search query');
+assert.ok(enhancements.includes('initModCatalogFilters();')&&enhancements.includes('initModCatalogFilters();\n  });'),'Mod controls must initialize on startup and remain usable after language changes');
+assert.ok(enhancements.includes("'Поиск модов':'Search mods'")&&enhancements.includes("'Все категории':'All categories'")&&enhancements.includes("'Название: А–Я':'Name: A–Z'"),'Mod filters must be translated in English');
+assert.ok(css.includes('.mod-browser-toolbar')&&css.includes('.launcher-mod-card[hidden]')&&css.includes('@media(max-width:520px){.mod-browser-toolbar'), 'Mod filter controls must be responsive and hide filtered-out cards');
+
 
