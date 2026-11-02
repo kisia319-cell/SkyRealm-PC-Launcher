@@ -1760,6 +1760,11 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     }
     const mapPointLocal=(x,y)=>({x:ox+(x/(COLS*TILE))*usableW,y:oy+(y/(ROWS*TILE))*usableH});
     let p;
+    if(tradeWorldMode){
+      for(const village of villageCenters){if(!exploredWorldPoint(village.x*TILE+16,village.y*TILE+16))continue;p=mapPointLocal(village.x*TILE+16,village.y*TILE+16);c.fillStyle='#f2c56f';c.beginPath();c.arc(p.x,p.y,3.4,0,Math.PI*2);c.fill();c.fillStyle='#18202a';c.beginPath();c.arc(p.x,p.y,1.5,0,Math.PI*2);c.fill();}
+      for(const shop of [SELL_SHOP,BUY_SHOP,FARMER_SHOP]){if(!exploredWorldPoint(shop.x*TILE+16,shop.y*TILE+16))continue;p=mapPointLocal(shop.x*TILE+16,shop.y*TILE+16);c.fillStyle='#8ce0bd';c.fillRect(p.x-2,p.y-2,4,4);}
+      p=mapPointLocal(player.x,player.y);c.fillStyle='#f4f7ff';c.beginPath();c.arc(p.x,p.y,3.2,0,Math.PI*2);c.fill();c.strokeStyle='#4f8cff';c.lineWidth=1.5;c.stroke();return;
+    }
     // Landmarks and monsters appear only after their surrounding tile has been explored.
     p=mapPointLocal(36*TILE,15*TILE);
     if(exploredWorldPoint(36*TILE,15*TILE)){c.fillStyle='#e5b97b';c.fillRect(p.x-2.4,p.y-2,4.8,4);c.fillStyle='#814b46';c.beginPath();c.moveTo(p.x-3.5,p.y-2);c.lineTo(p.x,p.y-5.5);c.lineTo(p.x+3.5,p.y-2);c.closePath();c.fill();}
