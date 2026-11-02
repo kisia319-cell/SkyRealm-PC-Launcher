@@ -28,11 +28,11 @@
   function applyAppearanceData(source,target=playerAppearance){if(!source||typeof source!=='object')return;for(const k of ['skin','hair','armor','accent','eye'])if(/^#[0-9a-f]{6}$/i.test(source[k]||''))target[k]=source[k];if(['normal','smile','stern','visor','mask'].includes(source.face))target.face=source.face;if(['short','long','mohawk','curly','hood'].includes(source.hairStyle))target.hairStyle=source.hairStyle;}
   try { applyAppearanceData(JSON.parse(localStorage.getItem('skyrealm_character_v1')||'{}')); } catch(_) {}
   const DIFFICULTIES = {
-    easy:{id:'easy',name:'Легко',rank:1,cols:180,rows:140,bossHp:500,bossDamage:30,bossInterval:1.5,bossSpeed:18,monsterHp:.72,monsterDamage:.62,monsterSpawn:1.15,shop:{buy:{Камень:300,Уголь:900,Железо:2400},sell:{wood:125,leaves:50,meat:90}},chests:{crystal:.25,potion:.28}},
-    medium:{id:'medium',name:'Средняя',rank:2,cols:220,rows:164,bossHp:1000,bossDamage:45,bossInterval:1.25,bossSpeed:22,monsterHp:1,monsterDamage:1,monsterSpawn:1,shop:{buy:{Камень:450,Уголь:1200,Железо:3600},sell:{wood:175,leaves:75,meat:125}},chests:{crystal:.35,potion:.25}},
-    hard:{id:'hard',name:'Сложно',rank:3,cols:260,rows:192,bossHp:2000,bossDamage:65,bossInterval:1.05,bossSpeed:28,monsterHp:1.4,monsterDamage:1.45,monsterSpawn:.82,shop:{buy:{Камень:700,Уголь:1800,Железо:5200},sell:{wood:225,leaves:100,meat:175}},chests:{crystal:.45,potion:.22}},
-    hell:{id:'hell',name:'Жар',rank:4,cols:300,rows:220,bossHp:4000,bossDamage:90,bossInterval:.85,bossSpeed:34,monsterHp:1.9,monsterDamage:2,monsterSpawn:.68,shop:{buy:{Камень:1000,Уголь:2600,Железо:8000},sell:{wood:275,leaves:125,meat:225}},chests:{crystal:.55,potion:.2}},
-    impossible:{id:'impossible',name:'Невозможно',rank:5,cols:360,rows:260,bossHp:8500,bossDamage:125,bossInterval:.62,bossSpeed:42,monsterHp:2.65,monsterDamage:2.8,monsterSpawn:.45,shop:{buy:{Камень:1500,Уголь:4000,Железо:12000},sell:{wood:300,leaves:140,meat:250}},chests:{crystal:.65,potion:.12}}
+    easy:{id:'easy',name:'Легко',rank:1,cols:360,rows:280,bossHp:500,bossDamage:30,bossInterval:1.5,bossSpeed:18,monsterHp:.72,monsterDamage:.62,monsterSpawn:1.15,shop:{buy:{Камень:300,Уголь:900,Железо:2400},sell:{wood:125,leaves:50,meat:90}},chests:{crystal:.25,potion:.28}},
+    medium:{id:'medium',name:'Средняя',rank:2,cols:440,rows:328,bossHp:1000,bossDamage:45,bossInterval:1.25,bossSpeed:22,monsterHp:1,monsterDamage:1,monsterSpawn:1,shop:{buy:{Камень:450,Уголь:1200,Железо:3600},sell:{wood:175,leaves:75,meat:125}},chests:{crystal:.35,potion:.25}},
+    hard:{id:'hard',name:'Сложно',rank:3,cols:520,rows:384,bossHp:2000,bossDamage:65,bossInterval:1.05,bossSpeed:28,monsterHp:1.4,monsterDamage:1.45,monsterSpawn:.82,shop:{buy:{Камень:700,Уголь:1800,Железо:5200},sell:{wood:225,leaves:100,meat:175}},chests:{crystal:.45,potion:.22}},
+    hell:{id:'hell',name:'Жар',rank:4,cols:600,rows:440,bossHp:4000,bossDamage:90,bossInterval:.85,bossSpeed:34,monsterHp:1.9,monsterDamage:2,monsterSpawn:.68,shop:{buy:{Камень:1000,Уголь:2600,Железо:8000},sell:{wood:275,leaves:125,meat:225}},chests:{crystal:.55,potion:.2}},
+    impossible:{id:'impossible',name:'Невозможно',rank:5,cols:720,rows:520,bossHp:8500,bossDamage:125,bossInterval:.62,bossSpeed:42,monsterHp:2.65,monsterDamage:2.8,monsterSpawn:.45,shop:{buy:{Камень:1500,Уголь:4000,Железо:12000},sell:{wood:300,leaves:140,meat:250}},chests:{crystal:.65,potion:.12}}
   };
   let currentDifficulty='medium',pendingWorldId=null,difficultyMigrationPending=false;
   let bedSpawn={x:36*TILE+40,y:15*TILE+154};
@@ -3153,10 +3153,10 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       if(keys.has(' ')||keys.has('l'))tutorialCombatSeen=true;
       if(hudMoveMode){mx=0;my=0;}
       if(sleeping){keys.clear();movementDirections.clear();}
-      if(movementDirections.has('up'))my--;
-      if(movementDirections.has('down'))my++;
-      if(movementDirections.has('left'))mx--;
-      if(movementDirections.has('right'))mx++;
+      if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup'))my--;
+      if(movementDirections.has('down')||keys.has('s')||keys.has('arrowdown'))my++;
+      if(movementDirections.has('left')||keys.has('a')||keys.has('arrowleft'))mx--;
+      if(movementDirections.has('right')||keys.has('d')||keys.has('arrowright'))mx++;
       if(dodgeTimer>0){mx=dodgeVX;my=dodgeVY;}
       if (mx && my) { mx *= .7071; my *= .7071; }
       const sprinting=keys.has('shift')&&(mx||my)&&player.stamina>15&&!sleeping&&!mineMode;
@@ -3714,8 +3714,10 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const direction=MOVEMENT_DIRECTION_BY_ACTION[released];
     if(direction) movementDirections.delete(direction);
   }, true);
-  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); }, true);
-  document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); } });
+  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); player.vx=player.vy=0; }, true);
+  document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); player.vx=player.vy=0; } });
+  window.addEventListener('pagehide', () => { keys.clear(); movementDirections.clear(); player.vx=player.vy=0; }, true);
+  window.addEventListener('pointercancel', () => { keys.clear(); movementDirections.clear(); player.vx=player.vy=0; }, true);
   window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); });
   window.addEventListener('beforeunload',()=>{try{saveGame();}catch(_){}});
   window.addEventListener('resize', resize);
