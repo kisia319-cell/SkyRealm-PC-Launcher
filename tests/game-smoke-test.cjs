@@ -55,7 +55,7 @@ assert.ok(app.includes('function runGameDiagnostics()'), 'Launcher diagnostics b
 assert.ok(py.includes('def get_diagnostics(self):') && py.includes('def open_update_log(self):'), 'Desktop launcher must provide diagnostics and log actions');
 assert.ok(py.includes('installed_files_ok'), 'Play flow must repair missing or size-mismatched installed files');
 assert.ok(launcherHtml.includes('v'+fs.readFileSync('launcher_version.txt','utf8').trim()), 'Launcher UI version must match launcher_version.txt');
-assert.ok(gameHtml.includes('360 × 260') && !gameHtml.includes('180 × 130 · Босс 8500 HP'), 'Difficulty picker must show actual expanded map dimensions');
+assert.ok(gameHtml.includes('360 × 280') && gameHtml.includes('440 × 328') && gameHtml.includes('520 × 384') && gameHtml.includes('600 × 440') && gameHtml.includes('720 × 520'), 'Difficulty picker must show doubled map dimensions at every difficulty');
 
 assert.match(version, /^\d+\.\d+\.\d+\.\d+$/, 'game/version.txt must include the cumulative bug-fix counter');
 assert.ok(gameHtml.includes(version), 'game/index.html version label must match game/version.txt');
