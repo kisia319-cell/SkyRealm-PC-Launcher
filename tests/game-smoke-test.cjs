@@ -116,7 +116,7 @@ assert.ok(game.includes("target.fleeTimer=2.5;target.dir=Math.atan2(target.y-pla
 assert.ok(game.includes("changeItem('Ключ от клетки',1)") && game.includes('wolfBossKeyDropped=true'), 'Defeating the Werewolf must always grant the cage key');
 assert.ok(game.includes('currentDistance<=weaponRange()') && game.includes('distance<=weaponRange()') && game.includes('const wolfAttackRange=weaponRange()'), 'Monster and boss attack distances must use the equipped player weapon range');
 
-assert.ok(game.includes('const movementKeyCodes = new Set()') && game.includes("movementKeyCodes.has('KeyW')") && game.includes("window.addEventListener('pagehide'"), 'Movement input must recover from key/focus loss');
+assert.ok(game.includes('const movementKeyCodes = new Set()') && game.includes("window.addEventListener('pagehide'"), 'Movement input must recover from key/focus loss');
 assert.ok(game.includes('if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();}') && game.includes('if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();}'), 'HUD editing and sleeping must clear all held physical movement keys');
 
 assert.ok(game.includes('quickbarItemNames') && game.includes('for(let index=0;index<10;index++)') && game.includes('pageSize=20'), 'Inventory must have ten persistent hotbar slots and twenty-slot pages');
@@ -356,7 +356,8 @@ assert.ok(game.includes('MOVEMENT_DIRECTION_BY_ACTION'), 'WASD and arrow keys mu
 assert.ok(game.includes('movementDirections.add(movementDirection)'), 'Movement keydown must register a held direction');
 assert.ok(game.includes('movementDirections.delete(physicalDirection)') && game.includes('movementDirections.delete(actionDirection)'), 'Movement keyup must release both physical-code and logical action directions');
 assert.ok(game.includes('movementDirections.clear()'), 'Movement input must be cleared on blur, hidden window, HUD edit mode and sleep');
-assert.ok(game.includes("if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup')||movementKeyCodes.has('KeyW')||movementKeyCodes.has('ArrowUp'))my--") && game.includes("if(movementDirections.has('right')||keys.has('d')||keys.has('arrowright')||movementKeyCodes.has('KeyD')||movementKeyCodes.has('ArrowRight'))mx++"), 'Player movement must combine held directions with physical-key recovery states');
+assert.ok(game.includes('function resolveMovementDirection(action,code)') && game.includes('const movementDirection=resolveMovementDirection(k,e.code)'), 'Remapped physical keys must resolve to one configured logical direction');
+assert.ok(game.includes("if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup'))my--") && game.includes("if(movementDirections.has('right')||keys.has('d')||keys.has('arrowright'))mx++") && !game.includes("movementKeyCodes.has('KeyD')"), 'Movement must not apply a second hard-coded direction to a remapped physical key');
 
 assert.ok(game.includes('desynchronized: !initialVsyncEnabled()'),'VSync preference must be passed to the canvas low-latency hint when disabled');
 assert.ok(game.includes('s.vsync = s.vsync !== false'),'Game settings must normalize VSync to enabled by default');
@@ -364,6 +365,14 @@ assert.ok(game.includes('s.vsync = s.vsync !== false'),'Game settings must norma
 
 // Regression coverage: movement input must have one cleanup path, physical key release must
 // clear its canonical direction, and world saves must be verified/recoverable.
+
+const movementResolverMatch=game.match(/function resolveMovementDirection\\(action,code\\)\\{[^}]*\\}/);
+assert.ok(movementResolverMatch,'Movement direction resolver must exist');
+const movementResolver=vm.runInNewContext('('+movementResolverMatch[0]+')',{MOVEMENT_DIRECTION_BY_ACTION:{w:'up',a:'left',s:'down',d:'right'},PHYSICAL_MOVEMENT_BY_CODE:{KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right',ArrowUp:'up',ArrowLeft:'left',ArrowDown:'down',ArrowRight:'right'}});
+assert.equal(movementResolver('w','KeyD'),'up','A KeyD binding assigned to Up must not also resolve to Right');
+assert.equal(movementResolver('arrowup','ArrowRight'),'up','Logical ArrowUp must take priority over physical ArrowRight');
+assert.equal(movementResolver('','KeyD'),'right','Unmapped physical D must retain the default Right direction');
+assert.equal(movementResolver('','KeyQ'),null,'Non-movement keys must not resolve to a direction');
 assert.ok(game.includes('function clearMovementInput(){'), 'All focus/window transitions must share one movement reset function');
 assert.ok(game.includes('const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.code]') && game.includes("keys.delete(({up:'w',left:'a',down:'s',right:'d'})[physicalDirection])"), 'Physical keyup must release the matching direction even when keyboard layout changes');
 assert.ok(game.includes("window.addEventListener('blur',clearMovementInput,true)") && game.includes("window.addEventListener('pagehide',clearMovementInput,true)"), 'Blur and pagehide must clear held movement state');
