@@ -109,6 +109,9 @@ assert.ok(game.includes('const movementKeyCodes = new Set()') && game.includes("
 assert.ok(game.includes('quickbarItemNames') && game.includes('for(let index=0;index<10;index++)') && game.includes('pageSize=20'), 'Inventory must have ten persistent hotbar slots and twenty-slot pages');
 assert.ok(gameHtml.includes('id="inventory-page-prev"') && gameHtml.includes('id="inventory-page-next"') && gameHtml.includes('СЛОТЫ 1–10'), 'Inventory UI must expose ten hotbar slots and paging');
 assert.ok(game.includes("id:'storm'") && game.includes("id:'abyss'"), 'Two additional world bosses must be defined');
+assert.ok(game.includes('function makeDungeonRoomMobs') && game.includes("type:'skeleton'") && game.includes("type:'ice'") && game.includes("type:'scorpion'") && game.includes("type:'brute'"), 'Each dungeon room must generate four distinct enemy types');
+assert.ok(game.includes('dungeonRoomMobs:dungeonRoomMobs.map') && game.includes('livingMobs=dungeonRoomMobs.filter'), 'Dungeon enemy health and combat state must persist');
+
 assert.ok(game.includes('d<weaponRange()&&b.attackTimer') && game.includes('dist<weaponRange()&&dungeonEnemyAttackTimer'), 'Boss attack reach must match the equipped player weapon range');
 
 
