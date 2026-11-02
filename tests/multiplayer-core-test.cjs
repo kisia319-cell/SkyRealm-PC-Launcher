@@ -97,6 +97,16 @@ assert.equal(m.sanitizeWorldAction('pickup_loot',{
 assert.equal(m.sanitizeWorldAction('pickup_loot',{
   loot_id:'123e4567-e89b-42d3-a456-426614174099',x:200,y:240,world_mode:'trade'
 }),null);
+const sharedTradeWorld=m.sanitizeSharedWorldSnapshot({
+  tradeWorldMode:true,
+  villageNpcs:[{id:'merchant',name:'Лесник',x:500,y:700,homeX:500,homeY:700,targetX:510,targetY:710,phase:1,color:'#9ab6a2',villageId:'forest',activity:'working',scheduleSlot:1,moveTimer:2,walkPhase:4}],
+  villageCenters:[{id:'forest',x:80,y:60,name:'Лесной причал',biome:'forest',houses:['merchant','farmer']}]
+});
+assert.equal(sharedTradeWorld.tradeWorldMode,true);
+assert.equal(sharedTradeWorld.villageNpcs[0].id,'merchant');
+assert.equal(sharedTradeWorld.villageCenters[0].id,'forest',
+  'Trade World NPCs and settlement positions must be synchronized for co-op guests.');
+assert.equal(m.sanitizeSharedWorldSnapshot({tradeWorldMode:'yes'}),null);
 const sharedDungeonMobs=m.sanitizeSharedWorldSnapshot({dungeonRoomMobs:[
   {id:'dungeon-1-skeleton',type:'skeleton',name:'Скелет-страж',x:320,y:240,hp:20,maxHp:40,speed:36,damageScale:1,attackCooldown:.5,color:'#c8c5b8'},
   {id:'bad',type:'unknown',x:320,y:240,hp:10,maxHp:10}
