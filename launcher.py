@@ -556,6 +556,108 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Ошибка диагностики: " + str(exc)}
 
+    def get_release_news(self, force_refresh=False):
+        """Fetch public SkyRealm releases, falling back to recent commits when no releases exist."""
+        try:
+            cached = getattr(self, "_skyrealm_news_cache", None)
+            expires_at = float(getattr(self, "_skyrealm_news_cache_until", 0) or 0)
+            if not force_refresh and cached and time.monotonic() < expires_at:
+                return {**cached, "cached": True}
+
+            headers = {
+                "User-Agent": "SkyRealmLauncher-News/1.0",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "Cache-Control": "no-cache",
+            }
+
+            def fetch_json(url):
+                request = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(request, timeout=10) as response:
+                    if getattr(response, "status", 200) != 200:
+                        raise RuntimeError("GitHub вернул HTTP " + str(response.status))
+                    raw = response.read(512 * 1024)
+                return json.loads(raw.decode("utf-8"))
+
+            def plain_summary(value):
+                text_value = str(value or "")
+                text_value = re.sub(r"(?s)\x60{3}.*?\x60{3}", " ", text_value)
+                text_value = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", text_value)
+                text_value = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text_value)
+                text_value = re.sub(r"(?m)^\s{0,3}#{1,6}\s*", "", text_value)
+                text_value = re.sub(r"(?m)^\s*[-*>]+\s*", "", text_value)
+                text_value = re.sub(r"[\x60*_~]", "", text_value)
+                text_value = re.sub(r"\s+", " ", text_value).strip()
+                return text_value[:420]
+
+            release_items = []
+            try:
+                releases = fetch_json("https://api.github.com/repos/kisia319-cell/SkyRealm-PC-Launcher/releases?per_page=8")
+                if isinstance(releases, list):
+                    for release in releases[:8]:
+                        if not isinstance(release, dict) or release.get("draft"):
+                            continue
+                        url = str(release.get("html_url") or "")
+                        if not url.startswith("https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/"):
+                            continue
+                        title = str(release.get("name") or release.get("tag_name") or "").strip()
+                        if not title:
+                            continue
+                        release_items.append({
+                            "id": "release:" + str(release.get("tag_name") or title)[:80],
+                            "kind": "release",
+                            "title": title[:140],
+                            "tag": str(release.get("tag_name") or "")[:80],
+                            "published_at": str(release.get("published_at") or release.get("created_at") or ""),
+                            "summary": plain_summary(release.get("body")),
+                            "url": url,
+                            "prerelease": bool(release.get("prerelease")),
+                        })
+            except Exception:
+                release_items = []
+
+            if release_items:
+                items = release_items
+                source = "releases"
+            else:
+                commits = fetch_json("https://api.github.com/repos/kisia319-cell/SkyRealm-PC-Launcher/commits?sha=main&per_page=8")
+                items = []
+                if isinstance(commits, list):
+                    for commit in commits[:8]:
+                        if not isinstance(commit, dict):
+                            continue
+                        sha = str(commit.get("sha") or "")
+                        url = str(commit.get("html_url") or "")
+                        detail = commit.get("commit") if isinstance(commit.get("commit"), dict) else {}
+                        author = detail.get("author") if isinstance(detail.get("author"), dict) else {}
+                        title = str(detail.get("message") or "").splitlines()[0].strip()
+                        if not sha or not title or not url.startswith("https://github.com/kisia319-cell/SkyRealm-PC-Launcher/commit/"):
+                            continue
+                        items.append({
+                            "id": "commit:" + sha[:12],
+                            "kind": "commit",
+                            "title": title[:140],
+                            "tag": sha[:7],
+                            "published_at": str(author.get("date") or ""),
+                            "summary": plain_summary("\n".join(str(detail.get("message") or "").splitlines()[1:])),
+                            "url": url,
+                            "prerelease": False,
+                        })
+                source = "commits"
+
+            result = {
+                "ok": True,
+                "source": source,
+                "items": items[:8],
+                "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "cached": False,
+            }
+            self._skyrealm_news_cache = result
+            self._skyrealm_news_cache_until = time.monotonic() + 300
+            return result
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось загрузить новости GitHub. Проверь интернет и попробуй обновить ленту.", "detail": str(exc)[:240]}
+
     def get_local_versions(self):
         """Return installed and bundled version metadata without requiring an internet connection."""
         try:
