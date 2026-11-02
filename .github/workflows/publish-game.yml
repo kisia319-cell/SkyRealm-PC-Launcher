@@ -39,11 +39,11 @@ jobs:
           draft: false
           prerelease: false
           make_latest: false
-          token: \${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update updater manifest
         env:
-          GAME_SHA256: \${{ env.GAME_SHA256 }}
+          GAME_SHA256: ${{ env.GAME_SHA256 }}
         run: |
           python - <<'PY'
           import json, os
