@@ -137,12 +137,17 @@
     if(typeof input.blood_moon_active!=='boolean')return null;
     return {minute_total:Math.round(minute*1000)/1000,survived_nights:nights,blood_moon_active:input.blood_moon_active};
   }
-  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldTimeMultiplier","lastYetiSpawnDay","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","meteorPoint","meteorShowerTimer","worldEventCamp","worldEventTraveler","lastWorldMeteorNight","lastWorldHordeNight","lastWorldCampDay","lastWorldTravelerDay"]);
+  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","dungeonRoomMobs","worldTimeMultiplier","lastYetiSpawnDay","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","meteorPoint","meteorShowerTimer","worldEventCamp","worldEventTraveler","lastWorldMeteorNight","lastWorldHordeNight","lastWorldCampDay","lastWorldTravelerDay"]);
   function sanitizeSharedWorldSnapshot(input){
     if(!input||typeof input!=='object'||Array.isArray(input))return null;
     const output={};
     for(const key of SHARED_WORLD_FIELDS){
       if(Object.prototype.hasOwnProperty.call(input,key))output[key]=input[key];
+    }
+    if(Array.isArray(output.dungeonRoomMobs)){
+      const types=['skeleton','ice','scorpion','brute'];
+      output.dungeonRoomMobs=output.dungeonRoomMobs.slice(0,4).filter(m=>m&&typeof m==='object'&&types.includes(m.type)&&Number.isFinite(m.x)&&Number.isFinite(m.y)&&Number.isFinite(m.hp)&&Number.isFinite(m.maxHp)&&m.maxHp>0&&m.hp>=0&&m.hp<=m.maxHp&&m.x>=0&&m.x<=12000&&m.y>=0&&m.y<=10000)
+        .map(m=>({id:String(m.id||'').slice(0,64),type:m.type,name:String(m.name||m.type).slice(0,40),x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:Math.max(10,Math.min(100,Number(m.speed)||35)),damageScale:Math.max(.1,Math.min(5,Number(m.damageScale)||1)),attackCooldown:Math.max(0,Math.min(5,Number(m.attackCooldown)||0)),color:/^#[0-9a-f]{6}$/i.test(m.color||'')?m.color:'#9aa7bb'}));
     }
     if(output.worldTimeMultiplier!==undefined){
       const multiplier=Number(output.worldTimeMultiplier);
