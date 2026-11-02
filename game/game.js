@@ -2450,7 +2450,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function openSignDialog(){
     signDialogOpen = true;
     keys.clear();
-    movementDirections.clear();
+    movementDirections.clear();movementKeyCodes.clear();
     discovered = true;
     questStage=Math.max(questStage,1);
     saveGame();
@@ -3334,11 +3334,11 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       skipDayRealSeconds=Math.max(0,skipDayRealSeconds-dt);
       updateSkipDayHud();
       let mx = 0, my = 0;
-      if(hudMoveMode){keys.clear();movementDirections.clear();}
+      if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();}
       if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k=>keys.has(k)))tutorialMoveSeen=true;
       if(keys.has(' ')||keys.has('l'))tutorialCombatSeen=true;
       if(hudMoveMode){mx=0;my=0;}
-      if(sleeping){keys.clear();movementDirections.clear();}
+      if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();}
       if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup')||movementKeyCodes.has('KeyW')||movementKeyCodes.has('ArrowUp'))my--;
       if(movementDirections.has('down')||keys.has('s')||keys.has('arrowdown')||movementKeyCodes.has('KeyS')||movementKeyCodes.has('ArrowDown'))my++;
       if(movementDirections.has('left')||keys.has('a')||keys.has('arrowleft')||movementKeyCodes.has('KeyA')||movementKeyCodes.has('ArrowLeft'))mx--;
@@ -3718,7 +3718,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function teleportFromMap(event){if(!fullMapOpen||!currentWorldId)return;const c=document.getElementById('full-map-canvas'),r=c.getBoundingClientRect(),mx=(event.clientX-r.left)/r.width*c.width,my=(event.clientY-r.top)/r.height*c.height,pad=12,tx=Math.floor((mx-pad)/((c.width-pad*2)/COLS)),ty=Math.floor((my-pad)/((c.height-pad*2)/ROWS));if(tx<0||ty<0||tx>=COLS||ty>=ROWS||!exploredCells.has(tileKey(tx,ty))){toast('Телепортироваться можно только в исследованные места.');return;}const x=tx*TILE+TILE/2,y=ty*TILE+TILE/2;if(blocked(x,y)){toast('В этой точке препятствие. Выбери соседнюю открытую область.');return;}player.x=x;player.y=y;player.vx=player.vy=0;saveGame();drawMinimap();drawFullMap();closeFullMap();toast('Телепортация выполнена.');}
   function settingsViewOpen(){return !document.getElementById('pause-settings-view').hidden;}
   function showPauseMain(){document.getElementById('pause-main-view').hidden=false;document.getElementById('pause-settings-view').hidden=true;}
-  function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;keys.clear();movementDirections.clear();if(paused){showPauseMain();}else{canvas.focus();}}
+  function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;keys.clear();movementDirections.clear();movementKeyCodes.clear();if(paused){showPauseMain();}else{canvas.focus();}}
   function syncSettingsControls(){
     document.getElementById('game-quality-select').value=gameSettings.graphicsQuality;
     const performanceSelect=document.getElementById('game-performance-select');if(performanceSelect)performanceSelect.value=gameSettings.performanceMode;
@@ -3844,7 +3844,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         pauseShade?.hidden === true && !blockingOverlay && !sleeping) {
       paused = false;
       keys.clear();
-      movementDirections.clear();
+      movementDirections.clear();movementKeyCodes.clear();
       last = performance.now();
       canvas.focus();
     }
@@ -3902,13 +3902,13 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const direction=MOVEMENT_DIRECTION_BY_ACTION[released];
     if(direction) movementDirections.delete(direction);
   }, true);
-  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
-  document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; } });
-  window.addEventListener('pagehide', () => { keys.clear(); movementDirections.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
-  window.addEventListener('pointercancel', () => { keys.clear(); movementDirections.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
-  window.addEventListener('pagehide', () => { keys.clear(); movementDirections.clear(); player.vx=player.vy=0; }, true);
-  window.addEventListener('pointercancel', () => { keys.clear(); movementDirections.clear(); player.vx=player.vy=0; }, true);
-  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); });
+  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
+  document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear();movementKeyCodes.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; } });
+  window.addEventListener('pagehide', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
+  window.addEventListener('pointercancel', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
+  window.addEventListener('pagehide', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
+  window.addEventListener('pointercancel', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
+  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); });
   window.addEventListener('beforeunload',()=>{try{saveGame();}catch(_){}});
   window.addEventListener('resize', resize);
   window.addEventListener('fullscreenchange',()=>{gameSettings.windowMode=document.fullscreenElement?'fullscreen':'windowed';document.getElementById('game-window-mode-select').value=gameSettings.windowMode;localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));});
