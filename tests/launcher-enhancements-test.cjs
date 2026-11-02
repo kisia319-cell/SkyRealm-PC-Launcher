@@ -129,6 +129,24 @@ assert.ok(html.includes('id="install-version-label"')&&enhancements.includes("$(
 assert.ok(html.includes('id="launcher-version-label"')&&app.includes('launcher-version-label'),'Sidebar version label must be populated from launcher metadata');
 assert.ok(!html.includes('nav-badge">2')&&!html.includes('nav-badge">8'),'Navigation must not display stale hard-coded notification counts');
 assert.ok(html.includes('id="mods-catalog-count"'),'Mod catalog badge must be calculated from the real catalog');
+const modsPageStart=html.indexOf('id="page-mods"');
+const modsPageEnd=html.indexOf('id="page-news"',modsPageStart);
+const shopPageStart=html.indexOf('id="page-shop"');
+const shopPageEnd=html.indexOf('id="page-community"',shopPageStart);
+assert.ok(modsPageStart>=0&&modsPageEnd>modsPageStart&&shopPageStart>=0&&shopPageEnd>shopPageStart,'Launcher must expose separate workshop and shop pages');
+const modsPageMarkup=html.slice(modsPageStart,modsPageEnd);
+const shopPageMarkup=html.slice(shopPageStart,shopPageEnd);
+const modGridStart=modsPageMarkup.indexOf('<div class="launcher-mod-grid">');
+const modGridEnd=modsPageMarkup.indexOf('<div class="mods-launcher-community panel">',modGridStart);
+assert.ok(modGridStart>=0&&modGridEnd>modGridStart,'All installable mods must belong to the workshop grid');
+const modGridMarkup=modsPageMarkup.slice(modGridStart,modGridEnd);
+const workshopIds=[...modGridMarkup.matchAll(/data-install-mod="([a-z0-9_]+)"/g)].map(match=>match[1]);
+assert.equal(workshopIds.length,35,'The workshop grid must contain exactly 35 built-in installable mods');
+assert.equal(new Set(workshopIds).size,35,'Every built-in mod ID in the workshop must be unique');
+assert.equal((modsPageMarkup.match(/class="launcher-mod-card"/g)||[]).length,35,'No mod card may be left outside the filterable workshop grid');
+assert.ok(!shopPageMarkup.includes('data-install-mod='),'The cosmetic shop must not contain installable mod cards');
+assert.equal((shopPageMarkup.match(/class="launcher-mod-card"/g)||[]).length,0,'The cosmetic shop must remain separate from the mod workshop');
+
 assert.ok(html.includes('id="mod-catalog-search"')&&html.includes('id="mod-catalog-category"')&&html.includes('id="mod-catalog-sort"'),'Mod workshop must expose search, category and sorting controls');
 assert.ok(html.includes('id="mod-catalog-results-count"')&&html.includes('id="mod-catalog-empty"')&&html.includes('id="mod-catalog-clear"'),'Mod search must show result counts, an empty state and a filter reset');
 assert.match(enhancements,/function initModCatalogFilters\(\)/,'Mod workshop filter controller must be initialized');
