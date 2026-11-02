@@ -136,12 +136,19 @@
       const missing = Array.isArray(result.missing) ? result.missing : [];
       const healthy = result.healthy && result.installed;
       const hashes = result.integrity_sha256 && typeof result.integrity_sha256 === 'object' ? Object.keys(result.integrity_sha256).length : 0;
+      const mismatches = Array.isArray(result.integrity_mismatches) ? result.integrity_mismatches.map(item => item.file).join(', ') : '';
+      const integrity = result.integrity_comparable
+        ? (currentLanguage === 'en' ? 'Bundled files checked: ' : 'Сверено файлов с комплектом: ') + (result.integrity_checked || 0) + (mismatches ? (currentLanguage === 'en' ? '; mismatches: ' : '; несовпадения: ') + mismatches : (currentLanguage === 'en' ? '; all match.' : '; совпадают.'))
+        : (currentLanguage === 'en' ? 'Hash comparison unavailable for this version.' : 'Сверка хешей недоступна для этой версии.');
+      const runner = currentLanguage === 'en'
+        ? 'Game runner: ' + (result.runner_exists ? 'installed.' : 'will be installed on next launch.')
+        : 'Игровой запускатель: ' + (result.runner_exists ? 'установлен.' : 'будет установлен при следующем запуске.');
       const storage = result.world_storage_found
         ? (currentLanguage === 'en' ? 'World save storage found (' : 'Хранилище миров найдено (') + Math.round(Number(result.world_storage_bytes || 0) / 1024) + ' KB)'
         : (currentLanguage === 'en' ? 'World save storage not detected yet' : 'Хранилище миров пока не обнаружено');
       const msg = healthy
-        ? (currentLanguage === 'en' ? 'Main files are present. Installed version: ' : 'Основные файлы на месте. Установленная версия: ') + result.version + '\\n' + result.game_path + '\\n' + storage + '\\n' + (currentLanguage === 'en' ? 'SHA-256 fingerprints: ' : 'SHA-256 отпечатков файлов: ') + hashes
-        : (currentLanguage === 'en' ? 'Repair needed. Missing files: ' : 'Нужно восстановление. Нет файлов: ') + (missing.join(', ') || (currentLanguage === 'en' ? 'game not installed' : 'игра ещё не установлена')) + '\\n' + (currentLanguage === 'en' ? 'Click Play to reinstall/repair the game. Save data is kept separately.' : 'Нажми «Играть», чтобы переустановить/восстановить игру. Данные сохранений хранятся отдельно.');
+        ? (currentLanguage === 'en' ? 'Game files are present and verified. Installed version: ' : 'Файлы игры на месте и проверены. Установленная версия: ') + result.version + '\\n' + result.game_path + '\\n' + integrity + '\\n' + runner + '\\n' + storage + '\\n' + (currentLanguage === 'en' ? 'SHA-256 fingerprints collected: ' : 'Получено SHA-256 отпечатков: ') + hashes
+        : (currentLanguage === 'en' ? 'Repair needed. Missing files: ' : 'Нужно восстановление. Нет файлов: ') + (missing.join(', ') || (currentLanguage === 'en' ? 'none' : 'нет')) + '\\n' + (mismatches ? (currentLanguage === 'en' ? 'Integrity mismatches: ' : 'Несовпадения целостности: ') + mismatches + '\\n' : '') + (currentLanguage === 'en' ? 'Click Repair files. Save data is kept separately.' : 'Нажми «Восстановить файлы». Данные сохранений хранятся отдельно.');
       showDiagnostics(msg, !healthy);
       if (healthy) toast(currentLanguage === 'en' ? 'Game file check completed.' : 'Проверка файлов завершена.');
     } catch (error) {
