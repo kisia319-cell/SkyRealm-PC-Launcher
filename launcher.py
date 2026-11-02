@@ -351,7 +351,7 @@ class LauncherApi:
                 archives = sorted(
                     (path for path in backup_dir.glob("skyrealm-worlds-*.zip")
                      if path.is_file() and skyrealm_safe_world_backup_name(path.name)),
-                    key=lambda path: path.stat().st_mtime,
+                    key=lambda path: path.name,
                     reverse=True,
                 )
                 for archive in archives[:100]:
