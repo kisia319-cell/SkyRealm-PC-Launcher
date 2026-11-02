@@ -18,6 +18,7 @@
   // Track movement separately from action keys so lost focus or modal transitions cannot strand the player.
   const movementDirections = new Set();
   const movementKeyCodes = new Set();
+  const movementKeyDirections = new Map();
   const PHYSICAL_MOVEMENT_BY_CODE = {KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right',ArrowUp:'up',ArrowLeft:'left',ArrowDown:'down',ArrowRight:'right'};
   const MOVEMENT_DIRECTION_BY_ACTION = {w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
   function resolveMovementDirection(action,code){const actionDirection=MOVEMENT_DIRECTION_BY_ACTION[action];return actionDirection||PHYSICAL_MOVEMENT_BY_CODE[code]||null;}
@@ -2452,7 +2453,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function openSignDialog(){
     signDialogOpen = true;
     keys.clear();
-    movementDirections.clear();movementKeyCodes.clear();
+    movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();
     discovered = true;
     questStage=Math.max(questStage,1);
     saveGame();
@@ -2557,7 +2558,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function transitionTradeWorld(){
     if(worldTransitioning)return;
     worldTransitioning=true;const fade=document.getElementById('world-fade'),wasPaused=paused;
-    paused=true;keys.clear();movementDirections.clear();movementKeyCodes.clear();fade.classList.add('active');playSound('portal');
+    paused=true;keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();fade.classList.add('active');playSound('portal');
     window.setTimeout(()=>{
       const entering=!tradeWorldMode,portal={x:tradeEntranceX*TILE+16,y:tradeEntranceY*TILE+16};
       inHouse=false;mineMode=false;caveMode=false;dungeonMode=false;
@@ -3336,11 +3337,11 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       skipDayRealSeconds=Math.max(0,skipDayRealSeconds-dt);
       updateSkipDayHud();
       let mx = 0, my = 0;
-      if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();}
+      if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}
       if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k=>keys.has(k)))tutorialMoveSeen=true;
       if(keys.has(' ')||keys.has('l'))tutorialCombatSeen=true;
       if(hudMoveMode){mx=0;my=0;}
-      if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();}
+      if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}
       if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup'))my--;
       if(movementDirections.has('down')||keys.has('s')||keys.has('arrowdown'))my++;
       if(movementDirections.has('left')||keys.has('a')||keys.has('arrowleft'))mx--;
@@ -3730,7 +3731,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function teleportFromMap(event){if(!fullMapOpen||!currentWorldId)return;const c=document.getElementById('full-map-canvas'),r=c.getBoundingClientRect(),mx=(event.clientX-r.left)/r.width*c.width,my=(event.clientY-r.top)/r.height*c.height,pad=12,tx=Math.floor((mx-pad)/((c.width-pad*2)/COLS)),ty=Math.floor((my-pad)/((c.height-pad*2)/ROWS));if(tx<0||ty<0||tx>=COLS||ty>=ROWS||!exploredCells.has(tileKey(tx,ty))){toast('Телепортироваться можно только в исследованные места.');return;}const x=tx*TILE+TILE/2,y=ty*TILE+TILE/2;if(blocked(x,y)){toast('В этой точке препятствие. Выбери соседнюю открытую область.');return;}player.x=x;player.y=y;player.vx=player.vy=0;saveGame();drawMinimap();drawFullMap();closeFullMap();toast('Телепортация выполнена.');}
   function settingsViewOpen(){return !document.getElementById('pause-settings-view').hidden;}
   function showPauseMain(){document.getElementById('pause-main-view').hidden=false;document.getElementById('pause-settings-view').hidden=true;}
-  function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;keys.clear();movementDirections.clear();movementKeyCodes.clear();if(paused){showPauseMain();}else{canvas.focus();}}
+  function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();if(paused){showPauseMain();}else{canvas.focus();}}
   function syncSettingsControls(){
     document.getElementById('game-quality-select').value=gameSettings.graphicsQuality;
     const performanceSelect=document.getElementById('game-performance-select');if(performanceSelect)performanceSelect.value=gameSettings.performanceMode;
@@ -3856,7 +3857,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         pauseShade?.hidden === true && !blockingOverlay && !sleeping) {
       paused = false;
       keys.clear();
-      movementDirections.clear();movementKeyCodes.clear();
+      movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();
       last = performance.now();
       canvas.focus();
     }
@@ -3885,7 +3886,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       return;
     }
     if (formTarget || inMainMenu || workbenchDialogOpen || shopDialogOpen) return;
-    if(movementKey&&!formTarget&&!paused&&!inMainMenu&&!workbenchDialogOpen&&!shopDialogOpen&&!sleeping){movementKeyCodes.add(e.code);const movementDirection=resolveMovementDirection(k,e.code);if(movementDirection){keys.add(({up:'w',left:'a',down:'s',right:'d'})[movementDirection]);movementDirections.add(movementDirection);}}
+    if(movementKey&&!formTarget&&!paused&&!inMainMenu&&!workbenchDialogOpen&&!shopDialogOpen&&!sleeping){movementKeyCodes.add(e.code);const movementDirection=resolveMovementDirection(k,e.code);if(movementDirection){movementKeyDirections.set(e.code,movementDirection);keys.add(({up:'w',left:'a',down:'s',right:'d'})[movementDirection]);movementDirections.add(movementDirection);}}
     if(k==='k'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){openSkillTree();return;}
     if(k==='f'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){cycleMagicSpell();return;}
     if(k==='g'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){castMagicSpell();return;}
@@ -3906,10 +3907,15 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     }
   }, true);
   // One canonical reset path prevents stuck movement after focus/window transitions.
+  function restoreHeldMovementDirections(){
+    movementDirections.clear();
+    for(const direction of movementKeyDirections.values())if(['up','down','left','right'].includes(direction))movementDirections.add(direction);
+  }
   function clearMovementInput(){
     keys.clear();
     movementDirections.clear();
     movementKeyCodes.clear();
+    movementKeyDirections.clear();
     player.vx=0;
     player.vy=0;
   }
@@ -3917,6 +3923,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const released=gameKey(e);
     const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.code];
     movementKeyCodes.delete(e.code);
+    movementKeyDirections.delete(e.code);
     keys.delete(released);
     if(physicalDirection){
       movementDirections.delete(physicalDirection);
@@ -3924,6 +3931,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     }
     const actionDirection=MOVEMENT_DIRECTION_BY_ACTION[released];
     if(actionDirection)movementDirections.delete(actionDirection);
+    restoreHeldMovementDirections();
   }, true);
   window.addEventListener('blur',clearMovementInput,true);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)clearMovementInput();});
