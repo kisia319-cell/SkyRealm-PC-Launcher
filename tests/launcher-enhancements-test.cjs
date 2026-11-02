@@ -13,6 +13,12 @@ assert.match(launcher,/def install_game_update/);
 assert.match(launcher,/def repair_game_files/);
 assert.match(launcher,/def rollback_game_update/);
 assert.match(launcher,/def get_system_metrics/);
+const launchGameSource=launcher.match(/def launch_game\([\s\S]*?(?=\n\nclass GameApi:)/);
+assert.ok(launchGameSource,'Game launch method must be present');
+const appDataDeclaration=launchGameSource[0].indexOf('app_data = Path(');
+const runnerPathUse=launchGameSource[0].indexOf('runner_dir = app_data / "SkyRealm" / "bin"');
+assert.ok(appDataDeclaration>=0&&runnerPathUse>appDataDeclaration,'launch_game must define its LocalAppData base before installing the standalone game runner');
+
 assert.match(launcher,/previous build preserved/);
 for(const id of ['system-auth-dot','system-coop-dot','system-social-dot','system-install-update','system-repair','system-rollback','system-open-cloud','system-cpu','system-ram']) assert.ok(ui.includes(id),'Missing management UI: '+id);
 assert.ok(ui.includes('/api/social/notifications'));
