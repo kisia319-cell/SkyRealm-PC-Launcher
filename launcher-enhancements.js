@@ -121,12 +121,15 @@
     }catch(_){return '';}
   }
   function browserReleaseSummary(value){
-    return String(value||'').replace(/`{3}[sS]*?`{3}/g,' ')
-      .replace(/![[^]]*]([^)]*)/g,' ')
-      .replace(/[([^]]+)]([^)]*)/g,'$1')
+    const codeMark=String.fromCharCode(96);
+    const fencedCode=new RegExp(codeMark+'{3}[\\s\\S]*?'+codeMark+'{3}','g');
+    return String(value||'').replace(fencedCode,' ')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g,' ')
+      .replace(/\[([^\]]+)\]\([^)]*\)/g,'$1')
       .replace(/^\s{0,3}#{1,6}\s*/gm,'')
       .replace(/^\s*[-*>]+\s*/gm,'')
-      .replace(/[*_~`]/g,'').replace(/s+/g,' ').trim().slice(0,420);
+      .replace(/[*_~]/g,'').split(codeMark).join('')
+      .replace(/\s+/g,' ').trim().slice(0,420);
   }
   async function fetchBrowserReleaseNews(){
     const headers={'Accept':'application/vnd.github+json','Cache-Control':'no-cache'};
