@@ -2534,7 +2534,35 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     layer.npcQuestState={};layer.villageReputation=0;layer.villageRaidActive=false;layer.villageRaidKills=0;layer.villageRaidTimer=0;layer.lastVillageRaidDay=-1;
     return layer;
   }
-  function transitionTradeWorld(){if(worldTransitioning)return;worldTransitioning=true;const fade=document.getElementById('world-fade');const wasPaused=paused;paused=true;keys.clear();fade.classList.add('active');playSound('portal');window.setTimeout(()=>{tradeWorldMode=!tradeWorldMode;inHouse=false;mineMode=false;player.x=tradeEntranceX*TILE+16;player.y=tradeEntranceY*TILE+16;player.vx=player.vy=0;markExploredAroundPlayer();const loc=document.getElementById('location-name');if(loc)loc.textContent=tradeWorldMode?'Мир торговли':'Лесная долина';saveGame();drawMinimap();toast(tradeWorldMode?'Ты в Мире торговли! У входа — две лавки, рядом — торговец и фермер Мира. T открывает магазин, E — задание.':'Ты вернулся в Лесную долину.');window.setTimeout(()=>{fade.classList.remove('active');paused=wasPaused;worldTransitioning=false;},280);},280);}
+  function transitionTradeWorld(){
+    if(worldTransitioning)return;
+    worldTransitioning=true;const fade=document.getElementById('world-fade'),wasPaused=paused;
+    paused=true;keys.clear();movementDirections.clear();movementKeyCodes.clear();fade.classList.add('active');playSound('portal');
+    window.setTimeout(()=>{
+      const entering=!tradeWorldMode,portal={x:tradeEntranceX*TILE+16,y:tradeEntranceY*TILE+16};
+      inHouse=false;mineMode=false;caveMode=false;dungeonMode=false;
+      if(entering){
+        surfaceWorldLayer=captureWorldLayerState();surfacePlayerPosition={x:player.x,y:player.y};
+        surfaceWorldLayer.villageNpcs=[];surfaceWorldLayer.villageCenters=[];
+        if(!tradeWorldLayer)tradeWorldLayer=createInitialTradeWorldLayer();
+        if(!tradeWorldLayer.villageNpcs?.length&&!villageNpcs.length){setupVillageNpcs();tradeWorldLayer.villageNpcs=cloneWorldLayerValue(villageNpcs,[]);tradeWorldLayer.villageCenters=cloneWorldLayerValue(villageCenters,[]);}
+        applyWorldLayerState(tradeWorldLayer);tradeWorldMode=true;
+        player.x=Number.isFinite(tradePlayerPosition?.x)?tradePlayerPosition.x:portal.x;
+        player.y=Number.isFinite(tradePlayerPosition?.y)?tradePlayerPosition.y:portal.y;
+      }else{
+        tradeWorldLayer=captureWorldLayerState();tradePlayerPosition={x:player.x,y:player.y};
+        if(surfaceWorldLayer)applyWorldLayerState(surfaceWorldLayer);
+        tradeWorldMode=false;
+        player.x=Number.isFinite(surfacePlayerPosition?.x)?surfacePlayerPosition.x:portal.x;
+        player.y=Number.isFinite(surfacePlayerPosition?.y)?surfacePlayerPosition.y:portal.y;
+      }
+      player.vx=player.vy=0;markExploredAroundPlayer();
+      const loc=document.getElementById('location-name');if(loc)loc.textContent=tradeWorldMode?'Мир торговли':'Лесная долина';
+      saveGame();drawMinimap();
+      toast(tradeWorldMode?'Ты вошёл в отдельный Мир торговли. Деревни, NPC, время и добыча сохраняются отдельно.':'Ты вернулся в свой мир. Позиция и состояние мира восстановлены.');
+      window.setTimeout(()=>{fade.classList.remove('active');paused=wasPaused;worldTransitioning=false;},280);
+    },280);
+  }
   function fishingShoreRatio(){
     if(tradeWorldMode||mineMode||caveMode||dungeonMode||inHouse)return Infinity;
     const dx=(player.x/TILE-52)/6.5,dy=(player.y/TILE-36)/4.3;
