@@ -94,3 +94,29 @@ assert.ok(app.includes("vsync: $('#vsync-toggle') ? $('#vsync-toggle').checked :
 assert.ok(app.includes("p.vsync = p.vsync !== false"),'VSync must default to enabled for existing settings');
 assert.ok(html.includes('id="vsync-toggle"'),'Settings must expose a VSync toggle');
 assert.ok(css.includes('body.reduce-motion')&&css.includes('body.high-contrast')&&css.includes('body.performance-saver'),'Accessibility and resource-saving toggles must have working styles');
+
+// Deep audit follow-ups: selected install path, exact file integrity and safe backup history.
+
+assert.match(launcher,/def list_world_backups\(self\)/,'Launcher must list local world backup archives');
+assert.match(launcher,/def _skyrealm_inspect_world_backup\(self, archive_path\)/,'Every world backup must be verified before restore');
+assert.match(launcher,/def restore_worlds\(self, backup_name=None\)/,'World restore must accept a selected backup');
+assert.match(launcher,/skyrealm_safe_world_backup_name\(backup_name\)/,'Selected backup names must be validated against path traversal');
+assert.match(launcher,/bundle\.testzip\(\)/,'World backup restore must reject ZIP CRC corruption');
+assert.match(launcher,/PurePosixPath/,'World backup paths must be normalized before extraction');
+assert.match(launcher,/512 \* 1024 \* 1024/,'World backup extraction must enforce an uncompressed size limit');
+assert.match(launcher,/install_dir = skyrealm_game_dir\(\)/,'Diagnostics and update status must use the configured installation folder');
+assert.match(launcher,/integrity_mismatches/,'Diagnostics must compare installed files against the bundled release');
+assert.match(launcher,/integrity_checked/,'Diagnostics must report how many bundled files were checked');
+assert.match(launcher,/bundled_game_version/,'Update status must account for a newer game bundled with the launcher');
+assert.match(launcher,/missing_game_files/,'Update status must offer repair when required installed files are missing');
+assert.ok(html.includes('id="world-backup-select"')&&html.includes('id="refresh-world-backups"'),'Settings must expose backup selection and list refresh controls');
+assert.ok(app.includes('list_world_backups')&&app.includes('restore_worlds(selectedBackup)'),'Backup UI must list archives and pass the selected archive to restore');
+assert.ok(app.includes("new CustomEvent('skyrealm:language-changed'"),'Launcher language changes must notify dynamically-created pages');
+assert.match(app,/pageSystem:'CONTROL CENTER'/,'Page navigation names must include dynamic pages in English');
+assert.match(enhancements,/function applyDynamicTranslations\(root=document\)/,'Dynamic pages must be localized when created and after language changes');
+assert.ok(enhancements.includes('integrity_mismatches')&&enhancements.includes('runner_exists'),'System diagnostics must display file mismatches and runner status');
+assert.ok(html.includes('id="home-launcher-version"')&&html.includes('id="home-game-version"'),'Home status must contain dynamic version fields');
+assert.ok(html.includes('id="launcher-version-label"')&&app.includes("'\.side-version':'SKYREALM <b id=\"launcher-version-label\">—</b>"),'Sidebar version label must be populated from launcher metadata');
+assert.ok(!html.includes('nav-badge">2')&&!html.includes('nav-badge">8'),'Navigation must not display stale hard-coded notification counts');
+assert.ok(html.includes('id="mods-catalog-count"'),'Mod catalog badge must be calculated from the real catalog');
+
