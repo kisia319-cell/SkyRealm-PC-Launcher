@@ -112,6 +112,8 @@ assert.ok(game.includes("id:'storm'") && game.includes("id:'abyss'"), 'Two addit
 assert.ok(game.includes('function makeDungeonRoomMobs') && game.includes("type:'skeleton'") && game.includes("type:'ice'") && game.includes("type:'scorpion'") && game.includes("type:'brute'"), 'Each dungeon room must generate four distinct enemy types');
 assert.ok(game.includes('function drawDungeonPassageLayout') && game.includes('ЛОВУШЕЧНЫЙ МАРШРУТ') && game.includes('ЗАЛ АРХОНТА'), 'Dungeon rooms must have distinct passage layouts');
 assert.ok(game.includes('function captureWorldLayerState()') && game.includes('function applyWorldLayerState(state)') && game.includes('surfaceWorldLayer') && game.includes('tradeWorldLayer'), 'Trade World and surface world must keep independent saved state');
+assert.ok(game.includes('function encodeExploredCells(set)') && game.includes('function decodeExploredCells(value)') && game.includes('exploredCells:encodeExploredCells(exploredCells)'), 'Inactive world exploration must be compressed to avoid overflowing local saves');
+
 assert.ok(game.includes('tradeWorldMode,surfaceWorldLayer:tradeWorldMode?surfaceWorldLayer:null') && game.includes('tradeWorldLayer:tradeWorldMode?null:tradeWorldLayer'), 'Only the inactive world layer should be duplicated in each save to limit storage use');
 assert.ok(game.includes("if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;") && game.includes('if(tradeWorldMode){\n      for(const village of villageCenters'), 'Trade World residents and minimap must remain isolated from the surface world');
 
