@@ -360,3 +360,12 @@ assert.ok(game.includes("if(movementDirections.has('up')||keys.has('w')||keys.ha
 
 assert.ok(game.includes('desynchronized: !initialVsyncEnabled()'),'VSync preference must be passed to the canvas low-latency hint when disabled');
 assert.ok(game.includes('s.vsync = s.vsync !== false'),'Game settings must normalize VSync to enabled by default');
+
+
+// Regression coverage: movement input must have one cleanup path, physical key release must
+// clear its canonical direction, and world saves must be verified/recoverable.
+assert.ok(game.includes('function clearMovementInput(){'), 'All focus/window transitions must share one movement reset function');
+assert.ok(game.includes('const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.code]') && game.includes("keys.delete(({up:'w',left:'a',down:'s',right:'d'})[physicalDirection])"), 'Physical keyup must release the matching direction even when keyboard layout changes');
+assert.ok(game.includes("window.addEventListener('blur',clearMovementInput,true)") && game.includes("window.addEventListener('pagehide',clearMovementInput,true)"), 'Blur and pagehide must clear held movement state');
+assert.ok(game.includes("localStorage.setItem(saveKey+'.backup',previous)") && game.includes('World save verification failed'), 'Saving must preserve the previous snapshot and verify the new write');
+assert.ok(game.includes("localStorage.getItem(saveKey+'.backup')") && game.includes('trying the last verified backup'), 'A damaged primary save must recover from its previous snapshot');
