@@ -54,8 +54,8 @@ assert.ok(launcherHtml.includes('Никаких скрытых покупок'),
 assert.ok(app.includes('function runGameDiagnostics()'), 'Launcher diagnostics button must be wired');
 assert.ok(py.includes('def get_diagnostics(self):') && py.includes('def open_update_log(self):'), 'Desktop launcher must provide diagnostics and log actions');
 assert.ok(py.includes('installed_files_ok'), 'Play flow must repair missing or size-mismatched installed files');
-assert.ok(launcherHtml.includes('v'+fs.readFileSync('launcher_version.txt','utf8').trim()), 'Launcher UI version must match launcher_version.txt');
-assert.ok(gameHtml.includes('360 × 260') && !gameHtml.includes('180 × 130 · Босс 8500 HP'), 'Difficulty picker must show actual expanded map dimensions');
+assert.ok(launcherHtml.includes('id="launcher-version-label"') && py.includes('def get_local_versions(self):') && app.includes('launcher-version-label'), 'Launcher UI version must be loaded dynamically from launcher_version.txt, including while offline');
+assert.ok(gameHtml.includes('360 × 280') && gameHtml.includes('440 × 328') && gameHtml.includes('520 × 384') && gameHtml.includes('600 × 440') && gameHtml.includes('720 × 520'), 'Difficulty picker must show doubled map dimensions at every difficulty');
 
 assert.match(version, /^\d+\.\d+\.\d+\.\d+$/, 'game/version.txt must include the cumulative bug-fix counter');
 assert.ok(gameHtml.includes(version), 'game/index.html version label must match game/version.txt');
@@ -93,11 +93,11 @@ const missingRecipes = [...gameHtml.matchAll(/data-craft="([^"]+)"/g)]
 assert.deepEqual(missingRecipes, [], 'Every data-craft button must reference a recipe');
 
 const expectedMapSizes = {
-  easy: [180, 140],
-  medium: [220, 164],
-  hard: [260, 192],
-  hell: [300, 220],
-  impossible: [360, 260],
+  easy: [360, 280],
+  medium: [440, 328],
+  hard: [520, 384],
+  hell: [600, 440],
+  impossible: [720, 520],
 };
 for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
   const line = game.split(/\r?\n/).find(row => row.includes(difficulty + ":{id:'" + difficulty + "'"));
@@ -105,6 +105,45 @@ for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
   assert.ok(line.includes('cols:' + cols + ',rows:' + rows), 'Incorrect doubled map size for difficulty: ' + difficulty);
 }
 assert.ok(game.includes("function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)"), 'Biome regions must scale with the larger map');
+
+assert.ok(game.includes('gameMinuteTotal+=dt*Math.max(1,Math.min(4,Number(worldTimeMultiplier)||1))') && gameHtml.includes('id="world-time-multiplier"'), 'World time multiplier must affect the authoritative game clock and be configurable');
+assert.ok(game.includes('gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+NIGHT_MINUTE') && game.includes('День пропущен до 20:00'), 'Skipping a day must stop at 20:00 of the next day');
+assert.ok(game.includes('forceNightStart=true;monsters.length=0;skipDayRealSeconds=300;updateWorldClock(.001)') && game.includes('const wasNightBefore=isNightTime()&&!forceNightStart'), 'Skipping to 20:00 must trigger the normal night-start transition immediately');
+assert.ok(game.includes('if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){toast(\'Пропуск дня доступен владельцу кооперативного мира.\')'), 'Only the co-op owner may skip the shared day');
+assert.ok(game.includes("Math.random()<.15") && game.includes("lastYetiSpawnDay=currentDay") && game.includes("!tradeWorldMode&&currentDay!==lastYetiSpawnDay"), 'Yeti must have a 15 percent hourly roll and a once-per-day limit');
+assert.ok(game.includes('mineOreRegenTimer=5') && game.includes('const depleted=mineRocks.filter(r=>r.hp<=0)'), 'One depleted mine vein must regenerate every five seconds');
+assert.ok(game.includes("target.fleeTimer=2.5;target.dir=Math.atan2(target.y-player.y,target.x-player.x)") && game.includes('Math.hypot(player.vx,player.vy)||155'), 'Hit sheep must flee away at player movement speed');
+assert.ok(game.includes("changeItem('Ключ от клетки',1)") && game.includes('wolfBossKeyDropped=true'), 'Defeating the Werewolf must always grant the cage key');
+assert.ok(game.includes('currentDistance<=weaponRange()') && game.includes('distance<=weaponRange()') && game.includes('const wolfAttackRange=weaponRange()'), 'Monster and boss attack distances must use the equipped player weapon range');
+
+assert.ok(game.includes('const movementKeyCodes = new Set()') && game.includes("window.addEventListener('pagehide'"), 'Movement input must recover from key/focus loss');
+assert.ok(game.includes('if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}') && game.includes('if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}'), 'HUD editing and sleeping must clear all held physical movement keys');
+
+assert.ok(game.includes('quickbarItemNames') && game.includes('for(let index=0;index<10;index++)') && game.includes('pageSize=20'), 'Inventory must have ten persistent hotbar slots and twenty-slot pages');
+const lowerBoundStart=game.indexOf('function lowerBoundByY(items,minY){');
+const lowerBoundEnd=game.indexOf('\n  function drawFlowers',lowerBoundStart);
+assert.ok(lowerBoundStart>=0&&lowerBoundEnd>lowerBoundStart,'Large-map decoration renderer must expose its sorted-row lower-bound helper');
+const lowerBoundByY=vm.runInNewContext('('+game.slice(lowerBoundStart,lowerBoundEnd).trim()+')');
+const sortedDecorationRows=[{y:1},{y:3},{y:6},{y:9},{y:14}];
+assert.equal(lowerBoundByY(sortedDecorationRows,6),2,'Viewport culling must start at the first visible decoration row');
+assert.equal(lowerBoundByY(sortedDecorationRows,15),5,'Viewport culling must return array length when no rows are visible');
+assert.ok(game.includes('lowerBoundByY(items,camY-20)') && game.includes('lowerBoundByY(items,camY-15)'), 'Flowers and fireflies must scan only the visible Y range on large maps');
+
+assert.ok(gameHtml.includes('id="inventory-page-prev"') && gameHtml.includes('id="inventory-page-next"') && gameHtml.includes('СЛОТЫ 1–10'), 'Inventory UI must expose ten hotbar slots and paging');
+assert.ok(game.includes("id:'storm'") && game.includes("id:'abyss'"), 'Two additional world bosses must be defined');
+assert.ok(game.includes('function makeDungeonRoomMobs') && game.includes("type:'skeleton'") && game.includes("type:'ice'") && game.includes("type:'scorpion'") && game.includes("type:'brute'"), 'Each dungeon room must generate four distinct enemy types');
+assert.ok(game.includes('function drawDungeonPassageLayout') && game.includes('ЛОВУШЕЧНЫЙ МАРШРУТ') && game.includes('ЗАЛ АРХОНТА'), 'Dungeon rooms must have distinct passage layouts');
+assert.ok(game.includes('function captureWorldLayerState()') && game.includes('function applyWorldLayerState(state)') && game.includes('surfaceWorldLayer') && game.includes('tradeWorldLayer'), 'Trade World and surface world must keep independent saved state');
+assert.ok(game.includes('function encodeExploredCells(set)') && game.includes('function decodeExploredCells(value)') && game.includes('exploredCells:encodeExploredCells(exploredCells)'), 'Inactive world exploration must be compressed to avoid overflowing local saves');
+
+assert.ok(game.includes('tradeWorldMode,surfaceWorldLayer:tradeWorldMode?surfaceWorldLayer:null') && game.includes('tradeWorldLayer:tradeWorldMode?null:tradeWorldLayer'), 'Only the inactive world layer should be duplicated in each save to limit storage use');
+assert.ok(game.includes("if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;") && game.includes('if(tradeWorldMode){\n      for(const village of villageCenters'), 'Trade World residents and minimap must remain isolated from the surface world');
+
+
+assert.ok(game.includes('dungeonRoomMobs:dungeonRoomMobs.map') && game.includes('livingMobs=dungeonRoomMobs.filter'), 'Dungeon enemy health and combat state must persist');
+
+assert.ok(game.includes('d<weaponRange()&&b.attackTimer') && game.includes('dist<weaponRange()&&dungeonEnemyAttackTimer'), 'Boss attack reach must match the equipped player weapon range');
+
 
 assert.ok(gameHtml.includes('content="'+version+'"'), 'Game HTML version metadata must match game/version.txt');
 assert.ok(gameHtml.includes('id="anvil-enchant-weapon"'), 'Enchanting button must exist in game UI');
@@ -252,7 +291,7 @@ assert.ok(game.includes(String.raw`Object.entries(d.snowShovelHits).filter(([k,v
 assert.ok(game.includes('Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.'), 'Mine location must remain at its deterministic expanded-map position after loading a save');
 assert.ok(!game.includes('Math.max(20,Math.min(31,d.mineTileX))') && !game.includes('Math.max(24,Math.min(29,d.mineTileY))'), 'Legacy mine coordinate clamps must not move the mine back beside the starting area');
 
-assert.ok(game.includes('function updateVillageNpcs(dt){\n    if(inHouse||mineMode||caveMode||dungeonMode)return;') && !game.includes('function updateVillageNpcs(dt){\n    if(!tradeWorldMode'), 'Trade residents must remain active in ordinary single-player play, not only when co-op is enabled');
+assert.ok(game.includes('function updateVillageNpcs(dt){\n    if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;') && !game.includes('function updateVillageNpcs(dt){\n    if(isCoopWorldActive()'), 'Trade residents must update in the Trade World in both single-player and co-op');
 assert.ok(game.includes('function updateWolfAndDog(dt){\n    if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;'), 'Forest boss and companion simulation must not leak into Trade World or interiors');
 
 assert.ok(py.includes('"multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js"'), 'Launcher diagnostics must detect missing multiplayer scripts');
@@ -288,7 +327,7 @@ assert.ok(game.includes("const visible = id => { const el=document.getElementByI
 assert.ok(game.includes("pauseShade?.hidden === true && !blockingOverlay && !sleeping"), 'A movement key must recover a stale pause state when no blocking modal is visible');
 assert.ok(game.includes("['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)"), 'Movement must accept physical WASD and arrow key codes in embedded WebViews');
 assert.ok(game.includes("window.addEventListener('keyup', e => {") && game.includes("keys.delete(released)"), 'Movement key releases must be captured at window level');
-assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); } })"), 'Hidden game windows must clear held movement keys');
+assert.ok(game.includes("document.addEventListener('visibilitychange',()=>{if(document.hidden)clearMovementInput();}"), 'Hidden game windows must clear all held movement input states through the shared reset path');
 
 assert.ok(game.includes("window.addEventListener('keydown', e => {"), 'Keyboard input must be captured at the WebView window level');
 const keydownStart = game.indexOf("window.addEventListener('keydown'");
@@ -324,9 +363,45 @@ assert.ok(gameHtml.includes('id="world-filter"')&&gameHtml.includes('value="favo
 assert.ok(game.includes('const movementDirections = new Set()'), 'Movement input must be tracked independently from action keys');
 assert.ok(game.includes('MOVEMENT_DIRECTION_BY_ACTION'), 'WASD and arrow keys must resolve to movement directions');
 assert.ok(game.includes('movementDirections.add(movementDirection)'), 'Movement keydown must register a held direction');
-assert.ok(game.includes('movementDirections.delete(direction)'), 'Movement keyup must release the held direction');
+assert.ok(game.includes('movementDirections.delete(physicalDirection)') && game.includes('movementDirections.delete(actionDirection)'), 'Movement keyup must release both physical-code and logical action directions');
 assert.ok(game.includes('movementDirections.clear()'), 'Movement input must be cleared on blur, hidden window, HUD edit mode and sleep');
-assert.ok(game.includes("if(movementDirections.has('up'))my--") && game.includes("if(movementDirections.has('right'))mx++"), 'Player movement must use the dedicated held-direction state');
+assert.ok(game.includes('function resolveMovementDirection(action,code)') && game.includes('const movementDirection=resolveMovementDirection(k,e.code)'), 'Remapped physical keys must resolve to one configured logical direction');
+assert.ok(game.includes("if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup'))my--") && game.includes("if(movementDirections.has('right')||keys.has('d')||keys.has('arrowright'))mx++") && !game.includes("movementKeyCodes.has('KeyD')"), 'Movement must not apply a second hard-coded direction to a remapped physical key');
 
 assert.ok(game.includes('desynchronized: !initialVsyncEnabled()'),'VSync preference must be passed to the canvas low-latency hint when disabled');
 assert.ok(game.includes('s.vsync = s.vsync !== false'),'Game settings must normalize VSync to enabled by default');
+
+
+// Regression coverage: movement input must have one cleanup path, physical key release must
+// clear its canonical direction, and world saves must be verified/recoverable.
+
+const movementResolverMatch=game.match(/function resolveMovementDirection\(action,code\)\{[^}]*\}/);
+assert.ok(movementResolverMatch,'Movement direction resolver must exist');
+const movementResolver=vm.runInNewContext('('+movementResolverMatch[0]+')',{MOVEMENT_DIRECTION_BY_ACTION:{w:'up',a:'left',s:'down',d:'right',arrowup:'up',arrowleft:'left',arrowdown:'down',arrowright:'right'},PHYSICAL_MOVEMENT_BY_CODE:{KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right',ArrowUp:'up',ArrowLeft:'left',ArrowDown:'down',ArrowRight:'right'}});
+assert.equal(movementResolver('w','KeyD'),'up','A KeyD binding assigned to Up must not also resolve to Right');
+assert.equal(movementResolver('arrowup','ArrowRight'),'up','Logical ArrowUp must take priority over physical ArrowRight');
+assert.equal(movementResolver('','KeyD'),'right','Unmapped physical D must retain the default Right direction');
+assert.equal(movementResolver('','KeyQ'),null,'Non-movement keys must not resolve to a direction');
+const heldDirectionMatch=game.match(/function restoreHeldMovementDirections\(\)\{[\s\S]*?\n  \}/);
+assert.ok(heldDirectionMatch && game.includes('movementKeyDirections = new Map()') && game.includes('restoreHeldMovementDirections();'), 'Held movement keys must be tracked separately and restored on key release');
+const testMovementDirections=new Set(['right']);
+const testMovementKeyDirections=new Map([['KeyI','up'],['KeyW','up'],['KeyA','left']]);
+const restoreHeldDirections=vm.runInNewContext('('+heldDirectionMatch[0]+')',{movementDirections:testMovementDirections,movementKeyDirections:testMovementKeyDirections});
+restoreHeldDirections();
+assert.deepEqual([...testMovementDirections].sort(),['left','up'],'Holding two keys assigned to the same direction must preserve that direction');
+testMovementKeyDirections.delete('KeyI');restoreHeldDirections();
+assert.deepEqual([...testMovementDirections].sort(),['left','up'],'Releasing one of two held keys must not cancel the other key in the same direction');
+testMovementKeyDirections.delete('KeyW');restoreHeldDirections();
+assert.deepEqual([...testMovementDirections],['left'],'The direction must clear after the last mapped key is released');
+assert.ok(game.includes('movementKeyDirections.clear()') && game.includes('movementKeyDirections.delete(e.code)'), 'Focus loss and key release must clear the per-key movement ledger');
+assert.ok(game.includes('function clearMovementInput(){'), 'All focus/window transitions must share one movement reset function');
+assert.ok(game.includes('const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.code]') && game.includes("keys.delete(({up:'w',left:'a',down:'s',right:'d'})[physicalDirection])"), 'Physical keyup must release the matching direction even when keyboard layout changes');
+assert.ok(game.includes("window.addEventListener('blur',clearMovementInput,true)") && game.includes("window.addEventListener('pagehide',clearMovementInput,true)"), 'Blur and pagehide must clear held movement state');
+assert.ok(game.includes("localStorage.setItem(saveKey+'.backup',previous)") && game.includes('World save verification failed'), 'Saving must preserve the previous snapshot and verify the new write');
+assert.ok(game.includes('const previousData=JSON.parse(previous)') && game.includes("!Array.isArray(previousData)"), 'Only a valid object snapshot may replace the last known-good backup');
+
+assert.ok(game.includes("localStorage.getItem(saveKey+'.backup')") && game.includes('trying the last verified backup'), 'A damaged primary save must recover from its previous snapshot');
+assert.ok(game.includes('function readWorldSaveSnapshot(){') && game.includes("const backupRaw=localStorage.getItem(saveKey+'.backup'),backupData=JSON.parse(backupRaw||'null')"), 'A missing or non-object primary save must fall back to the backup');
+assert.ok(game.includes("if(primaryData&&typeof primaryData==='object'&&!Array.isArray(primaryData))return primaryData"), 'Valid primary save data must remain preferred over backup data');
+assert.ok(game.includes("catch(restoreError){console.warn('SkyRealm backup was loaded, but restoring the primary save key was unavailable:',restoreError);}") && game.includes('return backupData;'), 'A valid backup must load in memory even when restoring the primary key fails');
+

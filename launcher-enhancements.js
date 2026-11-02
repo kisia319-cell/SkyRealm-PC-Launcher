@@ -9,7 +9,311 @@
   const manifestUrl = 'https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json';
   const currentTime = () => new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
   let notificationPanel = null, notificationList = null, notificationCount = null;
-  let cachedNotifications = [], cachedUpdate = null, pollTimer = null;
+  let cachedNotifications = [], cachedUpdate = null, pollTimer = null, cachedReleaseNews = null, releaseNewsBusy = false;
+  let enhancementLanguage = document.documentElement.lang === 'en' ? 'en' : 'ru';
+  const DYNAMIC_TEXT_EN = {
+    'Центр управления':'Control Center','Пн':'Mon','Вт':'Tue','Ср':'Wed','Чт':'Thu','Пт':'Fri','Сб':'Sat','Вс':'Sun','Проверяем manifest и текущую установку…':'Checking the manifest and current installation…','Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.':'A launcher update is available. It will be installed automatically on the next start.','Доступно обновление игры. Перед установкой закрой игру.':'A game update is available. Close the game before installing it.','Установлены последние версии.':'The latest versions are installed.','Проверяем игровые файлы и локальные данные…':'Checking game files and local data…','Основные файлы и контрольные суммы совпадают. ':'Core files and checksums match. ','Нужен ремонт. ':'Repair required. ','Версия: ':'Version: ','Отсутствуют: ':'Missing: ','нет':'none','найдено':'found','ещё не создано':'not created yet','Игровой запускатель: ':'Game runner: ','установлен.':'installed.','будет установлен при следующем запуске.':'will be installed on next launch.','Сверено файлов с комплектом: ':'Bundled files checked: ','совпадают.':'all match.','Несовпадения: ':'Mismatches: ','Центр':'Control','управления':'center','ЦЕНТР УПРАВЛЕНИЯ':'CONTROL CENTER','КАЛЕНДАРЬ':'CALENDAR','ПОДДЕРЖКА':'SUPPORT','СКРИНШОТЫ':'SCREENSHOTS','Создать копию':'Create backup','Восстановить выбранную':'Restore selected','Обновить список':'Refresh list','Последняя исправная копия':'Latest valid backup','Восстановить':'Restore','Просмотреть':'View','Просмотр':'View',
+    'SKYREALM · КОНТРОЛЬ':'SKYREALM · CONTROL','Обновления, состояние сервисов, диагностика, облачные сохранения и показатели компьютера.':'Updates, service status, diagnostics, cloud saves and computer metrics.',
+    '↻ Обновить всё':'↻ Refresh all','СЕТЬ':'NETWORK','Состояние сервисов':'Service status','Ещё не проверяли':'Not checked yet',
+    'Авторизация: проверка':'Authentication: checking','Вход и регистрация игроков':'Player sign-in and registration',
+    'Кооператив: проверка':'Co-op: checking','Комнаты и совместные игровые сессии':'Rooms and shared game sessions',
+    'Сообщество: проверка':'Community: checking','Друзья, сообщения и приглашения':'Friends, messages and invitations',
+    'ВЕРСИИ И ФАЙЛЫ':'VERSIONS AND FILES','Центр обновлений':'Update center','Лаунчер':'Launcher','Игра':'Game','Доступно':'Available',
+    'Проверка версии не изменяет файлы. Обновление игры устанавливается отдельно от миров.':'Checking versions does not change files. Game updates are installed separately from world saves.',
+    'Описание последнего релиза появится после проверки манифеста.':'The latest release notes will appear after the manifest is checked.',
+    'Проверить обновления':'Check for updates','Установить обновление игры':'Install game update','Восстановить файлы':'Repair files','Откатить версию':'Roll back version','Релизы лаунчера ↗':'Launcher releases ↗',
+    'ПРОИЗВОДИТЕЛЬНОСТЬ':'PERFORMANCE','Показатели компьютера':'Computer metrics','Локально · не отправляется на сервер':'Local · never sent to the server',
+    'Процессор':'CPU','Оперативная память':'Memory','Место на диске':'Disk space','Показатели обновляются при открытии центра и по кнопке «Обновить всё».':'Metrics refresh when this center opens and when you select “Refresh all”.',
+    'СОХРАНЕНИЯ':'SAVES','Облачные миры':'Cloud worlds','Резервная копия для другого компьютера':'Backup for another computer',
+    'Открой игру в режиме облачных сохранений. В меню выбора миров появятся кнопки загрузки в облако и безопасного восстановления. Перед восстановлением скачивается страховочная копия, а несовпадающие локальные миры сохраняются.':'Open the game in cloud-save mode. The world menu will show upload and safe restore actions. A safety copy is downloaded before restoration, and non-matching local worlds are preserved.',
+    'Открыть облачные сохранения в игре':'Open cloud saves in game','Для доступа требуется подтверждённый аккаунт. Облачный архив принадлежит только твоему аккаунту.':'A verified account is required. Your cloud archive belongs only to your account.',
+    'ВОССТАНОВЛЕНИЕ':'RECOVERY','Автоматическая диагностика':'Automatic diagnostics',
+    'Проверим наличие игровых файлов, версию, целостность и локальное хранилище миров. Ничего не удаляется.':'Check game files, version, integrity and local world storage. Nothing is deleted.',
+    'Проверить файлы игры':'Check game files','Открыть журнал':'Open log','Папка игры':'Game folder',
+    'SKYREALM · ПЛАНЫ':'SKYREALM · PLANS','Игровой':'Game','календарь':'calendar',
+    'Планируй игровые сессии, испытания и личные события. Записи сохраняются локально на этом компьютере.':'Plan game sessions, challenges and personal events. Entries are stored locally on this computer.',
+    'Добавить событие':'Add event','Название':'Title','Дата':'Date','Тип':'Type','Игровая сессия':'Game session','Испытание':'Challenge','Обновление':'Update','Событие сообщества':'Community event',
+    'Добавить в календарь':'Add to calendar','Укажи название и дату события.':'Enter an event title and date.','Событие сохранено.':'Event saved.',
+    'На эту дату событий нет. Добавь первое событие выше.':'No events on this date. Add the first event above.','Удалить':'Delete','Событие':'Event',
+    'SKYREALM · ПОМОЩЬ':'SKYREALM · HELP','Центр поддержки':'Support center','Если что-то не работает, собери диагностику и отправь отчёт разработчику.':'If something is not working, collect diagnostics and send a report to the developer.',
+    'Сообщить об ошибке':'Report a bug','Опиши проблему и приложи скопированный диагностический отчёт.':'Describe the issue and attach the copied diagnostics report.',
+    'Создать обращение':'Create issue','Обновления и инструкции':'Updates and guides','Открыть исходный код, описание проекта и последние версии лаунчера.':'Open the source code, project details and latest launcher versions.',
+    'Репозиторий GitHub':'GitHub repository','Последний релиз':'Latest release','Диагностический отчёт':'Diagnostics report',
+    'Отчёт содержит версии, состояние файлов и локальные показатели компьютера. Пароли и токены авторизации в него не включаются.':'The report includes versions, file status and local computer metrics. Passwords and authentication tokens are excluded.',
+    'Скопировать отчёт':'Copy report','Собираем диагностику…':'Collecting diagnostics…','Диагностический отчёт скопирован. Прикрепи его к обращению.':'Diagnostics report copied. Attach it to your issue.',
+    'SKYREALM · ГАЛЕРЕЯ':'SKYREALM · GALLERY','Мои':'My','скриншоты':'screenshots',
+    'Снимки игрового мира, сделанные клавишей F12. Файлы хранятся локально на этом компьютере.':'Screenshots of the game world captured with F12. Files are stored locally on this computer.',
+    '↻ Обновить':'↻ Refresh','Открыть папку':'Open folder','Загружаем галерею…':'Loading gallery…','Скриншот':'Screenshot','Закрыть':'Close',
+    'Пока нет скриншотов':'No screenshots yet','Запусти игру и нажми F12, чтобы сделать первый снимок.':'Launch the game and press F12 to take your first screenshot.',
+    'Открыть статус сервера':'Open server status',
+    'Поиск модов':'Search mods','Категория':'Category','Сортировка':'Sort by',
+    'Все категории':'All categories','По умолчанию':'Default order',
+    'Название: А–Я':'Name: A–Z','Название: Я–А':'Name: Z–A',
+    'Избранное ★':'Favorites ★',
+    'По категории':'By category','Сбросить':'Clear filters',
+    'Найдено модов: 35':'Found mods: 35',
+    'Ничего не найдено. Измени поисковый запрос или категорию.':'No mods found. Change the search or category.',
+    'ИССЛЕДОВАНИЕ':'EXPLORATION','РЕСУРСЫ':'RESOURCES','ФЕРМЕРСТВО':'FARMING',
+    'ДОБЫЧА':'MINING','ВЫЖИВАНИЕ':'SURVIVAL','РАЗВИТИЕ':'PROGRESSION',
+    'СЛОЖНОСТЬ':'DIFFICULTY','БОССЫ':'BOSSES','СНАРЯЖЕНИЕ':'EQUIPMENT',
+    'ПРИКЛЮЧЕНИЯ':'ADVENTURE','БИТВЫ':'BATTLES','СТРОИТЕЛЬСТВО':'BUILDING',
+    'СПУТНИКИ':'COMPANIONS','ЭКОНОМИКА':'ECONOMY','МАГИЯ':'MAGIC',
+    'ТЕХНОЛОГИИ':'TECHNOLOGY','НОВЫЕ МИРЫ':'NEW WORLDS','ПЕРЕДВИЖЕНИЕ':'MOVEMENT',
+    'ЗАЩИТА':'DEFENSE','ЛЕЧЕНИЕ':'HEALING','ВЫНОСЛИВОСТЬ':'STAMINA',
+    'ОФИЦИАЛЬНАЯ ЛЕНТА GITHUB':'OFFICIAL GITHUB FEED',
+    'Последние публикации SkyRealm':'Latest SkyRealm updates',
+    'Загружаем последние релизы…':'Loading latest releases…',
+    'Получаем опубликованные релизы GitHub…':'Fetching published GitHub releases…',
+    'Показаны опубликованные релизы GitHub.':'Showing published GitHub releases.',
+    'Релизов нет — показана история коммитов main.':'No releases yet — showing recent commits from main.',
+    'Опубликованных релизов пока нет.':'No published releases yet.',
+    'Не удалось загрузить новости GitHub. Проверь интернет и попробуй обновить ленту.':'Could not load GitHub news. Check your connection and refresh the feed.',
+    'Открыть релиз ↗':'Open release ↗','Открыть коммит ↗':'Open commit ↗',
+    'Предварительный релиз':'Pre-release','Релиз':'Release','Коммит':'Commit',
+
+    'СОКРОВИЩА':'TREASURES','ВОССТАНОВЛЕНИЕ':'RECOVERY'
+  };
+  const DYNAMIC_ATTR_EN = {
+    'Например, вечер кооператива':'For example, co-op night',
+    'Выбрать резервную копию':'Select a backup',
+    'Название, описание или ID мода':'Mod name, description or ID',
+    'Добавить в избранное':'Add to favorites','Убрать из избранного':'Remove from favorites'
+  };
+  function applyDynamicTranslations(root=document) {
+    const toEnglish = enhancementLanguage === 'en';
+    const forward = DYNAMIC_TEXT_EN;
+    const reverse = Object.fromEntries(Object.entries(DYNAMIC_TEXT_EN).map(([ru,en])=>[en,ru]));
+    const attributesForward = DYNAMIC_ATTR_EN;
+    const attributesReverse = Object.fromEntries(Object.entries(DYNAMIC_ATTR_EN).map(([ru,en])=>[en,ru]));
+    const map = toEnglish ? forward : reverse;
+    const attrMap = toEnglish ? attributesForward : attributesReverse;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const value = node.nodeValue.trim();
+      if (Object.prototype.hasOwnProperty.call(map,value)) node.nodeValue = node.nodeValue.replace(value,map[value]);
+    }
+    root.querySelectorAll?.('[placeholder],[title],[aria-label]').forEach(element=>{
+      for (const attribute of ['placeholder','title','aria-label']) {
+        const value=element.getAttribute(attribute);
+        if(value && Object.prototype.hasOwnProperty.call(attrMap,value))element.setAttribute(attribute,attrMap[value]);
+      }
+    });
+    const supportHeading=$('#page-support .page-heading h1');
+    if(supportHeading)supportHeading.innerHTML=toEnglish?'Support <span>Center</span>':'Центр <span>поддержки</span>';
+  }
+  window.addEventListener('skyrealm:language-changed',event=>{
+    enhancementLanguage=event.detail?.language==='en'?'en':'ru';
+    applyDynamicTranslations();
+    refreshServices();
+    initModCatalogFilters();
+    if(cachedReleaseNews)renderLiveReleaseNews(cachedReleaseNews);
+  });
+
+  function safeGitHubProjectUrl(value,kind){
+    try{
+      const url=new URL(String(value||''));
+      const prefix='/kisia319-cell/SkyRealm-PC-Launcher/';
+      if(url.protocol!=='https:'||url.hostname!=='github.com'||!url.pathname.startsWith(prefix))return '';
+      if(kind==='release'&&!url.pathname.includes('/releases/'))return '';
+      if(kind==='commit'&&!url.pathname.includes('/commit/'))return '';
+      return url.href;
+    }catch(_){return '';}
+  }
+  function browserReleaseSummary(value){
+    const codeMark=String.fromCharCode(96);
+    const fencedCode=new RegExp(codeMark+'{3}[\\s\\S]*?'+codeMark+'{3}','g');
+    return String(value||'').replace(fencedCode,' ')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g,' ')
+      .replace(/\[([^\]]+)\]\([^)]*\)/g,'$1')
+      .replace(/^\s{0,3}#{1,6}\s*/gm,'')
+      .replace(/^\s*[-*>]+\s*/gm,'')
+      .replace(/[*_~]/g,'').split(codeMark).join('')
+      .replace(/\s+/g,' ').trim().slice(0,420);
+  }
+  async function fetchBrowserReleaseNews(){
+    const headers={'Accept':'application/vnd.github+json','Cache-Control':'no-cache'};
+    const base='https://api.github.com/repos/kisia319-cell/SkyRealm-PC-Launcher';
+    const releaseResponse=await fetch(base+'/releases?per_page=8',{headers,cache:'no-store'});
+    if(!releaseResponse.ok)throw new Error('GitHub API HTTP '+releaseResponse.status);
+    const releases=await releaseResponse.json();
+    const items=(Array.isArray(releases)?releases:[]).filter(item=>item&&!item.draft)
+      .map(item=>({
+        id:'release:'+String(item.tag_name||item.name||'').slice(0,80),
+        kind:'release',title:String(item.name||item.tag_name||'').slice(0,140),
+        tag:String(item.tag_name||'').slice(0,80),
+        published_at:String(item.published_at||item.created_at||''),
+        summary:browserReleaseSummary(item.body),
+        url:safeGitHubProjectUrl(item.html_url,'release'),
+        prerelease:Boolean(item.prerelease)
+      })).filter(item=>item.title&&item.url).slice(0,8);
+    if(items.length)return {ok:true,source:'releases',items,fetched_at:new Date().toISOString(),cached:false};
+    const commitResponse=await fetch(base+'/commits?sha=main&per_page=8',{headers,cache:'no-store'});
+    if(!commitResponse.ok)throw new Error('GitHub commit API HTTP '+commitResponse.status);
+    const commits=await commitResponse.json();
+    const recent=(Array.isArray(commits)?commits:[]).map(commit=>{
+      const detail=commit&&commit.commit||{},author=detail.author||{};
+      const message=String(detail.message||''),title=message.split(/\r?\n/)[0].trim();
+      return {id:'commit:'+String(commit?.sha||'').slice(0,12),kind:'commit',title:title.slice(0,140),
+        tag:String(commit?.sha||'').slice(0,7),published_at:String(author.date||''),
+        summary:browserReleaseSummary(message.split(/\r?\n/).slice(1).join(' ')),
+        url:safeGitHubProjectUrl(commit?.html_url,'commit'),prerelease:false};
+    }).filter(item=>item.title&&item.url).slice(0,8);
+    return {ok:true,source:'commits',items:recent,fetched_at:new Date().toISOString(),cached:false};
+  }
+  function renderLiveReleaseNews(data){
+    const list=$('#live-news-list'),status=$('#live-news-status');
+    if(!list)return;
+    const items=Array.isArray(data?.items)?data.items:[];
+    list.replaceChildren();
+    if(!items.length){
+      const empty=document.createElement('div');empty.className='live-news-empty';
+      empty.textContent=enhancementLanguage==='en'?'No published releases yet. Visit the releases page for details.':'Опубликованных релизов пока нет. Открой страницу релизов, чтобы посмотреть подробности.';
+      list.append(empty);
+    }else{
+      items.forEach(item=>{
+        const kind=item.kind==='commit'?'commit':'release';
+        const article=document.createElement('article');article.className='live-news-item';
+        const main=document.createElement('div');main.className='live-news-item-main';
+        const meta=document.createElement('div');meta.className='live-news-item-meta';
+        const label=document.createElement('span');label.className='live-news-item-kind'+(item.prerelease?' prerelease':'');
+        label.textContent=kind==='commit'?(enhancementLanguage==='en'?'Commit':'Коммит'):(item.prerelease?(enhancementLanguage==='en'?'Pre-release':'Предварительный релиз'):(enhancementLanguage==='en'?'Release':'Релиз'));
+        meta.append(label);
+        if(item.tag){const tag=document.createElement('span');tag.textContent=item.tag;meta.append(tag);}
+        if(item.published_at){
+          const time=document.createElement('time');const date=new Date(item.published_at);
+          time.textContent=Number.isNaN(date.getTime())?item.published_at:date.toLocaleDateString(enhancementLanguage==='en'?'en-US':'ru-RU',{year:'numeric',month:'short',day:'numeric'});
+          meta.append(time);
+        }
+        const title=document.createElement('h3');title.textContent=String(item.title||'').slice(0,140);
+        const summary=document.createElement('p');summary.textContent=String(item.summary||'').slice(0,420);
+        main.append(meta,title,summary);
+        article.append(main);
+        const url=safeGitHubProjectUrl(item.url,kind);
+        if(url){
+          const link=document.createElement('a');link.className='live-news-item-link';link.href=url;link.target='_blank';link.rel='noreferrer';
+          link.textContent=kind==='commit'?(enhancementLanguage==='en'?'Open commit ↗':'Открыть коммит ↗'):(enhancementLanguage==='en'?'Open release ↗':'Открыть релиз ↗');
+          article.append(link);
+        }
+        list.append(article);
+      });
+    }
+    if(status){
+      const sourceText=data?.source==='commits'
+        ?(enhancementLanguage==='en'?'No releases yet — showing recent commits from main.':'Релизов нет — показана история коммитов main.')
+        :(enhancementLanguage==='en'?'Showing published GitHub releases.':'Показаны опубликованные релизы GitHub.');
+      status.textContent=sourceText+(data?.cached?(enhancementLanguage==='en'?' · cached':' · из кэша'):'');
+    }
+  }
+  async function refreshLiveReleaseNews(forceRefresh=false){
+    const list=$('#live-news-list'),status=$('#live-news-status'),button=$('#live-news-refresh');
+    if(!list||releaseNewsBusy)return;
+    releaseNewsBusy=true;if(button)button.disabled=true;
+    if(status)status.textContent=enhancementLanguage==='en'?'Loading latest releases…':'Загружаем последние релизы…';
+    try{
+      let result=null;
+      if(window.pywebview?.api?.get_release_news)result=await window.pywebview.api.get_release_news(Boolean(forceRefresh));
+      else result=await fetchBrowserReleaseNews();
+      if(!result?.ok)throw new Error(result?.message||'GitHub news unavailable');
+      cachedReleaseNews=result;renderLiveReleaseNews(result);
+    }catch(error){
+      list.replaceChildren();const item=document.createElement('div');item.className='live-news-empty live-news-error';
+      item.textContent=enhancementLanguage==='en'?'Could not load GitHub news. Check your connection and refresh the feed.':'Не удалось загрузить новости GitHub. Проверь интернет и попробуй обновить ленту.';
+      list.append(item);if(status)status.textContent=item.textContent;
+    }finally{
+      releaseNewsBusy=false;if(button)button.disabled=false;
+    }
+  }
+  function bindLiveReleaseNews(){
+    $('#live-news-refresh')?.addEventListener('click',()=>refreshLiveReleaseNews(true));
+    document.addEventListener('click',event=>{
+      const target=event.target;
+      if(target&&target.closest?.('[data-page="news"]'))window.setTimeout(()=>refreshLiveReleaseNews(false),0);
+    },true);
+    refreshLiveReleaseNews(false);
+  }
+
+  const MOD_FILTER_STORAGE_KEY='skyrealm_mod_catalog_filters_v1';
+  const MOD_FAVORITES_STORAGE_KEY='skyrealm_mod_favorite_ids_v1';
+  function initModCatalogFilters(){
+    const grid=$('#page-mods .launcher-mod-grid');
+    const search=$('#mod-catalog-search'),categorySelect=$('#mod-catalog-category');
+    const sortSelect=$('#mod-catalog-sort'),clear=$('#mod-catalog-clear');
+    const count=$('#mod-catalog-results-count'),empty=$('#mod-catalog-empty');
+    if(!grid||!search||!categorySelect||!sortSelect||!clear)return;
+    if(grid.dataset.filtersBound==='1'){if(typeof grid.__skyrealmApplyModFilters==='function')grid.__skyrealmApplyModFilters();return;}
+    const cards=Array.from(grid.querySelectorAll('.launcher-mod-card'));
+    if(!cards.length)return;
+    grid.dataset.filtersBound='1';
+    let collator=new Intl.Collator(enhancementLanguage==='en'?'en':'ru',{sensitivity:'base',numeric:true});
+    const categoryOf=card=>(card.querySelector('.launcher-mod-meta')?.textContent||'').split('·')[0].trim();
+    const titleOf=card=>(card.querySelector('h2')?.textContent||'').trim();
+    const modIdOf=card=>card.querySelector('[data-install-mod]')?.dataset.installMod||'';
+    let favorites=new Set();
+    try{const stored=JSON.parse(localStorage.getItem(MOD_FAVORITES_STORAGE_KEY)||'[]');if(Array.isArray(stored))favorites=new Set(stored.filter(id=>cards.some(card=>modIdOf(card)===id)));}catch(_){}
+    const saveFavorites=()=>{try{localStorage.setItem(MOD_FAVORITES_STORAGE_KEY,JSON.stringify([...favorites]));}catch(_){}};
+    const updateFavoriteButton=(button,active)=>{
+      button.classList.toggle('is-favorite',active);
+      button.setAttribute('aria-pressed',String(active));
+      button.textContent=active?'★':'☆';
+      button.title=active?(enhancementLanguage==='en'?'Remove from favorites':'Убрать из избранного'):(enhancementLanguage==='en'?'Add to favorites':'Добавить в избранное');
+      button.setAttribute('aria-label',button.title);
+    };
+    cards.forEach(card=>{
+      const id=modIdOf(card);if(!id)return;
+      let button=card.querySelector('.mod-favorite-toggle');
+      if(!button){
+        button=document.createElement('button');button.type='button';button.className='mod-favorite-toggle';
+        button.addEventListener('click',event=>{
+          event.preventDefault();event.stopPropagation();
+          if(favorites.has(id))favorites.delete(id);else favorites.add(id);
+          saveFavorites();updateFavoriteButton(button,favorites.has(id));apply();
+        });
+        card.prepend(button);
+      }
+      updateFavoriteButton(button,favorites.has(id));
+    });
+    const categories=[...new Set(cards.map(categoryOf).filter(Boolean))].sort((a,b)=>collator.compare(a,b));
+    const all=document.createElement('option');all.value='all';all.textContent='Все категории';
+    const favoriteOption=document.createElement('option');favoriteOption.value='favorites';favoriteOption.textContent='Избранное ★';
+    categorySelect.replaceChildren(all,favoriteOption);
+    categories.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;categorySelect.append(option);});
+    let saved={};
+    try{saved=JSON.parse(localStorage.getItem(MOD_FILTER_STORAGE_KEY)||'{}');}catch(_){}
+    search.value=typeof saved.query==='string'?saved.query.slice(0,80):'';
+    sortSelect.value=['default','name-asc','name-desc','category'].includes(saved.sort)?saved.sort:'default';
+    categorySelect.value=saved.category==='favorites'||categories.includes(saved.category)?saved.category:'all';
+    const normalize=value=>String(value||'').normalize('NFKC').toLocaleLowerCase();
+    const apply=()=>{
+      collator=new Intl.Collator(enhancementLanguage==='en'?'en':'ru',{sensitivity:'base',numeric:true});
+      const query=normalize(search.value.trim()),category=categorySelect.value,sort=sortSelect.value;
+      const visible=cards.filter(card=>{
+        const id=modIdOf(card);
+        const matchesCategory=category==='all'||(category==='favorites'?favorites.has(id):categoryOf(card)===category);
+        const haystack=normalize([titleOf(card),card.querySelector('p')?.textContent,card.querySelector('small')?.textContent,card.querySelector('.launcher-mod-meta')?.textContent,card.querySelector('[data-install-mod]')?.dataset.installMod].join(' '));
+        return matchesCategory&&(!query||haystack.includes(query));
+      });
+      const ordered=[...cards];
+      if(sort==='name-asc')ordered.sort((a,b)=>collator.compare(titleOf(a),titleOf(b)));
+      else if(sort==='name-desc')ordered.sort((a,b)=>collator.compare(titleOf(b),titleOf(a)));
+      else if(sort==='category')ordered.sort((a,b)=>collator.compare(categoryOf(a),categoryOf(b))||collator.compare(titleOf(a),titleOf(b)));
+      ordered.forEach(card=>{card.hidden=!visible.includes(card);grid.append(card);});
+      if(count)count.textContent=enhancementLanguage==='en'
+        ? 'Showing '+visible.length+' of '+cards.length+' mods'
+        : 'Показано '+visible.length+' из '+cards.length+' модов';
+      if(empty)empty.hidden=visible.length!==0;
+      clear.disabled=!query&&category==='all'&&sort==='default';
+      try{localStorage.setItem(MOD_FILTER_STORAGE_KEY,JSON.stringify({query:search.value.slice(0,80),category,sort}));}catch(_){}
+      applyDynamicTranslations($('#mod-browser-toolbar')||document);
+    };
+    grid.__skyrealmApplyModFilters=apply;
+    search.addEventListener('input',apply);
+    categorySelect.addEventListener('change',apply);
+    sortSelect.addEventListener('change',apply);
+    clear.addEventListener('click',()=>{search.value='';categorySelect.value='all';sortSelect.value='default';apply();search.focus();});
+    search.addEventListener('keydown',event=>{if(event.key==='Escape'&&search.value){search.value='';apply();}});
+    apply();
+  }
 
   function ensureSystemPage() {
     const nav = $('.nav');
@@ -94,7 +398,7 @@
   function renderCalendar(){
     const grid=$('#calendar-days');if(!grid)return;grid.replaceChildren();
     const year=calendarMonth.getFullYear(),month=calendarMonth.getMonth(),first=new Date(year,month,1),days=new Date(year,month+1,0).getDate(),offset=(first.getDay()+6)%7;
-    $('#calendar-month-label').textContent=calendarMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    $('#calendar-month-label').textContent=calendarMonth.toLocaleDateString(enhancementLanguage==='en'?'en-US':'ru-RU',{month:'long',year:'numeric'});
     const events=readCalendarEvents();
     for(let i=0;i<offset;i++){const blank=document.createElement('span');blank.className='calendar-day blank';grid.append(blank);}
     for(let day=1;day<=days;day++){
@@ -113,6 +417,7 @@
       const remove=document.createElement('button');remove.type='button';remove.className='secondary-btn';remove.textContent='Удалить';remove.addEventListener('click',()=>{saveCalendarEvents(readCalendarEvents().filter(item=>item.id!==event.id));renderCalendar();});
       info.append(title,meta);row.append(info,remove);list.append(row);
     });
+    applyDynamicTranslations($('#page-calendar'));
   }
   function openCalendarPage(){
     ensureCalendarPage();document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id==='page-calendar'));
@@ -194,11 +499,11 @@
   async function refreshScreenshots(){
     const grid=$('#screenshots-grid');if(!grid)return;grid.replaceChildren();
     const api=window.pywebview?.api;
-    if(typeof api?.get_screenshots!=='function'){grid.textContent='Галерея доступна в установленной Windows-версии лаунчера.';return;}
+    if(typeof api?.get_screenshots!=='function'){grid.textContent='Галерея доступна в установленной Windows-версии лаунчера.';applyDynamicTranslations($('#page-screenshots'));return;}
     try{
       const result=await api.get_screenshots();if(!result?.ok)throw new Error(result?.message||'Не удалось загрузить скриншоты.');
       const items=Array.isArray(result.screenshots)?result.screenshots:[];
-      if(!items.length){grid.innerHTML='<div class="screenshots-empty"><b>Пока нет скриншотов</b><span>Запусти игру и нажми F12, чтобы сделать первый снимок.</span></div>';return;}
+      if(!items.length){grid.innerHTML='<div class="screenshots-empty"><b>Пока нет скриншотов</b><span>Запусти игру и нажми F12, чтобы сделать первый снимок.</span></div>';applyDynamicTranslations($('#page-screenshots'));return;}
       items.forEach(item=>{
         const card=document.createElement('article');card.className='screenshot-card';
         const preview=document.createElement('div');preview.className='screenshot-card-preview';preview.textContent='▧';
@@ -214,15 +519,26 @@
         });
         details.append(title,meta,open);card.append(preview,details);grid.append(card);
       });
-    }catch(error){grid.textContent=error.message||'Галерея временно недоступна.';}
+      applyDynamicTranslations($('#page-screenshots'));
+    }catch(error){grid.textContent=error.message||'Галерея временно недоступна.';applyDynamicTranslations($('#page-screenshots'));}
   }
   function setService(key,ok,detail) {
     const dot=$('#system-'+key+'-dot'),title=$('#system-'+key+'-title'),copy=$('#system-'+key+'-copy');
     if(!dot||!title||!copy)return;
     dot.className='system-dot '+(ok?'online':'offline');
-    const labels={auth:'Авторизация',coop:'Кооператив',social:'Сообщество'};
-    title.textContent=labels[key]+(ok?' · работает':' · нет связи');
-    copy.textContent=detail|| (ok?'Сервис отвечает':'Проверь интернет или попробуй позже.');
+    const labels=enhancementLanguage==='en'
+      ? {auth:'Authentication',coop:'Co-op',social:'Community'}
+      : {auth:'Авторизация',coop:'Кооператив',social:'Сообщество'};
+    title.textContent=labels[key]+(ok
+      ? (enhancementLanguage==='en'?' · online':' · работает')
+      : (enhancementLanguage==='en'?' · offline':' · нет связи'));
+    const serviceVersion=detail&&detail.startsWith('Версия сервиса ')
+      ? detail.slice('Версия сервиса '.length) : '';
+    copy.textContent=serviceVersion
+      ? (enhancementLanguage==='en'?'Service version ':'Версия сервиса ')+serviceVersion
+      : (detail||(ok
+        ? (enhancementLanguage==='en'?'Service is responding':'Сервис отвечает')
+        : (enhancementLanguage==='en'?'Check your connection and try again.':'Проверь интернет или попробуй позже.')));
   }
   async function pingService(url) {
     if(!url||!apiKey)return {ok:false,message:'URL или ключ сервиса не настроен.'};
@@ -230,7 +546,7 @@
     const response=await fetch(endpoint.toString(),{headers:{apikey:apiKey,Authorization:'Bearer '+apiKey},cache:'no-store'});
     const data=await response.json();
     if(!response.ok||data.status!=='ok')throw new Error(data.message||'HTTP '+response.status);
-    return {ok:true,message:'Версия сервиса '+(data.version||'доступна')};
+    return {ok:true,message:(enhancementLanguage==='en'?'Service version ':'Версия сервиса ')+(data.version||(enhancementLanguage==='en'?'available':'доступна'))};
   }
   async function getAccessToken() {
     let token=localStorage.getItem('skyrealm_token')||sessionStorage.getItem('skyrealm_token')||'';
@@ -302,6 +618,22 @@
       renderNotifications(cachedNotifications);
     }catch(error){renderNotifications([],error.message||'Не удалось загрузить уведомления.');if(notificationCount)notificationCount.hidden=true;}
   }
+  async function refreshLocalVersions() {
+    const api=window.pywebview?.api;
+    if(typeof api?.get_local_versions!=='function')return;
+    try{
+      const result=await api.get_local_versions();
+      if(!result?.ok)return;
+      const launcherVersion=result.launcher_version||'—';
+      const gameVersion=result.game_version||'не установлена';
+      if($('#launcher-version-label'))$('#launcher-version-label').textContent='v'+launcherVersion;
+      if($('#home-launcher-version'))$('#home-launcher-version').textContent=launcherVersion;
+      if($('#home-game-version'))$('#home-game-version').textContent=gameVersion;
+      if($('#install-version-label'))$('#install-version-label').textContent='v'+(result.bundled_game_version||gameVersion);
+      if($('#system-launcher-version'))$('#system-launcher-version').textContent=launcherVersion;
+      if($('#system-game-version'))$('#system-game-version').textContent=gameVersion+' → '+(result.latest_local_game_version||gameVersion);
+    }catch(error){console.warn('[SkyRealm] Local version check failed:',error);}
+  }
   async function checkUpdates() {
     const status=$('#system-update-message');if(status)status.textContent='Проверяем manifest и текущую установку…';
     try{
@@ -314,8 +646,15 @@
       }
       if(!result?.ok)throw new Error(result?.message||'Не удалось получить сведения об обновлении.');
       cachedUpdate=result;
-      $('#system-launcher-version').textContent=(result.launcher_version||'—')+' → '+(result.latest_launcher_version||'—');
-      $('#system-game-version').textContent=(result.game_version||'—')+' → '+(result.latest_game_version||'—');
+      const currentLauncherVersion=result.launcher_version||'—';
+      const currentGameVersion=result.game_version||'—';
+      if($('#launcher-version-label'))$('#launcher-version-label').textContent='v'+currentLauncherVersion;
+      if($('#home-launcher-version'))$('#home-launcher-version').textContent=currentLauncherVersion;
+      if($('#home-game-version'))$('#home-game-version').textContent=currentGameVersion+(result.game_update_available?' · '+(enhancementLanguage==='en'?'update available':'есть обновление'):'');
+      $('#system-launcher-version').textContent=currentLauncherVersion+' → '+(result.latest_launcher_version||'—');
+      $('#system-game-version').textContent=currentGameVersion+' → '+(result.latest_game_version||'—');
+      const modBadge=$('#mods-catalog-count');
+      if(modBadge){const actualCount=document.querySelectorAll('#page-mods .launcher-mod-card').length;modBadge.textContent=String(actualCount);modBadge.hidden=actualCount===0;}
       const available=[];
       if(result.launcher_update_available)available.push('новый лаунчер');
       if(result.game_update_available)available.push('новая игра');
@@ -364,7 +703,14 @@
     node.textContent='Проверяем игровые файлы и локальные данные…';
     try{
       const result=await window.pywebview.api.get_diagnostics();if(!result?.ok)throw new Error(result?.message||'Диагностика не выполнена');
-      node.textContent=(result.healthy?'Основные файлы на месте. ':'Нужен ремонт. ')+'Версия: '+result.version+'. Отсутствуют: '+((result.missing||[]).join(', ')||'нет')+'. Хранилище миров: '+(result.world_storage_found?'найдено':'ещё не создано')+'.';
+      const missing=(result.missing||[]).join(', ')||'нет';
+      const mismatches=(result.integrity_mismatches||[]).map(item=>item.file).join(', ')||'нет';
+      const integrity=result.integrity_comparable
+        ? 'SHA-256 проверено: '+(result.integrity_checked||0)+', отличаются: '+mismatches+'.'
+        : 'Сравнение SHA-256 с комплектом лаунчера недоступно для этой версии.';
+      const runner='Игровой запускатель: '+(result.runner_exists?'найден':'будет создан при следующем запуске')+'.';
+      node.textContent=(result.healthy?'Основные файлы и контрольные суммы совпадают. ':'Нужен ремонт. ')+'Версия: '+result.version+'. Отсутствуют: '+missing+'. '+integrity+' '+runner+' Хранилище миров: '+(result.world_storage_found?'найдено':'ещё не создано')+'.';
+      applyDynamicTranslations(node);
     }catch(error){node.textContent=error.message||'Ошибка диагностики.';}
   }
   async function refreshAll() {
@@ -395,9 +741,13 @@
     });
   }
   function init() {
-    ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();
-    refreshServices();refreshNotifications();
-    pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();},45_000);
+    ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();initModCatalogFilters();bindLiveReleaseNews();
+    applyDynamicTranslations();
+    refreshLocalVersions();refreshServices();refreshNotifications();checkUpdates();
+    window.addEventListener('pywebviewready',()=>{
+      refreshLocalVersions();checkUpdates();refreshMetrics();refreshDiagnostics();refreshLiveReleaseNews(false);
+    });
+    pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();checkUpdates();},45_000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

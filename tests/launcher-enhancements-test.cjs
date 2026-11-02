@@ -7,11 +7,26 @@ const auth=app;
 const enhancements=fs.readFileSync('launcher-enhancements.js','utf8');
 const ui=fs.readFileSync('launcher-enhancements.js','utf8');
 const html=fs.readFileSync('index.html','utf8');
+const css=fs.readFileSync('style.css','utf8');
 assert.match(launcher,/def get_update_status/);
 assert.match(launcher,/def install_game_update/);
 assert.match(launcher,/def repair_game_files/);
 assert.match(launcher,/def rollback_game_update/);
 assert.match(launcher,/def get_system_metrics/);
+assert.match(launcher,/def _skyrealm_preferred_local_game_version\(installed_version: str, bundled_version: str\)/,'Launcher must compare the installed build with its bundled game version');
+assert.ok(launcher.includes('preferred_local_version = _skyrealm_preferred_local_game_version(installed_version, bundled_version)') && launcher.includes('latest_tuple < preferred_local_tuple'), 'A stale stable manifest must never downgrade or block a newer bundled game hotfix');
+assert.ok(launcher.includes('return preferred_local_version'), 'When the stable manifest is older, launch_game must use the preferred local build so bundled game files are installed');
+
+const launchGameSource=launcher.match(/def launch_game\([\s\S]*?(?=\n\nclass GameApi:)/);
+assert.ok(launchGameSource,'Game launch method must be present');
+const appDataDeclaration=launchGameSource[0].indexOf('app_data = Path(');
+const runnerPathUse=launchGameSource[0].indexOf('runner_dir = app_data / "SkyRealm" / "bin"');
+assert.ok(appDataDeclaration>=0&&runnerPathUse>appDataDeclaration,'launch_game must define its LocalAppData base before installing the standalone game runner');
+assert.ok(launcher.includes('AllowSetForegroundWindow(game_process.pid)'), 'Launcher must grant the separately spawned game process permission to activate its window');
+assert.ok(launcher.includes('def _skyrealm_activate_current_window()') && launcher.includes('user32.SetForegroundWindow(hwnd)') && launcher.includes('user32.BringWindowToTop(hwnd)'), 'Game runner must activate its own visible native window on Windows');
+assert.ok(launcher.includes('game_window.events.shown += _activate_game_window') && launcher.includes('game_window.events.loaded += _activate_game_window') && launcher.includes('focus=True'), 'Game window activation must run after native show and WebView load');
+
+
 assert.match(launcher,/previous build preserved/);
 for(const id of ['system-auth-dot','system-coop-dot','system-social-dot','system-install-update','system-repair','system-rollback','system-open-cloud','system-cpu','system-ram']) assert.ok(ui.includes(id),'Missing management UI: '+id);
 assert.ok(ui.includes('/api/social/notifications'));
@@ -75,7 +90,86 @@ assert.ok(auth.includes("requestApi('/api/auth/me'"),'Launcher must validate a s
 assert.ok(auth.includes("$$('[data-auth-mode], #top-create-account')"),'All create-account and sign-in entry buttons must be hidden for a verified session');
 assert.ok(auth.includes("$('#auth-form').hidden = true") && auth.includes("$('.auth-tabs').hidden = true"),'Verified accounts must not see the login/register form or tabs');
 
-assert.ok(app.includes('vsync: $('#vsync-toggle') ? $('#vsync-toggle').checked : savedGamePreferences().vsync'),'Launcher must persist the VSync preference');
+assert.ok(app.includes("vsync: $('#vsync-toggle') ? $('#vsync-toggle').checked : savedGamePreferences().vsync"),'Launcher must persist the VSync preference');
 assert.ok(app.includes("p.vsync = p.vsync !== false"),'VSync must default to enabled for existing settings');
 assert.ok(html.includes('id="vsync-toggle"'),'Settings must expose a VSync toggle');
 assert.ok(css.includes('body.reduce-motion')&&css.includes('body.high-contrast')&&css.includes('body.performance-saver'),'Accessibility and resource-saving toggles must have working styles');
+
+// Deep audit follow-ups: selected install path, exact file integrity and safe backup history.
+
+assert.match(launcher,/def list_world_backups\(self\)/,'Launcher must list local world backup archives');
+assert.match(launcher,/def _skyrealm_inspect_world_backup\(self, archive_path\)/,'Every world backup must be verified before restore');
+assert.match(launcher,/def restore_worlds\(self, backup_name=None\)/,'World restore must accept a selected backup');
+assert.match(launcher,/skyrealm_safe_world_backup_name\(backup_name\)/,'Selected backup names must be validated against path traversal');
+assert.match(launcher,/bundle\.testzip\(\)/,'World backup restore must reject ZIP CRC corruption');
+assert.match(launcher,/PurePosixPath/,'World backup paths must be normalized before extraction');
+assert.match(launcher,/512 \* 1024 \* 1024/,'World backup extraction must enforce an uncompressed size limit');
+assert.match(launcher,/install_dir = skyrealm_game_dir\(\)/,'Diagnostics and update status must use the configured installation folder');
+assert.match(launcher,/integrity_mismatches/,'Diagnostics must compare installed files against the bundled release');
+assert.match(launcher,/integrity_checked/,'Diagnostics must report how many bundled files were checked');
+assert.match(launcher,/bundled_game_version/,'Update status must account for a newer game bundled with the launcher');
+assert.match(launcher,/missing_game_files/,'Update status must offer repair when required installed files are missing');
+assert.match(launcher,/def get_local_versions\(self\)/,'The launcher must expose its local version even while offline');
+assert.match(enhancements,/async function refreshLocalVersions\(\)/,'The home screen must populate version labels without depending on the remote manifest');
+assert.ok(enhancements.includes('refreshLocalVersions();refreshServices();refreshNotifications();checkUpdates();'),'Local versions must load before the remote update request');
+assert.ok(app.includes("'#backup-worlds':'Create backup'")&&app.includes("'#restore-worlds':'Restore selected'"),'Backup manager controls must be localized');
+assert.ok(enhancements.includes("calendarMonth.toLocaleDateString(enhancementLanguage==='en'?'en-US':'ru-RU'"),'The dynamic calendar must respect the selected language');
+
+assert.ok(html.includes('id="world-backup-select"')&&html.includes('id="refresh-world-backups"'),'Settings must expose backup selection and list refresh controls');
+assert.ok(app.includes('list_world_backups')&&app.includes('restore_worlds(selectedBackup)'),'Backup UI must list archives and pass the selected archive to restore');
+assert.ok(app.includes("new CustomEvent('skyrealm:language-changed'"),'Launcher language changes must notify dynamically-created pages');
+assert.match(app,/pageSystem:'CONTROL CENTER'/,'Page navigation names must include dynamic pages in English');
+assert.match(enhancements,/function applyDynamicTranslations\(root=document\)/,'Dynamic pages must be localized when created and after language changes');
+assert.ok(enhancements.includes('integrity_mismatches')&&enhancements.includes('runner_exists'),'System diagnostics must display file mismatches and runner status');
+assert.ok(enhancements.includes("document.querySelectorAll('#page-mods .launcher-mod-card').length"),'Mod badge must count all rendered catalogue cards, not only install actions');
+assert.ok(enhancements.includes("Support <span>Center</span>")&&enhancements.includes("'Пн':'Mon'")&&enhancements.includes("labels=enhancementLanguage==='en'"),'Dynamic support, calendar and service status must be translated in English');
+assert.ok(enhancements.includes("applyDynamicTranslations();\n    refreshServices();"),'Service cards must refresh in the newly selected language');
+assert.ok(html.includes('id="home-launcher-version"')&&html.includes('id="home-game-version"'),'Home status must contain dynamic version fields');
+assert.ok(html.includes('id="install-version-label"')&&enhancements.includes("$('#install-version-label').textContent='v'"),'Install overlay must show the current game version, not a stale constant');
+assert.ok(html.includes('id="launcher-version-label"')&&app.includes('launcher-version-label'),'Sidebar version label must be populated from launcher metadata');
+assert.ok(!html.includes('nav-badge">2')&&!html.includes('nav-badge">8'),'Navigation must not display stale hard-coded notification counts');
+assert.ok(html.includes('id="mods-catalog-count"'),'Mod catalog badge must be calculated from the real catalog');
+const modsPageStart=html.indexOf('id="page-mods"');
+const modsPageEnd=html.indexOf('id="page-news"',modsPageStart);
+const shopPageStart=html.indexOf('id="page-shop"');
+const shopPageEnd=html.indexOf('id="page-community"',shopPageStart);
+assert.ok(modsPageStart>=0&&modsPageEnd>modsPageStart&&shopPageStart>=0&&shopPageEnd>shopPageStart,'Launcher must expose separate workshop and shop pages');
+const modsPageMarkup=html.slice(modsPageStart,modsPageEnd);
+const shopPageMarkup=html.slice(shopPageStart,shopPageEnd);
+const modGridStart=modsPageMarkup.indexOf('<div class="launcher-mod-grid">');
+const modGridEnd=modsPageMarkup.indexOf('<div class="mods-launcher-community panel">',modGridStart);
+assert.ok(modGridStart>=0&&modGridEnd>modGridStart,'All installable mods must belong to the workshop grid');
+const modGridMarkup=modsPageMarkup.slice(modGridStart,modGridEnd);
+const workshopIds=[...modGridMarkup.matchAll(/data-install-mod="([a-z0-9_]+)"/g)].map(match=>match[1]);
+assert.equal(workshopIds.length,35,'The workshop grid must contain exactly 35 built-in installable mods');
+assert.equal(new Set(workshopIds).size,35,'Every built-in mod ID in the workshop must be unique');
+assert.equal((modsPageMarkup.match(/class="launcher-mod-card"/g)||[]).length,35,'No mod card may be left outside the filterable workshop grid');
+assert.ok(!shopPageMarkup.includes('data-install-mod='),'The cosmetic shop must not contain installable mod cards');
+assert.equal((shopPageMarkup.match(/class="launcher-mod-card"/g)||[]).length,0,'The cosmetic shop must remain separate from the mod workshop');
+
+assert.ok(html.includes('id="mod-catalog-search"')&&html.includes('id="mod-catalog-category"')&&html.includes('id="mod-catalog-sort"'),'Mod workshop must expose search, category and sorting controls');
+assert.ok(html.includes('id="mod-catalog-results-count"')&&html.includes('id="mod-catalog-empty"')&&html.includes('id="mod-catalog-clear"'),'Mod search must show result counts, an empty state and a filter reset');
+assert.match(enhancements,/function initModCatalogFilters\(\)/,'Mod workshop filter controller must be initialized');
+assert.ok(enhancements.includes('skyrealm_mod_catalog_filters_v1')&&enhancements.includes('localStorage.setItem(MOD_FILTER_STORAGE_KEY'),'Mod catalogue filters must persist locally');
+assert.ok(enhancements.includes('normalize(card.querySelector')||enhancements.includes('normalize([titleOf(card)'),'Search must include localized text, descriptions, metadata and the mod ID');
+assert.ok(enhancements.includes("sort==='name-asc'")&&enhancements.includes("sort==='name-desc'")&&enhancements.includes("sort==='category'"),'Mod catalogue must support alphabetical and category sorting');
+assert.ok(enhancements.includes('matchesCategory&&(!query||haystack.includes(query))'),'Search and category filters must be applied together');
+assert.ok(enhancements.includes("if(empty)empty.hidden=visible.length!==0"),'Empty search results must be shown accessibly');
+assert.ok(enhancements.includes("event.key==='Escape'"),'Escape must clear the active mod search query');
+assert.ok(enhancements.includes('initModCatalogFilters();')&&enhancements.includes('initModCatalogFilters();\n  });'),'Mod controls must initialize on startup and remain usable after language changes');
+assert.ok(enhancements.includes("grid.__skyrealmApplyModFilters=apply")&&enhancements.includes("grid.dataset.filtersBound==='1'"),'The filter controller must refresh counts, sorting and translations after language changes without rebinding listeners');
+
+assert.ok(enhancements.includes('skyrealm_mod_favorite_ids_v1')&&enhancements.includes('localStorage.setItem(MOD_FAVORITES_STORAGE_KEY'),'Favorite mods must persist locally across launcher restarts');
+assert.ok(enhancements.includes('button.classList.toggle(\'is-favorite\',active)')&&enhancements.includes('aria-pressed'),'Favorite buttons must expose and update an accessible pressed state');
+assert.ok(enhancements.includes("favoriteOption.value='favorites'")&&enhancements.includes("category==='favorites'?favorites.has(id)"),'The mod catalogue must support an actual favorites-only filter');
+assert.ok(enhancements.includes('favorites=new Set(stored.filter(id=>cards.some(card=>modIdOf(card)===id)))'),'Favorite restore must discard IDs that are not present in the current mod catalogue');
+assert.ok(enhancements.includes("saved.category==='favorites'||categories.includes(saved.category)"),'The favorites-only filter must survive a launcher restart');
+assert.ok(enhancements.includes("new Intl.Collator(enhancementLanguage==='en'?'en':'ru'"),'Alphabetical mod sorting must follow the currently selected language');
+
+assert.ok(css.includes('.mod-favorite-toggle.is-favorite')&&css.includes('.mod-favorite-toggle:hover'),'Favorite state must have distinct visual feedback');
+assert.ok(enhancements.includes("'Добавить в избранное':'Add to favorites'")&&enhancements.includes("'Избранное ★':'Favorites ★'"),'Favorite controls and filter must be localized');
+
+assert.ok(enhancements.includes("'Поиск модов':'Search mods'")&&enhancements.includes("'Все категории':'All categories'")&&enhancements.includes("'Название: А–Я':'Name: A–Z'"),'Mod filters must be translated in English');
+assert.ok(css.includes('.mod-browser-toolbar')&&css.includes('.launcher-mod-card[hidden]')&&css.includes('@media(max-width:520px){.mod-browser-toolbar'), 'Mod filter controls must be responsive and hide filtered-out cards');
+
+

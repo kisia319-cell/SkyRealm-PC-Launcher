@@ -1,5 +1,6 @@
 (() => {
   const canvas = document.getElementById('world');
+  if(canvas)canvas.tabIndex=0;
   function initialVsyncEnabled(){
     try{
       const params=new URLSearchParams(window.location.search),raw=params.get('settings');
@@ -16,7 +17,11 @@
   const keys = new Set();
   // Track movement separately from action keys so lost focus or modal transitions cannot strand the player.
   const movementDirections = new Set();
+  const movementKeyCodes = new Set();
+  const movementKeyDirections = new Map();
+  const PHYSICAL_MOVEMENT_BY_CODE = {KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right',ArrowUp:'up',ArrowLeft:'left',ArrowDown:'down',ArrowRight:'right'};
   const MOVEMENT_DIRECTION_BY_ACTION = {w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
+  function resolveMovementDirection(action,code){const actionDirection=MOVEMENT_DIRECTION_BY_ACTION[action];return actionDirection||PHYSICAL_MOVEMENT_BY_CODE[code]||null;}
   const DEFAULT_GAME_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
   const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, vsync:true, musicVolume:35, sfxVolume:70, musicEnabled:false, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
   let gameSettings = readInitialSettings();
@@ -28,11 +33,11 @@
   function applyAppearanceData(source,target=playerAppearance){if(!source||typeof source!=='object')return;for(const k of ['skin','hair','armor','accent','eye'])if(/^#[0-9a-f]{6}$/i.test(source[k]||''))target[k]=source[k];if(['normal','smile','stern','visor','mask'].includes(source.face))target.face=source.face;if(['short','long','mohawk','curly','hood'].includes(source.hairStyle))target.hairStyle=source.hairStyle;}
   try { applyAppearanceData(JSON.parse(localStorage.getItem('skyrealm_character_v1')||'{}')); } catch(_) {}
   const DIFFICULTIES = {
-    easy:{id:'easy',name:'Легко',rank:1,cols:180,rows:140,bossHp:500,bossDamage:30,bossInterval:1.5,bossSpeed:18,monsterHp:.72,monsterDamage:.62,monsterSpawn:1.15,shop:{buy:{Камень:300,Уголь:900,Железо:2400},sell:{wood:125,leaves:50,meat:90}},chests:{crystal:.25,potion:.28}},
-    medium:{id:'medium',name:'Средняя',rank:2,cols:220,rows:164,bossHp:1000,bossDamage:45,bossInterval:1.25,bossSpeed:22,monsterHp:1,monsterDamage:1,monsterSpawn:1,shop:{buy:{Камень:450,Уголь:1200,Железо:3600},sell:{wood:175,leaves:75,meat:125}},chests:{crystal:.35,potion:.25}},
-    hard:{id:'hard',name:'Сложно',rank:3,cols:260,rows:192,bossHp:2000,bossDamage:65,bossInterval:1.05,bossSpeed:28,monsterHp:1.4,monsterDamage:1.45,monsterSpawn:.82,shop:{buy:{Камень:700,Уголь:1800,Железо:5200},sell:{wood:225,leaves:100,meat:175}},chests:{crystal:.45,potion:.22}},
-    hell:{id:'hell',name:'Жар',rank:4,cols:300,rows:220,bossHp:4000,bossDamage:90,bossInterval:.85,bossSpeed:34,monsterHp:1.9,monsterDamage:2,monsterSpawn:.68,shop:{buy:{Камень:1000,Уголь:2600,Железо:8000},sell:{wood:275,leaves:125,meat:225}},chests:{crystal:.55,potion:.2}},
-    impossible:{id:'impossible',name:'Невозможно',rank:5,cols:360,rows:260,bossHp:8500,bossDamage:125,bossInterval:.62,bossSpeed:42,monsterHp:2.65,monsterDamage:2.8,monsterSpawn:.45,shop:{buy:{Камень:1500,Уголь:4000,Железо:12000},sell:{wood:300,leaves:140,meat:250}},chests:{crystal:.65,potion:.12}}
+    easy:{id:'easy',name:'Легко',rank:1,cols:360,rows:280,bossHp:500,bossDamage:30,bossInterval:1.5,bossSpeed:18,monsterHp:.72,monsterDamage:.62,monsterSpawn:1.15,shop:{buy:{Камень:300,Уголь:900,Железо:2400},sell:{wood:125,leaves:50,meat:90}},chests:{crystal:.25,potion:.28}},
+    medium:{id:'medium',name:'Средняя',rank:2,cols:440,rows:328,bossHp:1000,bossDamage:45,bossInterval:1.25,bossSpeed:22,monsterHp:1,monsterDamage:1,monsterSpawn:1,shop:{buy:{Камень:450,Уголь:1200,Железо:3600},sell:{wood:175,leaves:75,meat:125}},chests:{crystal:.35,potion:.25}},
+    hard:{id:'hard',name:'Сложно',rank:3,cols:520,rows:384,bossHp:2000,bossDamage:65,bossInterval:1.05,bossSpeed:28,monsterHp:1.4,monsterDamage:1.45,monsterSpawn:.82,shop:{buy:{Камень:700,Уголь:1800,Железо:5200},sell:{wood:225,leaves:100,meat:175}},chests:{crystal:.45,potion:.22}},
+    hell:{id:'hell',name:'Жар',rank:4,cols:600,rows:440,bossHp:4000,bossDamage:90,bossInterval:.85,bossSpeed:34,monsterHp:1.9,monsterDamage:2,monsterSpawn:.68,shop:{buy:{Камень:1000,Уголь:2600,Железо:8000},sell:{wood:275,leaves:125,meat:225}},chests:{crystal:.55,potion:.2}},
+    impossible:{id:'impossible',name:'Невозможно',rank:5,cols:720,rows:520,bossHp:8500,bossDamage:125,bossInterval:.62,bossSpeed:42,monsterHp:2.65,monsterDamage:2.8,monsterSpawn:.45,shop:{buy:{Камень:1500,Уголь:4000,Железо:12000},sell:{wood:300,leaves:140,meat:250}},chests:{crystal:.65,potion:.12}}
   };
   let currentDifficulty='medium',pendingWorldId=null,difficultyMigrationPending=false;
   let bedSpawn={x:36*TILE+40,y:15*TILE+154};
@@ -71,16 +76,18 @@
   let inventoryDialogOpen = false;
   let inventoryTab = 'items';
   let questPanelVisible = false;
-  let selectedSlot = 1;
+  let selectedSlot = 1, quickbarItemNames = [], inventoryPage = 0;
   // Game clock: one real second advances one in-game minute; pause stops the clock.
   const GAME_MINUTES_PER_DAY = 24 * 60;
   const DAWN_MINUTE = 6 * 60;
   const NIGHT_MINUTE = 20 * 60;
   let gameMinuteTotal = 8 * 60;
+  // World-local time multiplier; persisted with each world and authoritative on the coop host.
+  let worldTimeMultiplier = 1, lastYetiSpawnDay = -1, lastYetiCheckedHour = -1;
   let survivedNights = 0;
   let lastDawnMarker = Math.floor((gameMinuteTotal - DAWN_MINUTE) / GAME_MINUTES_PER_DAY);
   let lastClockMinute = -1;
-  let wasNight = false;
+  let wasNight = false, forceNightStart = false;
   let monsterSpawnTimer = 0;
   let damageToastTimer = 0;
   let minimapTimer = 0;
@@ -118,9 +125,9 @@
   let blacksmithQuestStage = 0, explorerQuestStage = 0;
   let dogBehavior = 'follow';
   let workbenchUsed = false;
-  let mineMode=false, mineLevel=1, mineRocks=[], mineSeed=0, mineTileX=62, mineTileY=43, worldEarlyMonsters=false, mineHoverIndex=-1, minePlayerX=86, minePlayerY=0;
+  let mineMode=false, mineLevel=1, mineRocks=[], mineSeed=0, mineTileX=62, mineTileY=43, worldEarlyMonsters=false, mineHoverIndex=-1, minePlayerX=86, minePlayerY=0, mineOreRegenTimer=5;
   let caveMode=false, caveReturn={x:player.x,y:player.y}, caveChestOpened=false;
-  let dungeonMode=false, dungeonReturn={x:player.x,y:player.y}, dungeonRoom=1, dungeonClearedRooms=[], dungeonEnemyHp=0, dungeonEnemyAttackTimer=1.35, dungeonChestOpened=false, dungeonTrapCooldown=0, dungeonEnemyX=0, dungeonEnemyY=0;
+  let dungeonMode=false, dungeonReturn={x:player.x,y:player.y}, dungeonRoom=1, dungeonClearedRooms=[], dungeonEnemyHp=0, dungeonEnemyAttackTimer=1.35, dungeonChestOpened=false, dungeonTrapCooldown=0, dungeonEnemyX=0, dungeonEnemyY=0, dungeonRoomMobs=[];
   let biomeBosses=makeBiomeBossState();
   let caveBossDefeated=false,caveBossHp=260,caveBossX=0,caveBossY=0,caveBossAttackTimer=2.5,caveBossFlash=0;
   let equipment={weapon:'Деревянный меч',armor:'',helmet:'',boots:'',amulet:''};
@@ -149,6 +156,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
 
   const treasureChests=[];
   let tradeWorldMode=false, tradeEntranceX=17, tradeEntranceY=47, footstepTimer=0, walletCents=0, shopDialogOpen=false, activeShop='sell';
+  let surfaceWorldLayer=null,tradeWorldLayer=null,surfacePlayerPosition=null,tradePlayerPosition=null;
   const SELL_SHOP={x:25,y:47}, BUY_SHOP={x:31,y:47}, FARMER_SHOP={x:38,y:47};
   const ORE_PRICES={Камень:15,Уголь:50,Железо:180};
   let villageNpcs=[],villageCenters=[],npcQuestState={},villageReputation=0,npcQuestDialogOpen=false,activeNpcQuestId=null;
@@ -395,6 +403,8 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     { name: 'Эссенция глубин', icon: '🔮', count: 0, description: 'Добыча стражей подземелья.' },
     { name: 'Рыба', icon: '🐟', count: 0, description: 'Свежая рыба с озера. Можно продать охотнику или съесть, чтобы восстановить 12 голода.' },
     { name: 'Жемчуг', icon: '🦪', count: 0, description: 'Редкая находка во время рыбалки. Хорошо ценится охотником.' },
+    { name: 'Сердце бури', icon: '🌩️', count: 0, description: 'Трофей Грозового колосса. Хранит силу древней грозы.' },
+    { name: 'Осколок бездны', icon: '🌌', count: 0, description: 'Трофей Повелителя бездны. Пульсирует тёмной энергией.' },
     ...resourceItems];
   const starterItemCounts = inventoryItems.map(item => ({name:item.name,count:item.count}));
 
@@ -485,7 +495,9 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function drawPond(camX,camY){const px=52*TILE-camX,py=36*TILE-camY;const grad=ctx.createRadialGradient(px,py,30,px,py,260);grad.addColorStop(0,'#246b85');grad.addColorStop(.75,'#1a4f70');grad.addColorStop(1,'#153c5b');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(px,py,210,138,-.18,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#71bac0';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(px-8,py-5,209,135,-.18,0,Math.PI*2);ctx.stroke();ctx.lineWidth=1;if(gameSettings.graphicsQuality!=='low')for(let i=0;i<(gameSettings.graphicsQuality==='high'?30:18);i++){const x=px-140+hash(i,2)*280,y=py-95+hash(4,i)*190;if((x-px)**2/39000+(y-py)**2/19000<.72){ctx.strokeStyle='#69b6c5aa';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+12+hash(i,1)*18,y);ctx.stroke();}}}
   function drawTree(t,camX,camY){const x=t.x-camX,y=t.y-camY,s=t.size;ctx.save();ctx.translate(x,y);ctx.scale(s,s);const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow';ctx.fillStyle=snowy?'#756b61':'#61462f';ctx.fillRect(-5,-3,10,24);ctx.fillStyle=snowy?'#a9a39a':'#7b5937';ctx.fillRect(-2,1,3,15);const colors=snowy?[['#536f7b','#a9c5d0','#edf7fa'],['#617d89','#b9d0d8','#f5fbff'],['#4c6877','#9fbcc9','#e3f2f7']][t.tint]:[['#174536','#20583f','#2c704c'],['#23503b','#2b6645','#438050'],['#1d493b','#28664d','#367e5a']][t.tint];ctx.fillStyle=colors[0];ctx.beginPath();ctx.moveTo(0,-39);ctx.lineTo(-23,-2);ctx.lineTo(-15,2);ctx.lineTo(-28,12);ctx.lineTo(27,12);ctx.lineTo(15,-1);ctx.lineTo(23,-6);ctx.closePath();ctx.fill();ctx.fillStyle=colors[1];ctx.beginPath();ctx.moveTo(0,-35);ctx.lineTo(-17,-4);ctx.lineTo(-7,-4);ctx.lineTo(-17,6);ctx.lineTo(17,6);ctx.lineTo(7,-7);ctx.closePath();ctx.fill();ctx.fillStyle=colors[2];ctx.beginPath();ctx.moveTo(0,-29);ctx.lineTo(-7,-6);ctx.lineTo(3,-8);ctx.lineTo(12,0);ctx.lineTo(5,-16);ctx.closePath();ctx.fill();ctx.restore();}
   function drawRock(r,camX,camY){const x=r.x-camX,y=r.y-camY,s=r.s;ctx.fillStyle='#132e3766';ctx.beginPath();ctx.ellipse(x,y+8,14*s,7*s,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#657777';ctx.beginPath();ctx.moveTo(x-12*s,y+5*s);ctx.lineTo(x-10*s,y-5*s);ctx.lineTo(x-2*s,y-13*s);ctx.lineTo(x+8*s,y-10*s);ctx.lineTo(x+14*s,y+3*s);ctx.closePath();ctx.fill();ctx.fillStyle='#98aaa0';ctx.beginPath();ctx.moveTo(x-9*s,y-4*s);ctx.lineTo(x-1*s,y-11*s);ctx.lineTo(x+4*s,y-6*s);ctx.lineTo(x-1*s,y+1*s);ctx.closePath();ctx.fill();}
-  function drawFlowers(camX,camY,t){for(const f of world.flowers){const x=f.x-camX,y=f.y-camY;if(x<-20||x>width+20||y<-20||y>height+20)continue;ctx.fillStyle='#22523a';ctx.fillRect(x,y,2,6);ctx.fillStyle=['#f4d77a','#d9b9ff','#f7d4d6','#a8e1ff'][f.c];ctx.fillRect(x-2,y-2,4,4);ctx.fillStyle='#fff5d5';ctx.fillRect(x,y-1,1,1);}}
+  // setupWorld creates flower/firefly arrays in row order, so a Y lower-bound skips off-screen rows.
+  function lowerBoundByY(items,minY){let low=0,high=items.length;while(low<high){const mid=(low+high)>>1;if(items[mid].y<minY)low=mid+1;else high=mid;}return low;}
+  function drawFlowers(camX,camY,t){const items=world.flowers,start=lowerBoundByY(items,camY-20),endY=camY+height+20;for(let i=start;i<items.length&&items[i].y<=endY;i++){const f=items[i],x=f.x-camX,y=f.y-camY;if(x<-20||x>width+20)continue;ctx.fillStyle='#22523a';ctx.fillRect(x,y,2,6);ctx.fillStyle=['#f4d77a','#d9b9ff','#f7d4d6','#a8e1ff'][f.c];ctx.fillRect(x-2,y-2,4,4);ctx.fillStyle='#fff5d5';ctx.fillRect(x,y-1,1,1);}}
   function drawCabin(camX,camY){
     const x=36*TILE-120-camX,y=15*TILE-120-camY;
     ctx.fillStyle='#102d2b88';ctx.beginPath();ctx.ellipse(x+160,y+300,168,28,0,0,Math.PI*2);ctx.fill();
@@ -727,7 +739,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     for(const npc of villageNpcs){const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-75||x>width+75||y<-100||y>height+80)continue;drawNpcCharacter(npc,x,y,time);ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(npc.name||NPC_NAMES[npc.id]||'Житель',x,y-27);ctx.font='800 8px Segoe UI';ctx.fillStyle='#d8e8dc';ctx.fillText(npc.activity==='sleeping'?'ОТДЫХАЕТ':npc.activity==='working'?'РАБОТАЕТ':npc.activity==='at market'?'ТОРГУЕТ':'ГУЛЯЕТ',x,y-39);ctx.restore();}
   }
   function updateVillageNpcs(dt){
-    if(inHouse||mineMode||caveMode||dungeonMode)return;
+    if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
     const minute=minuteOfDay(),night=minute>=21*60||minute<6*60,working=minute>=8*60&&minute<18*60;
     for(const npc of villageNpcs){
       const slot=night?2:working?1:0;
@@ -831,7 +843,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(['Огненный меч','Железный меч','Стальной меч','Молниеносное копьё','Меч титана','Меч дракона','Меч пустоты'].includes(equipment.weapon)){ctx.strokeStyle=equipment.weapon==='Огненный меч'?'#ff9a42':equipment.weapon==='Молниеносное копьё'?'#cba4ff':'#dbe8f5';ctx.lineWidth=equipment.weapon==='Молниеносное копьё'?4:3;ctx.beginPath();ctx.moveTo(9,-5);ctx.lineTo(14,-18);ctx.stroke();}else if(equipment.weapon==='Ледяной посох'){ctx.strokeStyle='#8be9ff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(10,-2);ctx.lineTo(14,-22);ctx.stroke();ctx.fillStyle='#b8f4ff';ctx.beginPath();ctx.arc(14,-23,4,0,Math.PI*2);ctx.fill();}
     ctx.restore();
   }
-  function drawFireflies(camX,camY,time){for(const f of world.fireflies){const x=f.x-camX,y=f.y-camY;if(x<-15||x>width+15||y<-15||y>height+15)continue;const a=.25+.65*(.5+.5*Math.sin(time/500+f.phase));ctx.fillStyle='rgba(255,231,136,'+a+')';ctx.beginPath();ctx.arc(x,y,1.5+a,0,Math.PI*2);ctx.fill();}}
+  function drawFireflies(camX,camY,time){const items=world.fireflies,start=lowerBoundByY(items,camY-15),endY=camY+height+15;for(let i=start;i<items.length&&items[i].y<=endY;i++){const f=items[i],x=f.x-camX,y=f.y-camY;if(x<-15||x>width+15)continue;const a=.25+.65*(.5+.5*Math.sin(time/500+f.phase));ctx.fillStyle='rgba(255,231,136,'+a+')';ctx.beginPath();ctx.arc(x,y,1.5+a,0,Math.PI*2);ctx.fill();}}
   function drawEmergencyWorld(){
     // Recovery renderer: if a decorative drawing routine fails, keep the playable world visible.
     ctx.save();
@@ -868,7 +880,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     toast('Каменный страж побеждён! Награда появилась в общей добыче пещеры.');
     saveGame();
   }
-  function updateCaveBoss(dt){if(!caveMode||caveBossDefeated)return;const cfg=difficultyConfig();caveBossFlash=Math.max(0,caveBossFlash-dt);const dx=player.x-caveBossX,dy=player.y-caveBossY,dist=Math.hypot(dx,dy)||1;if(dist>62){caveBossX+=dx/dist*cfg.bossSpeed*dt;caveBossY+=dy/dist*cfg.bossSpeed*dt;}caveBossAttackTimer-=dt;if(caveBossAttackTimer<=0){caveBossAttackTimer=cfg.bossInterval;if(dist<102&&dodgeTimer<=0&&!immortal){const reduction=armorReduction();const hit=Math.max(1,Math.round(cfg.bossDamage*(1-reduction)));player.hp=Math.max(0,player.hp-hit);updateVitals();spawnVisualBurst(player.x,player.y,12,'spark','#fb6876');toast('Каменный страж ударил: −'+hit+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}} }
+  function updateCaveBoss(dt){if(!caveMode||caveBossDefeated)return;const cfg=difficultyConfig();caveBossFlash=Math.max(0,caveBossFlash-dt);const dx=player.x-caveBossX,dy=player.y-caveBossY,dist=Math.hypot(dx,dy)||1;if(dist>62){caveBossX+=dx/dist*cfg.bossSpeed*dt;caveBossY+=dy/dist*cfg.bossSpeed*dt;}caveBossAttackTimer-=dt;if(caveBossAttackTimer<=0){caveBossAttackTimer=cfg.bossInterval;if(dist<weaponRange()&&dodgeTimer<=0&&!immortal){const reduction=armorReduction();const hit=Math.max(1,Math.round(cfg.bossDamage*(1-reduction)));player.hp=Math.max(0,player.hp-hit);updateVitals();spawnVisualBurst(player.x,player.y,12,'spark','#fb6876');toast('Каменный страж ударил: −'+hit+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}} }
   function drawCaveInterior(dt,time){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#101522';ctx.fillRect(0,0,width,height);const g=ctx.createRadialGradient(width*.5,height*.48,30,width*.5,height*.48,Math.max(width,height)*.7);g.addColorStop(0,'#39404b');g.addColorStop(1,'#090d16');ctx.fillStyle=g;ctx.fillRect(0,0,width,height);for(let i=0;i<90;i++){const x=hash(i,4)*width,y=hash(9,i)*height;ctx.fillStyle=i%3?'#4a515b':'#6f9ca7';ctx.fillRect(x,y,2+(i%3),2+(i%3));}ctx.fillStyle='#1b2430';ctx.beginPath();ctx.ellipse(width*.5,height*.48,width*.42,height*.34,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#65727f';ctx.lineWidth=12;ctx.stroke();for(let i=0;i<8;i++){const x=width*(.18+i*.09),y=height*(.25+(i%3)*.14);ctx.fillStyle=i%2?'#257e9b':'#4da6bc';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=14;ctx.beginPath();ctx.moveTo(x-8,y+17);ctx.lineTo(x,y-12-(i%3)*4);ctx.lineTo(x+8,y+17);ctx.closePath();ctx.fill();}ctx.shadowBlur=0;drawCaveBoss();const cx=width*.73,cy=height*.48;ctx.fillStyle=caveChestOpened?'#5c5142':'#8c562e';ctx.fillRect(cx-20,cy-5,40,25);ctx.fillStyle=caveChestOpened?'#827463':'#c18a45';ctx.fillRect(cx-20,cy-14,40,12);ctx.fillStyle='#f7d56e';ctx.fillRect(cx-3,cy-6,6,15);if(!caveChestOpened){ctx.shadowColor='#ffcf62';ctx.shadowBlur=20;ctx.fillStyle='#ffdf81';ctx.beginPath();ctx.arc(cx,cy-14,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}const px=player.x,py=player.y;ctx.fillStyle='#102a2a99';ctx.beginPath();ctx.ellipse(px,py+13,16,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#3b2837';ctx.fillRect(px-7,py+6,5,9);ctx.fillRect(px+2,py+6,5,9);ctx.fillStyle=playerAppearance.armor||'#526fba';ctx.fillRect(px-9,py-4,18,15);const caveLook=playerAppearance,caveHair=caveLook.hairStyle||'short',caveFace=caveLook.face||'normal';if(caveHair==='hood'){ctx.fillStyle=caveLook.accent||'#9cb9ff';ctx.fillRect(px-9,py-22,18,19);}ctx.fillStyle=caveLook.skin||'#e8b88c';ctx.fillRect(px-6,py-18,12,13);ctx.fillStyle=caveLook.hair||'#352d3d';if(caveHair==='mohawk'){ctx.fillRect(px-2,py-23,4,10);}else if(caveHair==='curly'){for(const [hx,hy] of [[-6,-20],[0,-22],[6,-20]]){ctx.beginPath();ctx.arc(px+hx,py+hy,3,0,Math.PI*2);ctx.fill();}}else if(caveHair!=='hood'){ctx.fillRect(px-7,py-21,14,5);if(caveHair==='long')ctx.fillRect(px-8,py-17,3,12);}if(caveFace==='visor'){ctx.fillStyle=caveLook.accent||'#9cb9ff';ctx.fillRect(px-7,py-14,14,5);ctx.fillStyle=caveLook.eye||'#26334c';ctx.fillRect(px-4,py-13,3,2);ctx.fillRect(px+2,py-13,3,2);}else{ctx.fillStyle=caveLook.eye||'#26334c';ctx.fillRect(px-4,py-13,2,2);ctx.fillRect(px+3,py-13,2,2);if(caveFace==='stern'){ctx.fillRect(px-5,py-15,4,1);ctx.fillRect(px+2,py-15,4,1);}if(caveFace==='smile'){ctx.fillStyle='#7c4135';ctx.fillRect(px-2,py-8,5,1);}else if(caveFace==='mask'){ctx.fillStyle='#d5dce6';ctx.fillRect(px-5,py-10,10,5);ctx.fillStyle='#7e8ba0';ctx.fillRect(px-3,py-8,2,1);ctx.fillRect(px+1,py-8,2,1);}}if(equipment.helmet){ctx.fillStyle='#d7dfe8';ctx.fillRect(px-9,py-22,18,5);}ctx.fillStyle='#182b38';ctx.beginPath();ctx.ellipse(width*.16,height*.8,36,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#7bd7e7';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#f0d28b';ctx.font='bold 15px Segoe UI';ctx.textAlign='center';ctx.fillText('ТАЙНАЯ ПЕЩЕРА · E — взаимодействие',width/2,35);ctx.fillStyle='#a6bddb';ctx.font='12px Segoe UI';ctx.fillText(caveChestOpened?'Сундук уже открыт · E у входа — выйти':'Подойди к сияющему сундуку и нажми E',width/2,58);if(dodgeTimer>0){ctx.strokeStyle='#a8d9ff';ctx.lineWidth=4;ctx.globalAlpha=dodgeTimer/.24;ctx.beginPath();ctx.arc(px,py,30,0,Math.PI*1.6);ctx.stroke();ctx.globalAlpha=1;}drawRemotePlayers(0,0);}
   function drawForestLabel(camX,camY){const x=(COLS-18)*TILE-camX,y=(ROWS-26)*TILE-camY;if(x<-220||x>width+220||y<-40||y>height+40)return;ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#d4f5b4';ctx.shadowColor='#143a1d';ctx.shadowBlur=8;ctx.fillText('ЛЕС · ЛОГОВО ОБОРОТНЯ',x,y);ctx.restore();}
   function drawWolfBoss(camX,camY,time=0){
@@ -917,10 +929,10 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function drawWolfCompanion(camX,camY,time){if(!wolfCompanionUnlocked||wolfCompanionHp<=0)return;const x=wolfCompanionX()-camX,y=wolfCompanionY()-camY;if(x<-50||x>width+50||y<-50||y>height+50)return;ctx.save();ctx.translate(x,y+Math.sin(time/180));ctx.fillStyle='#b8c4d5';ctx.beginPath();ctx.ellipse(0,0,13,9,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(10,-5,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#71839c';ctx.beginPath();ctx.moveTo(5,-10);ctx.lineTo(3,-20);ctx.lineTo(11,-13);ctx.moveTo(14,-11);ctx.lineTo(21,-18);ctx.lineTo(19,-7);ctx.fill();ctx.fillStyle='#f4c6cc';ctx.fillRect(12,-6,2,2);ctx.fillStyle='#fff';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('🐕 '+Math.ceil(wolfCompanionHp)+'/300',0,-25);ctx.restore();}
 
   function makeBiomeBossState(){return {frost:{active:false,defeated:false,hp:0,attackTimer:1.35,flash:0},sand:{active:false,defeated:false,hp:0,attackTimer:1.5,flash:0},blight:{active:false,defeated:false,hp:0,attackTimer:1.7,flash:0},jungle:{active:false,defeated:false,hp:0,attackTimer:1.6,flash:0}};}
-  function biomeBossDefs(){const rank=difficultyConfig().rank;return [{id:'frost',name:'Ледяной титан',x:(COLS-10)*TILE+16,y:9*TILE+16,color:'#83e9ff',reward:'Сердце ледника',maxHp:850+rank*330,damage:10+rank*6},{id:'sand',name:'Король скорпионов',x:9*TILE+16,y:(ROWS-12)*TILE+16,color:'#ffb24a',reward:'Жало короля',maxHp:780+rank*300,damage:9+rank*5},{id:'blight',name:'Страж порчи',x:(COLS-9)*TILE+16,y:Math.max(46,ROWS-24)*TILE+16,color:'#b7ed6e',reward:'Сердце порчи',maxHp:1000+rank*360,damage:12+rank*6},{id:'jungle',name:'Хранитель лиан',x:Math.floor(COLS*.29)*TILE+16,y:Math.floor(ROWS*.49)*TILE+16,color:'#73d45b',reward:'Сердце джунглей',maxHp:1050+rank*390,damage:12+rank*6}];}
+  function biomeBossDefs(){const rank=difficultyConfig().rank;return [{id:'frost',name:'Ледяной титан',x:(COLS-10)*TILE+16,y:9*TILE+16,color:'#83e9ff',reward:'Сердце ледника',maxHp:850+rank*330,damage:10+rank*6},{id:'sand',name:'Король скорпионов',x:9*TILE+16,y:(ROWS-12)*TILE+16,color:'#ffb24a',reward:'Жало короля',maxHp:780+rank*300,damage:9+rank*5},{id:'blight',name:'Страж порчи',x:(COLS-9)*TILE+16,y:Math.max(46,ROWS-24)*TILE+16,color:'#b7ed6e',reward:'Сердце порчи',maxHp:1000+rank*360,damage:12+rank*6},{id:'jungle',name:'Хранитель лиан',x:Math.floor(COLS*.29)*TILE+16,y:Math.floor(ROWS*.49)*TILE+16,color:'#73d45b',reward:'Сердце джунглей',maxHp:1050+rank*390,damage:12+rank*6},{id:'storm',name:'Грозовой колосс',x:Math.floor(COLS*.08)*TILE+16,y:Math.floor(ROWS*.12)*TILE+16,color:'#b9c8ff',reward:'Сердце бури',maxHp:1250+rank*430,damage:14+rank*7},{id:'abyss',name:'Повелитель бездны',x:Math.floor(COLS*.35)*TILE+16,y:Math.floor(ROWS*.59)*TILE+16,color:'#ad8cff',reward:'Осколок бездны',maxHp:1450+rank*470,damage:16+rank*8}];}
   function bossHpMax(def){return Math.round(def.maxHp);}
   function normalizeBiomeBossState(saved){const out=makeBiomeBossState();if(!saved||typeof saved!=='object')return out;for(const def of biomeBossDefs()){const v=saved[def.id];if(!v||typeof v!=='object')continue;out[def.id]={active:v.active===true,defeated:v.defeated===true,hp:Math.max(0,Math.min(bossHpMax(def),Number(v.hp)||bossHpMax(def))),attackTimer:Math.max(.15,Math.min(5,Number(v.attackTimer)||1.4)),flash:0};if(out[def.id].defeated){out[def.id].active=false;out[def.id].hp=0;}else if(out[def.id].hp<=0)out[def.id].hp=bossHpMax(def);}return out;}
-  function updateBiomeBosses(dt){if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode)return;for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||b.defeated)continue;const d=Math.hypot(player.x-def.x,player.y-def.y);b.flash=Math.max(0,(b.flash||0)-dt);if(!b.active&&d<440){b.active=true;b.hp=b.hp>0?Math.min(b.hp,bossHpMax(def)):bossHpMax(def);b.attackTimer=1.3;toast('ОПАСНОСТЬ: '+def.name+' заметил тебя!');playSound('portal');saveGame();}if(!b.active)continue;b.attackTimer-=dt;if(d<108&&b.attackTimer<=0&&!immortal&&dodgeTimer<=0){b.attackTimer=Math.max(.65,1.65-difficultyConfig().rank*.13);const hit=Math.max(1,Math.round(def.damage*(1-armorReduction())*(isModInstalled('elemental_lords')?1.25:1)));player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,9,'spark',def.color);updateVitals();toast(def.name+' атакует: −'+hit+' HP');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
+  function updateBiomeBosses(dt){if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode)return;for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||b.defeated)continue;const d=Math.hypot(player.x-def.x,player.y-def.y);b.flash=Math.max(0,(b.flash||0)-dt);if(!b.active&&d<440){b.active=true;b.hp=b.hp>0?Math.min(b.hp,bossHpMax(def)):bossHpMax(def);b.attackTimer=1.3;toast('ОПАСНОСТЬ: '+def.name+' заметил тебя!');playSound('portal');saveGame();}if(!b.active)continue;b.attackTimer-=dt;if(d<weaponRange()&&b.attackTimer<=0&&!immortal&&dodgeTimer<=0){b.attackTimer=Math.max(.65,1.65-difficultyConfig().rank*.13);const hit=Math.max(1,Math.round(def.damage*(1-armorReduction())*(isModInstalled('elemental_lords')?1.25:1)));player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,9,'spark',def.color);updateVitals();toast(def.name+' атакует: −'+hit+' HP');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
   function defeatBiomeBoss(def,b){if(!def||!b||b.defeated)return;b.defeated=true;if(isModInstalled('elemental_lords')){walletCents+=5000;changeItem('Кристалл',2);updateWalletHud();toast('Повелитель стихий: дополнительная награда +50 золота и 2 кристалла!');}b.active=false;b.hp=0;
     if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner){
       spawnSharedLoot(def.x,def.y,[{name:def.reward,count:1},{name:'Кристалл',count:3},{name:'Малое зелье',count:2},{name:'Золото',count:75}],'surface');
@@ -929,9 +941,22 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function drawBiomeBosses(camX,camY,time){for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||b.defeated)continue;const dist=Math.hypot(player.x-def.x,player.y-def.y);if(!b.active&&dist>560)continue;const x=def.x-camX,y=def.y-camY;if(x<-100||x>width+100||y<-100||y>height+100)continue;ctx.save();ctx.translate(x,y);ctx.scale(1+Math.sin(time/170)*.035,1+Math.sin(time/170)*.035);ctx.fillStyle='#08101ba8';ctx.beginPath();ctx.ellipse(0,17,35,11,0,0,Math.PI*2);ctx.fill();ctx.shadowColor=def.color;ctx.shadowBlur=20;ctx.fillStyle=b.flash>0?'#fff':def.color;if(def.id==='frost'){ctx.beginPath();ctx.moveTo(-24,17);ctx.lineTo(-20,-12);ctx.lineTo(-11,-25);ctx.lineTo(-4,-13);ctx.lineTo(3,-33);ctx.lineTo(12,-14);ctx.lineTo(23,-22);ctx.lineTo(26,14);ctx.closePath();ctx.fill();}else if(def.id==='sand'){ctx.beginPath();ctx.ellipse(0,1,24,19,0,0,Math.PI*2);ctx.fill();ctx.fillRect(-28,-10,9,7);ctx.fillRect(19,-10,9,7);ctx.strokeStyle=def.color;ctx.lineWidth=5;ctx.beginPath();ctx.arc(3,-12,24,Math.PI,Math.PI*1.8);ctx.stroke();}else if(def.id==='jungle'){ctx.fillStyle='#6a432d';ctx.fillRect(-8,-5,16,26);ctx.fillStyle=b.flash>0?'#fff':'#73d45b';ctx.beginPath();ctx.ellipse(0,-14,23,18,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(-16,-22);ctx.lineTo(-30,-35);ctx.lineTo(-13,-31);ctx.moveTo(16,-22);ctx.lineTo(30,-35);ctx.lineTo(13,-31);ctx.strokeStyle=def.color;ctx.lineWidth=6;ctx.stroke();ctx.fillStyle='#fff3b0';ctx.fillRect(-9,-17,5,4);ctx.fillRect(4,-17,5,4);ctx.fillStyle='#284b25';ctx.fillRect(-5,-6,10,3);}else{ctx.beginPath();ctx.moveTo(-25,15);ctx.lineTo(-23,-10);ctx.lineTo(-9,-20);ctx.lineTo(0,-14);ctx.lineTo(12,-28);ctx.lineTo(24,-8);ctx.lineTo(28,15);ctx.closePath();ctx.fill();}ctx.shadowBlur=0;ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#fff';ctx.fillText(def.name,x,y-40);ctx.fillStyle='#241a27';ctx.fillRect(x-39,y-32,78,6);ctx.fillStyle=def.color;ctx.fillRect(x-39,y-32,78*Math.max(0,(b.active?b.hp:bossHpMax(def))/bossHpMax(def)),6);ctx.restore();}}
   function dungeonGatePosition(){return {x:(COLS-15)*TILE+16,y:25*TILE+16};}
   function drawDungeonGate(camX,camY,time){const p=dungeonGatePosition(),x=p.x-camX,y=p.y-camY;if(x<-90||x>width+90||y<-100||y>height+100)return;ctx.save();ctx.translate(x,y);ctx.fillStyle='#11192599';ctx.beginPath();ctx.ellipse(0,14,42,16,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#716a73';ctx.fillRect(-28,-16,10,38);ctx.fillRect(18,-16,10,38);ctx.fillRect(-30,-20,60,8);ctx.fillStyle='#262b3a';ctx.beginPath();ctx.arc(0,-5,19,Math.PI,Math.PI*2);ctx.lineTo(19,19);ctx.lineTo(-19,19);ctx.closePath();ctx.fill();ctx.strokeStyle='#b99cff';ctx.lineWidth=3;ctx.shadowColor='#a77bff';ctx.shadowBlur=12+Math.sin(time/200)*4;ctx.beginPath();ctx.arc(0,-4,15,Math.PI,Math.PI*2);ctx.stroke();ctx.fillStyle='#f3eaff';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('РУИНЫ',0,34);ctx.fillText('E · ВОЙТИ',0,46);ctx.restore();}
+  function makeDungeonRoomMobs(room=dungeonRoom){
+    const cfg=difficultyConfig();
+    const types=[
+      {type:'skeleton',name:'Скелет-страж',speed:34,hp:34,damage:5,color:'#c8c5b8'},
+      {type:'ice',name:'Ледяной дух',speed:42,hp:28,damage:6,color:'#82e7ff'},
+      {type:'scorpion',name:'Подземный скорпион',speed:38,hp:42,damage:6,color:'#e7a14e'},
+      {type:'brute',name:'Каменный громила',speed:25,hp:68,damage:9,color:'#9a9aa9'}
+    ];
+    return types.map((def,index)=>{
+      const maxHp=Math.max(1,Math.round((def.hp+room*9)*cfg.monsterHp));
+      return {id:'dungeon-'+room+'-'+def.type,type:def.type,name:def.name,x:width*(index%2===0?.36:.67),y:height*(index<2?.30:.70),hp:maxHp,maxHp,speed:def.speed+cfg.rank*2,damageScale:cfg.monsterDamage,attackCooldown:1.2+index*.25,color:def.color};
+    });
+  }
   function dungeonEnemyMaxHp(room=dungeonRoom){return Math.round((room===5?620:90+room*42)*(.65+difficultyConfig().rank*.28)*(isModInstalled('lost_dungeons')?1.35:1));}
   function dungeonRoomCleared(room=dungeonRoom){return dungeonClearedRooms.includes(room);}
-  function enterDungeon(){dungeonReturn={x:player.x,y:player.y};dungeonMode=true;dungeonRoom=[1,2,3,4,5].find(n=>!dungeonRoomCleared(n))||5;if(!dungeonRoomCleared(dungeonRoom)&&(!Number.isFinite(dungeonEnemyHp)||dungeonEnemyHp<=0))dungeonEnemyHp=dungeonEnemyMaxHp(dungeonRoom);dungeonEnemyX=width*.65;dungeonEnemyY=height*.47;dungeonEnemyAttackTimer=1.35;dungeonTrapCooldown=0;player.x=width*.18;player.y=height*.52;player.vx=player.vy=0;keys.clear();playSound('portal');toast('Древние руины: пройди 5 комнат, победи Архонта и забери реликвию.');saveGame();}
+  function enterDungeon(){dungeonReturn={x:player.x,y:player.y};dungeonMode=true;dungeonRoom=[1,2,3,4,5].find(n=>!dungeonRoomCleared(n))||5;if(!dungeonRoomCleared(dungeonRoom)&&(!Number.isFinite(dungeonEnemyHp)||dungeonEnemyHp<=0))dungeonEnemyHp=dungeonEnemyMaxHp(dungeonRoom);if(!dungeonRoomCleared(dungeonRoom)&&!dungeonRoomMobs.length)dungeonRoomMobs=makeDungeonRoomMobs(dungeonRoom);dungeonEnemyX=width*.65;dungeonEnemyY=height*.47;dungeonEnemyAttackTimer=1.35;dungeonTrapCooldown=0;player.x=width*.18;player.y=height*.52;player.vx=player.vy=0;keys.clear();playSound('portal');toast('Древние руины: пройди 5 комнат, победи Архонта и забери реликвию.');saveGame();}
   function leaveDungeon(){dungeonMode=false;player.x=dungeonReturn.x;player.y=dungeonReturn.y;player.vx=player.vy=0;keys.clear();saveGame();drawMinimap();toast('Ты вышел из Древних руин. Прогресс сохранён.');}
   function updateDungeon(dt){
     if(!dungeonMode||dungeonRoomCleared())return;
@@ -939,9 +964,10 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(!Number.isFinite(dungeonEnemyX)||dungeonEnemyX<=0)dungeonEnemyX=width*.65;
     if(!Number.isFinite(dungeonEnemyY)||dungeonEnemyY<=0)dungeonEnemyY=height*.47;
     const dx=player.x-dungeonEnemyX,dy=player.y-dungeonEnemyY,dist=Math.hypot(dx,dy)||1;
+    for(const mob of dungeonRoomMobs){if(mob.hp<=0)continue;const mx=player.x-mob.x,my=player.y-mob.y,md=Math.hypot(mx,my)||1;if(md>30){mob.x+=mx/md*mob.speed*dt;mob.y+=my/md*mob.speed*dt;}mob.attackCooldown=Math.max(0,mob.attackCooldown-dt);if(md<=weaponRange()&&mob.attackCooldown<=0&&!immortal&&dodgeTimer<=0){mob.attackCooldown=1.25;const hit=Math.max(1,Math.round((mob.type==='brute'?9:mob.type==='ice'?6:mob.type==='scorpion'?6:5)*mob.damageScale*(1-armorReduction())));player.hp=Math.max(0,player.hp-hit);updateVitals();spawnVisualBurst(player.x,player.y,6,'spark',mob.color||'#b9c8dc');toast((mob.name||'Подземный монстр')+' атакует: −'+hit+' HP');if(player.hp<=0)respawnPlayerAfterDefeat();}}
     if(dist>42){const speed=dungeonRoom===5?29:38;dungeonEnemyX+=dx/dist*speed*dt;dungeonEnemyY+=dy/dist*speed*dt;}
     dungeonEnemyAttackTimer-=dt;
-    if(dist<74&&dungeonEnemyAttackTimer<=0&&!immortal&&dodgeTimer<=0){
+    if(dist<weaponRange()&&dungeonEnemyAttackTimer<=0&&!immortal&&dodgeTimer<=0){
       dungeonEnemyAttackTimer=dungeonRoom===5?.95:1.45;
       const hit=Math.max(1,Math.round((dungeonRoom===5?24:8+dungeonRoom*3)*difficultyConfig().monsterDamage*(1-armorReduction())));
       player.hp=Math.max(0,player.hp-hit);updateVitals();spawnVisualBurst(player.x,player.y,7,'spark',dungeonRoom===5?'#dc86ff':'#a8a1cf');
@@ -957,7 +983,32 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       }
     }
   }
-  function attackDungeonEnemy(){if(playerAttackCooldown>0)return;playerAttackCooldown=.58;attackAnimTimer=.2;playSound('hit');if(dungeonRoomCleared()){toast(dungeonRoom===5?'Страж побеждён. Найди сундук справа.':'Комната очищена. Иди к двери справа.');return;}const ex=dungeonEnemyX>0?dungeonEnemyX:width*.65,ey=dungeonEnemyY>0?dungeonEnemyY:height*.47;if(Math.hypot(player.x-ex,player.y-ey)>Math.max(145,weaponRange()+30)){toast('Подойди к стражу комнаты ближе.');return;}const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));dungeonEnemyHp=Math.max(0,dungeonEnemyHp-damage);spawnVisualBurst(ex,ey,10,'spark',dungeonRoom===5?'#dca4ff':'#a9b5d7');toast((dungeonRoom===5?'Архонт':'Страж')+' получил '+damage+' урона · '+Math.ceil(dungeonEnemyHp)+' HP');if(dungeonEnemyHp<=0){dungeonClearedRooms=Array.from(new Set(dungeonClearedRooms.concat([dungeonRoom])));if(dungeonRoom<5){changeItem('Эссенция глубин',1);if(Math.random()<.6)changeItem('Кристалл',1);toast('Комната '+dungeonRoom+' очищена!');}else{changeItem('Эссенция глубин',4);walletCents+=15000;toast('Архонт руин повержен! Сундук открыт.');}spawnVisualBurst(ex,ey,30,'spark','#b99cff');awardXP(dungeonRoom===5?300:70,'зачистка комнаты руин');renderInventory();saveGame();}else saveGame();}
+  function attackDungeonEnemy(){
+    if(playerAttackCooldown>0)return;
+    playerAttackCooldown=.58;attackAnimTimer=.2;playSound('hit');
+    if(dungeonRoomCleared()){toast(dungeonRoom===5?'Страж побеждён. Найди сундук справа.':'Комната очищена. Иди к двери справа.');return;}
+    const weapon=equipment.weapon||'Деревянный меч';
+    const damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));
+    const livingMobs=dungeonRoomMobs.filter(m=>m.hp>0);
+    if(livingMobs.length){
+      const target=livingMobs.sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y))[0];
+      if(Math.hypot(player.x-target.x,player.y-target.y)>Math.max(145,weaponRange()+30)){toast('Подойди к '+(target.name||'подземному монстру')+' ближе.');return;}
+      target.hp=Math.max(0,target.hp-damage);spawnVisualBurst(target.x,target.y,9,'spark',target.color||'#a9b5d7');
+      toast((target.name||'Подземный монстр')+' получил '+damage+' урона · '+Math.ceil(target.hp)+' HP');
+      if(target.hp<=0){changeItem('Эссенция глубин',1);awardXP(30,'победа над '+(target.name||'подземным монстром'));toast((target.name||'Монстр')+' повержен! Страж комнаты всё ещё охраняет проход.');}
+      renderInventory();saveGame();return;
+    }
+    const ex=dungeonEnemyX>0?dungeonEnemyX:width*.65,ey=dungeonEnemyY>0?dungeonEnemyY:height*.47;
+    if(Math.hypot(player.x-ex,player.y-ey)>Math.max(145,weaponRange()+30)){toast('Подойди к стражу комнаты ближе.');return;}
+    dungeonEnemyHp=Math.max(0,dungeonEnemyHp-damage);spawnVisualBurst(ex,ey,10,'spark',dungeonRoom===5?'#dca4ff':'#a9b5d7');
+    toast((dungeonRoom===5?'Архонт':'Страж')+' получил '+damage+' урона · '+Math.ceil(dungeonEnemyHp)+' HP');
+    if(dungeonEnemyHp<=0){
+      dungeonClearedRooms=Array.from(new Set(dungeonClearedRooms.concat([dungeonRoom])));
+      if(dungeonRoom<5){changeItem('Эссенция глубин',1);if(Math.random()<.6)changeItem('Кристалл',1);toast('Комната '+dungeonRoom+' очищена!');}
+      else{changeItem('Эссенция глубин',4);walletCents+=15000;toast('Архонт руин повержен! Сундук открыт.');}
+      spawnVisualBurst(ex,ey,30,'spark','#b99cff');awardXP(dungeonRoom===5?300:70,'зачистка комнаты руин');renderInventory();saveGame();
+    }else saveGame();
+  }
   async function interactDungeon(){
     const exitX=width*.12,midY=height*.52;
     if(Math.hypot(player.x-exitX,player.y-midY)<95){leaveDungeon();return;}
@@ -976,7 +1027,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(Math.hypot(player.x-width*.88,player.y-midY)<90){
       if(!dungeonRoomCleared()){toast('Сначала победи стража.');return;}
       if(dungeonRoom<5){
-        dungeonRoom++;if(!dungeonRoomCleared())dungeonEnemyHp=dungeonEnemyMaxHp();
+        dungeonRoom++;if(!dungeonRoomCleared()){dungeonEnemyHp=dungeonEnemyMaxHp();dungeonRoomMobs=makeDungeonRoomMobs(dungeonRoom);}
         dungeonEnemyX=width*.65;dungeonEnemyY=height*.47;dungeonEnemyAttackTimer=1.35;
         saveGame();playSound('portal');
         toast('Комната '+dungeonRoom+'/5. '+(dungeonRoom===5?'Впереди Архонт!':'Новый страж впереди.'));
@@ -986,7 +1037,23 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     }
     toast('E у двери слева — выйти, справа — продолжить, у сундука — награда.');
   }
-  function drawDungeonInterior(dt,time){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#090c18';ctx.fillRect(0,0,width,height);const g=ctx.createLinearGradient(0,0,width,height);g.addColorStop(0,'#2a263c');g.addColorStop(1,'#111522');ctx.fillStyle=g;ctx.fillRect(18,18,width-36,height-36);ctx.strokeStyle='#716783';ctx.lineWidth=12;ctx.strokeRect(26,26,width-52,height-52);for(let y=42;y<height-42;y+=43)for(let x=42;x<width-42;x+=43){ctx.strokeStyle='#4d4a5e66';ctx.strokeRect(x,y,40,40);}for(let i=0;i<9;i++){const x=width*(.16+i*.085),y=height*(.18+(i%3)*.27);ctx.fillStyle='#666176';ctx.fillRect(x-6,y-12,12,32);ctx.fillStyle='#9992a9';ctx.fillRect(x-8,y-16,16,5);}const left=width*.12,mid=height*.52,right=width*.88;ctx.fillStyle='#12101b';ctx.fillRect(left-18,mid-42,36,84);ctx.strokeStyle='#c2a1ef';ctx.lineWidth=3;ctx.strokeRect(left-18,mid-42,36,84);ctx.fillStyle=dungeonRoomCleared()?'#3f7c71':'#6d4a72';ctx.fillRect(right-18,mid-42,36,84);ctx.strokeStyle='#d0b4ff';ctx.strokeRect(right-18,mid-42,36,84);ctx.fillStyle='#fff0bd';ctx.font='bold 12px Segoe UI';ctx.textAlign='center';ctx.fillText('ВЫХОД',left,mid-55);ctx.fillText('КОМНАТА '+dungeonRoom+'/5',width/2,48);ctx.fillText(dungeonRoom===5?'АРХОНТ РУИН':'СТРАЖ '+dungeonRoom,right,mid-55);if(dungeonRoom===3){const tx=width*.43,ty=height*.5;ctx.fillStyle='#8b362c';ctx.fillRect(tx-32,ty-24,64,48);ctx.strokeStyle='#ffb06e';ctx.lineWidth=2;ctx.strokeRect(tx-32,ty-24,64,48);ctx.fillStyle='#ffcf9b';ctx.font='bold 10px Segoe UI';ctx.fillText('ЛОВУШКА',tx,ty+4);}if(dungeonRoom===5){ctx.fillStyle=dungeonRoomCleared(5)?'#b88737':'#533d63';ctx.fillRect(width*.82-22,height*.48-8,44,27);ctx.fillStyle='#f7d36f';ctx.fillRect(width*.82-22,height*.48-15,44,10);}if(!dungeonRoomCleared()){const x=dungeonEnemyX||width*.65,y=dungeonEnemyY||height*.47;ctx.save();ctx.translate(x,y);ctx.fillStyle='#11101b99';ctx.beginPath();ctx.ellipse(0,16,28,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=dungeonRoom===5?'#bd75d8':'#8c91ac';ctx.fillRect(-20,-17,40,32);ctx.fillRect(-15,-28,30,16);ctx.fillStyle=dungeonRoom===5?'#ffb3ec':'#ff6f9f';ctx.fillRect(-12,-20,6,4);ctx.fillRect(6,-20,6,4);ctx.restore();ctx.fillStyle='#251d32';ctx.fillRect(width*.5-74,70,148,7);ctx.fillStyle=dungeonRoom===5?'#da7ced':'#aabce8';ctx.fillRect(width*.5-74,70,148*Math.max(0,dungeonEnemyHp/dungeonEnemyMaxHp()),7);ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.fillText((dungeonRoom===5?'АРХОНТ':'СТРАЖ')+' · '+Math.ceil(dungeonEnemyHp)+' HP',width*.5,65);}else{ctx.fillStyle='#a4f1d3';ctx.font='bold 13px Segoe UI';ctx.fillText(dungeonRoom===5?'Победа! E у сундука справа.':'Комната очищена · E у двери справа.',width/2,height-42);}const px=player.x,py=player.y;ctx.fillStyle='#10101a99';ctx.beginPath();ctx.ellipse(px,py+12,15,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=playerAppearance.armor||'#526fba';ctx.fillRect(px-9,py-4,18,17);ctx.fillStyle=playerAppearance.skin||'#e8b88c';ctx.fillRect(px-6,py-19,12,14);ctx.fillStyle=playerAppearance.hair||'#352d3d';ctx.fillRect(px-7,py-23,14,6);ctx.fillStyle='#e9efff';ctx.font='bold 11px Segoe UI';ctx.fillText('WASD · Space атака · E взаимодействие',width/2,height-20);ctx.textAlign='left';drawRemotePlayers(0,0);}
+  function drawDungeonPassageLayout(time){
+    const cx=width*.5,cy=height*.52;
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.strokeStyle='#121522';ctx.lineWidth=42;
+    ctx.beginPath();
+    if(dungeonRoom===1){ctx.moveTo(width*.12,cy);ctx.lineTo(width*.44,cy);ctx.lineTo(width*.44,height*.25);ctx.moveTo(width*.44,cy);ctx.lineTo(width*.88,cy);}
+    else if(dungeonRoom===2){ctx.moveTo(width*.12,cy);ctx.lineTo(width*.38,cy);ctx.lineTo(width*.38,height*.25);ctx.moveTo(width*.38,cy);ctx.lineTo(width*.68,cy);ctx.lineTo(width*.68,height*.76);ctx.moveTo(width*.68,cy);ctx.lineTo(width*.88,cy);}
+    else if(dungeonRoom===3){ctx.moveTo(width*.12,cy);ctx.lineTo(width*.31,cy);ctx.lineTo(width*.31,height*.28);ctx.lineTo(width*.70,height*.28);ctx.lineTo(width*.70,height*.72);ctx.lineTo(width*.88,height*.72);}
+    else if(dungeonRoom===4){ctx.moveTo(width*.12,cy);ctx.lineTo(width*.34,cy);ctx.moveTo(width*.34,cy);ctx.lineTo(width*.52,height*.25);ctx.moveTo(width*.34,cy);ctx.lineTo(width*.52,height*.78);ctx.moveTo(width*.52,height*.25);ctx.lineTo(width*.78,height*.25);ctx.moveTo(width*.52,height*.78);ctx.lineTo(width*.78,height*.78);ctx.moveTo(width*.78,height*.25);ctx.lineTo(width*.78,height*.78);ctx.moveTo(width*.78,cy);ctx.lineTo(width*.88,cy);}
+    else{ctx.arc(cx,cy,Math.min(width,height)*.24,0,Math.PI*2);ctx.moveTo(width*.12,cy);ctx.lineTo(width*.26,cy);ctx.moveTo(width*.74,cy);ctx.lineTo(width*.88,cy);}
+    ctx.stroke();
+    ctx.strokeStyle=dungeonRoom===5?'#b77fe6':'#9d91bd';ctx.lineWidth=3;ctx.setLineDash([9,8]);ctx.stroke();ctx.setLineDash([]);
+    const glows=[['#a88ad8',.44,.25],['#83c9df',.68,.76],['#d8a26f',.31,.28],['#a8d58a',.52,.78],['#d58cff',.5,.28]];
+    const [color,gx,gy]=glows[dungeonRoom-1];ctx.fillStyle=color;ctx.globalAlpha=.55+Math.sin(time/260)*.16;ctx.beginPath();ctx.arc(width*gx,height*gy,8+Math.sin(time/180)*2,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  function drawDungeonInterior(dt,time){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#090c18';ctx.fillRect(0,0,width,height);const g=ctx.createLinearGradient(0,0,width,height);g.addColorStop(0,'#2a263c');g.addColorStop(1,'#111522');ctx.fillStyle=g;ctx.fillRect(18,18,width-36,height-36);ctx.strokeStyle='#716783';ctx.lineWidth=12;ctx.strokeRect(26,26,width-52,height-52);for(let y=42;y<height-42;y+=43)for(let x=42;x<width-42;x+=43){ctx.strokeStyle='#4d4a5e66';ctx.strokeRect(x,y,40,40);}drawDungeonPassageLayout(time);for(let i=0;i<9;i++){const x=width*(.16+i*.085),y=height*(.18+(i%3)*.27);ctx.fillStyle='#666176';ctx.fillRect(x-6,y-12,12,32);ctx.fillStyle='#9992a9';ctx.fillRect(x-8,y-16,16,5);}const left=width*.12,mid=height*.52,right=width*.88;ctx.fillStyle='#12101b';ctx.fillRect(left-18,mid-42,36,84);ctx.strokeStyle='#c2a1ef';ctx.lineWidth=3;ctx.strokeRect(left-18,mid-42,36,84);ctx.fillStyle=dungeonRoomCleared()?'#3f7c71':'#6d4a72';ctx.fillRect(right-18,mid-42,36,84);ctx.strokeStyle='#d0b4ff';ctx.strokeRect(right-18,mid-42,36,84);ctx.fillStyle='#fff0bd';ctx.font='bold 12px Segoe UI';ctx.textAlign='center';ctx.fillText('ВЫХОД',left,mid-55);ctx.fillText('КОМНАТА '+dungeonRoom+'/5 · '+(['КАМЕННЫЙ КОРИДОР','ПЕРЕКРЁСТОК','ЛОВУШЕЧНЫЙ МАРШРУТ','РАЗВИЛКА','ЗАЛ АРХОНТА'][dungeonRoom-1]||'РУИНЫ'),width/2,48);ctx.fillText(dungeonRoom===5?'АРХОНТ РУИН':'СТРАЖ '+dungeonRoom,right,mid-55);if(dungeonRoom===3){const tx=width*.43,ty=height*.5;ctx.fillStyle='#8b362c';ctx.fillRect(tx-32,ty-24,64,48);ctx.strokeStyle='#ffb06e';ctx.lineWidth=2;ctx.strokeRect(tx-32,ty-24,64,48);ctx.fillStyle='#ffcf9b';ctx.font='bold 10px Segoe UI';ctx.fillText('ЛОВУШКА',tx,ty+4);}if(dungeonRoom===5){ctx.fillStyle=dungeonRoomCleared(5)?'#b88737':'#533d63';ctx.fillRect(width*.82-22,height*.48-8,44,27);ctx.fillStyle='#f7d36f';ctx.fillRect(width*.82-22,height*.48-15,44,10);}for(const mob of dungeonRoomMobs){if(mob.hp<=0)continue;ctx.save();ctx.translate(mob.x,mob.y);ctx.fillStyle='#080b1699';ctx.beginPath();ctx.ellipse(0,14,19,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=mob.color||'#9aa7bb';ctx.fillRect(-12,-12,24,25);ctx.fillRect(-9,-22,18,12);ctx.fillStyle='#ff6f9f';ctx.fillRect(-7,-17,4,3);ctx.fillRect(3,-17,4,3);ctx.fillStyle='#241d2b';ctx.fillRect(-18,-31,36,4);ctx.fillStyle='#e9a3ff';ctx.fillRect(-18,-31,36*Math.max(0,mob.hp/mob.maxHp),4);ctx.fillStyle='#f5eaff';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText(mob.name||mob.type,0,-37);ctx.restore();}if(!dungeonRoomCleared()){const x=dungeonEnemyX||width*.65,y=dungeonEnemyY||height*.47;ctx.save();ctx.translate(x,y);ctx.fillStyle='#11101b99';ctx.beginPath();ctx.ellipse(0,16,28,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=dungeonRoom===5?'#bd75d8':'#8c91ac';ctx.fillRect(-20,-17,40,32);ctx.fillRect(-15,-28,30,16);ctx.fillStyle=dungeonRoom===5?'#ffb3ec':'#ff6f9f';ctx.fillRect(-12,-20,6,4);ctx.fillRect(6,-20,6,4);ctx.restore();ctx.fillStyle='#251d32';ctx.fillRect(width*.5-74,70,148,7);ctx.fillStyle=dungeonRoom===5?'#da7ced':'#aabce8';ctx.fillRect(width*.5-74,70,148*Math.max(0,dungeonEnemyHp/dungeonEnemyMaxHp()),7);ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.fillText((dungeonRoom===5?'АРХОНТ':'СТРАЖ')+' · '+Math.ceil(dungeonEnemyHp)+' HP',width*.5,65);}else{ctx.fillStyle='#a4f1d3';ctx.font='bold 13px Segoe UI';ctx.fillText(dungeonRoom===5?'Победа! E у сундука справа.':'Комната очищена · E у двери справа.',width/2,height-42);}const px=player.x,py=player.y;ctx.fillStyle='#10101a99';ctx.beginPath();ctx.ellipse(px,py+12,15,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=playerAppearance.armor||'#526fba';ctx.fillRect(px-9,py-4,18,17);ctx.fillStyle=playerAppearance.skin||'#e8b88c';ctx.fillRect(px-6,py-19,12,14);ctx.fillStyle=playerAppearance.hair||'#352d3d';ctx.fillRect(px-7,py-23,14,6);ctx.fillStyle='#e9efff';ctx.font='bold 11px Segoe UI';ctx.fillText('WASD · Space атака · E взаимодействие',width/2,height-20);ctx.textAlign='left';drawRemotePlayers(0,0);}
   function useBuffPotion(){const choices=[{name:'Настой силы',timer:'strengthPotionTimer',label:'урон +30%'},{name:'Зелье защиты',timer:'wardPotionTimer',label:'защита +20%'},{name:'Зелье скорости',timer:'speedPotionTimer',label:'скорость +25%'}];const pick=choices.find(v=>itemCount(v.name)>0);if(!pick){toast('Нет боевых настоев. Создай их на верстаке.');return;}changeItem(pick.name,-1);if(pick.timer==='strengthPotionTimer')strengthPotionTimer=30*(1+skillBonus('alchemist')*.08);else if(pick.timer==='wardPotionTimer')wardPotionTimer=30*(1+skillBonus('alchemist')*.08);else speedPotionTimer=30*(1+skillBonus('alchemist')*.08);playSound('craft');renderInventory();saveGame();toast(pick.name+' действует 30 секунд: '+pick.label+'.');}
   function findWorldEventPoint(minDistance=280,maxDistance=520){
     for(let attempt=0;attempt<36;attempt++){
@@ -1446,14 +1513,16 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
       wasNight=isNightTime();updateClockDisplay();return;
     }
-    const wasNightBefore=isNightTime();
+    const wasNightBefore=isNightTime()&&!forceNightStart;
     const previousMinute=gameMinuteTotal;
-    gameMinuteTotal+=dt;
+    gameMinuteTotal+=dt*Math.max(1,Math.min(4,Number(worldTimeMultiplier)||1));
     const elapsedGameMinutes=gameMinuteTotal-previousMinute;
+    const currentDay=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY),currentHour=Math.floor((gameMinuteTotal%GAME_MINUTES_PER_DAY)/60),previousHour=Math.floor((previousMinute%GAME_MINUTES_PER_DAY)/60);
+    if(!tradeWorldMode&&currentDay!==lastYetiSpawnDay&&currentHour!==lastYetiCheckedHour&&currentHour!==previousHour){lastYetiCheckedHour=currentHour;if(Math.random()<.15){lastYetiSpawnDay=currentDay;spawnMonster('yeti');toast('Снежный след! Йети появился в этом мире.');saveGame();}}
     hungerElapsedMinutes+=elapsedGameMinutes;
     while(hungerElapsedMinutes>=(isModInstalled('brutal_world')?7:isModInstalled('survivalist')?12:10)+skills.survivor*.7+communityModBonus('hunger')*.35){hungerElapsedMinutes-=(isModInstalled('brutal_world')?7:isModInstalled('survivalist')?12:10)+skills.survivor*.7+communityModBonus('hunger')*.35;hunger=Math.max(0,hunger-1);}
     if(hunger<=10&&!immortal){player.hp=Math.max(0,player.hp-dt*(hunger<=0?2.2:0.7)*(1-skills.survivor*.04)*(1-skillBonus('guardian')*.025));updateVitals();if(player.hp<=0)respawnPlayerAfterDefeat();}
-    if(!inHouse){sheepSpawnTimer+=elapsedGameMinutes;if(sheepSpawnTimer>=10){sheepSpawnTimer-=10;spawnOneSheep();}}
+    if(!inHouse&&!tradeWorldMode){sheepSpawnTimer+=elapsedGameMinutes;if(sheepSpawnTimer>=10){sheepSpawnTimer-=10;spawnOneSheep();}}
     const oldMinuteOfDay=((previousMinute%GAME_MINUTES_PER_DAY)+GAME_MINUTES_PER_DAY)%GAME_MINUTES_PER_DAY;
     const newMinuteOfDay=((gameMinuteTotal%GAME_MINUTES_PER_DAY)+GAME_MINUTES_PER_DAY)%GAME_MINUTES_PER_DAY;
     // Count only an actual clock crossing through dawn. Manual admin time jumps never pass through this path.
@@ -1471,7 +1540,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       for(let j=monsters.length-1;j>=0;j--) if(!monsters[j].adminSpawned) monsters.splice(j,1);
       monsterSpawnTimer=0;
     }
-    wasNight=nightNow;
+    wasNight=nightNow;forceNightStart=false;
     updateClockDisplay();
   }
   function drawDayNightOverlay(camX,camY){
@@ -1696,6 +1765,11 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     }
     const mapPointLocal=(x,y)=>({x:ox+(x/(COLS*TILE))*usableW,y:oy+(y/(ROWS*TILE))*usableH});
     let p;
+    if(tradeWorldMode){
+      for(const village of villageCenters){if(!exploredWorldPoint(village.x*TILE+16,village.y*TILE+16))continue;p=mapPointLocal(village.x*TILE+16,village.y*TILE+16);c.fillStyle='#f2c56f';c.beginPath();c.arc(p.x,p.y,3.4,0,Math.PI*2);c.fill();c.fillStyle='#18202a';c.beginPath();c.arc(p.x,p.y,1.5,0,Math.PI*2);c.fill();}
+      for(const shop of [SELL_SHOP,BUY_SHOP,FARMER_SHOP]){if(!exploredWorldPoint(shop.x*TILE+16,shop.y*TILE+16))continue;p=mapPointLocal(shop.x*TILE+16,shop.y*TILE+16);c.fillStyle='#8ce0bd';c.fillRect(p.x-2,p.y-2,4,4);}
+      p=mapPointLocal(player.x,player.y);c.fillStyle='#f4f7ff';c.beginPath();c.arc(p.x,p.y,3.2,0,Math.PI*2);c.fill();c.strokeStyle='#4f8cff';c.lineWidth=1.5;c.stroke();return;
+    }
     // Landmarks and monsters appear only after their surrounding tile has been explored.
     p=mapPointLocal(36*TILE,15*TILE);
     if(exploredWorldPoint(36*TILE,15*TILE)){c.fillStyle='#e5b97b';c.fillRect(p.x-2.4,p.y-2,4.8,4);c.fillStyle='#814b46';c.beginPath();c.moveTo(p.x-3.5,p.y-2);c.lineTo(p.x,p.y-5.5);c.lineTo(p.x+3.5,p.y-2);c.closePath();c.fill();}
@@ -1854,7 +1928,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
     if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
       coopGuestWolfAttackCooldown=Math.max(0,coopGuestWolfAttackCooldown-dt);
-      if(wolfBossActive&&wolfBossHp>0&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=112&&
+      if(wolfBossActive&&wolfBossHp>0&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=weaponRange()&&
          coopGuestWolfAttackCooldown<=0&&!immortal&&dodgeTimer<=0){
         const damage=Math.max(1,Math.round((12+difficultyConfig().rank*4)*(1-armorReduction())));
         player.hp=Math.max(0,player.hp-damage);coopGuestWolfAttackCooldown=1.5;
@@ -1864,15 +1938,14 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       return;
     }
     if(!wolfCompanionUnlocked&&!wolfBossDefeated&&!wolfBossKeyDropped&&inForest(player.x,player.y)&&!wolfBossActive){const den=wolfDenPosition();wolfBossActive=true;wolfBossHp=1000+difficultyConfig().rank*500;wolfBossX=den.x;wolfBossY=den.y;wolfBossAttackTimer=1.2;toast('Ты вошёл в Лес! В логове ждёт босс Оборотень. Победи его, чтобы приручить собаку.');saveGame();}
-    if(wolfBossActive){const dx=player.x-wolfBossX,dy=player.y-wolfBossY,dist=Math.hypot(dx,dy)||1;const wolfAttackRange=112;if(dist>wolfAttackRange-8){const step=(42+difficultyConfig().rank*4)*dt,nx=wolfBossX+dx/dist*step,ny=wolfBossY+dy/dist*step;if(!world.trees.some(t=>Math.hypot(t.x-nx,t.y-ny)<22)){wolfBossX=nx;wolfBossY=ny;}else{const sx=wolfBossX+Math.sign(dx)*step,sy=wolfBossY+Math.sign(dy)*step;if(!world.trees.some(t=>Math.hypot(t.x-sx,t.y-wolfBossY)<22))wolfBossX=sx;if(!world.trees.some(t=>Math.hypot(t.x-wolfBossX,t.y-sy)<22))wolfBossY=sy;}}wolfBossAttackTimer-=dt;if(wolfBossAttackTimer<=0){wolfBossAttackTimer=Math.max(.7,1.5-difficultyConfig().rank*.12);playWolfSound(Math.random()<.28?'howl':'growl');if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<48){wolfCompanionHp=Math.max(0,wolfCompanionHp-Math.round((12+difficultyConfig().rank*3)*(dogBehavior==='guard' ? 0.55 : 1)));if(wolfCompanionHp<=0)onWolfDogDeath();}else if(dist<wolfAttackRange&&!immortal&&dodgeTimer<=0){const damage=12+difficultyConfig().rank*4;player.hp=Math.max(0,player.hp-damage);updateVitals();toast('Оборотень ударил тебя: −'+damage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
+    if(wolfBossActive){const dx=player.x-wolfBossX,dy=player.y-wolfBossY,dist=Math.hypot(dx,dy)||1;const wolfAttackRange=weaponRange();if(dist>wolfAttackRange-8){const step=(42+difficultyConfig().rank*4)*dt,nx=wolfBossX+dx/dist*step,ny=wolfBossY+dy/dist*step;if(!world.trees.some(t=>Math.hypot(t.x-nx,t.y-ny)<22)){wolfBossX=nx;wolfBossY=ny;}else{const sx=wolfBossX+Math.sign(dx)*step,sy=wolfBossY+Math.sign(dy)*step;if(!world.trees.some(t=>Math.hypot(t.x-sx,t.y-wolfBossY)<22))wolfBossX=sx;if(!world.trees.some(t=>Math.hypot(t.x-wolfBossX,t.y-sy)<22))wolfBossY=sy;}}wolfBossAttackTimer-=dt;if(wolfBossAttackTimer<=0){wolfBossAttackTimer=Math.max(.7,1.5-difficultyConfig().rank*.12);playWolfSound(Math.random()<.28?'howl':'growl');if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<48){wolfCompanionHp=Math.max(0,wolfCompanionHp-Math.round((12+difficultyConfig().rank*3)*(dogBehavior==='guard' ? 0.55 : 1)));if(wolfCompanionHp<=0)onWolfDogDeath();}else if(dist<wolfAttackRange&&!immortal&&dodgeTimer<=0){const damage=12+difficultyConfig().rank*4;player.hp=Math.max(0,player.hp-damage);updateVitals();toast('Оборотень ударил тебя: −'+damage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
     if(wolfCompanionUnlocked&&wolfCompanionHp>0&&!inHouse&&!mineMode&&!caveMode&&!tradeWorldMode){wolfCompanionAttackTimer-=dt;if(wolfCompanionAttackTimer<=0){wolfCompanionAttackTimer=.85;const damage=Math.round((10+difficultyConfig().rank*5)*(dogBehavior==='hunt'?1.45:dogBehavior==='guard' ? 0.75 : 1)*(isModInstalled('beast_companions')?1.5:1)*(1+skillBonus('beastmaster')*.08));if(wolfBossActive&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<70){wolfBossHp-=damage;if(wolfBossHp<=0)defeatWolfBoss();}else{let target=null,bd=70;for(const mob of monsters){if(mob.exploding)continue;const d=Math.hypot(mob.x-wolfCompanionX(),mob.y-wolfCompanionY());if(d<bd){bd=d;target=mob;}}if(target){target.hp-=damage;if(target.hp<=0){const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);awardXP(12,'помощь собаки');}}}}
     }
   }
   function onWolfDogDeath(){if(wolfDogDeathHandled)return;wolfDogDeathHandled=true;wolfCompanionUnlocked=false;wolfCompanionHp=0;if(wolfCompanionRevivals<3){wolfCompanionRevivals++;wolfBossDefeated=false;wolfBossActive=true;wolfBossHp=1000+difficultyConfig().rank*500;const den=wolfDenPosition();wolfBossX=den.x;wolfBossY=den.y;toast('Собака погибла. Оборотень вернулся в лес — победи его снова ('+wolfCompanionRevivals+'/3 возрождений).');}else toast('Собака погибла окончательно: лимит возрождений босса исчерпан.');saveGame();}
   function defeatWolfBoss(){
     wolfBossActive=false;wolfBossDefeated=true;wolfBossKeyDropped=true;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;
-    if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner)spawnSharedLoot(wolfBossX,wolfBossY,[{name:'Ключ от клетки',count:1},{name:'Кристалл',count:2},{name:'Золото',count:50}],'surface');
-    else{changeItem('Ключ от клетки',1);walletCents+=5000;changeItem('Кристалл',2);renderInventory();}
+    changeItem('Ключ от клетки',1);if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner)spawnSharedLoot(wolfBossX,wolfBossY,[{name:'Кристалл',count:2},{name:'Золото',count:50}],'surface');else{walletCents+=5000;changeItem('Кристалл',2);}renderInventory();
     spawnVisualBurst(wolfBossX,wolfBossY,34,'spark','#b6d6ff');playWolfSound('howl');toast('ОБОРОТЕН ПОБЕЖДЁН! Награда появилась в общей добыче леса.');awardXP(180,'победа над Оборотнем');saveGame();
   }
   function updateMonsters(dt){
@@ -1892,7 +1965,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
         }
         const distance=Math.hypot(player.x-mob.x,player.y-mob.y),cooldown=coopGuestMobAttackCooldowns.get(mob.id)||0;
         if(cooldown>0){coopGuestMobAttackCooldowns.set(mob.id,Math.max(0,cooldown-dt));continue;}
-        if(distance<=34&&!immortal&&dodgeTimer<=0){
+        if(distance<=weaponRange()&&!immortal&&dodgeTimer<=0){
           const damage=Math.max(1,Math.round((mob.type==='brute'?7:mob.type==='skeleton'?6:mob.type==='ice'?7:mob.type==='scorpion'?6:5)*(mob.damageScale||difficultyConfig().monsterDamage)*(1-armorReduction())));
           player.hp=Math.max(0,player.hp-damage);coopGuestMobAttackCooldowns.set(mob.id,mob.type==='yeti'?.9:1);
           updateVitals();toast(monsterLabel(mob.type)+' атакует: −'+damage+' HP!');
@@ -1917,7 +1990,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
         if(mob.fuseStarted){mob.fuseTime-=dt;if(mob.fuseTime<=0){mob.exploding=true;mob.explosionTimer=.42;if(!immortal&&dodgeTimer<=0&&Math.hypot(player.x-mob.x,player.y-mob.y)<=116){const bombDamage=Math.round(30*difficultyConfig().monsterDamage);player.hp=Math.max(0,player.hp-bombDamage);updateVitals();toast('Взрыв бомбочки! −'+bombDamage+' здоровья.');if(player.hp<=0)respawnPlayerAfterDefeat();}else toast('Бомбочка взорвалась! Ты успел убежать.');dropMonsterLoot(mob);playSound('hit');}continue;}
         continue;
       }
-      const reduction=armorReduction();if(mob.type==='yeti'){mob.attackCooldown=Math.max(0,(mob.attackCooldown||0)-dt);if(currentDistance<=43&&!immortal&&mob.attackCooldown<=0&&dodgeTimer<=0){const damage=Math.max(1,Math.round(10*(mob.damageScale||difficultyConfig().monsterDamage)*(1-reduction)));player.hp=Math.max(0,player.hp-damage);mob.attackCooldown=.9;updateVitals();toast('Йети ударил тебя: −'+damage+' HP!');}}else if(currentDistance<=34&&!immortal){const damage=(mob.type==='brute'?7:mob.type==='skeleton'?6:mob.type==='ice'?7:mob.type==='scorpion'?6:5)*dt*(mob.damageScale||difficultyConfig().monsterDamage)*(bloodMoonActive?1.5:1)*(1-reduction)*(dodgeTimer>0?0:1);player.hp=Math.max(0,player.hp-damage);updateVitals();if(damageToastTimer<=0){toast(monsterLabel(mob.type)+' атакует!');damageToastTimer=1.6;}}
+      const reduction=armorReduction();if(mob.type==='yeti'){mob.attackCooldown=Math.max(0,(mob.attackCooldown||0)-dt);if(currentDistance<=weaponRange()&&!immortal&&mob.attackCooldown<=0&&dodgeTimer<=0){const damage=Math.max(1,Math.round(10*(mob.damageScale||difficultyConfig().monsterDamage)*(1-reduction)));player.hp=Math.max(0,player.hp-damage);mob.attackCooldown=.9;updateVitals();toast('Йети ударил тебя: −'+damage+' HP!');}}else if(currentDistance<=weaponRange()&&!immortal){const damage=(mob.type==='brute'?7:mob.type==='skeleton'?6:mob.type==='ice'?7:mob.type==='scorpion'?6:5)*dt*(mob.damageScale||difficultyConfig().monsterDamage)*(bloodMoonActive?1.5:1)*(1-reduction)*(dodgeTimer>0?0:1);player.hp=Math.max(0,player.hp-damage);updateVitals();if(damageToastTimer<=0){toast(monsterLabel(mob.type)+' атакует!');damageToastTimer=1.6;}}
       if(player.hp<=0&&immortal){player.hp=100;updateVitals();}
       if(player.hp<=0){respawnPlayerAfterDefeat();break;}
     }
@@ -1934,7 +2007,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     return false;
   }
   function drawSheep(camX,camY,time){for(const a of sheep){if(!a.alive)continue;const x=a.x-camX,y=a.y-camY;if(x<-35||x>width+35||y<-35||y>height+35)continue;const bob=Math.sin(time/280+a.phase)*1.2;ctx.save();ctx.translate(x,y+bob);ctx.fillStyle='#101c1c66';ctx.beginPath();ctx.ellipse(0,8,15,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e9e8df';for(const [cx,cy,r] of [[-8,-2,7],[0,-5,8],[8,-2,7],[-2,2,8],[7,3,6]]){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();}ctx.fillStyle='#7b574b';ctx.fillRect(8,-7,8,11);ctx.fillStyle='#211d24';ctx.fillRect(13,-4,2,2);ctx.fillStyle='#5e4a40';const leg=Math.sin(time/90+a.phase)*2;ctx.fillRect(-7,5+leg,3,6);ctx.fillRect(5,5-leg,3,6);ctx.restore();}}
-  function updateSheep(dt){if(inHouse)return;for(const a of sheep){if(!a.alive)continue;a.wander-=dt;if(a.wander<=0){a.dir=Math.random()*Math.PI*2;a.wander=1+Math.random()*4;}const nx=a.x+Math.cos(a.dir)*13*dt,ny=a.y+Math.sin(a.dir)*13*dt;if(!blocked(nx,a.y))a.x=nx;if(!blocked(a.x,ny))a.y=ny;}}
+  function updateSheep(dt){if(inHouse||tradeWorldMode)return;for(const a of sheep){if(!a.alive)continue;a.wander-=dt;if(a.wander<=0){a.dir=Math.random()*Math.PI*2;a.wander=1+Math.random()*4;}const playerCurrentSpeed=Math.hypot(player.vx,player.vy)||155;const sheepSpeed=a.fleeTimer>0?playerCurrentSpeed:13;if(a.fleeTimer>0)a.fleeTimer=Math.max(0,a.fleeTimer-dt);const nx=a.x+Math.cos(a.dir)*sheepSpeed*dt,ny=a.y+Math.sin(a.dir)*sheepSpeed*dt;if(!blocked(nx,a.y))a.x=nx;if(!blocked(a.x,ny))a.y=ny;}}
   function drawMonsters(camX,camY,time){
     for(const mob of monsters){
       const x=mob.x-camX,y=mob.y-camY;if(x<-45||x>width+45||y<-45||y>height+45)continue;
@@ -2082,7 +2155,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(caveMode&&!caveBossDefeated){const bossDistance=Math.hypot(player.x-caveBossX,player.y-caveBossY);if(bossDistance<Math.max(115,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч';const base=weaponDamage(weapon);const damage=Math.round(base*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1)*(Math.random()<.14?2:1));caveBossHp=Math.max(0,caveBossHp-damage);caveBossFlash=.18;spawnVisualBurst(caveBossX,caveBossY,12,'spark',weapon==='Огненный меч'?'#ff9a42':'#b6e7ff');toast('Страж получил '+damage+' урона ('+Math.ceil(caveBossHp)+'/'+bossMaxHp()+').');if(caveBossHp<=0)defeatCaveBoss();else saveGame();return;}toast('Подойди к Каменному стражу ближе.');return;}
     if(caveMode){toast(caveBossDefeated?'Сокровищница уже доступна. Подойди к сундуку и нажми E.':'Подойди к Каменному стражу ближе.');return;}
     let target=null,best=weaponRange();for(const mob of monsters){const d=Math.hypot(mob.x-player.x,mob.y-player.y);if(d<best){best=d;target=mob;}}
-    if(target){const weapon=equipment.weapon||'Деревянный меч',baseDamage=weaponDamage(weapon)*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1),critical=Math.random()<.14,swordDamage=Math.round(critical?baseDamage*2:baseDamage);target.hp-=swordDamage;target.flash=.2;spawnVisualBurst(target.x,target.y,critical?16:8,'spark',weapon==='Огненный меч'?'#ff8738':weapon==='Ледяной посох'?'#8be9ff':weapon==='Молниеносное копьё'?'#d8a4ff':critical?'#ffe16b':'#ff9aa9');if(critical)toast('КРИТИЧЕСКИЙ УДАР! ×2 урона!');if(target.hp<=0){const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);spawnVisualBurst(target.x,target.y,20,'spark',target.type==='skeleton'?'#e5e1d0':'#ff7b9b');dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);if(isModInstalled('bounty_hunter')){walletCents+=100+Math.floor(Math.random()*301);updateWalletHud();}awardXP(Math.round((target.type==='brute'?35:target.type==='skeleton'?28:target.type==='wisp'?24:target.type==='bomb'?20:target.type==='ice'?38:target.type==='scorpion'?32:18)*(isModInstalled('bounty_hunter')?1.2:1)),'победа над монстром');questStage=Math.max(questStage,4);toast(monsterLabel(target.type)+' побеждён! На земле осталась добыча.');}else toast('Удар на '+swordDamage+' урона! У монстра осталось '+target.hp+' здоровья.');drawMinimap();return;}
+    if(target){const weapon=equipment.weapon||'Деревянный меч',baseDamage=weaponDamage(weapon)*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1),critical=Math.random()<.14,swordDamage=Math.round(critical?baseDamage*2:baseDamage);target.hp-=swordDamage;target.flash=.2;if(target.type==='sheep'){target.fleeTimer=2.5;target.dir=Math.atan2(target.y-player.y,target.x-player.x);target.wander=2.5;}spawnVisualBurst(target.x,target.y,critical?16:8,'spark',weapon==='Огненный меч'?'#ff8738':weapon==='Ледяной посох'?'#8be9ff':weapon==='Молниеносное копьё'?'#d8a4ff':critical?'#ffe16b':'#ff9aa9');if(critical)toast('КРИТИЧЕСКИЙ УДАР! ×2 урона!');if(target.hp<=0){const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);spawnVisualBurst(target.x,target.y,20,'spark',target.type==='skeleton'?'#e5e1d0':'#ff7b9b');dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);if(isModInstalled('bounty_hunter')){walletCents+=100+Math.floor(Math.random()*301);updateWalletHud();}awardXP(Math.round((target.type==='brute'?35:target.type==='skeleton'?28:target.type==='wisp'?24:target.type==='bomb'?20:target.type==='ice'?38:target.type==='scorpion'?32:18)*(isModInstalled('bounty_hunter')?1.2:1)),'победа над монстром');questStage=Math.max(questStage,4);toast(monsterLabel(target.type)+' побеждён! На земле осталась добыча.');}else toast('Удар на '+swordDamage+' урона! У монстра осталось '+target.hp+' здоровья.');drawMinimap();return;}
     const selectedItem=inventoryItems.filter(entry=>entry.count>0)[selectedSlot-1];
     if(selectedItem&&selectedItem.name==='Топор'){
       let treeTarget=null;best=86;for(const tree of world.trees){const d=Math.hypot(tree.x-player.x,tree.y-player.y);if(d<best){best=d;treeTarget=tree;}}
@@ -2287,7 +2360,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function useHealingPotion(){const potion=inventoryItems.find(i=>i.name==='Малое зелье');if(!potion||potion.count<1){toast('Нет лечебных зелий.');return;}if(player.hp>=100){toast('Здоровье уже полное.');return;}const healing=35+(isModInstalled('herbalist')?15:0);potion.count--;player.hp=Math.min(100,player.hp+healing);playSound('craft');updateVitals();renderInventory();saveGame();toast('Зелье использовано: +'+healing+' здоровья.');}
   function eatMeat(){const meat=inventoryItems.find(i=>i.name==='Мясо'),fish=inventoryItems.find(i=>i.name==='Рыба'),food=meat&&meat.count>0?meat:fish&&fish.count>0?fish:null;if(!food){toast('Нет еды. Найди овцу или поймай рыбу на озере.');return;}food.count--;const restored=food.name==='Рыба'?12:10;hunger=Math.min(100,hunger+restored);questStage=Math.max(questStage,6);hungerElapsedMinutes=0;renderInventory();updateClockDisplay(true);saveGame();toast('Ты съел '+(food.name==='Рыба'?'рыбу':'мясо')+'. +'+restored+' голода.');}
   function updateSkipDayHud(){const t=document.getElementById('skip-day-timer'),b=document.getElementById('skip-day-button');if(!t||!b)return;const left=Math.max(0,Math.ceil(skipDayRealSeconds));t.textContent=left>0?`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'Готово';b.disabled=left>0||paused||inMainMenu;b.title=left>0?'Пропустить день можно после 5 минут реального времени':'Пропустить игровой день';}
-  function skipGameDay(){if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;survivedNights++;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;skipDayRealSeconds=300;updateClockDisplay(true);saveGame();toast('День пропущен. Он засчитан как прожитый.');}
+  function skipGameDay(){if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){toast('Пропуск дня доступен владельцу кооперативного мира.');return;}if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+NIGHT_MINUTE;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=false;forceNightStart=true;monsters.length=0;skipDayRealSeconds=300;updateWorldClock(.001);updateClockDisplay(true);saveGame();toast('День пропущен до 20:00. Ночь начнётся по обычным правилам.');}
   function houseFurnitureBlocked(x,y){const r=9,boxes=[[42,35,148,186],[153,91,190,143],[174,27,272,61],[286,72,379,98],[272,105,390,177],[296,201,380,279],[155,266,190,296],[203,249,241,278]];return boxes.some(([l,t,rr,b])=>x+r>l&&x-r<rr&&y+r>t&&y-r<b);}
   function houseInteractionNear(x,y,rect){return x>=rect[0]&&x<=rect[2]&&y>=rect[1]&&y<=rect[3];}
   function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>322||houseFurnitureBlocked(x,y);}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){const forest=villageCenters.find(v=>v.id==='forest');if(forest){const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270];for(let row=0;row<3;row++)for(let col=0;col<6;col++){const hx=forest.x*TILE+16+xOffsets[col]+(row===1?28:row===2?-24:0),hy=forest.y*TILE+16+rowY[row];if(x>hx-76&&x<hx+76&&y>hy-12*TILE-54&&y<hy-12*TILE+84)return true;}}for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
@@ -2382,7 +2455,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function openSignDialog(){
     signDialogOpen = true;
     keys.clear();
-    movementDirections.clear();
+    movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();
     discovered = true;
     questStage=Math.max(questStage,1);
     saveGame();
@@ -2411,7 +2484,108 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function renderShop(){const title=document.getElementById('shop-title'),eyebrow=document.getElementById('shop-eyebrow'),list=document.getElementById('shop-items'),balance=document.getElementById('shop-balance'),prices=difficultyConfig().shop;balance.textContent=formatMoney(walletCents);updateWalletHud();if(activeShop.startsWith('npc:')){const id=activeShop.slice(4),npc=villageNpcs.find(v=>v.id===id),goods=NPC_SHOPS[id]||[],sellGoods={...(NPC_SELL_PRICES[id]||{}),...(id==='farmer'?Object.fromEntries(FARM_CROPS.map(c=>[c.product,farmCropSellPrice(c.product)])):{})};title.textContent=(npc?NPC_NAMES[id]:'Торговец')+' · лавка';eyebrow.textContent='SKYREALM · ТОРГОВЛЯ · РЕПУТАЦИЯ '+villageReputation;const buyRows=goods.map(it=>{const basePrice=id==='farmer'?(farmCropBuyPrice(it.name)||it.price):it.price;const price=Math.max(1,Math.round(basePrice*(id==='farmer'?farmEconomy().buy:1)*Math.max(.65,1-villageReputation*.02)*(isModInstalled('trade_caravans')?.9:1)));return '<div class="shop-row"><div class="shop-icon">'+it.icon+'</div><div class="shop-row-main"><b>'+it.name+'</b><small>Цена: '+formatMoney(price)+'</small><span>В инвентаре: '+itemCount(it.name)+(WEAPON_BASE_DAMAGE[it.name]?' · Урон: '+weaponDamage(it.name):'')+'</span></div><button class="action shop-action" data-npc-buy="'+it.name+'">Купить</button></div>';}).join('');const sellRows=Object.entries(sellGoods).map(([name,unit])=>'<div class="shop-row"><div class="shop-icon">📦</div><div class="shop-row-main"><b>'+name+'</b><small>Цена за штуку: '+formatMoney(Math.round(unit*(1+Math.min(.25,villageReputation*.005))))+'</small><span>В инвентаре: '+itemCount(name)+'</span></div><button class="action shop-action" data-npc-sell="'+name+'" '+(itemCount(name)<=0?'disabled':'')+'>Продать всё</button></div>').join('');list.innerHTML='<h3 class="shop-section-title">Покупка</h3>'+buyRows+'<h3 class="shop-section-title">Продажа</h3>'+sellRows;list.querySelectorAll('[data-npc-buy]').forEach(b=>b.addEventListener('click',()=>buyNpcItem(id,b.dataset.npcBuy)));list.querySelectorAll('[data-npc-sell]').forEach(b=>b.addEventListener('click',()=>sellNpcItem(id,b.dataset.npcSell)));return;}if(activeShop==='sell'){title.textContent='Лавка лесника';eyebrow.textContent='SKYREALM · ПРОДАЖА РЕСУРСОВ · '+difficultyConfig().name.toUpperCase();list.innerHTML=[{name:'Древесина',icon:'🪵',price:prices.sell.wood,unit:'5 шт. = '+formatMoney(prices.sell.wood)+' золотых'},{name:'Листья',icon:'🍃',price:prices.sell.leaves,unit:'1 шт. = '+formatMoney(prices.sell.leaves)+' золотого'},{name:'Мясо',icon:'🍖',price:prices.sell.meat,unit:'1 шт. = '+formatMoney(prices.sell.meat)+' золотого'}].map(it=>'<div class="shop-row"><div class="shop-icon">'+it.icon+'</div><div class="shop-row-main"><b>'+it.name+'</b><small>'+it.unit+'</small><span>В инвентаре: '+itemCount(it.name)+'</span></div><button class="action shop-action" data-sell="'+it.name+'">Продать</button></div>').join('');}else{title.textContent='Лавка рудокопа';eyebrow.textContent='SKYREALM · ПОКУПКА РУДЫ · '+difficultyConfig().name.toUpperCase();list.innerHTML=[{name:'Камень',icon:'🪨',price:prices.buy.Камень},{name:'Уголь',icon:'⚫',price:prices.buy.Уголь},{name:'Железо',icon:'⛓️',price:prices.buy.Железо}].map(it=>'<div class="shop-row"><div class="shop-icon">'+it.icon+'</div><div class="shop-row-main"><b>'+it.name+'</b><small>Цена за 1 шт.: '+formatMoney(it.price)+'</small><span>В инвентаре: '+itemCount(it.name)+'</span></div><button class="action shop-action" data-buy="'+it.name+'">Купить</button></div>').join('');}list.querySelectorAll('[data-sell]').forEach(b=>b.addEventListener('click',()=>sellResource(b.dataset.sell)));list.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>buyOre(b.dataset.buy)));}  function sellResource(name){const prices=difficultyConfig().shop.sell;let count=0,cents=0;if(name==='Древесина'){count=Math.floor(itemCount(name)/5)*5;cents=(count/5)*prices.wood;}else if(name==='Листья'){count=itemCount(name);cents=count*prices.leaves;}else if(name==='Мясо'){count=itemCount(name);cents=count*prices.meat;}if(count<=0){toast(name==='Древесина'?'Для продажи древесины нужно минимум 5 штук.':'У тебя нет этого ресурса для продажи.');return;}changeItem(name,-count);walletCents+=cents;playSound('coin');renderInventory();updateWalletHud();renderShop();saveGame();toast(`Продано: ${count} · получено ${formatMoney(cents)}. Баланс: ${formatMoney(walletCents)}.`);}
   function buyOre(name){const price=difficultyConfig().shop.buy[name];if(!Number.isFinite(price)){toast('Этот товар недоступен.');return;}if(walletCents<price){toast('Недостаточно денег. Нужно '+formatMoney(price)+'.');return;}walletCents-=price;changeItem(name,1);playSound('coin');renderInventory();updateWalletHud();renderShop();saveGame();toast('Куплено: '+name+'. Баланс: '+formatMoney(walletCents)+'.');}
   let worldTransitioning=false;
-  function transitionTradeWorld(){if(worldTransitioning)return;worldTransitioning=true;const fade=document.getElementById('world-fade');const wasPaused=paused;paused=true;keys.clear();fade.classList.add('active');playSound('portal');window.setTimeout(()=>{tradeWorldMode=!tradeWorldMode;inHouse=false;mineMode=false;player.x=tradeEntranceX*TILE+16;player.y=tradeEntranceY*TILE+16;player.vx=player.vy=0;markExploredAroundPlayer();const loc=document.getElementById('location-name');if(loc)loc.textContent=tradeWorldMode?'Мир торговли':'Лесная долина';saveGame();drawMinimap();toast(tradeWorldMode?'Ты в Мире торговли! У входа — две лавки, рядом — торговец и фермер Мира. T открывает магазин, E — задание.':'Ты вернулся в Лесную долину.');window.setTimeout(()=>{fade.classList.remove('active');paused=wasPaused;worldTransitioning=false;},280);},280);}
+  function encodeExploredCells(set){
+    const bytes=new Uint8Array(Math.ceil(COLS*ROWS/8));
+    for(const key of set||[]){const comma=String(key).indexOf(',');if(comma<0)continue;const x=Number(String(key).slice(0,comma)),y=Number(String(key).slice(comma+1));if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x>=COLS||y>=ROWS)continue;const index=y*COLS+x;bytes[index>>3]|=1<<(index&7);}
+    let binary='';for(let offset=0;offset<bytes.length;offset+=0x8000)binary+=String.fromCharCode(...bytes.subarray(offset,Math.min(bytes.length,offset+0x8000)));
+    return 'v1|'+COLS+'|'+ROWS+'|'+btoa(binary);
+  }
+  function decodeExploredCells(value){
+    if(Array.isArray(value))return new Set(value.filter(k=>typeof k==='string'&&/^\\d+,\\d+$/.test(k)));
+    const match=typeof value==='string'?value.match(/^v1\\|(\\d+)\\|(\\d+)\\|([A-Za-z0-9+/=]*)$/):null;
+    if(!match)return new Set();
+    const savedCols=Math.max(1,Math.min(2000,Number(match[1])||COLS)),savedRows=Math.max(1,Math.min(2000,Number(match[2])||ROWS));
+    try{const binary=atob(match[3]),out=new Set();for(let i=0;i<binary.length;i++){const byte=binary.charCodeAt(i);if(!byte)continue;for(let bit=0;bit<8;bit++){if(!(byte&(1<<bit)))continue;const index=i*8+bit,x=index%savedCols,y=Math.floor(index/savedCols);if(x<COLS&&y<ROWS&&y<savedRows)out.add(tileKey(x,y));}}return out;}catch(_){return new Set();}
+  }
+  function cloneWorldLayerValue(value,fallback=null){try{return JSON.parse(JSON.stringify(value));}catch(_){return fallback;}}
+  function captureWorldLayerState(){
+    return cloneWorldLayerValue({
+      monsters,sheep,treasureChests,lootDrops,placedStructures,farmCrops,
+      exploredCells:encodeExploredCells(exploredCells),clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,
+      gameMinuteTotal,survivedNights,worldTimeMultiplier,lastYetiSpawnDay,skipDayRealSeconds,worldEarlyMonsters,
+      lastDawnMarker,wasNight,weatherMode,weatherTimer,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,
+      worldEventCamp,worldEventTraveler,meteorPoint,meteorShowerTimer,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay,
+      biomeBosses,caveBossDefeated,caveBossHp,caveBossX,caveBossY,caveBossAttackTimer,caveChestOpened,
+      wolfBossActive,wolfBossHp,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossFlash,wolfBossAttackTimer,wolfBossX,wolfBossY,wolfBossDefeated,
+      wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionAttackTimer,wolfCompanionRevivals,wolfDogDeathHandled,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,
+      dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonEnemyAttackTimer,dungeonChestOpened,dungeonTrapCooldown,dungeonEnemyX,dungeonEnemyY,dungeonRoomMobs,
+      villageNpcs,villageCenters,npcQuestState,villageQuestStage,blacksmithQuestStage,explorerQuestStage,villageReputation,villageRaidActive,villageRaidKills,villageRaidTimer,lastVillageRaidDay,
+      sheepSpawned,sheepSpawnTimer
+    });
+  }
+  function applyWorldLayerState(state){
+    if(!state||typeof state!=='object')return false;
+    const copy=(value,fallback)=>cloneWorldLayerValue(value,fallback);
+    const replace=(target,value)=>{if(Array.isArray(target))target.splice(0,target.length,...(Array.isArray(value)?copy(value,[]):[]));};
+    replace(monsters,state.monsters);replace(sheep,state.sheep);replace(treasureChests,state.treasureChests);replace(lootDrops,state.lootDrops);
+    replace(placedStructures,state.placedStructures);replace(farmCrops,state.farmCrops);
+    exploredCells=decodeExploredCells(state.exploredCells);
+    clearedSnowTiles=new Set(Array.isArray(state.clearedSnowTiles)?state.clearedSnowTiles.filter(v=>typeof v==='string'&&/^\\d+,\\d+$/.test(v)):[]);
+    snowShovelHits=copy(state.snowShovelHits,{});
+    gameMinuteTotal=Number.isFinite(state.gameMinuteTotal)?Math.max(0,state.gameMinuteTotal):8*60;
+    survivedNights=Number.isInteger(state.survivedNights)?Math.max(0,state.survivedNights):0;
+    worldTimeMultiplier=[1,2,3,4].includes(Number(state.worldTimeMultiplier))?Number(state.worldTimeMultiplier):1;
+    lastYetiSpawnDay=Number.isInteger(state.lastYetiSpawnDay)?state.lastYetiSpawnDay:-1;lastYetiCheckedHour=-1;forceNightStart=false;
+    skipDayRealSeconds=Number.isFinite(state.skipDayRealSeconds)?Math.max(0,Math.min(300,state.skipDayRealSeconds)):300;
+    worldEarlyMonsters=state.worldEarlyMonsters===true;lastDawnMarker=Number.isInteger(state.lastDawnMarker)?state.lastDawnMarker:Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
+    wasNight=state.wasNight===true;weatherMode=['clear','rain','snow','storm'].includes(state.weatherMode)?state.weatherMode:'clear';weatherTimer=Math.max(0,Number(state.weatherTimer)||75);
+    bloodMoonActive=state.bloodMoonActive===true;bloodMoonRewardPending=state.bloodMoonRewardPending===true;lastBloodMoonNight=Number.isInteger(state.lastBloodMoonNight)?state.lastBloodMoonNight:-1;
+    worldEventCamp=copy(state.worldEventCamp,null);worldEventTraveler=copy(state.worldEventTraveler,null);meteorPoint=copy(state.meteorPoint,null);meteorShowerTimer=Math.max(0,Number(state.meteorShowerTimer)||0);
+    lastWorldMeteorNight=Number.isInteger(state.lastWorldMeteorNight)?state.lastWorldMeteorNight:-1;lastWorldHordeNight=Number.isInteger(state.lastWorldHordeNight)?state.lastWorldHordeNight:-1;lastWorldCampDay=Number.isInteger(state.lastWorldCampDay)?state.lastWorldCampDay:-1;lastWorldTravelerDay=Number.isInteger(state.lastWorldTravelerDay)?state.lastWorldTravelerDay:-2;
+    biomeBosses=normalizeBiomeBossState(state.biomeBosses);caveBossDefeated=state.caveBossDefeated===true;caveBossHp=Math.max(0,Number(state.caveBossHp)||bossMaxHp());caveBossX=Number(state.caveBossX)||0;caveBossY=Number(state.caveBossY)||0;caveBossAttackTimer=Math.max(.1,Number(state.caveBossAttackTimer)||2.5);caveChestOpened=state.caveChestOpened===true;
+    wolfBossActive=state.wolfBossActive===true;wolfBossHp=Math.max(0,Number(state.wolfBossHp)||0);wolfBossKeyDropped=state.wolfBossKeyDropped===true;wolfCageOpen=state.wolfCageOpen===true;wolfDogCaged=state.wolfDogCaged!==false;wolfBossFlash=0;wolfBossAttackTimer=Math.max(.1,Number(state.wolfBossAttackTimer)||1.2);wolfBossX=Number(state.wolfBossX)||0;wolfBossY=Number(state.wolfBossY)||0;wolfBossDefeated=state.wolfBossDefeated===true;
+    wolfCompanionUnlocked=state.wolfCompanionUnlocked===true;wolfCompanionHp=Math.max(0,Number(state.wolfCompanionHp)||300);wolfCompanionAttackTimer=Math.max(.1,Number(state.wolfCompanionAttackTimer)||.5);wolfCompanionRevivals=Math.max(0,Number(state.wolfCompanionRevivals)||0);wolfDogDeathHandled=state.wolfDogDeathHandled===true;wolfCompanionOffsetX=Number(state.wolfCompanionOffsetX)||20;wolfCompanionOffsetY=Number(state.wolfCompanionOffsetY)||24;dogBehavior=['follow','guard','stay'].includes(state.dogBehavior)?state.dogBehavior:'follow';
+    dungeonRoom=Math.max(1,Math.min(5,Number(state.dungeonRoom)||1));dungeonClearedRooms=Array.isArray(state.dungeonClearedRooms)?state.dungeonClearedRooms.filter(n=>Number.isInteger(n)&&n>=1&&n<=5):[];dungeonEnemyHp=Math.max(0,Number(state.dungeonEnemyHp)||0);dungeonEnemyAttackTimer=Math.max(.1,Number(state.dungeonEnemyAttackTimer)||1.35);dungeonChestOpened=state.dungeonChestOpened===true;dungeonTrapCooldown=Math.max(0,Number(state.dungeonTrapCooldown)||0);dungeonEnemyX=Number(state.dungeonEnemyX)||0;dungeonEnemyY=Number(state.dungeonEnemyY)||0;dungeonRoomMobs=Array.isArray(state.dungeonRoomMobs)?copy(state.dungeonRoomMobs,[]):[];
+    villageNpcs=Array.isArray(state.villageNpcs)?copy(state.villageNpcs,[]):[];villageCenters=Array.isArray(state.villageCenters)?copy(state.villageCenters,[]):[];villageQuestStage=Math.max(0,Number(state.villageQuestStage)||0);blacksmithQuestStage=Math.max(0,Number(state.blacksmithQuestStage)||0);explorerQuestStage=Math.max(0,Number(state.explorerQuestStage)||0);npcQuestState=state.npcQuestState&&typeof state.npcQuestState==='object'?copy(state.npcQuestState,{}):{};villageReputation=Math.max(0,Number(state.villageReputation)||0);villageRaidActive=state.villageRaidActive===true;villageRaidKills=Math.max(0,Number(state.villageRaidKills)||0);villageRaidTimer=Math.max(0,Number(state.villageRaidTimer)||0);lastVillageRaidDay=Number.isInteger(state.lastVillageRaidDay)?state.lastVillageRaidDay:-1;
+    sheepSpawned=state.sheepSpawned===true;sheepSpawnTimer=Math.max(0,Number(state.sheepSpawnTimer)||0);
+    return true;
+  }
+  function createInitialTradeWorldLayer(){
+    if(!villageNpcs.length)setupVillageNpcs();
+    const layer=captureWorldLayerState();
+    layer.monsters=[];layer.sheep=[];layer.treasureChests=[];layer.lootDrops=[];layer.placedStructures=[];layer.farmCrops=[];
+    layer.exploredCells=[];layer.clearedSnowTiles=[];layer.snowShovelHits={};
+    layer.gameMinuteTotal=8*60;layer.survivedNights=0;layer.worldTimeMultiplier=1;layer.lastYetiSpawnDay=-1;layer.skipDayRealSeconds=300;
+    layer.lastDawnMarker=Math.floor((layer.gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);layer.wasNight=false;layer.weatherMode='clear';layer.weatherTimer=75;
+    layer.bloodMoonActive=false;layer.bloodMoonRewardPending=false;layer.lastBloodMoonNight=-1;
+    layer.worldEventCamp=null;layer.worldEventTraveler=null;layer.meteorPoint=null;layer.meteorShowerTimer=0;
+    layer.lastWorldMeteorNight=-1;layer.lastWorldHordeNight=-1;layer.lastWorldCampDay=-1;layer.lastWorldTravelerDay=-2;
+    layer.biomeBosses=makeBiomeBossState();layer.caveBossDefeated=false;layer.caveBossHp=bossMaxHp();layer.caveBossX=0;layer.caveBossY=0;layer.caveChestOpened=false;
+    layer.wolfBossActive=false;layer.wolfBossHp=0;layer.wolfBossKeyDropped=false;layer.wolfCageOpen=false;layer.wolfDogCaged=true;layer.wolfBossDefeated=false;
+    layer.wolfCompanionUnlocked=false;layer.wolfCompanionHp=300;layer.wolfCompanionRevivals=0;layer.wolfDogDeathHandled=false;layer.dogBehavior='follow';
+    layer.dungeonRoom=1;layer.dungeonClearedRooms=[];layer.dungeonEnemyHp=0;layer.dungeonRoomMobs=[];
+    layer.npcQuestState={};layer.villageQuestStage=0;layer.blacksmithQuestStage=0;layer.explorerQuestStage=0;layer.villageReputation=0;layer.villageRaidActive=false;layer.villageRaidKills=0;layer.villageRaidTimer=0;layer.lastVillageRaidDay=-1;
+    return layer;
+  }
+  function transitionTradeWorld(){
+    if(worldTransitioning)return;
+    worldTransitioning=true;const fade=document.getElementById('world-fade'),wasPaused=paused;
+    paused=true;keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();fade.classList.add('active');playSound('portal');
+    window.setTimeout(()=>{
+      const entering=!tradeWorldMode,portal={x:tradeEntranceX*TILE+16,y:tradeEntranceY*TILE+16};
+      inHouse=false;mineMode=false;caveMode=false;dungeonMode=false;
+      if(entering){
+        surfaceWorldLayer=captureWorldLayerState();surfacePlayerPosition={x:player.x,y:player.y};
+        surfaceWorldLayer.villageNpcs=[];surfaceWorldLayer.villageCenters=[];
+        if(!tradeWorldLayer)tradeWorldLayer=createInitialTradeWorldLayer();
+        if(!tradeWorldLayer.villageNpcs?.length&&!villageNpcs.length){setupVillageNpcs();tradeWorldLayer.villageNpcs=cloneWorldLayerValue(villageNpcs,[]);tradeWorldLayer.villageCenters=cloneWorldLayerValue(villageCenters,[]);}
+        applyWorldLayerState(tradeWorldLayer);tradeWorldMode=true;
+        player.x=Number.isFinite(tradePlayerPosition?.x)?tradePlayerPosition.x:portal.x;
+        player.y=Number.isFinite(tradePlayerPosition?.y)?tradePlayerPosition.y:portal.y;
+      }else{
+        tradeWorldLayer=captureWorldLayerState();tradePlayerPosition={x:player.x,y:player.y};
+        if(surfaceWorldLayer)applyWorldLayerState(surfaceWorldLayer);
+        tradeWorldMode=false;
+        player.x=Number.isFinite(surfacePlayerPosition?.x)?surfacePlayerPosition.x:portal.x;
+        player.y=Number.isFinite(surfacePlayerPosition?.y)?surfacePlayerPosition.y:portal.y;
+      }
+      player.vx=player.vy=0;markExploredAroundPlayer();
+      const loc=document.getElementById('location-name');if(loc)loc.textContent=tradeWorldMode?'Мир торговли':'Лесная долина';
+      saveGame();drawMinimap();
+      toast(tradeWorldMode?'Ты вошёл в отдельный Мир торговли. Деревни, NPC, время и добыча сохраняются отдельно.':'Ты вернулся в свой мир. Позиция и состояние мира восстановлены.');
+      window.setTimeout(()=>{fade.classList.remove('active');paused=wasPaused;worldTransitioning=false;},280);
+    },280);
+  }
   function fishingShoreRatio(){
     if(tradeWorldMode||mineMode||caveMode||dungeonMode||inHouse)return Infinity;
     const dx=(player.x/TILE-52)/6.5,dy=(player.y/TILE-36)/4.3;
@@ -2497,50 +2671,70 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     const chest=treasureChests.find(c=>Math.hypot(player.x-c.x,player.y-c.y)<100);if(chest){if(chest.opened)toast('Этот сундук уже открыт.');else openTreasureChest(chest);return;}
     const s=world.signs[0];if(Math.hypot(s.x-player.x,s.y-player.y)<118){openSignDialog();questStage=Math.max(questStage,1);}else toast('Подойди к дорожному знаку или двери дома.');
   }
+  function ensureQuickbarAssignments(){
+    const owned=inventoryItems.filter(item=>item.count>0);
+    if(!Array.isArray(quickbarItemNames))quickbarItemNames=[];
+    if(!quickbarItemNames.length)quickbarItemNames=owned.slice(0,10).map(item=>item.name);
+    quickbarItemNames=quickbarItemNames.slice(0,10);
+    return owned;
+  }
+  function assignInventoryItemToQuickbar(item){
+    if(!item||item.count<=0)return;
+    const existing=quickbarItemNames.indexOf(item.name);
+    if(existing>=0){selectSlot(existing+1);return;}
+    quickbarItemNames[selectedSlot-1]=item.name;
+    renderInventory();saveGame();
+    toast(item.name+' добавлен в ячейку быстрого доступа '+selectedSlot+'.');
+  }
   function renderInventory(){
-    const slots = document.getElementById('inventory-slots');
-    if (slots) {
-      slots.innerHTML = '';
-      inventoryItems.filter(item=>item.count>0).forEach((item, index) => {
-        const number = index + 1;
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'inventory-slot' + (number === selectedSlot ? ' selected' : '');
-        button.dataset.slot = String(number);
-        button.title = item.name + (item.count ? ' × ' + item.count : ' · нет в инвентаре');
-        button.setAttribute('aria-label', button.title);
-        button.setAttribute('aria-pressed', number === selectedSlot ? 'true' : 'false');
-        button.innerHTML = '<span class="slot-number">' + number + '</span><span class="slot-icon">' + item.icon + '</span><span class="slot-count">' + (item.count > 0 ? item.count : '') + '</span>';
-        button.addEventListener('click', () => selectSlot(number));
-        slots.appendChild(button);
-      });
+    const owned=ensureQuickbarAssignments();
+    const slots=document.getElementById('inventory-slots');
+    if(slots){
+      slots.innerHTML='';
+      for(let index=0;index<10;index++){
+        const item=inventoryItems.find(entry=>entry.name===quickbarItemNames[index]&&entry.count>0);
+        const number=index+1,button=document.createElement('button');
+        button.type='button';button.className='inventory-slot'+(number===selectedSlot?' selected':'');
+        button.dataset.slot=String(number);
+        button.title=item?item.name+' × '+item.count:'Пустая ячейка '+number;
+        button.setAttribute('aria-label',button.title);
+        button.setAttribute('aria-pressed',number===selectedSlot?'true':'false');
+        button.innerHTML='<span class="slot-number">'+(number===10?'0':number)+'</span><span class="slot-icon">'+(item?item.icon:'＋')+'</span><span class="slot-count">'+(item?item.count:'')+'</span>';
+        button.addEventListener('click',()=>selectSlot(number));slots.appendChild(button);
+      }
     }
-    const grid = document.getElementById('inventory-grid');
-    if (grid) {
-      grid.innerHTML = '';
-      inventoryItems.filter(item=>item.count>0).forEach((item, index) => {
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.className = 'inventory-card' + (index + 1 === selectedSlot ? ' selected' : '');
-        card.innerHTML = '<span class="inventory-card-icon">' + item.icon + '</span><span class="inventory-card-name">' + item.name + '</span><span class="inventory-card-count">Количество: ' + item.count + '</span><span class="inventory-card-description">' + item.description + '</span>';
-        card.addEventListener('click', () => selectSlot(index + 1, false));
-        grid.appendChild(card);
+    const grid=document.getElementById('inventory-grid');
+    if(grid){
+      grid.innerHTML='';
+      const pageSize=20,pageCount=Math.max(1,Math.ceil(owned.length/pageSize));
+      inventoryPage=Math.max(0,Math.min(pageCount-1,inventoryPage));
+      const pageItems=owned.slice(inventoryPage*pageSize,(inventoryPage+1)*pageSize);
+      pageItems.forEach(item=>{
+        const quickbarIndex=quickbarItemNames.indexOf(item.name);
+        const card=document.createElement('button');card.type='button';
+        card.className='inventory-card'+(quickbarIndex===selectedSlot-1?' selected':'');
+        card.title=quickbarIndex>=0?'В быстром доступе · ячейка '+(quickbarIndex+1):'Нажми, чтобы поместить в выбранную ячейку быстрого доступа';
+        card.innerHTML='<span class="inventory-card-icon">'+item.icon+'</span><span class="inventory-card-name">'+item.name+'</span><span class="inventory-card-count">Количество: '+item.count+'</span><span class="inventory-card-description">'+item.description+'</span>';
+        card.addEventListener('click',()=>assignInventoryItemToQuickbar(item));grid.appendChild(card);
       });
-      const used=inventoryItems.filter(item=>item.count>0).length;for(let empty=used;empty<20;empty++){const slot=document.createElement('div');slot.className='inventory-card inventory-empty-slot';slot.innerHTML='<span class="inventory-card-icon">＋</span><span class="inventory-card-name">Пустой слот</span><span class="inventory-card-count">'+(empty+1)+'/20</span><span class="inventory-card-description">Место для будущего предмета</span>';grid.appendChild(slot);}
+      for(let empty=pageItems.length;empty<pageSize;empty++){
+        const slot=document.createElement('div');slot.className='inventory-card inventory-empty-slot';
+        slot.innerHTML='<span class="inventory-card-icon">＋</span><span class="inventory-card-name">Пустой слот</span><span class="inventory-card-count">'+(empty+1)+'/20</span><span class="inventory-card-description">Свободное место в этой странице инвентаря</span>';grid.appendChild(slot);
+      }
+      const pager=document.getElementById('inventory-page-label');
+      const prev=document.getElementById('inventory-page-prev'),next=document.getElementById('inventory-page-next');
+      if(pager)pager.textContent='Страница '+(inventoryPage+1)+' из '+pageCount+' · '+owned.length+' предметов';
+      if(prev){prev.disabled=inventoryPage<=0;prev.onclick=()=>{inventoryPage=Math.max(0,inventoryPage-1);renderInventory();};}
+      if(next){next.disabled=inventoryPage>=pageCount-1;next.onclick=()=>{inventoryPage=Math.min(pageCount-1,inventoryPage+1);renderInventory();};}
     }
-    const selected = inventoryItems.filter(item=>item.count>0)[selectedSlot - 1];
-    const status = document.getElementById('inventory-selected-note');
-    if (status && selected) status.textContent = 'Выбрано: ' + selected.name + (selected.count ? ' · ' + selected.count + ' шт.' : ' · пока нет в инвентаре');
+    const selected=inventoryItems.find(item=>item.name===quickbarItemNames[selectedSlot-1]&&item.count>0);
+    const status=document.getElementById('inventory-selected-note');
+    if(status)status.textContent=selected?'Ячейка '+selectedSlot+': '+selected.name+' · '+selected.count+' шт.':'Ячейка '+selectedSlot+' пуста. Выбери предмет ниже, чтобы назначить его.';
   }
   function selectSlot(number, notify = true){
-    const visibleItems=inventoryItems.filter(entry=>entry.count>0);
-    if (number < 1 || number > visibleItems.length) return;
-    selectedSlot = number;
-    renderInventory();
-    if (notify) {
-      const item = inventoryItems.filter(entry=>entry.count>0)[number - 1];
-      if(item)toast('Выбрано: ' + item.name + (item.count > 1 ? ' × ' + item.count : ''));
-    }
+    if(!Number.isInteger(number)||number<1||number>10)return;
+    selectedSlot=number;renderInventory();
+    if(notify){const item=selectedInventoryItem();if(item)toast('Выбрано: '+item.name+(item.count>1?' × '+item.count:''));}
     saveGame();
   }
   function openTutorial(){const el=document.getElementById('tutorial-shade');if(!el)return;paused=true;keys.clear();renderTutorialStep();el.hidden=false;el.setAttribute('aria-hidden','false');}
@@ -2586,8 +2780,8 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     const byCode = {
       KeyW:'w', KeyA:'a', KeyS:'s', KeyD:'d', KeyE:'e', KeyI:'i', KeyL:'l', KeyK:'k',
       ArrowUp:'arrowup', ArrowDown:'arrowdown', ArrowLeft:'arrowleft', ArrowRight:'arrowright',
-      Digit1:'1', Digit2:'2', Digit3:'3', Digit4:'4',
-      Numpad1:'1', Numpad2:'2', Numpad3:'3', Numpad4:'4',
+      Digit1:'1', Digit2:'2', Digit3:'3', Digit4:'4', Digit5:'5', Digit6:'6', Digit7:'7', Digit8:'8', Digit9:'9', Digit0:'0',
+      Numpad1:'1', Numpad2:'2', Numpad3:'3', Numpad4:'4', Numpad5:'5', Numpad6:'6', Numpad7:'7', Numpad8:'8', Numpad9:'9', Numpad0:'0',
       Escape:'escape', Space:' '
     };
     if (byCode[e.code]) return byCode[e.code];
@@ -3133,7 +3327,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     if (!paused && !coopRoomPaused && !signDialogOpen && !inventoryDialogOpen && !fullMapOpen && !workbenchDialogOpen) {
       updateMagic(dt);playerAttackCooldown=Math.max(0,playerAttackCooldown-dt);combatAbilityCooldown=Math.max(0,combatAbilityCooldown-dt);dodgeCooldown=Math.max(0,dodgeCooldown-dt);dodgeTimer=Math.max(0,dodgeTimer-dt);
       if(sleeping){sleepSeconds+=dt;if(sleepSeconds>=5){sleeping=false;questStage=Math.max(questStage,4);const oldMinute=minuteOfDay(),oldDay=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(oldMinute<DAWN_MINUTE?oldDay:oldDay+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;if(oldMinute>=18*60&&oldMinute<NIGHT_MINUTE)survivedNights++;refreshMineDailyStock();lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;player.hp=100;updateVitals();updateClockDisplay(true);toast('Ты проспал 5 секунд. Наступил рассвет!');saveGame();}}
-      updateWorldClock(dt);updateVillageNpcs(dt);updateVillageRaid(dt);strengthPotionTimer=Math.max(0,strengthPotionTimer-dt);wardPotionTimer=Math.max(0,wardPotionTimer-dt);speedPotionTimer=Math.max(0,speedPotionTimer-dt);updateWorldEvents(dt);updateFishing(dt);updateBiomeBosses(dt);
+      updateWorldClock(dt);updateVillageNpcs(dt);updateVillageRaid(dt);if(mineMode&&(!isCoopWorldActive()||window.SkyRealmCoopClient?.isRoomOwner)){mineOreRegenTimer-=dt;if(mineOreRegenTimer<=0){mineOreRegenTimer=5;const depleted=mineRocks.filter(r=>r.hp<=0);if(depleted.length){const node=depleted[Math.floor(Math.random()*depleted.length)];node.hp=node.maxHp||2;}}}strengthPotionTimer=Math.max(0,strengthPotionTimer-dt);wardPotionTimer=Math.max(0,wardPotionTimer-dt);speedPotionTimer=Math.max(0,speedPotionTimer-dt);updateWorldEvents(dt);updateFishing(dt);updateBiomeBosses(dt);
       if(inHouse && !sleeping && player.hp<100){player.hp=Math.min(100,player.hp+dt*(1+(houseLevel-1)*.65+skillBonus('builder')*.4)*(isModInstalled('architect')?1.5:1)*(isModInstalled('restful_camp')?1.3:1));updateVitals();}
       pickUpLoot(dt);
       updateFarmPlots(dt);
@@ -3145,15 +3339,15 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       skipDayRealSeconds=Math.max(0,skipDayRealSeconds-dt);
       updateSkipDayHud();
       let mx = 0, my = 0;
-      if(hudMoveMode){keys.clear();movementDirections.clear();}
+      if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}
       if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k=>keys.has(k)))tutorialMoveSeen=true;
       if(keys.has(' ')||keys.has('l'))tutorialCombatSeen=true;
       if(hudMoveMode){mx=0;my=0;}
-      if(sleeping){keys.clear();movementDirections.clear();}
-      if(movementDirections.has('up'))my--;
-      if(movementDirections.has('down'))my++;
-      if(movementDirections.has('left'))mx--;
-      if(movementDirections.has('right'))mx++;
+      if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}
+      if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup'))my--;
+      if(movementDirections.has('down')||keys.has('s')||keys.has('arrowdown'))my++;
+      if(movementDirections.has('left')||keys.has('a')||keys.has('arrowleft'))mx--;
+      if(movementDirections.has('right')||keys.has('d')||keys.has('arrowright'))mx++;
       if(dodgeTimer>0){mx=dodgeVX;my=dodgeVY;}
       if (mx && my) { mx *= .7071; my *= .7071; }
       const sprinting=keys.has('shift')&&(mx||my)&&player.stamina>15&&!sleeping&&!mineMode;
@@ -3190,10 +3384,10 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     requestAnimationFrame(tick);
   }
   function resetWorldState(){
-    dungeonMode=false;dungeonReturn={x:player.x,y:player.y};dungeonRoom=1;dungeonClearedRooms=[];dungeonEnemyHp=0;dungeonEnemyX=0;dungeonEnemyY=0;dungeonChestOpened=false;dungeonTrapCooldown=0;biomeBosses=makeBiomeBossState();strengthPotionTimer=0;wardPotionTimer=0;speedPotionTimer=0;eventRollTimer=74;meteorShowerTimer=0;meteorPoint=null;worldEventCamp=null;worldEventTraveler=null;lastWorldMeteorNight=-1;lastWorldHordeNight=-1;lastWorldCampDay=-1;lastWorldTravelerDay=-2;
+    surfaceWorldLayer=null;tradeWorldLayer=null;surfacePlayerPosition=null;tradePlayerPosition=null;forceNightStart=false;dungeonMode=false;dungeonReturn={x:player.x,y:player.y};dungeonRoom=1;dungeonClearedRooms=[];dungeonEnemyHp=0;dungeonRoomMobs=[];dungeonEnemyX=0;dungeonEnemyY=0;dungeonChestOpened=false;dungeonTrapCooldown=0;biomeBosses=makeBiomeBossState();strengthPotionTimer=0;wardPotionTimer=0;speedPotionTimer=0;eventRollTimer=74;meteorShowerTimer=0;meteorPoint=null;worldEventCamp=null;worldEventTraveler=null;lastWorldMeteorNight=-1;lastWorldHordeNight=-1;lastWorldCampDay=-1;lastWorldTravelerDay=-2;
     bloodMoonActive=false;bloodMoonRewardPending=false;lastBloodMoonNight=-1;wolfBossActive=false;wolfBossHp=0;wolfBossKeyDropped=false;wolfCageOpen=false;wolfDogCaged=true;wolfBossX=0;wolfBossY=0;wolfBossFlash=0;wolfBossAttackTimer=1.2;wolfBossDefeated=false;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfCompanionAttackTimer=.5;wolfCompanionRevivals=0;wolfDogDeathHandled=false;wolfCompanionOffsetX=20;wolfCompanionOffsetY=24;dogBehavior='follow';villageQuestStage=0;blacksmithQuestStage=0;explorerQuestStage=0;npcQuestState={};villageReputation=0;villageRaidActive=false;villageRaidKills=0;villageRaidTimer=0;lastVillageRaidDay=-1;
     player.x=21*TILE;player.y=26*TILE;player.vx=player.vy=0;player.face='down';player.frame=0;player.hp=100;player.stamina=84;
-    discovered=false;clearedSnowTiles=new Set();snowShovelHits={};treeChops=[];felledTrees=[];worldEarlyMonsters=false;tradeWorldMode=false;walletCents=0;playerLevel=1;playerXP=0;skillPoints=0;skills={warrior:0,miner:0,scout:0,farmer:0,survivor:0,crafter:0};equipment={weapon:'Деревянный меч',armor:'',helmet:'',boots:'',amulet:''};weaponUpgrades={};weaponEnchantments={};armorUpgrade=0;anvilCrafted=false;adventureQuestProgress={hunt:0,mining:0,harvest:0};farmCrops=[];caveBossDefeated=false;caveBossHp=bossMaxHp();caveBossAttackTimer=2.5;caveMode=false;caveChestOpened=false;treasureChests.forEach(c=>c.opened=false);dodgeTimer=0;dodgeCooldown=0;placedStructures=[];lootDrops.length=0;enteredPlacedHouse=null;tradeEntranceX=17;tradeEntranceY=47;mineLevel=1;houseLevel=1;furnaceCrafted=false;mineMode=false;mineHoverIndex=-1;workbenchDialogOpen=false;exploredCells=new Set();selectedSlot=1;questStage=0;workbenchUsed=false;sheepSpawnTimer=0;inHouse=false;sleeping=false;sleepSeconds=0;playerAttackCooldown=0;gameMinuteTotal=8*60;survivedNights=0;immortal=false;hunger=100;hungerElapsedMinutes=0;skipDayRealSeconds=300;sheepSpawned=false;sheep.length=0;inventoryItems.forEach(item=>{const base=starterItemCounts.find(v=>v.name===item.name);item.count=base?base.count:0;});
+    discovered=false;clearedSnowTiles=new Set();snowShovelHits={};treeChops=[];felledTrees=[];worldEarlyMonsters=false;tradeWorldMode=false;walletCents=0;playerLevel=1;playerXP=0;skillPoints=0;skills={warrior:0,miner:0,scout:0,farmer:0,survivor:0,crafter:0};equipment={weapon:'Деревянный меч',armor:'',helmet:'',boots:'',amulet:''};weaponUpgrades={};weaponEnchantments={};armorUpgrade=0;anvilCrafted=false;adventureQuestProgress={hunt:0,mining:0,harvest:0};farmCrops=[];caveBossDefeated=false;caveBossHp=bossMaxHp();caveBossAttackTimer=2.5;caveMode=false;caveChestOpened=false;treasureChests.forEach(c=>c.opened=false);dodgeTimer=0;dodgeCooldown=0;placedStructures=[];lootDrops.length=0;enteredPlacedHouse=null;tradeEntranceX=17;tradeEntranceY=47;mineLevel=1;houseLevel=1;furnaceCrafted=false;mineMode=false;mineHoverIndex=-1;workbenchDialogOpen=false;exploredCells=new Set();selectedSlot=1;quickbarItemNames=[];inventoryPage=0;questStage=0;workbenchUsed=false;sheepSpawnTimer=0;inHouse=false;sleeping=false;sleepSeconds=0;playerAttackCooldown=0;gameMinuteTotal=8*60;survivedNights=0;immortal=false;hunger=100;hungerElapsedMinutes=0;skipDayRealSeconds=300;sheepSpawned=false;sheep.length=0;inventoryItems.forEach(item=>{const base=starterItemCounts.find(v=>v.name===item.name);item.count=base?base.count:0;});
     weatherMode='clear';weatherTimer=75;weatherFlash=0;lastRestoredVillageRaidKey='';lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);lastClockMinute=-1;wasNight=isNightTime();monsterSpawnTimer=0;damageToastTimer=0;monsters.length=0;
   }
   function updateTreeChopRecord(tree){
@@ -3210,9 +3404,14 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function saveGame(){
     if(!currentWorldId)return false;
-    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
+    if(tradeWorldMode)tradeWorldLayer=captureWorldLayerState();else surfaceWorldLayer=captureWorldLayerState();
+    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},tradeWorldMode,surfaceWorldLayer:tradeWorldMode?surfaceWorldLayer:null,tradeWorldLayer:tradeWorldMode?null:tradeWorldLayer,surfacePlayerPosition,tradePlayerPosition,worldTimeMultiplier,lastYetiSpawnDay,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,quickbarItemNames,dungeonRoomMobs:dungeonRoomMobs.map(m=>({...m})),gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageNpcs,villageCenters,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
     try{
+      // Keep the last known-good world snapshot. If the new write fails, the primary save remains intact.
+      try{const previous=localStorage.getItem(saveKey);if(previous){const previousData=JSON.parse(previous);if(previousData&&typeof previousData==='object'&&!Array.isArray(previousData))localStorage.setItem(saveKey+'.backup',previous);}}catch(backupError){console.warn('SkyRealm backup snapshot could not be refreshed:',backupError);}
       localStorage.setItem(saveKey,serialized);
+      const verified=localStorage.getItem(saveKey);
+      if(verified!==serialized)throw new Error('World save verification failed');
     }catch(error){
       console.error('SkyRealm save failed:',error);
       if(!saveErrorNotified){toast('Не удалось сохранить мир: хранилище закончилось или недоступно. Экспортируй копию мира из меню.');saveErrorNotified=true;}
@@ -3228,18 +3427,34 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     if(status){const d=new Date(lastSaveAt);status.textContent='Последнее сохранение: '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
     return true;
   }
+  function readWorldSaveSnapshot(){
+    let primaryError=null,primaryData=null;
+    try{primaryData=JSON.parse(localStorage.getItem(saveKey)||'null');}
+    catch(error){primaryError=error;console.error('SkyRealm primary save is damaged; trying the last verified backup:',error);}
+    if(primaryData&&typeof primaryData==='object'&&!Array.isArray(primaryData))return primaryData;
+    try{
+      const backupRaw=localStorage.getItem(saveKey+'.backup'),backupData=JSON.parse(backupRaw||'null');
+      if(backupData&&typeof backupData==='object'&&!Array.isArray(backupData)){
+        try{localStorage.setItem(saveKey,backupRaw);}
+        catch(restoreError){console.warn('SkyRealm backup was loaded, but restoring the primary save key was unavailable:',restoreError);}
+        return backupData;
+      }
+    }catch(backupError){console.error('SkyRealm backup save is also unavailable:',backupError);}
+    if(primaryError)throw primaryError;
+    return null;
+  }
   function loadGame(){
     monsters.length=0;coopGuestMobAttackCooldowns.clear();
     try{
-      const d=JSON.parse(localStorage.getItem(saveKey)||'null');
+      const d=readWorldSaveSnapshot();
       if(d&&typeof d==='object'){
         coopWorldEntry=d.coopWorldEntry&&typeof d.coopWorldEntry==='object'?d.coopWorldEntry:null;
         clearedSnowTiles=new Set(Array.isArray(d.clearedSnowTiles)?d.clearedSnowTiles.filter(k=>/^\d+,\d+$/.test(k)):[]);snowShovelHits=d.snowShovelHits&&typeof d.snowShovelHits==='object'?Object.fromEntries(Object.entries(d.snowShovelHits).filter(([k,v])=>/^\d+,\d+$/.test(k)&&Number.isFinite(v)).map(([k,v])=>[k,Math.max(0,Math.min(2,Math.floor(v)))])):{};
         if(Number.isFinite(d.x)&&Number.isFinite(d.y)){player.x=Math.max(TILE,Math.min(COLS*TILE-TILE,d.x));player.y=Math.max(TILE,Math.min(ROWS*TILE-TILE,d.y));}if(d.bedSpawn&&Number.isFinite(d.bedSpawn.x)&&Number.isFinite(d.bedSpawn.y))bedSpawn={x:Math.max(TILE,Math.min(COLS*TILE-TILE,d.bedSpawn.x)),y:Math.max(TILE,Math.min(ROWS*TILE-TILE,d.bedSpawn.y))};
-        discovered=!!d.discovered;worldEarlyMonsters=!!d.worldEarlyMonsters;tradeWorldMode=!!d.tradeWorldMode;
+        discovered=!!d.discovered;worldEarlyMonsters=!!d.worldEarlyMonsters;tradeWorldMode=!!d.tradeWorldMode;surfaceWorldLayer=d.surfaceWorldLayer&&typeof d.surfaceWorldLayer==='object'?d.surfaceWorldLayer:null;tradeWorldLayer=d.tradeWorldLayer&&typeof d.tradeWorldLayer==='object'?d.tradeWorldLayer:null;surfacePlayerPosition=d.surfacePlayerPosition&&Number.isFinite(d.surfacePlayerPosition.x)&&Number.isFinite(d.surfacePlayerPosition.y)?{x:d.surfacePlayerPosition.x,y:d.surfacePlayerPosition.y}:null;tradePlayerPosition=d.tradePlayerPosition&&Number.isFinite(d.tradePlayerPosition.x)&&Number.isFinite(d.tradePlayerPosition.y)?{x:d.tradePlayerPosition.x,y:d.tradePlayerPosition.y}:null;
         if(typeof d.playerClass==='string'&&PLAYER_CLASSES[d.playerClass]&&!PLAYER_CLASSES[d.playerClass].locked){playerClass=d.playerClass;try{localStorage.setItem('skyrealm_player_class_v1',playerClass);}catch(_){}}if(Number.isFinite(d.skillPoints))skillPoints=Math.max(0,Math.min(999,Math.floor(d.skillPoints)));if(d.skills&&typeof d.skills==='object')skills=Object.fromEntries(['warrior','miner','scout','farmer','survivor','crafter','guardian','ranger','alchemist','fisherman','builder','beastmaster','fortune'].map(id=>[id,Math.max(0,Math.min(10,Math.floor(Number(d.skills[id])||0)))]));
         if(d.weaponUpgrades&&typeof d.weaponUpgrades==='object')weaponUpgrades=Object.fromEntries(Object.entries(d.weaponUpgrades).filter(([k,v])=>Object.prototype.hasOwnProperty.call(WEAPON_BASE_DAMAGE,k)).map(([k,v])=>[k,Math.max(0,Math.min(5,Number(v)||0))]));if(d.weaponEnchantments&&typeof d.weaponEnchantments==='object')weaponEnchantments=Object.fromEntries(Object.entries(d.weaponEnchantments).filter(([k,v])=>Object.prototype.hasOwnProperty.call(WEAPON_BASE_DAMAGE,k)&&['Рубин','Сапфир','Обсидиан'].includes(v)));armorUpgrade=Math.max(0,Math.min(5,Number(d.armorUpgrade)||0));anvilCrafted=!!d.anvilCrafted;if(d.equipment&&typeof d.equipment==='object')equipment={weapon:['Деревянный меч','Железный меч','Огненный меч','Стальной меч','Меч титана','Меч дракона','Меч пустоты','Ледяной посох','Молниеносное копьё'].includes(d.equipment.weapon)?d.equipment.weapon:'Деревянный меч',armor:['','Кожаная броня','Броня стража','Мантия мага'].includes(d.equipment.armor)?d.equipment.armor:'',helmet:['','Шлем лесника'].includes(d.equipment.helmet)?d.equipment.helmet:'',boots:['','Сапоги странника'].includes(d.equipment.boots)?d.equipment.boots:'',amulet:['','Амулет стража'].includes(d.equipment.amulet)?d.equipment.amulet:''};
-        dungeonMode=false;dungeonRoom=Math.max(1,Math.min(5,Math.floor(Number(d.dungeonRoom)||1)));dungeonClearedRooms=Array.isArray(d.dungeonClearedRooms)?Array.from(new Set(d.dungeonClearedRooms.filter(n=>Number.isInteger(n)&&n>=1&&n<=5))):[];dungeonChestOpened=d.dungeonChestOpened===true;dungeonEnemyHp=Math.max(0,Math.min(dungeonEnemyMaxHp(dungeonRoom),Number(d.dungeonEnemyHp)||0));biomeBosses=normalizeBiomeBossState(d.biomeBosses);dungeonEnemyX=0;dungeonEnemyY=0;caveBossDefeated=d.caveBossDefeated===true;const savedBossHp=Number(d.caveBossHp);caveBossHp=Math.max(0,Math.min(bossMaxHp(),Number.isFinite(savedBossHp)?savedBossHp:bossMaxHp()));if(caveBossDefeated)caveBossHp=0;
+        dungeonMode=false;dungeonRoom=Math.max(1,Math.min(5,Math.floor(Number(d.dungeonRoom)||1)));dungeonClearedRooms=Array.isArray(d.dungeonClearedRooms)?Array.from(new Set(d.dungeonClearedRooms.filter(n=>Number.isInteger(n)&&n>=1&&n<=5))):[];dungeonChestOpened=d.dungeonChestOpened===true;dungeonEnemyHp=Math.max(0,Math.min(dungeonEnemyMaxHp(dungeonRoom),Number(d.dungeonEnemyHp)||0));dungeonRoomMobs=Array.isArray(d.dungeonRoomMobs)?d.dungeonRoomMobs.slice(0,4).filter(m=>m&&['skeleton','ice','scorpion','brute'].includes(m.type)&&Number.isFinite(m.x)&&Number.isFinite(m.y)&&Number.isFinite(m.hp)&&Number.isFinite(m.maxHp)&&m.maxHp>0).map(m=>({id:String(m.id||''),type:m.type,name:String(m.name||m.type).slice(0,40),x:Math.max(24,Math.min(width-24,m.x)),y:Math.max(24,Math.min(height-24,m.y)),hp:Math.max(0,Math.min(m.maxHp,m.hp)),maxHp:Math.max(1,m.maxHp),speed:Math.max(10,Math.min(100,Number(m.speed)||35)),damageScale:Math.max(.1,Math.min(5,Number(m.damageScale)||1)),attackCooldown:Math.max(0,Math.min(5,Number(m.attackCooldown)||0)),color:/^#[0-9a-f]{6}$/i.test(m.color||'')?m.color:'#9aa7bb'})):[];if(!dungeonClearedRooms.includes(dungeonRoom)&&!dungeonRoomMobs.length)dungeonRoomMobs=makeDungeonRoomMobs(dungeonRoom);biomeBosses=normalizeBiomeBossState(d.biomeBosses);dungeonEnemyX=0;dungeonEnemyY=0;caveBossDefeated=d.caveBossDefeated===true;const savedBossHp=Number(d.caveBossHp);caveBossHp=Math.max(0,Math.min(bossMaxHp(),Number.isFinite(savedBossHp)?savedBossHp:bossMaxHp()));if(caveBossDefeated)caveBossHp=0;
         if(d.adventureQuestProgress&&typeof d.adventureQuestProgress==='object'){
           treeChops=Array.isArray(d.adventureQuestProgress.treeChops)?d.adventureQuestProgress.treeChops.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.chops)).slice(0,600).map(v=>({x:Math.round(v.x),y:Math.round(v.y),chops:Math.max(1,Math.min(4,Math.floor(v.chops)))})):[];
           felledTrees=Array.isArray(d.adventureQuestProgress.felledTrees)?d.adventureQuestProgress.felledTrees.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,2000).map(v=>({x:Math.round(v.x),y:Math.round(v.y)})):[];
@@ -3258,12 +3473,12 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
         }
         if(Array.isArray(d.farmCrops))farmCrops=d.farmCrops.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,60).map(v=>({...v,stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0),crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null,moisture:Math.max(0,Math.min(100,Number(v.moisture)||0)),fertilized:v.fertilized===true}));
         if(d.playerAppearance&&typeof d.playerAppearance==='object')applyAppearanceData(d.playerAppearance);
-if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerLevel));if(Number.isFinite(d.playerXP))playerXP=Math.max(0,d.playerXP);caveChestOpened=d.caveChestOpened===true;if(Array.isArray(d.treasureChests))for(const c of treasureChests){const saved=d.treasureChests.find(v=>v&&v.id===c.id);if(saved)c.opened=saved.opened===true;}if(Number.isFinite(d.walletCents))walletCents=Math.max(0,Math.floor(d.walletCents));if(Number.isInteger(d.tradeEntranceX))tradeEntranceX=d.tradeEntranceX;if(Number.isInteger(d.tradeEntranceY))tradeEntranceY=d.tradeEntranceY;mineLevel=Math.max(1,Math.min(5,Number(d.mineLevel)||1));houseLevel=Math.max(1,Math.min(3,Number(d.houseLevel)||1));// Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.if(Array.isArray(d.mineRocks)&&d.mineRocks.length){mineRocks=d.mineRocks.slice(0,60).map(r=>({x:Number(r.x)||100,y:Number(r.y)||100,ore:['Уголь','Железо','Камень','Кристалл','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(r.ore)?r.ore:'Камень',hp:Math.max(0,Math.min(2,Number(r.hp)||0)),maxHp:2}));}if(mineRocks.filter(r=>r.ore==='Камень'&&r.hp>0).length<8)generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));
+if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerLevel));if(Number.isFinite(d.playerXP))playerXP=Math.max(0,d.playerXP);caveChestOpened=d.caveChestOpened===true;if(Array.isArray(d.treasureChests))for(const c of treasureChests){const saved=d.treasureChests.find(v=>v&&v.id===c.id);if(saved)c.opened=saved.opened===true;}if(Number.isFinite(d.walletCents))walletCents=Math.max(0,Math.floor(d.walletCents));worldTimeMultiplier=[1,2,3,4].includes(Number(d.worldTimeMultiplier))?Number(d.worldTimeMultiplier):1;lastYetiSpawnDay=Number.isInteger(d.lastYetiSpawnDay)?d.lastYetiSpawnDay:-1;if(Number.isInteger(d.tradeEntranceX))tradeEntranceX=d.tradeEntranceX;if(Number.isInteger(d.tradeEntranceY))tradeEntranceY=d.tradeEntranceY;mineLevel=Math.max(1,Math.min(5,Number(d.mineLevel)||1));houseLevel=Math.max(1,Math.min(3,Number(d.houseLevel)||1));// Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.if(Array.isArray(d.mineRocks)&&d.mineRocks.length){mineRocks=d.mineRocks.slice(0,60).map(r=>({x:Number(r.x)||100,y:Number(r.y)||100,ore:['Уголь','Железо','Камень','Кристалл','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(r.ore)?r.ore:'Камень',hp:Math.max(0,Math.min(2,Number(r.hp)||0)),maxHp:2}));}if(mineRocks.filter(r=>r.ore==='Камень'&&r.hp>0).length<8)generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));
         for(const felled of felledTrees){const idx=world.trees.findIndex(tree=>Math.round(tree.x)===felled.x&&Math.round(tree.y)===felled.y);if(idx>=0)world.trees.splice(idx,1);}
         for(const tree of world.trees){const progress=treeChops.find(v=>v.x===Math.round(tree.x)&&v.y===Math.round(tree.y));if(progress)tree.chops=progress.chops;}
         furnaceCrafted=!!d.furnaceCrafted;if(Array.isArray(d.placedStructures))placedStructures=d.placedStructures.filter(v=>v&&['furnace','house','torch','coal','storage','farmplot'].includes(v.type)&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,250).map(v=>({...v,contents:v.type==='storage'&&v.contents&&typeof v.contents==='object'?{...v.contents}:{},stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0)}));lootDrops.length=0;if(Array.isArray(d.lootDrops))d.lootDrops.slice(0,80).forEach(v=>{if(v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&inventoryItems.some(i=>i.name===v.name)&&Number.isFinite(v.count))lootDrops.push({id:typeof v.id==='string'?v.id:'',shared:v.shared===true,x:v.x,y:v.y,name:v.name,count:Math.max(1,Math.min(99,Math.floor(v.count))),life:Math.max(0,Math.min(240,Number(v.life)||240)),phase:Number(v.phase)||0,world_mode:['surface','cave','dungeon'].includes(v.world_mode)?v.world_mode:'surface'});});
         exploredCells=new Set(Array.isArray(d.exploredCells)?d.exploredCells.filter(v=>typeof v==='string'&&/^\d+,\d+$/.test(v)):[]);
-        selectedSlot=Number.isInteger(d.selectedSlot)&&d.selectedSlot>=1&&d.selectedSlot<=inventoryItems.length?d.selectedSlot:1;
+        selectedSlot=Number.isInteger(d.selectedSlot)&&d.selectedSlot>=1&&d.selectedSlot<=10?d.selectedSlot:1;quickbarItemNames=Array.isArray(d.quickbarItemNames)?d.quickbarItemNames.filter(v=>typeof v==='string'&&inventoryItems.some(item=>item.name===v)).slice(0,10):[];inventoryPage=0;
         if(Number.isFinite(d.gameMinuteTotal)&&d.gameMinuteTotal>=0)gameMinuteTotal=d.gameMinuteTotal;
         if(Number.isInteger(d.survivedNights)&&d.survivedNights>=0)survivedNights=d.survivedNights;
         if(Number.isFinite(d.hp))player.hp=Math.max(1,Math.min(100,d.hp));
@@ -3274,7 +3489,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         if(Array.isArray(d.sheep)){sheep.length=0;d.sheep.slice(0,120).forEach(a=>{if(a&&Number.isFinite(a.x)&&Number.isFinite(a.y))sheep.push({x:a.x,y:a.y,hp:Number(a.hp)||0,phase:Number(a.phase)||0,dir:Number(a.dir)||0,wander:Number(a.wander)||1,alive:a.alive===true});});}
         if(Number.isFinite(d.skipDayRealSeconds))skipDayRealSeconds=Math.max(0,Math.min(300,d.skipDayRealSeconds));
         if(Array.isArray(d.resources))d.resources.forEach(r=>{const item=inventoryItems.find(i=>i.name===r.name);if(item&&Number.isFinite(r.count))item.count=Math.max(0,Math.min(999999,Math.floor(r.count)));});
-        if(d.npcQuestState&&typeof d.npcQuestState==='object')npcQuestState=Object.fromEntries(Object.entries(d.npcQuestState).filter(([id,v])=>NPC_QUESTS[id]&&v&&typeof v==='object').map(([id,v])=>[id,{status:Math.max(0,Math.min(2,Number(v.status)||0)),day:Number.isFinite(v.day)?Math.floor(v.day):0}]));
+        if(d.npcQuestState&&typeof d.npcQuestState==='object')npcQuestState=Object.fromEntries(Object.entries(d.npcQuestState).filter(([id,v])=>NPC_QUESTS[id]&&v&&typeof v==='object').map(([id,v])=>[id,{status:Math.max(0,Math.min(2,Number(v.status)||0)),day:Number.isFinite(v.day)?Math.floor(v.day):0}]));if(Array.isArray(d.villageNpcs))villageNpcs=d.villageNpcs.slice(0,40).filter(n=>n&&typeof n.id==='string'&&Number.isFinite(n.x)&&Number.isFinite(n.y)).map(n=>({...n}));if(Array.isArray(d.villageCenters))villageCenters=d.villageCenters.slice(0,10).filter(v=>v&&typeof v.id==='string'&&Number.isFinite(v.x)&&Number.isFinite(v.y)).map(v=>({...v}));
         villageReputation=Math.max(0,Math.min(100,Math.floor(Number(d.villageReputation)||0)));lastVillageRaidDay=Number.isInteger(d.lastVillageRaidDay)?d.lastVillageRaidDay:-1;villageRaidActive=d.villageRaidActive===true&&tradeWorldMode&&isNightTime();villageRaidKills=villageRaidActive?Math.max(0,Math.min(3,Math.floor(Number(d.villageRaidKills)||0))):0;villageRaidTimer=villageRaidActive?Math.max(0,Math.min(95,Number(d.villageRaidTimer)||0)):0;const raidRestoreKey=String(currentWorldId||'')+':'+lastVillageRaidDay+':'+(villageRaidActive?String(villageRaidKills):'inactive');if(raidRestoreKey!==lastRestoredVillageRaidKey){for(let i=monsters.length-1;i>=0;i--)if(monsters[i]&&monsters[i].villageRaid)monsters.splice(i,1);if(villageRaidActive&&villageRaidKills>0){for(let i=0;i<villageRaidKills;i++)if(spawnMonster(i===villageRaidKills-1?'brute':null)){monsters[monsters.length-1].villageRaid=true;monsters[monsters.length-1].adminSpawned=true;}}lastRestoredVillageRaidKey=raidRestoreKey;}
         lastWorldMeteorNight=Number.isInteger(d.lastWorldMeteorNight)?d.lastWorldMeteorNight:-1;
         lastWorldHordeNight=Number.isInteger(d.lastWorldHordeNight)?d.lastWorldHordeNight:-1;
@@ -3528,7 +3743,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function teleportFromMap(event){if(!fullMapOpen||!currentWorldId)return;const c=document.getElementById('full-map-canvas'),r=c.getBoundingClientRect(),mx=(event.clientX-r.left)/r.width*c.width,my=(event.clientY-r.top)/r.height*c.height,pad=12,tx=Math.floor((mx-pad)/((c.width-pad*2)/COLS)),ty=Math.floor((my-pad)/((c.height-pad*2)/ROWS));if(tx<0||ty<0||tx>=COLS||ty>=ROWS||!exploredCells.has(tileKey(tx,ty))){toast('Телепортироваться можно только в исследованные места.');return;}const x=tx*TILE+TILE/2,y=ty*TILE+TILE/2;if(blocked(x,y)){toast('В этой точке препятствие. Выбери соседнюю открытую область.');return;}player.x=x;player.y=y;player.vx=player.vy=0;saveGame();drawMinimap();drawFullMap();closeFullMap();toast('Телепортация выполнена.');}
   function settingsViewOpen(){return !document.getElementById('pause-settings-view').hidden;}
   function showPauseMain(){document.getElementById('pause-main-view').hidden=false;document.getElementById('pause-settings-view').hidden=true;}
-  function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;keys.clear();movementDirections.clear();if(paused){showPauseMain();}else{canvas.focus();}}
+  function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();if(paused){showPauseMain();}else{canvas.focus();}}
   function syncSettingsControls(){
     document.getElementById('game-quality-select').value=gameSettings.graphicsQuality;
     const performanceSelect=document.getElementById('game-performance-select');if(performanceSelect)performanceSelect.value=gameSettings.performanceMode;
@@ -3654,11 +3869,11 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         pauseShade?.hidden === true && !blockingOverlay && !sleeping) {
       paused = false;
       keys.clear();
-      movementDirections.clear();
+      movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();
       last = performance.now();
       canvas.focus();
     }
-    if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','q','j','r','t','f','g','1','2','3','4'].includes(k)) e.preventDefault();
+    if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','q','j','r','t','f','g','1','2','3','4','5','6','7','8','9','0'].includes(k)) e.preventDefault();
     if(k==='l'&&!formTarget&&!inMainMenu){if(fullMapOpen)closeFullMap();else if(!paused&&!signDialogOpen&&!inventoryDialogOpen)openFullMap();return;}
     if(fullMapOpen){if(k==='escape'||k==='l')closeFullMap();return;}
     if (k === 'escape') {
@@ -3683,6 +3898,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       return;
     }
     if (formTarget || inMainMenu || workbenchDialogOpen || shopDialogOpen) return;
+    if(movementKey&&!formTarget&&!paused&&!inMainMenu&&!workbenchDialogOpen&&!shopDialogOpen&&!sleeping){movementKeyCodes.add(e.code);const movementDirection=resolveMovementDirection(k,e.code);if(movementDirection){movementKeyDirections.set(e.code,movementDirection);keys.add(({up:'w',left:'a',down:'s',right:'d'})[movementDirection]);movementDirections.add(movementDirection);}}
     if(k==='k'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){openSkillTree();return;}
     if(k==='f'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){cycleMagicSpell();return;}
     if(k==='g'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){castMagicSpell();return;}
@@ -3695,31 +3911,51 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if (k === 'j' && !paused && !signDialogOpen && !inventoryDialogOpen) { useBuffPotion(); return; }
     if (k === ' ' && !paused && !signDialogOpen && !inventoryDialogOpen) { if(selectedInventoryItem()?.name==='Лопата')shovelSnowNearPlayer();else attackNearestMonster(); return; }
     if (k === 'i' && !paused && !signDialogOpen) { inventoryDialogOpen ? closeInventory() : openInventory(); return; }
-    if (/^[1-4]$/.test(k) && !paused && !signDialogOpen && !inventoryDialogOpen) { selectSlot(Number(k)); return; }
+    if (/^[0-9]$/.test(k) && !paused && !signDialogOpen && !inventoryDialogOpen) { selectSlot(k==='0'?10:Number(k)); return; }
     if (!paused && !signDialogOpen && !inventoryDialogOpen) {
       keys.add(k);
       const movementDirection=MOVEMENT_DIRECTION_BY_ACTION[k];
       if(movementDirection) movementDirections.add(movementDirection);
     }
   }, true);
-  // Listen at document capture level as well: WebView keyboard focus can move
-  // between the canvas and its wrapper, but key releases must always clear input.
+  // One canonical reset path prevents stuck movement after focus/window transitions.
+  function restoreHeldMovementDirections(){
+    movementDirections.clear();
+    for(const direction of movementKeyDirections.values())if(['up','down','left','right'].includes(direction))movementDirections.add(direction);
+  }
+  function clearMovementInput(){
+    keys.clear();
+    movementDirections.clear();
+    movementKeyCodes.clear();
+    movementKeyDirections.clear();
+    player.vx=0;
+    player.vy=0;
+  }
   window.addEventListener('keyup', e => {
     const released=gameKey(e);
+    const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.code];
+    movementKeyCodes.delete(e.code);
+    movementKeyDirections.delete(e.code);
     keys.delete(released);
-    const direction=MOVEMENT_DIRECTION_BY_ACTION[released];
-    if(direction) movementDirections.delete(direction);
+    if(physicalDirection){
+      movementDirections.delete(physicalDirection);
+      keys.delete(({up:'w',left:'a',down:'s',right:'d'})[physicalDirection]);
+    }
+    const actionDirection=MOVEMENT_DIRECTION_BY_ACTION[released];
+    if(actionDirection)movementDirections.delete(actionDirection);
+    restoreHeldMovementDirections();
   }, true);
-  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); }, true);
-  document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); } });
-  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); });
+  window.addEventListener('blur',clearMovementInput,true);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)clearMovementInput();});
+  window.addEventListener('pagehide',clearMovementInput,true);
+  window.addEventListener('pointercancel',clearMovementInput,true);
   window.addEventListener('beforeunload',()=>{try{saveGame();}catch(_){}});
   window.addEventListener('resize', resize);
   window.addEventListener('fullscreenchange',()=>{gameSettings.windowMode=document.fullscreenElement?'fullscreen':'windowed';document.getElementById('game-window-mode-select').value=gameSettings.windowMode;localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));});
   canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused)canvas.focus();},true);
   canvas.addEventListener('pointermove', (ev) => {if(!mineMode)return;const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;let index=-1,bd=38;mineRocks.forEach((r,i)=>{if(r.hp<=0)return;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;index=i;}});mineHoverIndex=index;canvas.style.cursor=index>=0?'crosshair':'default';});
   canvas.addEventListener('pointerleave',()=>{mineHoverIndex=-1;canvas.style.cursor='default';});
-  function selectedInventoryItem(){return inventoryItems.filter(i=>i.count>0)[selectedSlot-1]||null;}
+  function selectedInventoryItem(){ensureQuickbarAssignments();return inventoryItems.find(i=>i.name===quickbarItemNames[selectedSlot-1]&&i.count>0)||null;}
   function shovelSnowAt(x,y){
     const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE),key=tileKey(tx,ty);
     if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1||waterAt(tx+.5,ty+.5)||pathAt(tx+.5,ty+.5)||biomeAt(tx+.5,ty+.5)!=='snow'||clearedSnowTiles.has(key)){toast('Здесь нет снега, который можно убрать.');return false;}
