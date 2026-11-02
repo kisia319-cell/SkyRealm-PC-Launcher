@@ -71,7 +71,7 @@
   let inventoryDialogOpen = false;
   let inventoryTab = 'items';
   let questPanelVisible = false;
-  let selectedSlot = 1;
+  let selectedSlot = 1, quickbarItemNames = [], inventoryPage = 0;
   // Game clock: one real second advances one in-game minute; pause stops the clock.
   const GAME_MINUTES_PER_DAY = 24 * 60;
   const DAWN_MINUTE = 6 * 60;
@@ -2500,50 +2500,70 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     const chest=treasureChests.find(c=>Math.hypot(player.x-c.x,player.y-c.y)<100);if(chest){if(chest.opened)toast('Этот сундук уже открыт.');else openTreasureChest(chest);return;}
     const s=world.signs[0];if(Math.hypot(s.x-player.x,s.y-player.y)<118){openSignDialog();questStage=Math.max(questStage,1);}else toast('Подойди к дорожному знаку или двери дома.');
   }
+  function ensureQuickbarAssignments(){
+    const owned=inventoryItems.filter(item=>item.count>0);
+    if(!Array.isArray(quickbarItemNames))quickbarItemNames=[];
+    if(!quickbarItemNames.length)quickbarItemNames=owned.slice(0,10).map(item=>item.name);
+    quickbarItemNames=quickbarItemNames.slice(0,10);
+    return owned;
+  }
+  function assignInventoryItemToQuickbar(item){
+    if(!item||item.count<=0)return;
+    const existing=quickbarItemNames.indexOf(item.name);
+    if(existing>=0){selectSlot(existing+1);return;}
+    quickbarItemNames[selectedSlot-1]=item.name;
+    renderInventory();saveGame();
+    toast(item.name+' добавлен в ячейку быстрого доступа '+selectedSlot+'.');
+  }
   function renderInventory(){
-    const slots = document.getElementById('inventory-slots');
-    if (slots) {
-      slots.innerHTML = '';
-      inventoryItems.filter(item=>item.count>0).forEach((item, index) => {
-        const number = index + 1;
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'inventory-slot' + (number === selectedSlot ? ' selected' : '');
-        button.dataset.slot = String(number);
-        button.title = item.name + (item.count ? ' × ' + item.count : ' · нет в инвентаре');
-        button.setAttribute('aria-label', button.title);
-        button.setAttribute('aria-pressed', number === selectedSlot ? 'true' : 'false');
-        button.innerHTML = '<span class="slot-number">' + number + '</span><span class="slot-icon">' + item.icon + '</span><span class="slot-count">' + (item.count > 0 ? item.count : '') + '</span>';
-        button.addEventListener('click', () => selectSlot(number));
-        slots.appendChild(button);
-      });
+    const owned=ensureQuickbarAssignments();
+    const slots=document.getElementById('inventory-slots');
+    if(slots){
+      slots.innerHTML='';
+      for(let index=0;index<10;index++){
+        const item=inventoryItems.find(entry=>entry.name===quickbarItemNames[index]&&entry.count>0);
+        const number=index+1,button=document.createElement('button');
+        button.type='button';button.className='inventory-slot'+(number===selectedSlot?' selected':'');
+        button.dataset.slot=String(number);
+        button.title=item?item.name+' × '+item.count:'Пустая ячейка '+number;
+        button.setAttribute('aria-label',button.title);
+        button.setAttribute('aria-pressed',number===selectedSlot?'true':'false');
+        button.innerHTML='<span class="slot-number">'+(number===10?'0':number)+'</span><span class="slot-icon">'+(item?item.icon:'＋')+'</span><span class="slot-count">'+(item?item.count:'')+'</span>';
+        button.addEventListener('click',()=>selectSlot(number));slots.appendChild(button);
+      }
     }
-    const grid = document.getElementById('inventory-grid');
-    if (grid) {
-      grid.innerHTML = '';
-      inventoryItems.filter(item=>item.count>0).forEach((item, index) => {
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.className = 'inventory-card' + (index + 1 === selectedSlot ? ' selected' : '');
-        card.innerHTML = '<span class="inventory-card-icon">' + item.icon + '</span><span class="inventory-card-name">' + item.name + '</span><span class="inventory-card-count">Количество: ' + item.count + '</span><span class="inventory-card-description">' + item.description + '</span>';
-        card.addEventListener('click', () => selectSlot(index + 1, false));
-        grid.appendChild(card);
+    const grid=document.getElementById('inventory-grid');
+    if(grid){
+      grid.innerHTML='';
+      const pageSize=20,pageCount=Math.max(1,Math.ceil(owned.length/pageSize));
+      inventoryPage=Math.max(0,Math.min(pageCount-1,inventoryPage));
+      const pageItems=owned.slice(inventoryPage*pageSize,(inventoryPage+1)*pageSize);
+      pageItems.forEach(item=>{
+        const quickbarIndex=quickbarItemNames.indexOf(item.name);
+        const card=document.createElement('button');card.type='button';
+        card.className='inventory-card'+(quickbarIndex===selectedSlot-1?' selected':'');
+        card.title=quickbarIndex>=0?'В быстром доступе · ячейка '+(quickbarIndex+1):'Нажми, чтобы поместить в выбранную ячейку быстрого доступа';
+        card.innerHTML='<span class="inventory-card-icon">'+item.icon+'</span><span class="inventory-card-name">'+item.name+'</span><span class="inventory-card-count">Количество: '+item.count+'</span><span class="inventory-card-description">'+item.description+'</span>';
+        card.addEventListener('click',()=>assignInventoryItemToQuickbar(item));grid.appendChild(card);
       });
-      const used=inventoryItems.filter(item=>item.count>0).length;for(let empty=used;empty<20;empty++){const slot=document.createElement('div');slot.className='inventory-card inventory-empty-slot';slot.innerHTML='<span class="inventory-card-icon">＋</span><span class="inventory-card-name">Пустой слот</span><span class="inventory-card-count">'+(empty+1)+'/20</span><span class="inventory-card-description">Место для будущего предмета</span>';grid.appendChild(slot);}
+      for(let empty=pageItems.length;empty<pageSize;empty++){
+        const slot=document.createElement('div');slot.className='inventory-card inventory-empty-slot';
+        slot.innerHTML='<span class="inventory-card-icon">＋</span><span class="inventory-card-name">Пустой слот</span><span class="inventory-card-count">'+(empty+1)+'/20</span><span class="inventory-card-description">Свободное место в этой странице инвентаря</span>';grid.appendChild(slot);
+      }
+      const pager=document.getElementById('inventory-page-label');
+      const prev=document.getElementById('inventory-page-prev'),next=document.getElementById('inventory-page-next');
+      if(pager)pager.textContent='Страница '+(inventoryPage+1)+' из '+pageCount+' · '+owned.length+' предметов';
+      if(prev)prev.disabled=inventoryPage<=0;
+      if(next)next.disabled=inventoryPage>=pageCount-1;
     }
-    const selected = inventoryItems.filter(item=>item.count>0)[selectedSlot - 1];
-    const status = document.getElementById('inventory-selected-note');
-    if (status && selected) status.textContent = 'Выбрано: ' + selected.name + (selected.count ? ' · ' + selected.count + ' шт.' : ' · пока нет в инвентаре');
+    const selected=inventoryItems.find(item=>item.name===quickbarItemNames[selectedSlot-1]&&item.count>0);
+    const status=document.getElementById('inventory-selected-note');
+    if(status)status.textContent=selected?'Ячейка '+selectedSlot+': '+selected.name+' · '+selected.count+' шт.':'Ячейка '+selectedSlot+' пуста. Выбери предмет ниже, чтобы назначить его.';
   }
   function selectSlot(number, notify = true){
-    const visibleItems=inventoryItems.filter(entry=>entry.count>0);
-    if (number < 1 || number > visibleItems.length) return;
-    selectedSlot = number;
-    renderInventory();
-    if (notify) {
-      const item = inventoryItems.filter(entry=>entry.count>0)[number - 1];
-      if(item)toast('Выбрано: ' + item.name + (item.count > 1 ? ' × ' + item.count : ''));
-    }
+    if(!Number.isInteger(number)||number<1||number>10)return;
+    selectedSlot=number;renderInventory();
+    if(notify){const item=selectedInventoryItem();if(item)toast('Выбрано: '+item.name+(item.count>1?' × '+item.count:''));}
     saveGame();
   }
   function openTutorial(){const el=document.getElementById('tutorial-shade');if(!el)return;paused=true;keys.clear();renderTutorialStep();el.hidden=false;el.setAttribute('aria-hidden','false');}
@@ -2589,8 +2609,8 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     const byCode = {
       KeyW:'w', KeyA:'a', KeyS:'s', KeyD:'d', KeyE:'e', KeyI:'i', KeyL:'l', KeyK:'k',
       ArrowUp:'arrowup', ArrowDown:'arrowdown', ArrowLeft:'arrowleft', ArrowRight:'arrowright',
-      Digit1:'1', Digit2:'2', Digit3:'3', Digit4:'4',
-      Numpad1:'1', Numpad2:'2', Numpad3:'3', Numpad4:'4',
+      Digit1:'1', Digit2:'2', Digit3:'3', Digit4:'4', Digit5:'5', Digit6:'6', Digit7:'7', Digit8:'8', Digit9:'9', Digit0:'0',
+      Numpad1:'1', Numpad2:'2', Numpad3:'3', Numpad4:'4', Numpad5:'5', Numpad6:'6', Numpad7:'7', Numpad8:'8', Numpad9:'9', Numpad0:'0',
       Escape:'escape', Space:' '
     };
     if (byCode[e.code]) return byCode[e.code];
@@ -3196,7 +3216,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     dungeonMode=false;dungeonReturn={x:player.x,y:player.y};dungeonRoom=1;dungeonClearedRooms=[];dungeonEnemyHp=0;dungeonEnemyX=0;dungeonEnemyY=0;dungeonChestOpened=false;dungeonTrapCooldown=0;biomeBosses=makeBiomeBossState();strengthPotionTimer=0;wardPotionTimer=0;speedPotionTimer=0;eventRollTimer=74;meteorShowerTimer=0;meteorPoint=null;worldEventCamp=null;worldEventTraveler=null;lastWorldMeteorNight=-1;lastWorldHordeNight=-1;lastWorldCampDay=-1;lastWorldTravelerDay=-2;
     bloodMoonActive=false;bloodMoonRewardPending=false;lastBloodMoonNight=-1;wolfBossActive=false;wolfBossHp=0;wolfBossKeyDropped=false;wolfCageOpen=false;wolfDogCaged=true;wolfBossX=0;wolfBossY=0;wolfBossFlash=0;wolfBossAttackTimer=1.2;wolfBossDefeated=false;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfCompanionAttackTimer=.5;wolfCompanionRevivals=0;wolfDogDeathHandled=false;wolfCompanionOffsetX=20;wolfCompanionOffsetY=24;dogBehavior='follow';villageQuestStage=0;blacksmithQuestStage=0;explorerQuestStage=0;npcQuestState={};villageReputation=0;villageRaidActive=false;villageRaidKills=0;villageRaidTimer=0;lastVillageRaidDay=-1;
     player.x=21*TILE;player.y=26*TILE;player.vx=player.vy=0;player.face='down';player.frame=0;player.hp=100;player.stamina=84;
-    discovered=false;clearedSnowTiles=new Set();snowShovelHits={};treeChops=[];felledTrees=[];worldEarlyMonsters=false;tradeWorldMode=false;walletCents=0;playerLevel=1;playerXP=0;skillPoints=0;skills={warrior:0,miner:0,scout:0,farmer:0,survivor:0,crafter:0};equipment={weapon:'Деревянный меч',armor:'',helmet:'',boots:'',amulet:''};weaponUpgrades={};weaponEnchantments={};armorUpgrade=0;anvilCrafted=false;adventureQuestProgress={hunt:0,mining:0,harvest:0};farmCrops=[];caveBossDefeated=false;caveBossHp=bossMaxHp();caveBossAttackTimer=2.5;caveMode=false;caveChestOpened=false;treasureChests.forEach(c=>c.opened=false);dodgeTimer=0;dodgeCooldown=0;placedStructures=[];lootDrops.length=0;enteredPlacedHouse=null;tradeEntranceX=17;tradeEntranceY=47;mineLevel=1;houseLevel=1;furnaceCrafted=false;mineMode=false;mineHoverIndex=-1;workbenchDialogOpen=false;exploredCells=new Set();selectedSlot=1;questStage=0;workbenchUsed=false;sheepSpawnTimer=0;inHouse=false;sleeping=false;sleepSeconds=0;playerAttackCooldown=0;gameMinuteTotal=8*60;survivedNights=0;immortal=false;hunger=100;hungerElapsedMinutes=0;skipDayRealSeconds=300;sheepSpawned=false;sheep.length=0;inventoryItems.forEach(item=>{const base=starterItemCounts.find(v=>v.name===item.name);item.count=base?base.count:0;});
+    discovered=false;clearedSnowTiles=new Set();snowShovelHits={};treeChops=[];felledTrees=[];worldEarlyMonsters=false;tradeWorldMode=false;walletCents=0;playerLevel=1;playerXP=0;skillPoints=0;skills={warrior:0,miner:0,scout:0,farmer:0,survivor:0,crafter:0};equipment={weapon:'Деревянный меч',armor:'',helmet:'',boots:'',amulet:''};weaponUpgrades={};weaponEnchantments={};armorUpgrade=0;anvilCrafted=false;adventureQuestProgress={hunt:0,mining:0,harvest:0};farmCrops=[];caveBossDefeated=false;caveBossHp=bossMaxHp();caveBossAttackTimer=2.5;caveMode=false;caveChestOpened=false;treasureChests.forEach(c=>c.opened=false);dodgeTimer=0;dodgeCooldown=0;placedStructures=[];lootDrops.length=0;enteredPlacedHouse=null;tradeEntranceX=17;tradeEntranceY=47;mineLevel=1;houseLevel=1;furnaceCrafted=false;mineMode=false;mineHoverIndex=-1;workbenchDialogOpen=false;exploredCells=new Set();selectedSlot=1;quickbarItemNames=[];inventoryPage=0;questStage=0;workbenchUsed=false;sheepSpawnTimer=0;inHouse=false;sleeping=false;sleepSeconds=0;playerAttackCooldown=0;gameMinuteTotal=8*60;survivedNights=0;immortal=false;hunger=100;hungerElapsedMinutes=0;skipDayRealSeconds=300;sheepSpawned=false;sheep.length=0;inventoryItems.forEach(item=>{const base=starterItemCounts.find(v=>v.name===item.name);item.count=base?base.count:0;});
     weatherMode='clear';weatherTimer=75;weatherFlash=0;lastRestoredVillageRaidKey='';lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);lastClockMinute=-1;wasNight=isNightTime();monsterSpawnTimer=0;damageToastTimer=0;monsters.length=0;
   }
   function updateTreeChopRecord(tree){
@@ -3213,7 +3233,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function saveGame(){
     if(!currentWorldId)return false;
-    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},tradeWorldMode,worldTimeMultiplier,lastYetiSpawnDay,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
+    const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},tradeWorldMode,worldTimeMultiplier,lastYetiSpawnDay,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,quickbarItemNames,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
     try{
       localStorage.setItem(saveKey,serialized);
     }catch(error){
@@ -3266,7 +3286,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         for(const tree of world.trees){const progress=treeChops.find(v=>v.x===Math.round(tree.x)&&v.y===Math.round(tree.y));if(progress)tree.chops=progress.chops;}
         furnaceCrafted=!!d.furnaceCrafted;if(Array.isArray(d.placedStructures))placedStructures=d.placedStructures.filter(v=>v&&['furnace','house','torch','coal','storage','farmplot'].includes(v.type)&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,250).map(v=>({...v,contents:v.type==='storage'&&v.contents&&typeof v.contents==='object'?{...v.contents}:{},stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0)}));lootDrops.length=0;if(Array.isArray(d.lootDrops))d.lootDrops.slice(0,80).forEach(v=>{if(v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&inventoryItems.some(i=>i.name===v.name)&&Number.isFinite(v.count))lootDrops.push({id:typeof v.id==='string'?v.id:'',shared:v.shared===true,x:v.x,y:v.y,name:v.name,count:Math.max(1,Math.min(99,Math.floor(v.count))),life:Math.max(0,Math.min(240,Number(v.life)||240)),phase:Number(v.phase)||0,world_mode:['surface','cave','dungeon'].includes(v.world_mode)?v.world_mode:'surface'});});
         exploredCells=new Set(Array.isArray(d.exploredCells)?d.exploredCells.filter(v=>typeof v==='string'&&/^\d+,\d+$/.test(v)):[]);
-        selectedSlot=Number.isInteger(d.selectedSlot)&&d.selectedSlot>=1&&d.selectedSlot<=inventoryItems.length?d.selectedSlot:1;
+        selectedSlot=Number.isInteger(d.selectedSlot)&&d.selectedSlot>=1&&d.selectedSlot<=10?d.selectedSlot:1;quickbarItemNames=Array.isArray(d.quickbarItemNames)?d.quickbarItemNames.filter(v=>typeof v==='string'&&inventoryItems.some(item=>item.name===v)).slice(0,10):[];inventoryPage=0;
         if(Number.isFinite(d.gameMinuteTotal)&&d.gameMinuteTotal>=0)gameMinuteTotal=d.gameMinuteTotal;
         if(Number.isInteger(d.survivedNights)&&d.survivedNights>=0)survivedNights=d.survivedNights;
         if(Number.isFinite(d.hp))player.hp=Math.max(1,Math.min(100,d.hp));
@@ -3661,7 +3681,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       last = performance.now();
       canvas.focus();
     }
-    if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','q','j','r','t','f','g','1','2','3','4'].includes(k)) e.preventDefault();
+    if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','q','j','r','t','f','g','1','2','3','4','5','6','7','8','9','0'].includes(k)) e.preventDefault();
     if(k==='l'&&!formTarget&&!inMainMenu){if(fullMapOpen)closeFullMap();else if(!paused&&!signDialogOpen&&!inventoryDialogOpen)openFullMap();return;}
     if(fullMapOpen){if(k==='escape'||k==='l')closeFullMap();return;}
     if (k === 'escape') {
@@ -3699,7 +3719,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if (k === 'j' && !paused && !signDialogOpen && !inventoryDialogOpen) { useBuffPotion(); return; }
     if (k === ' ' && !paused && !signDialogOpen && !inventoryDialogOpen) { if(selectedInventoryItem()?.name==='Лопата')shovelSnowNearPlayer();else attackNearestMonster(); return; }
     if (k === 'i' && !paused && !signDialogOpen) { inventoryDialogOpen ? closeInventory() : openInventory(); return; }
-    if (/^[1-4]$/.test(k) && !paused && !signDialogOpen && !inventoryDialogOpen) { selectSlot(Number(k)); return; }
+    if (/^[0-9]$/.test(k) && !paused && !signDialogOpen && !inventoryDialogOpen) { selectSlot(k==='0'?10:Number(k)); return; }
     if (!paused && !signDialogOpen && !inventoryDialogOpen) {
       keys.add(k);
       const movementDirection=MOVEMENT_DIRECTION_BY_ACTION[k];
@@ -3725,7 +3745,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused)canvas.focus();},true);
   canvas.addEventListener('pointermove', (ev) => {if(!mineMode)return;const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;let index=-1,bd=38;mineRocks.forEach((r,i)=>{if(r.hp<=0)return;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;index=i;}});mineHoverIndex=index;canvas.style.cursor=index>=0?'crosshair':'default';});
   canvas.addEventListener('pointerleave',()=>{mineHoverIndex=-1;canvas.style.cursor='default';});
-  function selectedInventoryItem(){return inventoryItems.filter(i=>i.count>0)[selectedSlot-1]||null;}
+  function selectedInventoryItem(){ensureQuickbarAssignments();return inventoryItems.find(i=>i.name===quickbarItemNames[selectedSlot-1]&&i.count>0)||null;}
   function shovelSnowAt(x,y){
     const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE),key=tileKey(tx,ty);
     if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1||waterAt(tx+.5,ty+.5)||pathAt(tx+.5,ty+.5)||biomeAt(tx+.5,ty+.5)!=='snow'||clearedSnowTiles.has(key)){toast('Здесь нет снега, который можно убрать.');return false;}
