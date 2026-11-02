@@ -1,5 +1,6 @@
 (() => {
   const canvas = document.getElementById('world');
+  if(canvas)canvas.tabIndex=0;
   function initialVsyncEnabled(){
     try{
       const params=new URLSearchParams(window.location.search),raw=params.get('settings');
@@ -3402,7 +3403,11 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     if(tradeWorldMode)tradeWorldLayer=captureWorldLayerState();else surfaceWorldLayer=captureWorldLayerState();
     const serialized=JSON.stringify({clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},tradeWorldMode,surfaceWorldLayer:tradeWorldMode?surfaceWorldLayer:null,tradeWorldLayer:tradeWorldMode?null:tradeWorldLayer,surfacePlayerPosition,tradePlayerPosition,worldTimeMultiplier,lastYetiSpawnDay,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,quickbarItemNames,dungeonRoomMobs:dungeonRoomMobs.map(m=>({...m})),gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageNpcs,villageCenters,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
     try{
+      // Keep the last known-good world snapshot. If the new write fails, the primary save remains intact.
+      try{const previous=localStorage.getItem(saveKey);if(previous)localStorage.setItem(saveKey+'.backup',previous);}catch(backupError){console.warn('SkyRealm backup snapshot could not be refreshed:',backupError);}
       localStorage.setItem(saveKey,serialized);
+      const verified=localStorage.getItem(saveKey);
+      if(verified!==serialized)throw new Error('World save verification failed');
     }catch(error){
       console.error('SkyRealm save failed:',error);
       if(!saveErrorNotified){toast('Не удалось сохранить мир: хранилище закончилось или недоступно. Экспортируй копию мира из меню.');saveErrorNotified=true;}
@@ -3421,7 +3426,13 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   function loadGame(){
     monsters.length=0;coopGuestMobAttackCooldowns.clear();
     try{
-      const d=JSON.parse(localStorage.getItem(saveKey)||'null');
+      let d=null;
+      try{d=JSON.parse(localStorage.getItem(saveKey)||'null');}
+      catch(primaryError){
+        console.error('SkyRealm primary save is damaged; trying the last verified backup:',primaryError);
+        try{d=JSON.parse(localStorage.getItem(saveKey+'.backup')||'null');if(d&&typeof d==='object')localStorage.setItem(saveKey,JSON.stringify(d));}
+        catch(backupError){console.error('SkyRealm backup save is also unavailable:',backupError);throw primaryError;}
+      }
       if(d&&typeof d==='object'){
         coopWorldEntry=d.coopWorldEntry&&typeof d.coopWorldEntry==='object'?d.coopWorldEntry:null;
         clearedSnowTiles=new Set(Array.isArray(d.clearedSnowTiles)?d.clearedSnowTiles.filter(k=>/^\d+,\d+$/.test(k)):[]);snowShovelHits=d.snowShovelHits&&typeof d.snowShovelHits==='object'?Object.fromEntries(Object.entries(d.snowShovelHits).filter(([k,v])=>/^\d+,\d+$/.test(k)&&Number.isFinite(v)).map(([k,v])=>[k,Math.max(0,Math.min(2,Math.floor(v)))])):{};
@@ -3893,22 +3904,30 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       if(movementDirection) movementDirections.add(movementDirection);
     }
   }, true);
-  // Listen at document capture level as well: WebView keyboard focus can move
-  // between the canvas and its wrapper, but key releases must always clear input.
+  // One canonical reset path prevents stuck movement after focus/window transitions.
+  function clearMovementInput(){
+    keys.clear();
+    movementDirections.clear();
+    movementKeyCodes.clear();
+    player.vx=0;
+    player.vy=0;
+  }
   window.addEventListener('keyup', e => {
     const released=gameKey(e);
+    const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.code];
     movementKeyCodes.delete(e.code);
     keys.delete(released);
-    const direction=MOVEMENT_DIRECTION_BY_ACTION[released];
-    if(direction) movementDirections.delete(direction);
+    if(physicalDirection){
+      movementDirections.delete(physicalDirection);
+      keys.delete(({up:'w',left:'a',down:'s',right:'d'})[physicalDirection]);
+    }
+    const actionDirection=MOVEMENT_DIRECTION_BY_ACTION[released];
+    if(actionDirection)movementDirections.delete(actionDirection);
   }, true);
-  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
-  document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear();movementKeyCodes.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; } });
-  window.addEventListener('pagehide', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
-  window.addEventListener('pointercancel', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
-  window.addEventListener('pagehide', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
-  window.addEventListener('pointercancel', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); player.vx=player.vy=0; }, true);
-  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear();movementKeyCodes.clear(); });
+  window.addEventListener('blur',clearMovementInput,true);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)clearMovementInput();});
+  window.addEventListener('pagehide',clearMovementInput,true);
+  window.addEventListener('pointercancel',clearMovementInput,true);
   window.addEventListener('beforeunload',()=>{try{saveGame();}catch(_){}});
   window.addEventListener('resize', resize);
   window.addEventListener('fullscreenchange',()=>{gameSettings.windowMode=document.fullscreenElement?'fullscreen':'windowed';document.getElementById('game-window-mode-select').value=gameSettings.windowMode;localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));});
