@@ -123,6 +123,7 @@ assert.match(enhancements,/function applyDynamicTranslations\(root=document\)/,'
 assert.ok(enhancements.includes('integrity_mismatches')&&enhancements.includes('runner_exists'),'System diagnostics must display file mismatches and runner status');
 assert.ok(enhancements.includes("document.querySelectorAll('#page-mods .launcher-mod-card').length"),'Mod badge must count all rendered catalogue cards, not only install actions');
 assert.ok(enhancements.includes("Support <span>Center</span>")&&enhancements.includes("'Пн':'Mon'")&&enhancements.includes("labels=enhancementLanguage==='en'"),'Dynamic support, calendar and service status must be translated in English');
+assert.ok(enhancements.includes("applyDynamicTranslations();\n    refreshServices();"),'Service cards must refresh in the newly selected language');
 assert.ok(html.includes('id="home-launcher-version"')&&html.includes('id="home-game-version"'),'Home status must contain dynamic version fields');
 assert.ok(html.includes('id="install-version-label"')&&enhancements.includes("$('#install-version-label').textContent='v'"),'Install overlay must show the current game version, not a stale constant');
 assert.ok(html.includes('id="launcher-version-label"')&&app.includes('launcher-version-label'),'Sidebar version label must be populated from launcher metadata');
