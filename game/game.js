@@ -20,6 +20,7 @@
   const movementKeyCodes = new Set();
   const PHYSICAL_MOVEMENT_BY_CODE = {KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right',ArrowUp:'up',ArrowLeft:'left',ArrowDown:'down',ArrowRight:'right'};
   const MOVEMENT_DIRECTION_BY_ACTION = {w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
+  function resolveMovementDirection(action,code){const actionDirection=MOVEMENT_DIRECTION_BY_ACTION[action];return actionDirection||PHYSICAL_MOVEMENT_BY_CODE[code]||null;}
   const DEFAULT_GAME_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
   const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, vsync:true, musicVolume:35, sfxVolume:70, musicEnabled:false, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
   let gameSettings = readInitialSettings();
@@ -3340,10 +3341,10 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       if(keys.has(' ')||keys.has('l'))tutorialCombatSeen=true;
       if(hudMoveMode){mx=0;my=0;}
       if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();}
-      if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup')||movementKeyCodes.has('KeyW')||movementKeyCodes.has('ArrowUp'))my--;
-      if(movementDirections.has('down')||keys.has('s')||keys.has('arrowdown')||movementKeyCodes.has('KeyS')||movementKeyCodes.has('ArrowDown'))my++;
-      if(movementDirections.has('left')||keys.has('a')||keys.has('arrowleft')||movementKeyCodes.has('KeyA')||movementKeyCodes.has('ArrowLeft'))mx--;
-      if(movementDirections.has('right')||keys.has('d')||keys.has('arrowright')||movementKeyCodes.has('KeyD')||movementKeyCodes.has('ArrowRight'))mx++;
+      if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup'))my--;
+      if(movementDirections.has('down')||keys.has('s')||keys.has('arrowdown'))my++;
+      if(movementDirections.has('left')||keys.has('a')||keys.has('arrowleft'))mx--;
+      if(movementDirections.has('right')||keys.has('d')||keys.has('arrowright'))mx++;
       if(dodgeTimer>0){mx=dodgeVX;my=dodgeVY;}
       if (mx && my) { mx *= .7071; my *= .7071; }
       const sprinting=keys.has('shift')&&(mx||my)&&player.stamina>15&&!sleeping&&!mineMode;
@@ -3884,7 +3885,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       return;
     }
     if (formTarget || inMainMenu || workbenchDialogOpen || shopDialogOpen) return;
-    if(movementKey&&!formTarget&&!paused&&!inMainMenu&&!workbenchDialogOpen&&!shopDialogOpen&&!sleeping){movementKeyCodes.add(e.code);const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.code];if(physicalDirection){keys.add(({up:'w',left:'a',down:'s',right:'d'})[physicalDirection]);movementDirections.add(physicalDirection);}}
+    if(movementKey&&!formTarget&&!paused&&!inMainMenu&&!workbenchDialogOpen&&!shopDialogOpen&&!sleeping){movementKeyCodes.add(e.code);const movementDirection=resolveMovementDirection(k,e.code);if(movementDirection){keys.add(({up:'w',left:'a',down:'s',right:'d'})[movementDirection]);movementDirections.add(movementDirection);}}
     if(k==='k'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){openSkillTree();return;}
     if(k==='f'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){cycleMagicSpell();return;}
     if(k==='g'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){castMagicSpell();return;}
