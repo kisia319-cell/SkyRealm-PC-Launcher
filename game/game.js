@@ -84,7 +84,7 @@
   let survivedNights = 0;
   let lastDawnMarker = Math.floor((gameMinuteTotal - DAWN_MINUTE) / GAME_MINUTES_PER_DAY);
   let lastClockMinute = -1;
-  let wasNight = false;
+  let wasNight = false, forceNightStart = false;
   let monsterSpawnTimer = 0;
   let damageToastTimer = 0;
   let minimapTimer = 0;
@@ -1508,7 +1508,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
       wasNight=isNightTime();updateClockDisplay();return;
     }
-    const wasNightBefore=isNightTime();
+    const wasNightBefore=isNightTime()&&!forceNightStart;
     const previousMinute=gameMinuteTotal;
     gameMinuteTotal+=dt*Math.max(1,Math.min(4,Number(worldTimeMultiplier)||1));
     const elapsedGameMinutes=gameMinuteTotal-previousMinute;
@@ -1535,7 +1535,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       for(let j=monsters.length-1;j>=0;j--) if(!monsters[j].adminSpawned) monsters.splice(j,1);
       monsterSpawnTimer=0;
     }
-    wasNight=nightNow;
+    wasNight=nightNow;forceNightStart=false;
     updateClockDisplay();
   }
   function drawDayNightOverlay(camX,camY){
@@ -2355,7 +2355,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function useHealingPotion(){const potion=inventoryItems.find(i=>i.name==='Малое зелье');if(!potion||potion.count<1){toast('Нет лечебных зелий.');return;}if(player.hp>=100){toast('Здоровье уже полное.');return;}const healing=35+(isModInstalled('herbalist')?15:0);potion.count--;player.hp=Math.min(100,player.hp+healing);playSound('craft');updateVitals();renderInventory();saveGame();toast('Зелье использовано: +'+healing+' здоровья.');}
   function eatMeat(){const meat=inventoryItems.find(i=>i.name==='Мясо'),fish=inventoryItems.find(i=>i.name==='Рыба'),food=meat&&meat.count>0?meat:fish&&fish.count>0?fish:null;if(!food){toast('Нет еды. Найди овцу или поймай рыбу на озере.');return;}food.count--;const restored=food.name==='Рыба'?12:10;hunger=Math.min(100,hunger+restored);questStage=Math.max(questStage,6);hungerElapsedMinutes=0;renderInventory();updateClockDisplay(true);saveGame();toast('Ты съел '+(food.name==='Рыба'?'рыбу':'мясо')+'. +'+restored+' голода.');}
   function updateSkipDayHud(){const t=document.getElementById('skip-day-timer'),b=document.getElementById('skip-day-button');if(!t||!b)return;const left=Math.max(0,Math.ceil(skipDayRealSeconds));t.textContent=left>0?`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'Готово';b.disabled=left>0||paused||inMainMenu;b.title=left>0?'Пропустить день можно после 5 минут реального времени':'Пропустить игровой день';}
-  function skipGameDay(){if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+NIGHT_MINUTE;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;skipDayRealSeconds=300;updateClockDisplay(true);saveGame();toast('День пропущен до 20:00. Ночь начнётся по обычным правилам.');}
+  function skipGameDay(){if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+NIGHT_MINUTE;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=false;forceNightStart=true;monsters.length=0;skipDayRealSeconds=300;updateWorldClock(.001);updateClockDisplay(true);saveGame();toast('День пропущен до 20:00. Ночь начнётся по обычным правилам.');}
   function houseFurnitureBlocked(x,y){const r=9,boxes=[[42,35,148,186],[153,91,190,143],[174,27,272,61],[286,72,379,98],[272,105,390,177],[296,201,380,279],[155,266,190,296],[203,249,241,278]];return boxes.some(([l,t,rr,b])=>x+r>l&&x-r<rr&&y+r>t&&y-r<b);}
   function houseInteractionNear(x,y,rect){return x>=rect[0]&&x<=rect[2]&&y>=rect[1]&&y<=rect[3];}
   function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>322||houseFurnitureBlocked(x,y);}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){const forest=villageCenters.find(v=>v.id==='forest');if(forest){const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270];for(let row=0;row<3;row++)for(let col=0;col<6;col++){const hx=forest.x*TILE+16+xOffsets[col]+(row===1?28:row===2?-24:0),hy=forest.y*TILE+16+rowY[row];if(x>hx-76&&x<hx+76&&y>hy-12*TILE-54&&y<hy-12*TILE+84)return true;}}for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
