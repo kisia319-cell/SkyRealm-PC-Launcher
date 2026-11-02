@@ -20,9 +20,9 @@
     <div class="sidebar-label">ПРОЕКТ</div>
     <nav class="nav" aria-label="Главное меню">
       <button class="nav-item active" data-page="home"><span class="nav-ico">⌂</span><span>Главная</span></button>
-      <button class="nav-item" data-page="news"><span class="nav-ico">▤</span><span>Новости</span><span class="nav-badge">2</span></button>
+      <button class="nav-item" data-page="news"><span class="nav-ico">▤</span><span>Новости</span></button>
       <button class="nav-item" data-page="shop"><span class="nav-ico">◇</span><span>Магазин</span><span class="nav-soon">СКОРО</span></button>
-      <button class="nav-item" data-page="mods"><span class="nav-ico">🧩</span><span>Моды</span><span class="nav-badge">8</span></button>
+      <button class="nav-item" data-page="mods"><span class="nav-ico">🧩</span><span>Моды</span><span class="nav-badge" id="mods-catalog-count">35</span></button>
       <button class="nav-item" data-page="community"><span class="nav-ico">♧</span><span>Сообщество</span></button>
       <button class="nav-item" data-page="settings"><span class="nav-ico">⚙</span><span>Настройки</span></button>
     </nav>
@@ -33,7 +33,7 @@
       <div><b id="sidebar-status-label">Проверяем сервер</b><small>Облачная авторизация</small></div>
     </div>
     <button class="sidebar-help" type="button" data-page="news"><span>?</span> Помощь и ответы</button>
-    <div class="side-version">SKYREALM <b>v1.2.10</b> · GAME CENTER</div>
+    <div class="side-version">SKYREALM <b id="launcher-version-label">—</b> · GAME CENTER</div>
   </aside>
 
   <main class="main">
@@ -192,8 +192,8 @@
         <article class="panel status-panel">
           <div class="panel-head"><div><div class="section-kicker">СТАТУС ПРОЕКТА</div><h2>Состояние SkyRealm</h2></div><span class="panel-symbol">⌘</span></div>
           <div class="service-row"><span class="status-dot status-checking" id="card-status-dot"></span><div><b id="card-status-title">Проверяем облачный сервер…</b><small id="card-status-copy">Это может занять пару секунд.</small></div></div>
-          <div class="sys-row"><span class="sys-icon">▥</span><span>Версия лаунчера</span><b>0.6.0</b></div>
-          <div class="sys-row"><span class="sys-icon">▶</span><span>Игровая сборка</span><b class="muted-value">В разработке</b></div>
+          <div class="sys-row"><span class="sys-icon">▥</span><span>Версия лаунчера</span><b id="home-launcher-version">—</b></div>
+          <div class="sys-row"><span class="sys-icon">▶</span><span>Игровая сборка</span><b class="muted-value" id="home-game-version">—</b></div>
           <a class="outline-link" href="https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-auth?route=%2Fhealth" target="_blank" rel="noreferrer">Открыть статус сервера <span>↗</span></a>
         </article>
       </section>
@@ -283,7 +283,8 @@
 <div class="setting-row"><div><b>Повышенная контрастность</b><small>Делает границы и текст заметнее.</small></div><label class="toggle"><input type="checkbox" id="high-contrast-toggle"><span></span></label></div>
 <div class="setting-row"><div><b>Экономия ресурсов</b><small>Отключает часть декоративных фоновых эффектов.</small></div><label class="toggle"><input type="checkbox" id="performance-saver-toggle"><span></span></label></div>
 <div class="settings-subheading"><span class="settings-subheading-icon">▣</span><div><b>Сохранения миров</b><small>Резервная копия локальных миров. Перед восстановлением закрой игру.</small></div></div>
-<div class="setting-row"><div><b>Резервная копия миров</b><small>Создать архив или восстановить последний архив сохранений.</small></div><div class="backup-actions"><button class="secondary-btn" id="backup-worlds" type="button">Создать копию</button><button class="secondary-btn" id="restore-worlds" type="button">Восстановить</button></div></div>
+<div class="setting-row"><div><b>Резервная копия миров</b><small>Создать архив или восстановить последний архив сохранений.</small></div><div class="backup-actions"><button class="secondary-btn" id="backup-worlds" type="button">Создать копию</button><button class="secondary-btn" id="restore-worlds" type="button">Восстановить выбранную</button></div>
+<div class="backup-manager-actions"><select id="world-backup-select" aria-label="Выбрать резервную копию"><option value="">Последняя исправная копия</option></select><button class="secondary-btn" id="refresh-world-backups" type="button">Обновить список</button></div></div>
 <p id="backup-status" class="settings-note" role="status"></p>
 <div class="settings-subheading"><span class="settings-subheading-icon">✦</span><div><b id="launcher-interface-title">Интерфейс лаунчера</b><small id="launcher-interface-subtitle">Внешний вид самого лаунчера.</small></div></div>
 <div class="setting-row"><div><b id="effects-label">Эффекты интерфейса</b><small id="effects-help">Анимации и свечение панелей</small></div><label class="toggle"><input type="checkbox" id="effects-toggle" checked><span></span></label></div><div class="setting-row"><div><b id="compact-label">Компактный интерфейс</b><small id="compact-help">Уменьшить расстояния между элементами</small></div><label class="toggle"><input type="checkbox" id="compact-toggle"><span></span></label></div><div class="setting-row"><div><b id="greeting-label">Показывать приветствие</b><small id="greeting-help">Сообщение на главной странице</small></div><label class="toggle"><input type="checkbox" id="greeting-toggle" checked><span></span></label></div><div class="settings-subheading"><span class="settings-subheading-icon">♜</span><div><b id="admin-tools-heading">Дополнительные возможности</b><small id="admin-tools-subheading">Настройка доступности инструментов администратора в игре.</small></div></div><div class="setting-row"><div><b id="admin-tools-label">Режим администратора</b><small id="admin-tools-help">Показывать кнопку админ-панели в главном меню игры. Изменение применяется при следующем запуске.</small></div><label class="toggle"><input type="checkbox" id="admin-tools-toggle"><span></span></label></div><div class="setting-row"><div><b id="moderator-tools-label">Режим модератора</b><small id="moderator-tools-help">Включить инструменты модератора в игре. Локальные баны не действуют на сетевых игроков.</small></div><label class="toggle"><input type="checkbox" id="moderator-tools-toggle"><span></span></label></div><div class="settings-note" id="settings-note">Настройки игры применяются при следующем запуске. В самой игре их также можно изменить через Esc → Настройки.</div><div class="diagnostics-actions"><button class="secondary-btn" id="check-game-files" type="button">Проверить файлы игры</button><button class="secondary-btn" id="open-game-folder" type="button">Открыть папку игры ↗</button><button class="secondary-btn" id="open-update-log" type="button">Открыть журнал обновлений ↗</button></div><div class="diagnostics-result" id="diagnostics-result" role="status" aria-live="polite">Диагностика проверит основные файлы и версию игры. Она не удаляет сохранения.</div><button class="secondary-btn" id="open-data-folder" type="button">Открыть папку игры и сохранений ↗</button><button class="outline-btn settings-back" data-page="home" type="button">Вернуться на главную <span>→</span></button></div></section>
