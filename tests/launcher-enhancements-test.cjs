@@ -143,6 +143,9 @@ assert.ok(enhancements.includes('skyrealm_mod_favorite_ids_v1')&&enhancements.in
 assert.ok(enhancements.includes('button.classList.toggle(\'is-favorite\',active)')&&enhancements.includes('aria-pressed'),'Favorite buttons must expose and update an accessible pressed state');
 assert.ok(enhancements.includes("favoriteOption.value='favorites'")&&enhancements.includes("category==='favorites'?favorites.has(id)"),'The mod catalogue must support an actual favorites-only filter');
 assert.ok(enhancements.includes('favorites=new Set(stored.filter(id=>cards.some(card=>modIdOf(card)===id)))'),'Favorite restore must discard IDs that are not present in the current mod catalogue');
+assert.ok(enhancements.includes("saved.category==='favorites'||categories.includes(saved.category)"),'The favorites-only filter must survive a launcher restart');
+assert.ok(enhancements.includes("new Intl.Collator(enhancementLanguage==='en'?'en':'ru'"),'Alphabetical mod sorting must follow the currently selected language');
+
 assert.ok(css.includes('.mod-favorite-toggle.is-favorite')&&css.includes('.mod-favorite-toggle:hover'),'Favorite state must have distinct visual feedback');
 assert.ok(enhancements.includes("'Добавить в избранное':'Add to favorites'")&&enhancements.includes("'Избранное ★':'Favorites ★'"),'Favorite controls and filter must be localized');
 
