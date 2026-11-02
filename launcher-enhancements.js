@@ -97,6 +97,7 @@
   });
 
   const MOD_FILTER_STORAGE_KEY='skyrealm_mod_catalog_filters_v1';
+  const MOD_FAVORITES_STORAGE_KEY='skyrealm_mod_favorite_ids_v1';
   function initModCatalogFilters(){
     const grid=$('#page-mods .launcher-mod-grid');
     const search=$('#mod-catalog-search'),categorySelect=$('#mod-catalog-category');
@@ -109,8 +110,35 @@
     const collator=new Intl.Collator('ru',{sensitivity:'base',numeric:true});
     const categoryOf=card=>(card.querySelector('.launcher-mod-meta')?.textContent||'').split('·')[0].trim();
     const titleOf=card=>(card.querySelector('h2')?.textContent||'').trim();
+    const modIdOf=card=>card.querySelector('[data-install-mod]')?.dataset.installMod||'';
+    let favorites=new Set();
+    try{const stored=JSON.parse(localStorage.getItem(MOD_FAVORITES_STORAGE_KEY)||'[]');if(Array.isArray(stored))favorites=new Set(stored.filter(id=>cards.some(card=>modIdOf(card)===id)));}catch(_){}
+    const saveFavorites=()=>{try{localStorage.setItem(MOD_FAVORITES_STORAGE_KEY,JSON.stringify([...favorites]));}catch(_){}};
+    const updateFavoriteButton=(button,active)=>{
+      button.classList.toggle('is-favorite',active);
+      button.setAttribute('aria-pressed',String(active));
+      button.textContent=active?'★':'☆';
+      button.title=active?(enhancementLanguage==='en'?'Remove from favorites':'Убрать из избранного'):(enhancementLanguage==='en'?'Add to favorites':'Добавить в избранное');
+      button.setAttribute('aria-label',button.title);
+    };
+    cards.forEach(card=>{
+      const id=modIdOf(card);if(!id)return;
+      let button=card.querySelector('.mod-favorite-toggle');
+      if(!button){
+        button=document.createElement('button');button.type='button';button.className='mod-favorite-toggle';
+        button.addEventListener('click',event=>{
+          event.preventDefault();event.stopPropagation();
+          if(favorites.has(id))favorites.delete(id);else favorites.add(id);
+          saveFavorites();updateFavoriteButton(button,favorites.has(id));apply();
+        });
+        card.prepend(button);
+      }
+      updateFavoriteButton(button,favorites.has(id));
+    });
     const categories=[...new Set(cards.map(categoryOf).filter(Boolean))].sort((a,b)=>collator.compare(a,b));
-    const all=document.createElement('option');all.value='all';all.textContent='Все категории';categorySelect.replaceChildren(all);
+    const all=document.createElement('option');all.value='all';all.textContent='Все категории';
+    const favoriteOption=document.createElement('option');favoriteOption.value='favorites';favoriteOption.textContent='Избранное ★';
+    categorySelect.replaceChildren(all,favoriteOption);
     categories.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;categorySelect.append(option);});
     let saved={};
     try{saved=JSON.parse(localStorage.getItem(MOD_FILTER_STORAGE_KEY)||'{}');}catch(_){}
@@ -121,7 +149,8 @@
     const apply=()=>{
       const query=normalize(search.value.trim()),category=categorySelect.value,sort=sortSelect.value;
       const visible=cards.filter(card=>{
-        const matchesCategory=category==='all'||categoryOf(card)===category;
+        const id=modIdOf(card);
+        const matchesCategory=category==='all'||(category==='favorites'?favorites.has(id):categoryOf(card)===category);
         const haystack=normalize([titleOf(card),card.querySelector('p')?.textContent,card.querySelector('small')?.textContent,card.querySelector('.launcher-mod-meta')?.textContent,card.querySelector('[data-install-mod]')?.dataset.installMod].join(' '));
         return matchesCategory&&(!query||haystack.includes(query));
       });
