@@ -5,7 +5,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_PATTERN = /^[A-HJ-NP-Z2-9]{8}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SHARED_SNAPSHOT_FIELDS = new Set(["clearedSnowTiles","snowShovelHits","worldTimeMultiplier","lastYetiSpawnDay","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","lastWorldCampDay","lastWorldHordeNight","lastWorldMeteorNight","lastWorldTravelerDay","meteorPoint","meteorShowerTimer","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","worldEventCamp","worldEventTraveler"]);
+const SHARED_SNAPSHOT_FIELDS = new Set(["clearedSnowTiles","snowShovelHits","dungeonRoomMobs","worldTimeMultiplier","lastYetiSpawnDay","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","lastWorldCampDay","lastWorldHordeNight","lastWorldMeteorNight","lastWorldTravelerDay","meteorPoint","meteorShowerTimer","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","worldEventCamp","worldEventTraveler"]);
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
@@ -77,6 +77,21 @@ function sanitizeSharedSnapshot(value: unknown): Record<string, unknown> {
       throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "В снимке есть личные или неизвестные данные.");
     }
     output[key] = entry;
+  }
+  if (Array.isArray(output.dungeonRoomMobs)) {
+    const types = ["skeleton","ice","scorpion","brute"];
+    output.dungeonRoomMobs = output.dungeonRoomMobs.slice(0, 4)
+      .filter((m: any) => m && typeof m === "object" && types.includes(String(m.type)) &&
+        Number.isFinite(m.x) && Number.isFinite(m.y) && Number.isFinite(m.hp) && Number.isFinite(m.maxHp) &&
+        m.maxHp > 0 && m.hp >= 0 && m.hp <= m.maxHp && m.x >= 0 && m.x <= 12000 && m.y >= 0 && m.y <= 10000)
+      .map((m: any) => ({
+        id: String(m.id ?? "").slice(0, 64), type: m.type, name: String(m.name ?? m.type).slice(0, 40),
+        x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp,
+        speed: Math.max(10, Math.min(100, Number(m.speed) || 35)),
+        damageScale: Math.max(0.1, Math.min(5, Number(m.damageScale) || 1)),
+        attackCooldown: Math.max(0, Math.min(5, Number(m.attackCooldown) || 0)),
+        color: /^#[0-9a-f]{6}$/i.test(m.color ?? "") ? m.color : "#9aa7bb",
+      }));
   }
   if (output.worldTimeMultiplier !== undefined) {
     const multiplier = Number(output.worldTimeMultiplier);
