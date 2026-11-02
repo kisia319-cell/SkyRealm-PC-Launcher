@@ -10,6 +10,72 @@
   const currentTime = () => new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
   let notificationPanel = null, notificationList = null, notificationCount = null;
   let cachedNotifications = [], cachedUpdate = null, pollTimer = null;
+  let enhancementLanguage = document.documentElement.lang === 'en' ? 'en' : 'ru';
+  const DYNAMIC_TEXT_EN = {
+    'Центр управления':'Control Center','Центр':'Control','управления':'center','КАЛЕНДАРЬ':'CALENDAR','ПОДДЕРЖКА':'SUPPORT','СКРИНШОТЫ':'SCREENSHOTS',
+    'SKYREALM · КОНТРОЛЬ':'SKYREALM · CONTROL','Обновления, состояние сервисов, диагностика, облачные сохранения и показатели компьютера.':'Updates, service status, diagnostics, cloud saves and computer metrics.',
+    '↻ Обновить всё':'↻ Refresh all','СЕТЬ':'NETWORK','Состояние сервисов':'Service status','Ещё не проверяли':'Not checked yet',
+    'Авторизация: проверка':'Authentication: checking','Вход и регистрация игроков':'Player sign-in and registration',
+    'Кооператив: проверка':'Co-op: checking','Комнаты и совместные игровые сессии':'Rooms and shared game sessions',
+    'Сообщество: проверка':'Community: checking','Друзья, сообщения и приглашения':'Friends, messages and invitations',
+    'ВЕРСИИ И ФАЙЛЫ':'VERSIONS AND FILES','Центр обновлений':'Update center','Лаунчер':'Launcher','Игра':'Game','Доступно':'Available',
+    'Проверка версии не изменяет файлы. Обновление игры устанавливается отдельно от миров.':'Checking versions does not change files. Game updates are installed separately from world saves.',
+    'Описание последнего релиза появится после проверки манифеста.':'The latest release notes will appear after the manifest is checked.',
+    'Проверить обновления':'Check for updates','Установить обновление игры':'Install game update','Восстановить файлы':'Repair files','Откатить версию':'Roll back version','Релизы лаунчера ↗':'Launcher releases ↗',
+    'ПРОИЗВОДИТЕЛЬНОСТЬ':'PERFORMANCE','Показатели компьютера':'Computer metrics','Локально · не отправляется на сервер':'Local · never sent to the server',
+    'Процессор':'CPU','Оперативная память':'Memory','Место на диске':'Disk space','Показатели обновляются при открытии центра и по кнопке «Обновить всё».':'Metrics refresh when this center opens and when you select “Refresh all”.',
+    'СОХРАНЕНИЯ':'SAVES','Облачные миры':'Cloud worlds','Резервная копия для другого компьютера':'Backup for another computer',
+    'Открой игру в режиме облачных сохранений. В меню выбора миров появятся кнопки загрузки в облако и безопасного восстановления. Перед восстановлением скачивается страховочная копия, а несовпадающие локальные миры сохраняются.':'Open the game in cloud-save mode. The world menu will show upload and safe restore actions. A safety copy is downloaded before restoration, and non-matching local worlds are preserved.',
+    'Открыть облачные сохранения в игре':'Open cloud saves in game','Для доступа требуется подтверждённый аккаунт. Облачный архив принадлежит только твоему аккаунту.':'A verified account is required. Your cloud archive belongs only to your account.',
+    'ВОССТАНОВЛЕНИЕ':'RECOVERY','Автоматическая диагностика':'Automatic diagnostics',
+    'Проверим наличие игровых файлов, версию, целостность и локальное хранилище миров. Ничего не удаляется.':'Check game files, version, integrity and local world storage. Nothing is deleted.',
+    'Проверить файлы игры':'Check game files','Открыть журнал':'Open log','Папка игры':'Game folder',
+    'SKYREALM · ПЛАНЫ':'SKYREALM · PLANS','Игровой':'Game','календарь':'calendar',
+    'Планируй игровые сессии, испытания и личные события. Записи сохраняются локально на этом компьютере.':'Plan game sessions, challenges and personal events. Entries are stored locally on this computer.',
+    'Добавить событие':'Add event','Название':'Title','Дата':'Date','Тип':'Type','Игровая сессия':'Game session','Испытание':'Challenge','Обновление':'Update','Событие сообщества':'Community event',
+    'Добавить в календарь':'Add to calendar','Укажи название и дату события.':'Enter an event title and date.','Событие сохранено.':'Event saved.',
+    'На эту дату событий нет. Добавь первое событие выше.':'No events on this date. Add the first event above.','Удалить':'Delete','Событие':'Event',
+    'SKYREALM · ПОМОЩЬ':'SKYREALM · HELP','Центр поддержки':'Support center','Если что-то не работает, собери диагностику и отправь отчёт разработчику.':'If something is not working, collect diagnostics and send a report to the developer.',
+    'Сообщить об ошибке':'Report a bug','Опиши проблему и приложи скопированный диагностический отчёт.':'Describe the issue and attach the copied diagnostics report.',
+    'Создать обращение':'Create issue','Обновления и инструкции':'Updates and guides','Открыть исходный код, описание проекта и последние версии лаунчера.':'Open the source code, project details and latest launcher versions.',
+    'Репозиторий GitHub':'GitHub repository','Последний релиз':'Latest release','Диагностический отчёт':'Diagnostics report',
+    'Отчёт содержит версии, состояние файлов и локальные показатели компьютера. Пароли и токены авторизации в него не включаются.':'The report includes versions, file status and local computer metrics. Passwords and authentication tokens are excluded.',
+    'Скопировать отчёт':'Copy report','Собираем диагностику…':'Collecting diagnostics…','Диагностический отчёт скопирован. Прикрепи его к обращению.':'Diagnostics report copied. Attach it to your issue.',
+    'SKYREALM · ГАЛЕРЕЯ':'SKYREALM · GALLERY','Мои':'My','скриншоты':'screenshots',
+    'Снимки игрового мира, сделанные клавишей F12. Файлы хранятся локально на этом компьютере.':'Screenshots of the game world captured with F12. Files are stored locally on this computer.',
+    '↻ Обновить':'↻ Refresh','Открыть папку':'Open folder','Загружаем галерею…':'Loading gallery…','Скриншот':'Screenshot','Закрыть':'Close',
+    'Пока нет скриншотов':'No screenshots yet','Запусти игру и нажми F12, чтобы сделать первый снимок.':'Launch the game and press F12 to take your first screenshot.',
+    'Открыть статус сервера':'Open server status'
+  };
+  const DYNAMIC_ATTR_EN = {
+    'Например, вечер кооператива':'For example, co-op night',
+    'Выбрать резервную копию':'Select a backup'
+  };
+  function applyDynamicTranslations(root=document) {
+    const toEnglish = enhancementLanguage === 'en';
+    const forward = DYNAMIC_TEXT_EN;
+    const reverse = Object.fromEntries(Object.entries(DYNAMIC_TEXT_EN).map(([ru,en])=>[en,ru]));
+    const attributesForward = DYNAMIC_ATTR_EN;
+    const attributesReverse = Object.fromEntries(Object.entries(DYNAMIC_ATTR_EN).map(([ru,en])=>[en,ru]));
+    const map = toEnglish ? forward : reverse;
+    const attrMap = toEnglish ? attributesForward : attributesReverse;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const value = node.nodeValue.trim();
+      if (Object.prototype.hasOwnProperty.call(map,value)) node.nodeValue = node.nodeValue.replace(value,map[value]);
+    }
+    root.querySelectorAll?.('[placeholder],[title],[aria-label]').forEach(element=>{
+      for (const attribute of ['placeholder','title','aria-label']) {
+        const value=element.getAttribute(attribute);
+        if(value && Object.prototype.hasOwnProperty.call(attrMap,value))element.setAttribute(attribute,attrMap[value]);
+      }
+    });
+  }
+  window.addEventListener('skyrealm:language-changed',event=>{
+    enhancementLanguage=event.detail?.language==='en'?'en':'ru';
+    applyDynamicTranslations();
+  });
 
   function ensureSystemPage() {
     const nav = $('.nav');
@@ -314,8 +380,15 @@
       }
       if(!result?.ok)throw new Error(result?.message||'Не удалось получить сведения об обновлении.');
       cachedUpdate=result;
-      $('#system-launcher-version').textContent=(result.launcher_version||'—')+' → '+(result.latest_launcher_version||'—');
-      $('#system-game-version').textContent=(result.game_version||'—')+' → '+(result.latest_game_version||'—');
+      const currentLauncherVersion=result.launcher_version||'—';
+      const currentGameVersion=result.game_version||'—';
+      if($('#launcher-version-label'))$('#launcher-version-label').textContent='v'+currentLauncherVersion;
+      if($('#home-launcher-version'))$('#home-launcher-version').textContent=currentLauncherVersion;
+      if($('#home-game-version'))$('#home-game-version').textContent=currentGameVersion+(result.game_update_available?' · '+(enhancementLanguage==='en'?'update available':'есть обновление'):'');
+      $('#system-launcher-version').textContent=currentLauncherVersion+' → '+(result.latest_launcher_version||'—');
+      $('#system-game-version').textContent=currentGameVersion+' → '+(result.latest_game_version||'—');
+      const modBadge=$('#mods-catalog-count');
+      if(modBadge){const actualCount=document.querySelectorAll('#page-mods [data-install-mod]:not([data-install-mod="__catalog__"]):not([data-install-mod="__creator__"])').length;modBadge.textContent=String(actualCount);modBadge.hidden=actualCount===0;}
       const available=[];
       if(result.launcher_update_available)available.push('новый лаунчер');
       if(result.game_update_available)available.push('новая игра');
@@ -364,7 +437,14 @@
     node.textContent='Проверяем игровые файлы и локальные данные…';
     try{
       const result=await window.pywebview.api.get_diagnostics();if(!result?.ok)throw new Error(result?.message||'Диагностика не выполнена');
-      node.textContent=(result.healthy?'Основные файлы на месте. ':'Нужен ремонт. ')+'Версия: '+result.version+'. Отсутствуют: '+((result.missing||[]).join(', ')||'нет')+'. Хранилище миров: '+(result.world_storage_found?'найдено':'ещё не создано')+'.';
+      const missing=(result.missing||[]).join(', ')||'нет';
+      const mismatches=(result.integrity_mismatches||[]).map(item=>item.file).join(', ')||'нет';
+      const integrity=result.integrity_comparable
+        ? 'SHA-256 проверено: '+(result.integrity_checked||0)+', отличаются: '+mismatches+'.'
+        : 'Сравнение SHA-256 с комплектом лаунчера недоступно для этой версии.';
+      const runner='Игровой запускатель: '+(result.runner_exists?'найден':'будет создан при следующем запуске')+'.';
+      node.textContent=(result.healthy?'Основные файлы и контрольные суммы совпадают. ':'Нужен ремонт. ')+'Версия: '+result.version+'. Отсутствуют: '+missing+'. '+integrity+' '+runner+' Хранилище миров: '+(result.world_storage_found?'найдено':'ещё не создано')+'.';
+      applyDynamicTranslations(node);
     }catch(error){node.textContent=error.message||'Ошибка диагностики.';}
   }
   async function refreshAll() {
@@ -396,8 +476,9 @@
   }
   function init() {
     ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();
-    refreshServices();refreshNotifications();
-    pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();},45_000);
+    applyDynamicTranslations();
+    refreshServices();refreshNotifications();checkUpdates();
+    pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();checkUpdates();},45_000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
