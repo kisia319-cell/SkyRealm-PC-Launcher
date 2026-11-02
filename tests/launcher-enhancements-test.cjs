@@ -22,6 +22,10 @@ assert.ok(launchGameSource,'Game launch method must be present');
 const appDataDeclaration=launchGameSource[0].indexOf('app_data = Path(');
 const runnerPathUse=launchGameSource[0].indexOf('runner_dir = app_data / "SkyRealm" / "bin"');
 assert.ok(appDataDeclaration>=0&&runnerPathUse>appDataDeclaration,'launch_game must define its LocalAppData base before installing the standalone game runner');
+assert.ok(launcher.includes('AllowSetForegroundWindow(game_process.pid)'), 'Launcher must grant the separately spawned game process permission to activate its window');
+assert.ok(launcher.includes('def _skyrealm_activate_current_window()') && launcher.includes('user32.SetForegroundWindow(hwnd)') && launcher.includes('user32.BringWindowToTop(hwnd)'), 'Game runner must activate its own visible native window on Windows');
+assert.ok(launcher.includes('game_window.events.shown += _activate_game_window') && launcher.includes('game_window.events.loaded += _activate_game_window') && launcher.includes('focus=True'), 'Game window activation must run after native show and WebView load');
+
 
 assert.match(launcher,/previous build preserved/);
 for(const id of ['system-auth-dot','system-coop-dot','system-social-dot','system-install-update','system-repair','system-rollback','system-open-cloud','system-cpu','system-ram']) assert.ok(ui.includes(id),'Missing management UI: '+id);
