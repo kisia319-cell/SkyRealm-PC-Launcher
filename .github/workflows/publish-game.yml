@@ -1,0 +1,70 @@
+name: Publish SkyRealm game package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "game/**"
+      - ".github/workflows/publish-game.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  package-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build game archive
+        run: |
+          GAME_VERSION="$(tr -d '\r\n' < game/version.txt)"
+          echo "GAME_VERSION=$GAME_VERSION" >> "$GITHUB_ENV"
+          cd game
+          zip -qr ../SkyRealm_Game.zip .
+          cd ..
+          echo "GAME_SHA256=$(sha256sum SkyRealm_Game.zip | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
+
+      - name: Publish game release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.GAME_VERSION }}
+          name: SkyRealm Game ${{ env.GAME_VERSION }}
+          body: |
+            SkyRealm — морская экспедиция:
+            корабли, волны, дождь и штормы, акулы, морские карты и отмеченные сундуки,
+            редкие предметы, которые нельзя создать на верстаке,
+            подводная сокровищница с тремя глубокими путями и ровно двумя богами моря,
+            водяной шлем четырёх уровней, ремонт корабля у берега.
+          files: SkyRealm_Game.zip
+          draft: false
+          prerelease: false
+          make_latest: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update updater manifest
+        env:
+          GAME_VERSION: ${{ env.GAME_VERSION }}
+          GAME_SHA256: ${{ env.GAME_SHA256 }}
+        run: |
+          python - <<'PY'
+          import json, os
+          version = os.environ["GAME_VERSION"]
+          path = "manifest.json"
+          with open(path, "r", encoding="utf-8") as f:
+              data = json.load(f)
+          data["game_version"] = version
+          data["game_sha256"] = os.environ["GAME_SHA256"]
+          data["game_download_url"] = f"https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/game-{version}/SkyRealm_Game.zip"
+          data["notes"] = "SkyRealm " + version + ": морская экспедиция за береговой линией; парусный корабль; волны, дождь и штормы; акулы; карта моря 220×164 и карты сокровищ с реальными отметками сундуков; редкие предметы, которые нельзя создать на верстаке; подводная сокровищница с тремя глубокими маршрутами, стражами и ровно двумя богами моря; водяной шлем 1–4 уровня (1/4/8 минут и бесконечное дыхание), без бонуса к защите; ремонт корабля у берега. Морские открытия входят в сохранение мира."
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+              f.write(chr(10))
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "Publish game package $GAME_VERSION" || exit 0
+          git push
