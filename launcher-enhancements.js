@@ -160,7 +160,7 @@
   function renderCalendar(){
     const grid=$('#calendar-days');if(!grid)return;grid.replaceChildren();
     const year=calendarMonth.getFullYear(),month=calendarMonth.getMonth(),first=new Date(year,month,1),days=new Date(year,month+1,0).getDate(),offset=(first.getDay()+6)%7;
-    $('#calendar-month-label').textContent=calendarMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    $('#calendar-month-label').textContent=calendarMonth.toLocaleDateString(enhancementLanguage==='en'?'en-US':'ru-RU',{month:'long',year:'numeric'});
     const events=readCalendarEvents();
     for(let i=0;i<offset;i++){const blank=document.createElement('span');blank.className='calendar-day blank';grid.append(blank);}
     for(let day=1;day<=days;day++){
