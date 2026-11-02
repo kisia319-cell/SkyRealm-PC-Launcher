@@ -93,11 +93,11 @@ const missingRecipes = [...gameHtml.matchAll(/data-craft="([^"]+)"/g)]
 assert.deepEqual(missingRecipes, [], 'Every data-craft button must reference a recipe');
 
 const expectedMapSizes = {
-  easy: [180, 140],
-  medium: [220, 164],
-  hard: [260, 192],
-  hell: [300, 220],
-  impossible: [360, 260],
+  easy: [360, 280],
+  medium: [440, 328],
+  hard: [520, 384],
+  hell: [600, 440],
+  impossible: [720, 520],
 };
 for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
   const line = game.split(/\r?\n/).find(row => row.includes(difficulty + ":{id:'" + difficulty + "'"));
