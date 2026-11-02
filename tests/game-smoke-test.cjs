@@ -117,7 +117,7 @@ assert.ok(game.includes("changeItem('Ключ от клетки',1)") && game.in
 assert.ok(game.includes('currentDistance<=weaponRange()') && game.includes('distance<=weaponRange()') && game.includes('const wolfAttackRange=weaponRange()'), 'Monster and boss attack distances must use the equipped player weapon range');
 
 assert.ok(game.includes('const movementKeyCodes = new Set()') && game.includes("window.addEventListener('pagehide'"), 'Movement input must recover from key/focus loss');
-assert.ok(game.includes('if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();}') && game.includes('if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();}'), 'HUD editing and sleeping must clear all held physical movement keys');
+assert.ok(game.includes('if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}') && game.includes('if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}'), 'HUD editing and sleeping must clear all held physical movement keys');
 
 assert.ok(game.includes('quickbarItemNames') && game.includes('for(let index=0;index<10;index++)') && game.includes('pageSize=20'), 'Inventory must have ten persistent hotbar slots and twenty-slot pages');
 assert.ok(gameHtml.includes('id="inventory-page-prev"') && gameHtml.includes('id="inventory-page-next"') && gameHtml.includes('СЛОТЫ 1–10'), 'Inventory UI must expose ten hotbar slots and paging');
