@@ -9,7 +9,7 @@
   const manifestUrl = 'https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json';
   const currentTime = () => new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
   let notificationPanel = null, notificationList = null, notificationCount = null;
-  let cachedNotifications = [], cachedUpdate = null, pollTimer = null;
+  let cachedNotifications = [], cachedUpdate = null, pollTimer = null, cachedReleaseNews = null, releaseNewsBusy = false;
   let enhancementLanguage = document.documentElement.lang === 'en' ? 'en' : 'ru';
   const DYNAMIC_TEXT_EN = {
     'Центр управления':'Control Center','Пн':'Mon','Вт':'Tue','Ср':'Wed','Чт':'Thu','Пт':'Fri','Сб':'Sat','Вс':'Sun','Проверяем manifest и текущую установку…':'Checking the manifest and current installation…','Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.':'A launcher update is available. It will be installed automatically on the next start.','Доступно обновление игры. Перед установкой закрой игру.':'A game update is available. Close the game before installing it.','Установлены последние версии.':'The latest versions are installed.','Проверяем игровые файлы и локальные данные…':'Checking game files and local data…','Основные файлы и контрольные суммы совпадают. ':'Core files and checksums match. ','Нужен ремонт. ':'Repair required. ','Версия: ':'Version: ','Отсутствуют: ':'Missing: ','нет':'none','найдено':'found','ещё не создано':'not created yet','Игровой запускатель: ':'Game runner: ','установлен.':'installed.','будет установлен при следующем запуске.':'will be installed on next launch.','Сверено файлов с комплектом: ':'Bundled files checked: ','совпадают.':'all match.','Несовпадения: ':'Mismatches: ','Центр':'Control','управления':'center','ЦЕНТР УПРАВЛЕНИЯ':'CONTROL CENTER','КАЛЕНДАРЬ':'CALENDAR','ПОДДЕРЖКА':'SUPPORT','СКРИНШОТЫ':'SCREENSHOTS','Создать копию':'Create backup','Восстановить выбранную':'Restore selected','Обновить список':'Refresh list','Последняя исправная копия':'Latest valid backup','Восстановить':'Restore','Просмотреть':'View','Просмотр':'View',
@@ -60,6 +60,17 @@
     'СПУТНИКИ':'COMPANIONS','ЭКОНОМИКА':'ECONOMY','МАГИЯ':'MAGIC',
     'ТЕХНОЛОГИИ':'TECHNOLOGY','НОВЫЕ МИРЫ':'NEW WORLDS','ПЕРЕДВИЖЕНИЕ':'MOVEMENT',
     'ЗАЩИТА':'DEFENSE','ЛЕЧЕНИЕ':'HEALING','ВЫНОСЛИВОСТЬ':'STAMINA',
+    'ОФИЦИАЛЬНАЯ ЛЕНТА GITHUB':'OFFICIAL GITHUB FEED',
+    'Последние публикации SkyRealm':'Latest SkyRealm updates',
+    'Загружаем последние релизы…':'Loading latest releases…',
+    'Получаем опубликованные релизы GitHub…':'Fetching published GitHub releases…',
+    'Показаны опубликованные релизы GitHub.':'Showing published GitHub releases.',
+    'Релизов нет — показана история коммитов main.':'No releases yet — showing recent commits from main.',
+    'Опубликованных релизов пока нет.':'No published releases yet.',
+    'Не удалось загрузить новости GitHub. Проверь интернет и попробуй обновить ленту.':'Could not load GitHub news. Check your connection and refresh the feed.',
+    'Открыть релиз ↗':'Open release ↗','Открыть коммит ↗':'Open commit ↗',
+    'Предварительный релиз':'Pre-release','Релиз':'Release','Коммит':'Commit',
+
     'СОКРОВИЩА':'TREASURES','ВОССТАНОВЛЕНИЕ':'RECOVERY'
   };
   const DYNAMIC_ATTR_EN = {
@@ -96,7 +107,128 @@
     applyDynamicTranslations();
     refreshServices();
     initModCatalogFilters();
+    if(cachedReleaseNews)renderLiveReleaseNews(cachedReleaseNews);
   });
+
+  function safeGitHubProjectUrl(value,kind){
+    try{
+      const url=new URL(String(value||''));
+      const prefix='/kisia319-cell/SkyRealm-PC-Launcher/';
+      if(url.protocol!=='https:'||url.hostname!=='github.com'||!url.pathname.startsWith(prefix))return '';
+      if(kind==='release'&&!url.pathname.includes('/releases/'))return '';
+      if(kind==='commit'&&!url.pathname.includes('/commit/'))return '';
+      return url.href;
+    }catch(_){return '';}
+  }
+  function browserReleaseSummary(value){
+    return String(value||'').replace(/`{3}[sS]*?`{3}/g,' ')
+      .replace(/![[^]]*]([^)]*)/g,' ')
+      .replace(/[([^]]+)]([^)]*)/g,'$1')
+      .replace(/^\s{0,3}#{1,6}\s*/gm,'')
+      .replace(/^\s*[-*>]+\s*/gm,'')
+      .replace(/[*_~`]/g,'').replace(/s+/g,' ').trim().slice(0,420);
+  }
+  async function fetchBrowserReleaseNews(){
+    const headers={'Accept':'application/vnd.github+json','Cache-Control':'no-cache'};
+    const base='https://api.github.com/repos/kisia319-cell/SkyRealm-PC-Launcher';
+    const releaseResponse=await fetch(base+'/releases?per_page=8',{headers,cache:'no-store'});
+    if(!releaseResponse.ok)throw new Error('GitHub API HTTP '+releaseResponse.status);
+    const releases=await releaseResponse.json();
+    const items=(Array.isArray(releases)?releases:[]).filter(item=>item&&!item.draft)
+      .map(item=>({
+        id:'release:'+String(item.tag_name||item.name||'').slice(0,80),
+        kind:'release',title:String(item.name||item.tag_name||'').slice(0,140),
+        tag:String(item.tag_name||'').slice(0,80),
+        published_at:String(item.published_at||item.created_at||''),
+        summary:browserReleaseSummary(item.body),
+        url:safeGitHubProjectUrl(item.html_url,'release'),
+        prerelease:Boolean(item.prerelease)
+      })).filter(item=>item.title&&item.url).slice(0,8);
+    if(items.length)return {ok:true,source:'releases',items,fetched_at:new Date().toISOString(),cached:false};
+    const commitResponse=await fetch(base+'/commits?sha=main&per_page=8',{headers,cache:'no-store'});
+    if(!commitResponse.ok)throw new Error('GitHub commit API HTTP '+commitResponse.status);
+    const commits=await commitResponse.json();
+    const recent=(Array.isArray(commits)?commits:[]).map(commit=>{
+      const detail=commit&&commit.commit||{},author=detail.author||{};
+      const message=String(detail.message||''),title=message.split(/\r?\n/)[0].trim();
+      return {id:'commit:'+String(commit?.sha||'').slice(0,12),kind:'commit',title:title.slice(0,140),
+        tag:String(commit?.sha||'').slice(0,7),published_at:String(author.date||''),
+        summary:browserReleaseSummary(message.split(/\r?\n/).slice(1).join(' ')),
+        url:safeGitHubProjectUrl(commit?.html_url,'commit'),prerelease:false};
+    }).filter(item=>item.title&&item.url).slice(0,8);
+    return {ok:true,source:'commits',items:recent,fetched_at:new Date().toISOString(),cached:false};
+  }
+  function renderLiveReleaseNews(data){
+    const list=$('#live-news-list'),status=$('#live-news-status');
+    if(!list)return;
+    const items=Array.isArray(data?.items)?data.items:[];
+    list.replaceChildren();
+    if(!items.length){
+      const empty=document.createElement('div');empty.className='live-news-empty';
+      empty.textContent=enhancementLanguage==='en'?'No published releases yet. Visit the releases page for details.':'Опубликованных релизов пока нет. Открой страницу релизов, чтобы посмотреть подробности.';
+      list.append(empty);
+    }else{
+      items.forEach(item=>{
+        const kind=item.kind==='commit'?'commit':'release';
+        const article=document.createElement('article');article.className='live-news-item';
+        const main=document.createElement('div');main.className='live-news-item-main';
+        const meta=document.createElement('div');meta.className='live-news-item-meta';
+        const label=document.createElement('span');label.className='live-news-item-kind'+(item.prerelease?' prerelease':'');
+        label.textContent=kind==='commit'?(enhancementLanguage==='en'?'Commit':'Коммит'):(item.prerelease?(enhancementLanguage==='en'?'Pre-release':'Предварительный релиз'):(enhancementLanguage==='en'?'Release':'Релиз'));
+        meta.append(label);
+        if(item.tag){const tag=document.createElement('span');tag.textContent=item.tag;meta.append(tag);}
+        if(item.published_at){
+          const time=document.createElement('time');const date=new Date(item.published_at);
+          time.textContent=Number.isNaN(date.getTime())?item.published_at:date.toLocaleDateString(enhancementLanguage==='en'?'en-US':'ru-RU',{year:'numeric',month:'short',day:'numeric'});
+          meta.append(time);
+        }
+        const title=document.createElement('h3');title.textContent=String(item.title||'').slice(0,140);
+        const summary=document.createElement('p');summary.textContent=String(item.summary||'').slice(0,420);
+        main.append(meta,title,summary);
+        article.append(main);
+        const url=safeGitHubProjectUrl(item.url,kind);
+        if(url){
+          const link=document.createElement('a');link.className='live-news-item-link';link.href=url;link.target='_blank';link.rel='noreferrer';
+          link.textContent=kind==='commit'?(enhancementLanguage==='en'?'Open commit ↗':'Открыть коммит ↗'):(enhancementLanguage==='en'?'Open release ↗':'Открыть релиз ↗');
+          article.append(link);
+        }
+        list.append(article);
+      });
+    }
+    if(status){
+      const sourceText=data?.source==='commits'
+        ?(enhancementLanguage==='en'?'No releases yet — showing recent commits from main.':'Релизов нет — показана история коммитов main.')
+        :(enhancementLanguage==='en'?'Showing published GitHub releases.':'Показаны опубликованные релизы GitHub.');
+      status.textContent=sourceText+(data?.cached?(enhancementLanguage==='en'?' · cached':' · из кэша'):'');
+    }
+  }
+  async function refreshLiveReleaseNews(forceRefresh=false){
+    const list=$('#live-news-list'),status=$('#live-news-status'),button=$('#live-news-refresh');
+    if(!list||releaseNewsBusy)return;
+    releaseNewsBusy=true;if(button)button.disabled=true;
+    if(status)status.textContent=enhancementLanguage==='en'?'Loading latest releases…':'Загружаем последние релизы…';
+    try{
+      let result=null;
+      if(window.pywebview?.api?.get_release_news)result=await window.pywebview.api.get_release_news(Boolean(forceRefresh));
+      else result=await fetchBrowserReleaseNews();
+      if(!result?.ok)throw new Error(result?.message||'GitHub news unavailable');
+      cachedReleaseNews=result;renderLiveReleaseNews(result);
+    }catch(error){
+      list.replaceChildren();const item=document.createElement('div');item.className='live-news-empty live-news-error';
+      item.textContent=enhancementLanguage==='en'?'Could not load GitHub news. Check your connection and refresh the feed.':'Не удалось загрузить новости GitHub. Проверь интернет и попробуй обновить ленту.';
+      list.append(item);if(status)status.textContent=item.textContent;
+    }finally{
+      releaseNewsBusy=false;if(button)button.disabled=false;
+    }
+  }
+  function bindLiveReleaseNews(){
+    $('#live-news-refresh')?.addEventListener('click',()=>refreshLiveReleaseNews(true));
+    document.addEventListener('click',event=>{
+      const target=event.target;
+      if(target&&target.closest?.('[data-page="news"]'))window.setTimeout(()=>refreshLiveReleaseNews(false),0);
+    },true);
+    refreshLiveReleaseNews(false);
+  }
 
   const MOD_FILTER_STORAGE_KEY='skyrealm_mod_catalog_filters_v1';
   const MOD_FAVORITES_STORAGE_KEY='skyrealm_mod_favorite_ids_v1';
@@ -606,11 +738,11 @@
     });
   }
   function init() {
-    ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();initModCatalogFilters();
+    ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();initModCatalogFilters();bindLiveReleaseNews();
     applyDynamicTranslations();
     refreshLocalVersions();refreshServices();refreshNotifications();checkUpdates();
     window.addEventListener('pywebviewready',()=>{
-      refreshLocalVersions();checkUpdates();refreshMetrics();refreshDiagnostics();
+      refreshLocalVersions();checkUpdates();refreshMetrics();refreshDiagnostics();refreshLiveReleaseNews(false);
     });
     pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();checkUpdates();},45_000);
   }
