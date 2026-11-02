@@ -5,7 +5,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_PATTERN = /^[A-HJ-NP-Z2-9]{8}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SHARED_SNAPSHOT_FIELDS = new Set(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","lastWorldCampDay","lastWorldHordeNight","lastWorldMeteorNight","lastWorldTravelerDay","meteorPoint","meteorShowerTimer","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","worldEventCamp","worldEventTraveler"]);
+const SHARED_SNAPSHOT_FIELDS = new Set(["clearedSnowTiles","snowShovelHits","worldTimeMultiplier","lastYetiSpawnDay","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","lastWorldCampDay","lastWorldHordeNight","lastWorldMeteorNight","lastWorldTravelerDay","meteorPoint","meteorShowerTimer","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","worldEventCamp","worldEventTraveler"]);
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
@@ -77,6 +77,16 @@ function sanitizeSharedSnapshot(value: unknown): Record<string, unknown> {
       throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "В снимке есть личные или неизвестные данные.");
     }
     output[key] = entry;
+  }
+  if (output.worldTimeMultiplier !== undefined) {
+    const multiplier = Number(output.worldTimeMultiplier);
+    if (![1, 2, 3, 4].includes(multiplier)) throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "Некорректная скорость игрового времени.");
+    output.worldTimeMultiplier = multiplier;
+  }
+  if (output.lastYetiSpawnDay !== undefined) {
+    const day = Number(output.lastYetiSpawnDay);
+    if (!Number.isSafeInteger(day) || day < -1 || day > 1000000) throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "Некорректный день события Йети.");
+    output.lastYetiSpawnDay = day;
   }
   if (output.coopWorldEntry !== undefined) {
     const entry = output.coopWorldEntry as Record<string, unknown>;
