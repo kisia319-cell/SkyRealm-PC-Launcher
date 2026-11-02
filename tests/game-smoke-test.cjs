@@ -111,6 +111,10 @@ assert.ok(gameHtml.includes('id="inventory-page-prev"') && gameHtml.includes('id
 assert.ok(game.includes("id:'storm'") && game.includes("id:'abyss'"), 'Two additional world bosses must be defined');
 assert.ok(game.includes('function makeDungeonRoomMobs') && game.includes("type:'skeleton'") && game.includes("type:'ice'") && game.includes("type:'scorpion'") && game.includes("type:'brute'"), 'Each dungeon room must generate four distinct enemy types');
 assert.ok(game.includes('function drawDungeonPassageLayout') && game.includes('ЛОВУШЕЧНЫЙ МАРШРУТ') && game.includes('ЗАЛ АРХОНТА'), 'Dungeon rooms must have distinct passage layouts');
+assert.ok(game.includes('function captureWorldLayerState()') && game.includes('function applyWorldLayerState(state)') && game.includes('surfaceWorldLayer') && game.includes('tradeWorldLayer'), 'Trade World and surface world must keep independent saved state');
+assert.ok(game.includes('tradeWorldMode,surfaceWorldLayer:tradeWorldMode?surfaceWorldLayer:null') && game.includes('tradeWorldLayer:tradeWorldMode?null:tradeWorldLayer'), 'Only the inactive world layer should be duplicated in each save to limit storage use');
+assert.ok(game.includes("if(!tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;") && game.includes('if(tradeWorldMode){\n      for(const village of villageCenters'), 'Trade World residents and minimap must remain isolated from the surface world');
+
 
 assert.ok(game.includes('dungeonRoomMobs:dungeonRoomMobs.map') && game.includes('livingMobs=dungeonRoomMobs.filter'), 'Dungeon enemy health and combat state must persist');
 
