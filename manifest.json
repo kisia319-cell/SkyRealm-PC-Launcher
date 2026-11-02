@@ -1,7 +1,7 @@
 {
   "game_sha256": "cac5b9ac0688353efbdb35469a091b19db1312b373f577b2cd9539da93ca44e0",
   "game_version": "0.20.50.7",
-  "notes": "SkyRealm 0.20.50.7: shared co-op monsters and boss health, owner-validated combat, and one-time shared loot drops. Every player keeps a separate inventory, wallet, equipment and XP; only the player who picks up a shared drop receives it. Existing worlds and single-player saves remain compatible. Co-op remains a preview.",
+  "notes": "SkyRealm 0.20.50.7: морская экспедиция, два усиленных бога моря с параметрами по сложности, ответные атаки по здоровью игрока, три новых легендарных морских оружия (Трезубец прилива, Гарпун бури, Клинок бездны). Сохранения мира и одиночная игра сохранены.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.7",
   "sha256": "b4b658a9fe4e0ab11e2d8e39a9e699b7a80913607d78a6fa8744494e61c569df",
