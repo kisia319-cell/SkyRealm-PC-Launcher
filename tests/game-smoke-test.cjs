@@ -354,7 +354,7 @@ assert.ok(gameHtml.includes('id="world-filter"')&&gameHtml.includes('value="favo
 assert.ok(game.includes('const movementDirections = new Set()'), 'Movement input must be tracked independently from action keys');
 assert.ok(game.includes('MOVEMENT_DIRECTION_BY_ACTION'), 'WASD and arrow keys must resolve to movement directions');
 assert.ok(game.includes('movementDirections.add(movementDirection)'), 'Movement keydown must register a held direction');
-assert.ok(game.includes('movementDirections.delete(direction)'), 'Movement keyup must release the held direction');
+assert.ok(game.includes('movementDirections.delete(physicalDirection)') && game.includes('movementDirections.delete(actionDirection)'), 'Movement keyup must release both physical-code and logical action directions');
 assert.ok(game.includes('movementDirections.clear()'), 'Movement input must be cleared on blur, hidden window, HUD edit mode and sleep');
 assert.ok(game.includes("if(movementDirections.has('up')||keys.has('w')||keys.has('arrowup')||movementKeyCodes.has('KeyW')||movementKeyCodes.has('ArrowUp'))my--") && game.includes("if(movementDirections.has('right')||keys.has('d')||keys.has('arrowright')||movementKeyCodes.has('KeyD')||movementKeyCodes.has('ArrowRight'))mx++"), 'Player movement must combine held directions with physical-key recovery states');
 
