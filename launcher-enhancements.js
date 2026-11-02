@@ -370,6 +370,21 @@
       renderNotifications(cachedNotifications);
     }catch(error){renderNotifications([],error.message||'Не удалось загрузить уведомления.');if(notificationCount)notificationCount.hidden=true;}
   }
+  async function refreshLocalVersions() {
+    const api=window.pywebview?.api;
+    if(typeof api?.get_local_versions!=='function')return;
+    try{
+      const result=await api.get_local_versions();
+      if(!result?.ok)return;
+      const launcherVersion=result.launcher_version||'—';
+      const gameVersion=result.game_version||'не установлена';
+      if($('#launcher-version-label'))$('#launcher-version-label').textContent='v'+launcherVersion;
+      if($('#home-launcher-version'))$('#home-launcher-version').textContent=launcherVersion;
+      if($('#home-game-version'))$('#home-game-version').textContent=gameVersion;
+      if($('#system-launcher-version'))$('#system-launcher-version').textContent=launcherVersion;
+      if($('#system-game-version'))$('#system-game-version').textContent=gameVersion+' → '+(result.latest_local_game_version||gameVersion);
+    }catch(error){console.warn('[SkyRealm] Local version check failed:',error);}
+  }
   async function checkUpdates() {
     const status=$('#system-update-message');if(status)status.textContent='Проверяем manifest и текущую установку…';
     try{
@@ -479,7 +494,7 @@
   function init() {
     ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();
     applyDynamicTranslations();
-    refreshServices();refreshNotifications();checkUpdates();
+    refreshLocalVersions();refreshServices();refreshNotifications();checkUpdates();
     pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();checkUpdates();},45_000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
