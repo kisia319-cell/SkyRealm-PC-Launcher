@@ -366,7 +366,7 @@ assert.ok(game.includes('s.vsync = s.vsync !== false'),'Game settings must norma
 // Regression coverage: movement input must have one cleanup path, physical key release must
 // clear its canonical direction, and world saves must be verified/recoverable.
 
-const movementResolverMatch=game.match(/function resolveMovementDirection\(action,code\)\{[^}]*\\}/);
+const movementResolverMatch=game.match(/function resolveMovementDirection\(action,code\)\{[^}]*\}/);
 assert.ok(movementResolverMatch,'Movement direction resolver must exist');
 const movementResolver=vm.runInNewContext('('+movementResolverMatch[0]+')',{MOVEMENT_DIRECTION_BY_ACTION:{w:'up',a:'left',s:'down',d:'right'},PHYSICAL_MOVEMENT_BY_CODE:{KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right',ArrowUp:'up',ArrowLeft:'left',ArrowDown:'down',ArrowRight:'right'}});
 assert.equal(movementResolver('w','KeyD'),'up','A KeyD binding assigned to Up must not also resolve to Right');
