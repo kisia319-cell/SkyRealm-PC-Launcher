@@ -2536,7 +2536,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     layer.wolfBossActive=false;layer.wolfBossHp=0;layer.wolfBossKeyDropped=false;layer.wolfCageOpen=false;layer.wolfDogCaged=true;layer.wolfBossDefeated=false;
     layer.wolfCompanionUnlocked=false;layer.wolfCompanionHp=300;layer.wolfCompanionRevivals=0;layer.wolfDogDeathHandled=false;layer.dogBehavior='follow';
     layer.dungeonRoom=1;layer.dungeonClearedRooms=[];layer.dungeonEnemyHp=0;layer.dungeonRoomMobs=[];
-    layer.npcQuestState={};layer.villageReputation=0;layer.villageRaidActive=false;layer.villageRaidKills=0;layer.villageRaidTimer=0;layer.lastVillageRaidDay=-1;
+    layer.npcQuestState={};layer.villageQuestStage=0;layer.blacksmithQuestStage=0;layer.explorerQuestStage=0;layer.villageReputation=0;layer.villageRaidActive=false;layer.villageRaidKills=0;layer.villageRaidTimer=0;layer.lastVillageRaidDay=-1;
     return layer;
   }
   function transitionTradeWorld(){
