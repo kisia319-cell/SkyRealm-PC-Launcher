@@ -105,6 +105,12 @@ for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
   assert.ok(line.includes('cols:' + cols + ',rows:' + rows), 'Incorrect doubled map size for difficulty: ' + difficulty);
 }
 assert.ok(game.includes("function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)"), 'Biome regions must scale with the larger map');
+assert.ok(game.includes('const movementKeyCodes = new Set()') && game.includes("movementKeyCodes.has('KeyW')") && game.includes("window.addEventListener('pagehide'"), 'Movement input must recover from key/focus loss');
+assert.ok(game.includes('quickbarItemNames') && game.includes('for(let index=0;index<10;index++)') && game.includes('pageSize=20'), 'Inventory must have ten persistent hotbar slots and twenty-slot pages');
+assert.ok(gameHtml.includes('id="inventory-page-prev"') && gameHtml.includes('id="inventory-page-next"') && gameHtml.includes('СЛОТЫ 1–10'), 'Inventory UI must expose ten hotbar slots and paging');
+assert.ok(game.includes("id:'storm'") && game.includes("id:'abyss'"), 'Two additional world bosses must be defined');
+assert.ok(game.includes('d<weaponRange()&&b.attackTimer') && game.includes('dist<weaponRange()&&dungeonEnemyAttackTimer'), 'Boss attack reach must match the equipped player weapon range');
+
 
 assert.ok(gameHtml.includes('content="'+version+'"'), 'Game HTML version metadata must match game/version.txt');
 assert.ok(gameHtml.includes('id="anvil-enchant-weapon"'), 'Enchanting button must exist in game UI');
