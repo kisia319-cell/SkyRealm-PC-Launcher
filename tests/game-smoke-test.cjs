@@ -120,9 +120,10 @@ assert.ok(game.includes('const movementKeyCodes = new Set()') && game.includes("
 assert.ok(game.includes('if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}') && game.includes('if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}'), 'HUD editing and sleeping must clear all held physical movement keys');
 
 assert.ok(game.includes('quickbarItemNames') && game.includes('for(let index=0;index<10;index++)') && game.includes('pageSize=20'), 'Inventory must have ten persistent hotbar slots and twenty-slot pages');
-const lowerBoundMatch=game.match(/function lowerBoundByY\(items,minY\)\{[^}]*\}/);
-assert.ok(lowerBoundMatch,'Large-map decoration renderer must expose its sorted-row lower-bound helper');
-const lowerBoundByY=vm.runInNewContext('('+lowerBoundMatch[0]+')');
+const lowerBoundStart=game.indexOf('function lowerBoundByY(items,minY){');
+const lowerBoundEnd=game.indexOf('\n  function drawFlowers',lowerBoundStart);
+assert.ok(lowerBoundStart>=0&&lowerBoundEnd>lowerBoundStart,'Large-map decoration renderer must expose its sorted-row lower-bound helper');
+const lowerBoundByY=vm.runInNewContext('('+game.slice(lowerBoundStart,lowerBoundEnd).trim()+')');
 const sortedDecorationRows=[{y:1},{y:3},{y:6},{y:9},{y:14}];
 assert.equal(lowerBoundByY(sortedDecorationRows,6),2,'Viewport culling must start at the first visible decoration row');
 assert.equal(lowerBoundByY(sortedDecorationRows,15),5,'Viewport culling must return array length when no rows are visible');
