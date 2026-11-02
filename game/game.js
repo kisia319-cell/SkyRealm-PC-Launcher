@@ -3425,16 +3425,26 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     if(status){const d=new Date(lastSaveAt);status.textContent='Последнее сохранение: '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
     return true;
   }
+  function readWorldSaveSnapshot(){
+    let primaryError=null,primaryData=null;
+    try{primaryData=JSON.parse(localStorage.getItem(saveKey)||'null');}
+    catch(error){primaryError=error;console.error('SkyRealm primary save is damaged; trying the last verified backup:',error);}
+    if(primaryData&&typeof primaryData==='object'&&!Array.isArray(primaryData))return primaryData;
+    try{
+      const backupRaw=localStorage.getItem(saveKey+'.backup'),backupData=JSON.parse(backupRaw||'null');
+      if(backupData&&typeof backupData==='object'&&!Array.isArray(backupData)){
+        try{localStorage.setItem(saveKey,backupRaw);}
+        catch(restoreError){console.warn('SkyRealm backup was loaded, but restoring the primary save key was unavailable:',restoreError);}
+        return backupData;
+      }
+    }catch(backupError){console.error('SkyRealm backup save is also unavailable:',backupError);}
+    if(primaryError)throw primaryError;
+    return null;
+  }
   function loadGame(){
     monsters.length=0;coopGuestMobAttackCooldowns.clear();
     try{
-      let d=null;
-      try{d=JSON.parse(localStorage.getItem(saveKey)||'null');}
-      catch(primaryError){
-        console.error('SkyRealm primary save is damaged; trying the last verified backup:',primaryError);
-        try{d=JSON.parse(localStorage.getItem(saveKey+'.backup')||'null');if(d&&typeof d==='object')localStorage.setItem(saveKey,JSON.stringify(d));}
-        catch(backupError){console.error('SkyRealm backup save is also unavailable:',backupError);throw primaryError;}
-      }
+      const d=readWorldSaveSnapshot();
       if(d&&typeof d==='object'){
         coopWorldEntry=d.coopWorldEntry&&typeof d.coopWorldEntry==='object'?d.coopWorldEntry:null;
         clearedSnowTiles=new Set(Array.isArray(d.clearedSnowTiles)?d.clearedSnowTiles.filter(k=>/^\d+,\d+$/.test(k)):[]);snowShovelHits=d.snowShovelHits&&typeof d.snowShovelHits==='object'?Object.fromEntries(Object.entries(d.snowShovelHits).filter(([k,v])=>/^\d+,\d+$/.test(k)&&Number.isFinite(v)).map(([k,v])=>[k,Math.max(0,Math.min(2,Math.floor(v)))])):{};
