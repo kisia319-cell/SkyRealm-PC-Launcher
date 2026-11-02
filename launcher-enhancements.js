@@ -495,6 +495,9 @@
     ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();
     applyDynamicTranslations();
     refreshLocalVersions();refreshServices();refreshNotifications();checkUpdates();
+    window.addEventListener('pywebviewready',()=>{
+      refreshLocalVersions();checkUpdates();refreshMetrics();refreshDiagnostics();
+    });
     pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();checkUpdates();},45_000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
