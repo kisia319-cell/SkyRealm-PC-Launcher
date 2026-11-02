@@ -294,7 +294,7 @@ assert.ok(game.includes("const visible = id => { const el=document.getElementByI
 assert.ok(game.includes("pauseShade?.hidden === true && !blockingOverlay && !sleeping"), 'A movement key must recover a stale pause state when no blocking modal is visible');
 assert.ok(game.includes("['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)"), 'Movement must accept physical WASD and arrow key codes in embedded WebViews');
 assert.ok(game.includes("window.addEventListener('keyup', e => {") && game.includes("keys.delete(released)"), 'Movement key releases must be captured at window level');
-assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); } })"), 'Hidden game windows must clear held movement keys');
+assert.ok(game.includes("document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); movementKeyCodes.clear();"), 'Hidden game windows must clear all held movement input states');
 
 assert.ok(game.includes("window.addEventListener('keydown', e => {"), 'Keyboard input must be captured at the WebView window level');
 const keydownStart = game.indexOf("window.addEventListener('keydown'");
