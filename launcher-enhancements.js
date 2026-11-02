@@ -12,7 +12,7 @@
   let cachedNotifications = [], cachedUpdate = null, pollTimer = null;
   let enhancementLanguage = document.documentElement.lang === 'en' ? 'en' : 'ru';
   const DYNAMIC_TEXT_EN = {
-    'Центр управления':'Control Center','Проверяем manifest и текущую установку…':'Checking the manifest and current installation…','Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.':'A launcher update is available. It will be installed automatically on the next start.','Доступно обновление игры. Перед установкой закрой игру.':'A game update is available. Close the game before installing it.','Установлены последние версии.':'The latest versions are installed.','Проверяем игровые файлы и локальные данные…':'Checking game files and local data…','Основные файлы и контрольные суммы совпадают. ':'Core files and checksums match. ','Нужен ремонт. ':'Repair required. ','Версия: ':'Version: ','Отсутствуют: ':'Missing: ','нет':'none','найдено':'found','ещё не создано':'not created yet','Игровой запускатель: ':'Game runner: ','установлен.':'installed.','будет установлен при следующем запуске.':'will be installed on next launch.','Сверено файлов с комплектом: ':'Bundled files checked: ','совпадают.':'all match.','Несовпадения: ':'Mismatches: ','Центр':'Control','управления':'center','ЦЕНТР УПРАВЛЕНИЯ':'CONTROL CENTER','КАЛЕНДАРЬ':'CALENDAR','ПОДДЕРЖКА':'SUPPORT','СКРИНШОТЫ':'SCREENSHOTS','Создать копию':'Create backup','Восстановить выбранную':'Restore selected','Обновить список':'Refresh list','Последняя исправная копия':'Latest valid backup','Восстановить':'Restore','Просмотреть':'View','Просмотр':'View',
+    'Центр управления':'Control Center','Пн':'Mon','Вт':'Tue','Ср':'Wed','Чт':'Thu','Пт':'Fri','Сб':'Sat','Вс':'Sun','Проверяем manifest и текущую установку…':'Checking the manifest and current installation…','Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.':'A launcher update is available. It will be installed automatically on the next start.','Доступно обновление игры. Перед установкой закрой игру.':'A game update is available. Close the game before installing it.','Установлены последние версии.':'The latest versions are installed.','Проверяем игровые файлы и локальные данные…':'Checking game files and local data…','Основные файлы и контрольные суммы совпадают. ':'Core files and checksums match. ','Нужен ремонт. ':'Repair required. ','Версия: ':'Version: ','Отсутствуют: ':'Missing: ','нет':'none','найдено':'found','ещё не создано':'not created yet','Игровой запускатель: ':'Game runner: ','установлен.':'installed.','будет установлен при следующем запуске.':'will be installed on next launch.','Сверено файлов с комплектом: ':'Bundled files checked: ','совпадают.':'all match.','Несовпадения: ':'Mismatches: ','Центр':'Control','управления':'center','ЦЕНТР УПРАВЛЕНИЯ':'CONTROL CENTER','КАЛЕНДАРЬ':'CALENDAR','ПОДДЕРЖКА':'SUPPORT','СКРИНШОТЫ':'SCREENSHOTS','Создать копию':'Create backup','Восстановить выбранную':'Restore selected','Обновить список':'Refresh list','Последняя исправная копия':'Latest valid backup','Восстановить':'Restore','Просмотреть':'View','Просмотр':'View',
     'SKYREALM · КОНТРОЛЬ':'SKYREALM · CONTROL','Обновления, состояние сервисов, диагностика, облачные сохранения и показатели компьютера.':'Updates, service status, diagnostics, cloud saves and computer metrics.',
     '↻ Обновить всё':'↻ Refresh all','СЕТЬ':'NETWORK','Состояние сервисов':'Service status','Ещё не проверяли':'Not checked yet',
     'Авторизация: проверка':'Authentication: checking','Вход и регистрация игроков':'Player sign-in and registration',
@@ -71,6 +71,8 @@
         if(value && Object.prototype.hasOwnProperty.call(attrMap,value))element.setAttribute(attribute,attrMap[value]);
       }
     });
+    const supportHeading=$('#page-support .page-heading h1');
+    if(supportHeading)supportHeading.innerHTML=toEnglish?'Support <span>Center</span>':'Центр <span>поддержки</span>';
   }
   window.addEventListener('skyrealm:language-changed',event=>{
     enhancementLanguage=event.detail?.language==='en'?'en':'ru';
@@ -288,9 +290,19 @@
     const dot=$('#system-'+key+'-dot'),title=$('#system-'+key+'-title'),copy=$('#system-'+key+'-copy');
     if(!dot||!title||!copy)return;
     dot.className='system-dot '+(ok?'online':'offline');
-    const labels={auth:'Авторизация',coop:'Кооператив',social:'Сообщество'};
-    title.textContent=labels[key]+(ok?' · работает':' · нет связи');
-    copy.textContent=detail|| (ok?'Сервис отвечает':'Проверь интернет или попробуй позже.');
+    const labels=enhancementLanguage==='en'
+      ? {auth:'Authentication',coop:'Co-op',social:'Community'}
+      : {auth:'Авторизация',coop:'Кооператив',social:'Сообщество'};
+    title.textContent=labels[key]+(ok
+      ? (enhancementLanguage==='en'?' · online':' · работает')
+      : (enhancementLanguage==='en'?' · offline':' · нет связи'));
+    const serviceVersion=detail&&detail.startsWith('Версия сервиса ')
+      ? detail.slice('Версия сервиса '.length) : '';
+    copy.textContent=serviceVersion
+      ? (enhancementLanguage==='en'?'Service version ':'Версия сервиса ')+serviceVersion
+      : (detail||(ok
+        ? (enhancementLanguage==='en'?'Service is responding':'Сервис отвечает')
+        : (enhancementLanguage==='en'?'Check your connection and try again.':'Проверь интернет или попробуй позже.')));
   }
   async function pingService(url) {
     if(!url||!apiKey)return {ok:false,message:'URL или ключ сервиса не настроен.'};
@@ -298,7 +310,7 @@
     const response=await fetch(endpoint.toString(),{headers:{apikey:apiKey,Authorization:'Bearer '+apiKey},cache:'no-store'});
     const data=await response.json();
     if(!response.ok||data.status!=='ok')throw new Error(data.message||'HTTP '+response.status);
-    return {ok:true,message:'Версия сервиса '+(data.version||'доступна')};
+    return {ok:true,message:(enhancementLanguage==='en'?'Service version ':'Версия сервиса ')+(data.version||(enhancementLanguage==='en'?'available':'доступна'))};
   }
   async function getAccessToken() {
     let token=localStorage.getItem('skyrealm_token')||sessionStorage.getItem('skyrealm_token')||'';
@@ -406,7 +418,7 @@
       $('#system-launcher-version').textContent=currentLauncherVersion+' → '+(result.latest_launcher_version||'—');
       $('#system-game-version').textContent=currentGameVersion+' → '+(result.latest_game_version||'—');
       const modBadge=$('#mods-catalog-count');
-      if(modBadge){const actualCount=document.querySelectorAll('#page-mods [data-install-mod]:not([data-install-mod="__catalog__"]):not([data-install-mod="__creator__"])').length;modBadge.textContent=String(actualCount);modBadge.hidden=actualCount===0;}
+      if(modBadge){const actualCount=document.querySelectorAll('#page-mods .launcher-mod-card').length;modBadge.textContent=String(actualCount);modBadge.hidden=actualCount===0;}
       const available=[];
       if(result.launcher_update_available)available.push('новый лаунчер');
       if(result.game_update_available)available.push('новая игра');
