@@ -389,6 +389,8 @@ assert.ok(game.includes('function clearMovementInput(){'), 'All focus/window tra
 assert.ok(game.includes('const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.code]') && game.includes("keys.delete(({up:'w',left:'a',down:'s',right:'d'})[physicalDirection])"), 'Physical keyup must release the matching direction even when keyboard layout changes');
 assert.ok(game.includes("window.addEventListener('blur',clearMovementInput,true)") && game.includes("window.addEventListener('pagehide',clearMovementInput,true)"), 'Blur and pagehide must clear held movement state');
 assert.ok(game.includes("localStorage.setItem(saveKey+'.backup',previous)") && game.includes('World save verification failed'), 'Saving must preserve the previous snapshot and verify the new write');
+assert.ok(game.includes('const previousData=JSON.parse(previous)') && game.includes("!Array.isArray(previousData)"), 'Only a valid object snapshot may replace the last known-good backup');
+
 assert.ok(game.includes("localStorage.getItem(saveKey+'.backup')") && game.includes('trying the last verified backup'), 'A damaged primary save must recover from its previous snapshot');
 assert.ok(game.includes('function readWorldSaveSnapshot(){') && game.includes("const backupRaw=localStorage.getItem(saveKey+'.backup'),backupData=JSON.parse(backupRaw||'null')"), 'A missing or non-object primary save must fall back to the backup');
 assert.ok(game.includes("if(primaryData&&typeof primaryData==='object'&&!Array.isArray(primaryData))return primaryData"), 'Valid primary save data must remain preferred over backup data');
