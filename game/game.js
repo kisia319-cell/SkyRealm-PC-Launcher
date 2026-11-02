@@ -3142,8 +3142,9 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       !el.hidden && !['pause-shade','main-menu-shade'].includes(el.id));
     const hasBlockingDialog=signDialogOpen||inventoryDialogOpen||workbenchDialogOpen||
       shopDialogOpen||npcQuestDialogOpen||storageDialogOpen||fullMapOpen;
+    const seaOverlayOpen=!!window.SkyRealmSea?.isOpen?.();
     if(!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true&&
-       !hasBlockingShade&&!hasBlockingDialog&&!sleeping&&!hudMoveMode){
+       !hasBlockingShade&&!hasBlockingDialog&&!seaOverlayOpen&&!sleeping&&!hudMoveMode){
       paused=false;
       keys.clear();
       last=now;
