@@ -4,7 +4,7 @@
   const KEY = () => 'skyrealm_sea_v1_' + (window.SkyRealmSeaBridge?.getWorldId?.() || 'default');
   const $ = (id) => document.getElementById(id);
   const state = {
-    x: 90, y: 82, boatHp: 100, weather: 'calm', weatherLeft: 150,
+    version: VERSION, x: 8, y: 82, boatHp: 100, weather: 'calm', weatherLeft: 150,
     wave: 0, time: 0, mapOpen: false, underwater: false, air: 60,
     helmetLevel: 0, sharks: [], monsters: [], treasures: [], opened: [],
     vaultUnlocked: false, vaultRoom: 0, vaultPath: 0, vaultBosses: { tide:false, abyss:false },
@@ -27,7 +27,7 @@
       const d=JSON.parse(localStorage.getItem(KEY())||'null');
       if(!d || d.version!==VERSION) return;
       Object.assign(state,d);
-      state.x=clamp(Number(state.x)||90,3,W-3); state.y=clamp(Number(state.y)||82,3,H-3);
+      state.x=clamp(Number(state.x)||8,3,W-3); state.y=clamp(Number(state.y)||82,3,H-3);
       state.sharks=Array.isArray(d.sharks)?d.sharks:[]; state.monsters=Array.isArray(d.monsters)?d.monsters:[];
       state.treasures=Array.isArray(d.treasures)?d.treasures:[]; state.opened=Array.isArray(d.opened)?d.opened:[];
       state.relics=Array.isArray(d.relics)?d.relics:[];
@@ -121,16 +121,34 @@
   function enterVault(){
     if(!state.underwater){msg('Вход в сокровищницу находится под водой. Сначала нырни.');return;}
     if(state.helmetLevel<1){msg('Нужен водяной шлем.');return;}
-    state.vaultRoom=1;$('vault-log').textContent='Ты вошёл в лабиринт. Впереди 6 залов, в каждом есть стражи. Выбери один из трёх маршрутов и зачисти его.';
-    $('vault-fight').disabled=false;msg('Ты вошёл в древнюю сокровищницу.');save();
+    state.vaultRoom=1;state.bossHp=0;$('vault-log').textContent='Ты вошёл в лабиринт. Впереди пять залов стражей, затем в последнем пути ждут ровно два бога моря.';
+    $('vault-fight').disabled=false;$('vault-fight').textContent='Атаковать стража';msg('Ты вошёл в древнюю сокровищницу.');save();
   }
   function fightVaultBoss(){
     if(!state.vaultRoom){msg('Сначала пройди один из глубоких путей.');return;}
-    if(state.vaultPath!==2){$('vault-log').textContent='На этом пути тебя атаковали стражи глубин. Ты победил их и нашёл древнюю реликвию. Последний путь ведёт к двум богам.';const b=bridge();b?.addItem?.('Кольцо глубин',1);state.vaultRoom++;save();return;}
-    const b=bridge();const tideDone=state.vaultBosses.tide,abyssDone=state.vaultBosses.abyss;
-    if(!tideDone){state.bossHp=1800;$('vault-log').textContent='БОГ №1: Нептун Разлома · 1800 здоровья. Он управляет приливами и вызывает водяные копья.';state.vaultBosses.tide=true;b?.addItem?.('Сердце прилива',1,'Невоспроизводимый трофей первого бога моря.');msg('Пробуждается первый бог моря!');}
-    else if(!abyssDone){state.bossHp=2600;$('vault-log').textContent='БОГ №2: Левиафан Бездны · 2600 здоровья. Древний монстр, охраняющий главный сундук.';state.vaultBosses.abyss=true;b?.addItem?.('Око бездны',1,'Невоспроизводимый трофей второго бога моря.');b?.addItem?.('Ключ великой сокровищницы',1);msg('Пробуждается второй бог моря!');}
-    else {$('vault-log').textContent='Оба бога моря побеждены. Главная сокровищница открыта: забери корону приливов и реликвию древних.';b?.addItem?.('Корона двух морей',1,'Уникальная награда за победу над обоими богами.');b?.addItem?.('Реликвия древних глубин',1);state.vaultUnlocked=true;msg('Великая сокровищница открыта!');}
+    const b=bridge();
+    if(state.vaultPath!==2){
+      if(state.vaultRoom<=5){
+        if(state.bossHp<=0)state.bossHp=180+state.vaultRoom*45;
+        state.bossHp=Math.max(0,state.bossHp-95);
+        if(state.air!==Infinity)state.air=Math.max(0,state.air-3);
+        if(state.bossHp<=0){state.vaultRoom++;if(state.vaultRoom>5){$('vault-log').textContent='Путь очищен! Ты победил всех стражей и нашёл тайный сундук с уникальной реликвией.';b?.addItem?.('Кольцо глубин',1,'Не создаётся на верстаке.');}else{$('vault-log').textContent='Страж побеждён. В следующем зале появился новый монстр. Зал '+state.vaultRoom+'/5.';state.bossHp=0;}}
+        else $('vault-log').textContent='Страж глубин · осталось здоровья: '+state.bossHp+'. Он наносит ответный удар и отнимает воздух.';
+        save();b?.save?.();return;
+      }
+      return;
+    }
+    if(!state.vaultBosses.tide){
+      if(state.bossHp<=0){state.bossHp=1800;$('vault-log').textContent='БОГ №1: НЕПТУН РАЗЛОМА · 1800 здоровья. Нажимай «Атаковать босса», чтобы сражаться.';msg('Пробуждается первый бог моря!');}
+      else {state.bossHp=Math.max(0,state.bossHp-260);if(state.air!==Infinity)state.air=Math.max(0,state.air-7);$('vault-log').textContent='Нептун Разлома · здоровье: '+state.bossHp+'/1800. Бог отвечает приливным ударом.';}
+      if(state.bossHp===0){state.vaultBosses.tide=true;b?.addItem?.('Сердце прилива',1,'Уникальный трофей первого бога моря. Не создаётся на верстаке.');$('vault-log').textContent='Нептун Разлома повержен! Выпало Сердце прилива. В глубине пробуждается второй бог.';msg('Первый бог моря повержен!');}
+    }else if(!state.vaultBosses.abyss){
+      if(state.bossHp<=0){state.bossHp=2600;$('vault-log').textContent='БОГ №2: ЛЕВИАФАН БЕЗДНЫ · 2600 здоровья. Это последний бог моря.';msg('Пробуждается второй бог моря!');}
+      else {state.bossHp=Math.max(0,state.bossHp-260);if(state.air!==Infinity)state.air=Math.max(0,state.air-10);$('vault-log').textContent='Левиафан Бездны · здоровье: '+state.bossHp+'/2600. Удар бездны отнимает воздух.';}
+      if(state.bossHp===0){state.vaultBosses.abyss=true;b?.addItem?.('Око бездны',1,'Уникальный трофей второго бога моря. Не создаётся на верстаке.');b?.addItem?.('Ключ великой сокровищницы',1);$('vault-log').textContent='Левиафан Бездны повержен! Получен Ключ великой сокровищницы.';msg('Второй и последний бог моря повержен!');}
+    }else if(!state.vaultUnlocked){
+      state.vaultUnlocked=true;b?.addItem?.('Корона двух морей',1,'Уникальная награда за победу над двумя богами.');b?.addItem?.('Реликвия древних глубин',1,'Нельзя создать на верстаке.');$('vault-log').textContent='Открыта главная сокровищница! Получены Корона двух морей и Реликвия древних глубин.';msg('Великая сокровищница открыта!');
+    }else{$('vault-log').textContent='Оба бога повержены, главная сокровищница уже разграблена.';}
     save();b?.save?.();
   }
   function spawnShark(){if(state.sharks.length<18)state.sharks.push({id:'shark-'+Date.now(),x:clamp(state.x+rand(-18,18),3,W-3),y:clamp(state.y+rand(-18,18),3,H-3),hp:55,angle:rand(0,6.28),speed:rand(12,24),cool:1});}
