@@ -411,10 +411,10 @@ class LauncherApi:
             return {"ok": False, "message": "Не удалось открыть журнал: " + str(exc)}
 
     def get_diagnostics(self):
-        """Inspect the installed game without modifying files or save data."""
+        """Inspect the selected game installation, bundled integrity and save profile without modifying data."""
         try:
             root = skyrealm_data_root()
-            install_dir = root / "game"
+            install_dir = skyrealm_game_dir()
             required = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
             missing = [name for name in required if not (install_dir / name).is_file()]
             version = ""
@@ -422,23 +422,53 @@ class LauncherApi:
                 version = (install_dir / "version.txt").read_text(encoding="utf-8").strip()
             except OSError:
                 pass
-            log_path = root / "update.log"
-            last_log = ""
+            bundled_dir = Path(resource_path("game"))
+            bundled_version = ""
             try:
-                last_log = "\\n".join(log_path.read_text(encoding="utf-8", errors="replace").splitlines()[-8:])
+                bundled_version = (bundled_dir / "version.txt").read_text(encoding="utf-8").strip()
             except OSError:
                 pass
-            profile_dir = skyrealm_default_data_root() / "webview-profile"
-            storage_dirs = [p for p in profile_dir.rglob("Local Storage") if p.is_dir() and (p / "leveldb").is_dir()] if profile_dir.exists() else []
-            storage_bytes = sum(item.stat().st_size for folder in storage_dirs for item in folder.rglob("*") if item.is_file())
             fingerprints = {}
             for name in required:
                 candidate = install_dir / name
                 if candidate.is_file():
                     fingerprints[name] = file_sha256(candidate)
+            integrity_mismatches = []
+            integrity_checked = 0
+            integrity_comparable = bool(version and bundled_version and version == bundled_version and bundled_dir.is_dir())
+            if integrity_comparable:
+                for bundled_file in bundled_dir.rglob("*"):
+                    if not bundled_file.is_file():
+                        continue
+                    relative = bundled_file.relative_to(bundled_dir)
+                    installed_file = install_dir / relative
+                    integrity_checked += 1
+                    if not installed_file.is_file():
+                        integrity_mismatches.append({"file": relative.as_posix(), "reason": "missing"})
+                    elif file_sha256(installed_file) != file_sha256(bundled_file):
+                        integrity_mismatches.append({"file": relative.as_posix(), "reason": "sha256"})
+            log_path = root / "update.log"
+            last_log = ""
+            try:
+                last_log = "\\n".join(log_path.read_text(encoding="utf-8", errors="replace").splitlines()[-12:])
+            except OSError:
+                pass
+            profile_dir = skyrealm_default_data_root() / "webview-profile"
+            storage_dirs = [p for p in profile_dir.rglob("Local Storage") if p.is_dir() and (p / "leveldb").is_dir()] if profile_dir.exists() else []
+            storage_bytes = sum(item.stat().st_size for folder in storage_dirs for item in folder.rglob("*") if item.is_file())
+            runner_name = ""
+            runner_exists = False
+            if bundled_version:
+                safe_version = re.sub(r"[^A-Za-z0-9_.-]", "_", bundled_version)
+                runner_name = "SkyRealmGame_" + safe_version + ".exe"
+                runner_exists = (skyrealm_default_data_root() / "bin" / runner_name).is_file()
+            healthy = not missing and not integrity_mismatches
             return {"ok": True, "installed": install_dir.is_dir(), "version": version or "не установлена",
-                    "missing": missing, "healthy": not missing, "game_path": str(install_dir),
-                    "log_path": str(log_path), "last_log": last_log,
+                    "bundled_version": bundled_version or "неизвестна", "missing": missing,
+                    "integrity_comparable": integrity_comparable, "integrity_checked": integrity_checked,
+                    "integrity_mismatches": integrity_mismatches, "healthy": healthy,
+                    "game_path": str(install_dir), "log_path": str(log_path), "last_log": last_log,
+                    "runner_name": runner_name, "runner_exists": runner_exists,
                     "world_storage_found": bool(storage_dirs), "world_storage_bytes": storage_bytes,
                     "integrity_sha256": fingerprints}
         except Exception as exc:
@@ -454,28 +484,40 @@ class LauncherApi:
             request = urllib.request.Request(manifest_url, headers={"User-Agent": "SkyRealmLauncher-UpdateCenter/1.0", "Cache-Control": "no-cache"})
             with urllib.request.urlopen(request, timeout=8) as response:
                 manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
-            root = skyrealm_data_root()
-            install_dir = root / "game"
+            install_dir = skyrealm_game_dir()
             installed_game = ""
             previous_game = ""
             try:
                 installed_game = (install_dir / "version.txt").read_text(encoding="utf-8").strip()
             except OSError:
                 pass
+            previous_dir = install_dir.with_name("game.previous")
             try:
-                previous_game = (install_dir.with_name("game.previous") / "version.txt").read_text(encoding="utf-8").strip()
+                previous_game = (previous_dir / "version.txt").read_text(encoding="utf-8").strip()
             except OSError:
                 pass
             launcher_version = Path(resource_path("launcher_version.txt")).read_text(encoding="utf-8").strip()
             latest_launcher = str(manifest.get("version", "")).strip()
-            latest_game = str(manifest.get("game_version", "")).strip()
+            manifest_game_version = str(manifest.get("game_version", "")).strip()
+            bundled_game_version = ""
+            try:
+                bundled_game_version = (Path(resource_path("game")) / "version.txt").read_text(encoding="utf-8").strip()
+            except OSError:
+                pass
+            known_game_versions = [value for value in (manifest_game_version, bundled_game_version) if _skyrealm_version_tuple(value)]
+            latest_game = max(known_game_versions, key=_skyrealm_version_tuple) if known_game_versions else ""
+            required_game_files = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
+            missing_game_files = [name for name in required_game_files if not (install_dir / name).is_file()]
+            game_version_outdated = bool(_skyrealm_version_tuple(latest_game) and _skyrealm_version_tuple(latest_game) > _skyrealm_version_tuple(installed_game))
             return {
                 "ok": True, "launcher_version": launcher_version, "latest_launcher_version": latest_launcher,
                 "launcher_update_available": bool(_skyrealm_version_tuple(latest_launcher) and _skyrealm_version_tuple(latest_launcher) > _skyrealm_version_tuple(launcher_version)),
                 "game_version": installed_game or "не установлена", "latest_game_version": latest_game,
-                "game_update_available": bool(_skyrealm_version_tuple(latest_game) and _skyrealm_version_tuple(latest_game) > _skyrealm_version_tuple(installed_game)),
-                "game_installed": bool(installed_game),
-                "rollback_available": bool(install_dir.with_name("game.previous").is_dir() and previous_game),
+                "manifest_game_version": manifest_game_version, "bundled_game_version": bundled_game_version,
+                "game_update_available": bool(game_version_outdated or missing_game_files),
+                "game_files_missing": missing_game_files, "game_installed": bool(installed_game),
+                "game_path": str(install_dir),
+                "rollback_available": bool(previous_dir.is_dir() and previous_game),
                 "previous_game_version": previous_game,
                 "notes": str(manifest.get("notes", ""))[:1200],
                 "release_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest",
