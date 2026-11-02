@@ -139,6 +139,8 @@ assert.ok(enhancements.includes('matchesCategory&&(!query||haystack.includes(que
 assert.ok(enhancements.includes("if(empty)empty.hidden=visible.length!==0"),'Empty search results must be shown accessibly');
 assert.ok(enhancements.includes("event.key==='Escape'"),'Escape must clear the active mod search query');
 assert.ok(enhancements.includes('initModCatalogFilters();')&&enhancements.includes('initModCatalogFilters();\n  });'),'Mod controls must initialize on startup and remain usable after language changes');
+assert.ok(enhancements.includes("grid.__skyrealmApplyModFilters=apply")&&enhancements.includes("grid.dataset.filtersBound==='1'"),'The filter controller must refresh counts, sorting and translations after language changes without rebinding listeners');
+
 assert.ok(enhancements.includes('skyrealm_mod_favorite_ids_v1')&&enhancements.includes('localStorage.setItem(MOD_FAVORITES_STORAGE_KEY'),'Favorite mods must persist locally across launcher restarts');
 assert.ok(enhancements.includes('button.classList.toggle(\'is-favorite\',active)')&&enhancements.includes('aria-pressed'),'Favorite buttons must expose and update an accessible pressed state');
 assert.ok(enhancements.includes("favoriteOption.value='favorites'")&&enhancements.includes("category==='favorites'?favorites.has(id)"),'The mod catalogue must support an actual favorites-only filter');
