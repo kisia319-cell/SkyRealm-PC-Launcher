@@ -5,7 +5,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_PATTERN = /^[A-HJ-NP-Z2-9]{8}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SHARED_SNAPSHOT_FIELDS = new Set(["clearedSnowTiles","snowShovelHits","dungeonRoomMobs","worldTimeMultiplier","lastYetiSpawnDay","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","lastWorldCampDay","lastWorldHordeNight","lastWorldMeteorNight","lastWorldTravelerDay","meteorPoint","meteorShowerTimer","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","worldEventCamp","worldEventTraveler"]);
+const SHARED_SNAPSHOT_FIELDS = new Set(["clearedSnowTiles","snowShovelHits","dungeonRoomMobs","tradeWorldMode","villageNpcs","villageCenters","worldTimeMultiplier","lastYetiSpawnDay","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","lastWorldCampDay","lastWorldHordeNight","lastWorldMeteorNight","lastWorldTravelerDay","meteorPoint","meteorShowerTimer","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","worldEventCamp","worldEventTraveler"]);
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
@@ -77,6 +77,37 @@ function sanitizeSharedSnapshot(value: unknown): Record<string, unknown> {
       throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "В снимке есть личные или неизвестные данные.");
     }
     output[key] = entry;
+  }
+  if (output.tradeWorldMode !== undefined && typeof output.tradeWorldMode !== "boolean") {
+    throw new ApiError(400, "INVALID_SNAPSHOT_PAYLOAD", "Некорректный режим торгового мира.");
+  }
+  if (Array.isArray(output.villageNpcs)) {
+    const ids = ["merchant","farmer","hunter","guard","builder","miner","mage","alchemist","citizen"];
+    const activities = ["home","sleeping","working","wandering","at market"];
+    output.villageNpcs = output.villageNpcs.slice(0, 40)
+      .filter((n: any) => n && typeof n === "object" && ids.includes(String(n.id)) &&
+        Number.isFinite(n.x) && Number.isFinite(n.y) && n.x >= 0 && n.x <= 24000 && n.y >= 0 && n.y <= 18000)
+      .map((n: any) => ({
+        id: n.id, name: String(n.name ?? "").slice(0, 24), x: n.x, y: n.y,
+        homeX: Number(n.homeX) || n.x, homeY: Number(n.homeY) || n.y,
+        targetX: Number(n.targetX) || n.x, targetY: Number(n.targetY) || n.y,
+        phase: Number(n.phase) || 0,
+        color: /^#[0-9a-f]{6}$/i.test(n.color ?? "") ? n.color : "#9ab6a2",
+        villageId: ["forest","snow","desert","volcano","blight"].includes(String(n.villageId)) ? n.villageId : "forest",
+        activity: activities.includes(String(n.activity)) ? n.activity : "wandering",
+        scheduleSlot: Math.max(-1, Math.min(2, Number.isInteger(n.scheduleSlot) ? n.scheduleSlot : -1)),
+        moveTimer: Math.max(0, Math.min(30, Number(n.moveTimer) || 0)), walkPhase: Number(n.walkPhase) || 0,
+      }));
+  }
+  if (Array.isArray(output.villageCenters)) {
+    output.villageCenters = output.villageCenters.slice(0, 10)
+      .filter((v: any) => v && typeof v === "object" && ["forest","snow","desert","volcano","blight"].includes(String(v.id)) &&
+        Number.isFinite(v.x) && Number.isFinite(v.y) && v.x >= 0 && v.x <= 720 && v.y >= 0 && v.y <= 520)
+      .map((v: any) => ({
+        id: v.id, x: v.x, y: v.y, name: String(v.name ?? "Поселение").slice(0, 40),
+        biome: ["forest","snow","desert","volcano","blight"].includes(String(v.biome)) ? v.biome : "forest",
+        houses: Array.isArray(v.houses) ? v.houses.filter((id: string) => ["merchant","farmer","hunter","guard","builder","miner","mage","alchemist"].includes(id)).slice(0, 8) : [],
+      }));
   }
   if (Array.isArray(output.dungeonRoomMobs)) {
     const types = ["skeleton","ice","scorpion","brute"];
