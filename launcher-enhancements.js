@@ -45,11 +45,26 @@
     'Снимки игрового мира, сделанные клавишей F12. Файлы хранятся локально на этом компьютере.':'Screenshots of the game world captured with F12. Files are stored locally on this computer.',
     '↻ Обновить':'↻ Refresh','Открыть папку':'Open folder','Загружаем галерею…':'Loading gallery…','Скриншот':'Screenshot','Закрыть':'Close',
     'Пока нет скриншотов':'No screenshots yet','Запусти игру и нажми F12, чтобы сделать первый снимок.':'Launch the game and press F12 to take your first screenshot.',
-    'Открыть статус сервера':'Open server status'
+    'Открыть статус сервера':'Open server status',
+    'Поиск модов':'Search mods','Категория':'Category','Сортировка':'Sort by',
+    'Все категории':'All categories','По умолчанию':'Default order',
+    'Название: А–Я':'Name: A–Z','Название: Я–А':'Name: Z–A',
+    'По категории':'By category','Сбросить':'Clear filters',
+    'Найдено модов: 35':'Found mods: 35',
+    'Ничего не найдено. Измени поисковый запрос или категорию.':'No mods found. Change the search or category.',
+    'ИССЛЕДОВАНИЕ':'EXPLORATION','РЕСУРСЫ':'RESOURCES','ФЕРМЕРСТВО':'FARMING',
+    'ДОБЫЧА':'MINING','ВЫЖИВАНИЕ':'SURVIVAL','РАЗВИТИЕ':'PROGRESSION',
+    'СЛОЖНОСТЬ':'DIFFICULTY','БОССЫ':'BOSSES','СНАРЯЖЕНИЕ':'EQUIPMENT',
+    'ПРИКЛЮЧЕНИЯ':'ADVENTURE','БИТВЫ':'BATTLES','СТРОИТЕЛЬСТВО':'BUILDING',
+    'СПУТНИКИ':'COMPANIONS','ЭКОНОМИКА':'ECONOMY','МАГИЯ':'MAGIC',
+    'ТЕХНОЛОГИИ':'TECHNOLOGY','НОВЫЕ МИРЫ':'NEW WORLDS','ПЕРЕДВИЖЕНИЕ':'MOVEMENT',
+    'ЗАЩИТА':'DEFENSE','ЛЕЧЕНИЕ':'HEALING','ВЫНОСЛИВОСТЬ':'STAMINA',
+    'СОКРОВИЩА':'TREASURES','ВОССТАНОВЛЕНИЕ':'RECOVERY'
   };
   const DYNAMIC_ATTR_EN = {
     'Например, вечер кооператива':'For example, co-op night',
-    'Выбрать резервную копию':'Select a backup'
+    'Выбрать резервную копию':'Select a backup',
+    'Название, описание или ID мода':'Mod name, description or ID'
   };
   function applyDynamicTranslations(root=document) {
     const toEnglish = enhancementLanguage === 'en';
@@ -78,7 +93,58 @@
     enhancementLanguage=event.detail?.language==='en'?'en':'ru';
     applyDynamicTranslations();
     refreshServices();
+    initModCatalogFilters();
   });
+
+  const MOD_FILTER_STORAGE_KEY='skyrealm_mod_catalog_filters_v1';
+  function initModCatalogFilters(){
+    const grid=$('#page-mods .launcher-mod-grid');
+    const search=$('#mod-catalog-search'),categorySelect=$('#mod-catalog-category');
+    const sortSelect=$('#mod-catalog-sort'),clear=$('#mod-catalog-clear');
+    const count=$('#mod-catalog-results-count'),empty=$('#mod-catalog-empty');
+    if(!grid||!search||!categorySelect||!sortSelect||!clear||grid.dataset.filtersBound==='1')return;
+    const cards=Array.from(grid.querySelectorAll('.launcher-mod-card'));
+    if(!cards.length)return;
+    grid.dataset.filtersBound='1';
+    const collator=new Intl.Collator('ru',{sensitivity:'base',numeric:true});
+    const categoryOf=card=>(card.querySelector('.launcher-mod-meta')?.textContent||'').split('·')[0].trim();
+    const titleOf=card=>(card.querySelector('h2')?.textContent||'').trim();
+    const categories=[...new Set(cards.map(categoryOf).filter(Boolean))].sort((a,b)=>collator.compare(a,b));
+    const all=document.createElement('option');all.value='all';all.textContent='Все категории';categorySelect.replaceChildren(all);
+    categories.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;categorySelect.append(option);});
+    let saved={};
+    try{saved=JSON.parse(localStorage.getItem(MOD_FILTER_STORAGE_KEY)||'{}');}catch(_){}
+    search.value=typeof saved.query==='string'?saved.query.slice(0,80):'';
+    sortSelect.value=['default','name-asc','name-desc','category'].includes(saved.sort)?saved.sort:'default';
+    categorySelect.value=categories.includes(saved.category)?saved.category:'all';
+    const normalize=value=>String(value||'').normalize('NFKC').toLocaleLowerCase();
+    const apply=()=>{
+      const query=normalize(search.value.trim()),category=categorySelect.value,sort=sortSelect.value;
+      const visible=cards.filter(card=>{
+        const matchesCategory=category==='all'||categoryOf(card)===category;
+        const haystack=normalize([titleOf(card),card.querySelector('p')?.textContent,card.querySelector('small')?.textContent,card.querySelector('.launcher-mod-meta')?.textContent,card.querySelector('[data-install-mod]')?.dataset.installMod].join(' '));
+        return matchesCategory&&(!query||haystack.includes(query));
+      });
+      const ordered=[...cards];
+      if(sort==='name-asc')ordered.sort((a,b)=>collator.compare(titleOf(a),titleOf(b)));
+      else if(sort==='name-desc')ordered.sort((a,b)=>collator.compare(titleOf(b),titleOf(a)));
+      else if(sort==='category')ordered.sort((a,b)=>collator.compare(categoryOf(a),categoryOf(b))||collator.compare(titleOf(a),titleOf(b)));
+      ordered.forEach(card=>{card.hidden=!visible.includes(card);grid.append(card);});
+      if(count)count.textContent=enhancementLanguage==='en'
+        ? 'Showing '+visible.length+' of '+cards.length+' mods'
+        : 'Показано '+visible.length+' из '+cards.length+' модов';
+      if(empty)empty.hidden=visible.length!==0;
+      clear.disabled=!query&&category==='all'&&sort==='default';
+      try{localStorage.setItem(MOD_FILTER_STORAGE_KEY,JSON.stringify({query:search.value.slice(0,80),category,sort}));}catch(_){}
+      applyDynamicTranslations($('#mod-browser-toolbar')||document);
+    };
+    search.addEventListener('input',apply);
+    categorySelect.addEventListener('change',apply);
+    sortSelect.addEventListener('change',apply);
+    clear.addEventListener('click',()=>{search.value='';categorySelect.value='all';sortSelect.value='default';apply();search.focus();});
+    search.addEventListener('keydown',event=>{if(event.key==='Escape'&&search.value){search.value='';apply();}});
+    apply();
+  }
 
   function ensureSystemPage() {
     const nav = $('.nav');
@@ -506,7 +572,7 @@
     });
   }
   function init() {
-    ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();
+    ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();initModCatalogFilters();
     applyDynamicTranslations();
     refreshLocalVersions();refreshServices();refreshNotifications();checkUpdates();
     window.addEventListener('pywebviewready',()=>{
