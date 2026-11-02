@@ -16,6 +16,10 @@
   const keys = new Set();
   // Track movement separately from action keys so lost focus or modal transitions cannot strand the player.
   const movementDirections = new Set();
+  // Track physical key codes separately from logical bindings. This keeps movement alive
+  // when WebView keyboard layout, custom bindings or a lost key event desynchronizes gameKey().
+  const pressedMovementCodes = new Set();
+  const MOVEMENT_CODE_BY_DIRECTION = {up:['KeyW','ArrowUp'],down:['KeyS','ArrowDown'],left:['KeyA','ArrowLeft'],right:['KeyD','ArrowRight']};
   const MOVEMENT_DIRECTION_BY_ACTION = {w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
   const DEFAULT_GAME_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
   const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, vsync:true, musicVolume:35, sfxVolume:70, musicEnabled:false, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
@@ -91,7 +95,7 @@
   let sheepSpawnTimer = 0;
   let playerAttackCooldown = 0;
   let attackAnimTimer=0, combatAbilityCooldown=0, weatherMode='clear', weatherTimer=75, weatherFlash=0, ambientTime=0;
-  const GAME_VERSION = document.querySelector('meta[name="skyrealm-game-version"]')?.content || '0.20.50.7';
+  const GAME_VERSION = document.querySelector('meta[name="skyrealm-game-version"]')?.content || '0.20.50.8';
   const WORLD_EVENT_CHANCES = Object.freeze({
     checkInterval:75,
     meteor:.12,
@@ -503,9 +507,9 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     }
   }
   function drawPond(camX,camY){const px=52*TILE-camX,py=36*TILE-camY;const grad=ctx.createRadialGradient(px,py,30,px,py,260);grad.addColorStop(0,'#246b85');grad.addColorStop(.75,'#1a4f70');grad.addColorStop(1,'#153c5b');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(px,py,210,138,-.18,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#71bac0';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(px-8,py-5,209,135,-.18,0,Math.PI*2);ctx.stroke();ctx.lineWidth=1;if(gameSettings.graphicsQuality!=='low')for(let i=0;i<(gameSettings.graphicsQuality==='high'?30:18);i++){const x=px-140+hash(i,2)*280,y=py-95+hash(4,i)*190;if((x-px)**2/39000+(y-py)**2/19000<.72){ctx.strokeStyle='#69b6c5aa';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+12+hash(i,1)*18,y);ctx.stroke();}}}
-  function drawTree(t,camX,camY){const x=t.x-camX,y=t.y-camY,s=t.size;ctx.save();ctx.translate(x,y);ctx.scale(s,s);const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow';ctx.fillStyle=snowy?'#756b61':'#61462f';ctx.fillRect(-5,-3,10,24);ctx.fillStyle=snowy?'#a9a39a':'#7b5937';ctx.fillRect(-2,1,3,15);const colors=snowy?[['#536f7b','#a9c5d0','#edf7fa'],['#617d89','#b9d0d8','#f5fbff'],['#4c6877','#9fbcc9','#e3f2f7']][t.tint]:[['#174536','#20583f','#2c704c'],['#23503b','#2b6645','#438050'],['#1d493b','#28664d','#367e5a']][t.tint];ctx.fillStyle=colors[0];ctx.beginPath();ctx.moveTo(0,-39);ctx.lineTo(-23,-2);ctx.lineTo(-15,2);ctx.lineTo(-28,12);ctx.lineTo(27,12);ctx.lineTo(15,-1);ctx.lineTo(23,-6);ctx.closePath();ctx.fill();ctx.fillStyle=colors[1];ctx.beginPath();ctx.moveTo(0,-35);ctx.lineTo(-17,-4);ctx.lineTo(-7,-4);ctx.lineTo(-17,6);ctx.lineTo(17,6);ctx.lineTo(7,-7);ctx.closePath();ctx.fill();ctx.fillStyle=colors[2];ctx.beginPath();ctx.moveTo(0,-29);ctx.lineTo(-7,-6);ctx.lineTo(3,-8);ctx.lineTo(12,0);ctx.lineTo(5,-16);ctx.closePath();ctx.fill();ctx.restore();}
+  function drawTree(t,camX,camY){const x=t.x-camX,y=t.y-camY,s=t.size;ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(ambientTime/1250+t.x*.013+t.y*.009)*.012);ctx.scale(s,s);const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow';ctx.fillStyle=snowy?'#756b61':'#61462f';ctx.fillRect(-5,-3,10,24);ctx.fillStyle=snowy?'#a9a39a':'#7b5937';ctx.fillRect(-2,1,3,15);const colors=snowy?[['#536f7b','#a9c5d0','#edf7fa'],['#617d89','#b9d0d8','#f5fbff'],['#4c6877','#9fbcc9','#e3f2f7']][t.tint]:[['#174536','#20583f','#2c704c'],['#23503b','#2b6645','#438050'],['#1d493b','#28664d','#367e5a']][t.tint];ctx.fillStyle=colors[0];ctx.beginPath();ctx.moveTo(0,-39);ctx.lineTo(-23,-2);ctx.lineTo(-15,2);ctx.lineTo(-28,12);ctx.lineTo(27,12);ctx.lineTo(15,-1);ctx.lineTo(23,-6);ctx.closePath();ctx.fill();ctx.fillStyle=colors[1];ctx.beginPath();ctx.moveTo(0,-35);ctx.lineTo(-17,-4);ctx.lineTo(-7,-4);ctx.lineTo(-17,6);ctx.lineTo(17,6);ctx.lineTo(7,-7);ctx.closePath();ctx.fill();ctx.fillStyle=colors[2];ctx.beginPath();ctx.moveTo(0,-29);ctx.lineTo(-7,-6);ctx.lineTo(3,-8);ctx.lineTo(12,0);ctx.lineTo(5,-16);ctx.closePath();ctx.fill();ctx.restore();}
   function drawRock(r,camX,camY){const x=r.x-camX,y=r.y-camY,s=r.s;ctx.fillStyle='#132e3766';ctx.beginPath();ctx.ellipse(x,y+8,14*s,7*s,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#657777';ctx.beginPath();ctx.moveTo(x-12*s,y+5*s);ctx.lineTo(x-10*s,y-5*s);ctx.lineTo(x-2*s,y-13*s);ctx.lineTo(x+8*s,y-10*s);ctx.lineTo(x+14*s,y+3*s);ctx.closePath();ctx.fill();ctx.fillStyle='#98aaa0';ctx.beginPath();ctx.moveTo(x-9*s,y-4*s);ctx.lineTo(x-1*s,y-11*s);ctx.lineTo(x+4*s,y-6*s);ctx.lineTo(x-1*s,y+1*s);ctx.closePath();ctx.fill();}
-  function drawFlowers(camX,camY,t){for(const f of world.flowers){const x=f.x-camX,y=f.y-camY;if(x<-20||x>width+20||y<-20||y>height+20)continue;ctx.fillStyle='#22523a';ctx.fillRect(x,y,2,6);ctx.fillStyle=['#f4d77a','#d9b9ff','#f7d4d6','#a8e1ff'][f.c];ctx.fillRect(x-2,y-2,4,4);ctx.fillStyle='#fff5d5';ctx.fillRect(x,y-1,1,1);}}
+  function drawFlowers(camX,camY,t){for(const f of world.flowers){const x=f.x-camX,y=f.y-camY;if(x<-20||x>width+20||y<-20||y>height+20)continue;const sway=Math.sin(t/620+f.x*.07+f.y*.03)*.16;ctx.save();ctx.translate(x,y);ctx.rotate(sway);ctx.fillStyle='#22523a';ctx.fillRect(-1,0,2,6);ctx.fillStyle=['#f4d77a','#d9b9ff','#f7d4d6','#a8e1ff'][f.c];ctx.fillRect(-2,-2,4,4);ctx.fillStyle='#fff5d5';ctx.fillRect(0,-1,1,1);ctx.restore();}}
   function drawCabin(camX,camY){
     const x=36*TILE-120-camX,y=15*TILE-120-camY;
     ctx.fillStyle='#102d2b88';ctx.beginPath();ctx.ellipse(x+160,y+300,168,28,0,0,Math.PI*2);ctx.fill();
@@ -840,6 +844,9 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function drawPlayer(camX,camY,dt){
     const x=player.x-camX,y=player.y-camY;player.frame += dt*(Math.abs(player.vx)+Math.abs(player.vy)>.01?11:3);const step=Math.sin(player.frame)*2.2;
     ctx.save();ctx.translate(Math.round(x),Math.round(y));
+    const moving=Math.hypot(player.vx,player.vy)>2,bodyBob=moving?Math.abs(Math.sin(player.frame*1.7))*1.7:Math.sin(player.frame*.7)*.35;
+    ctx.translate(0,bodyBob);
+    if(attackAnimTimer>0){const progress=1-attackAnimTimer/.24,angle=player.face==='left'?Math.PI:player.face==='up'?-Math.PI/2:player.face==='down'?Math.PI/2:0;ctx.save();ctx.rotate(angle);ctx.globalAlpha=Math.max(0,1-progress);ctx.strokeStyle=equipment.weapon==='Огненный меч'?'#ff9a42':equipment.weapon==='Ледяной посох'?'#8be9ff':'#e8f5ff';ctx.lineWidth=3+progress*2;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=12;ctx.beginPath();ctx.arc(7,-3,22+progress*5,-1.15,1.15);ctx.stroke();ctx.restore();}
     ctx.fillStyle='#102a2a66';ctx.beginPath();ctx.ellipse(0,13,13,7,0,0,Math.PI*2);ctx.fill();
     ctx.fillStyle=equipment.armor?'#7a899b':(playerAppearance.armor||'#526fba');ctx.fillRect(-9,-3,18,15);ctx.fillStyle=playerAppearance.accent||'#9cb9ff';ctx.fillRect(-7,-2,14,13);
     ctx.fillStyle='#394b89';ctx.beginPath();ctx.moveTo(-9,-3);ctx.lineTo(0,7);ctx.lineTo(9,-3);ctx.lineTo(7,10);ctx.lineTo(0,15);ctx.lineTo(-7,10);ctx.closePath();ctx.fill();
@@ -848,7 +855,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(player.face==='left'||player.face==='right'){ctx.fillStyle=playerAppearance.skin||'#e8b88c';ctx.fillRect(player.face==='left'?-9:6,-8,3,6);}
     ctx.fillStyle=equipment.helmet?'#d7dfe8':playerAppearance.accent||'#9cb9ff';if(equipment.helmet){ctx.fillRect(-9,-20,18,5);ctx.fillRect(-11,-16,22,3);}
     if(equipment.amulet){ctx.fillStyle='#ffe27c';ctx.beginPath();ctx.arc(0,2,3,0,Math.PI*2);ctx.fill();}
-    if(['Огненный меч','Железный меч','Стальной меч','Молниеносное копьё','Меч титана','Меч дракона','Меч пустоты'].includes(equipment.weapon)){ctx.strokeStyle=equipment.weapon==='Огненный меч'?'#ff9a42':equipment.weapon==='Молниеносное копьё'?'#cba4ff':'#dbe8f5';ctx.lineWidth=equipment.weapon==='Молниеносное копьё'?4:3;ctx.beginPath();ctx.moveTo(9,-5);ctx.lineTo(14,-18);ctx.stroke();}else if(equipment.weapon==='Ледяной посох'){ctx.strokeStyle='#8be9ff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(10,-2);ctx.lineTo(14,-22);ctx.stroke();ctx.fillStyle='#b8f4ff';ctx.beginPath();ctx.arc(14,-23,4,0,Math.PI*2);ctx.fill();}
+    if(['Огненный меч','Железный меч','Стальной меч','Молниеносное копьё','Меч титана','Меч дракона','Меч пустоты','Трезубец прилива','Гарпун бури','Клинок бездны'].includes(equipment.weapon)){ctx.strokeStyle=equipment.weapon==='Огненный меч'?'#ff9a42':equipment.weapon==='Молниеносное копьё'?'#cba4ff':'#dbe8f5';ctx.lineWidth=equipment.weapon==='Молниеносное копьё'?4:3;ctx.beginPath();ctx.moveTo(9,-5);ctx.lineTo(14,-18);ctx.stroke();}else if(equipment.weapon==='Ледяной посох'){ctx.strokeStyle='#8be9ff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(10,-2);ctx.lineTo(14,-22);ctx.stroke();ctx.fillStyle='#b8f4ff';ctx.beginPath();ctx.arc(14,-23,4,0,Math.PI*2);ctx.fill();}
     ctx.restore();
   }
   function drawFireflies(camX,camY,time){for(const f of world.fireflies){const x=f.x-camX,y=f.y-camY;if(x<-15||x>width+15||y<-15||y>height+15)continue;const a=.25+.65*(.5+.5*Math.sin(time/500+f.phase));ctx.fillStyle='rgba(255,231,136,'+a+')';ctx.beginPath();ctx.arc(x,y,1.5+a,0,Math.PI*2);ctx.fill();}}
@@ -1960,7 +1967,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     for(const mob of monsters){
       const x=mob.x-camX,y=mob.y-camY;if(x<-45||x>width+45||y<-45||y>height+45)continue;
       if(mob.exploding){const p=1-Math.max(0,mob.explosionTimer)/.42;ctx.save();ctx.globalAlpha=Math.max(.15,1-p*.7);ctx.fillStyle='#ff7a32';ctx.beginPath();ctx.arc(x,y,24+90*p,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ffe7a0';ctx.lineWidth=5;ctx.beginPath();ctx.arc(x,y,15+72*p,0,Math.PI*2);ctx.stroke();ctx.restore();continue;}
-      const bob=Math.sin(time/210+mob.phase)*2;ctx.save();ctx.translate(x,y+bob);ctx.fillStyle='#090f1e88';ctx.beginPath();ctx.ellipse(0,10,16,7,0,0,Math.PI*2);ctx.fill();
+      const bob=Math.sin(time/210+mob.phase)*2,walk=Math.sin(time/95+mob.phase)*(Math.hypot(mob.vx||0,mob.vy||0)>1?3:1);ctx.save();ctx.translate(x,y+bob);ctx.fillStyle='#090f1e88';ctx.beginPath();ctx.ellipse(0,10,16,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#202536';ctx.fillRect(-8,8+walk,5,5);ctx.fillRect(4,8-walk,5,5);
       if(mob.type==='ice'){ctx.fillStyle=mob.flash>0?'#fff':'#6fd7ee';ctx.shadowColor='#6fe6ff';ctx.shadowBlur=gameSettings.graphicsQuality==='low'?0:12;ctx.beginPath();ctx.moveTo(0,-25);ctx.lineTo(16,-7);ctx.lineTo(12,10);ctx.lineTo(0,17);ctx.lineTo(-12,10);ctx.lineTo(-16,-7);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#e5fcff';ctx.fillRect(-7,-11,4,4);ctx.fillRect(4,-11,4,4);ctx.fillStyle='#25759b';ctx.fillRect(-7,1,14,5);}
       else if(mob.type==='scorpion'){ctx.fillStyle=mob.flash>0?'#fff':'#bd7b36';ctx.beginPath();ctx.ellipse(0,2,15,10,0,0,Math.PI*2);ctx.fill();ctx.fillRect(-13,-4,6,8);ctx.fillRect(9,-4,6,8);ctx.strokeStyle='#e1a14a';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(7,-4);ctx.quadraticCurveTo(20,-12,14,-22);ctx.stroke();ctx.fillStyle='#e84a42';ctx.beginPath();ctx.moveTo(12,-22);ctx.lineTo(18,-26);ctx.lineTo(16,-18);ctx.closePath();ctx.fill();ctx.fillStyle='#261a16';ctx.fillRect(-6,-5,3,3);ctx.fillRect(4,-5,3,3);}
       else if(mob.type==='skeleton'){
@@ -3188,10 +3195,15 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       if(keys.has(' ')||keys.has('l'))tutorialCombatSeen=true;
       if(hudMoveMode){mx=0;my=0;}
       if(sleeping){keys.clear();movementDirections.clear();}
-      if(movementDirections.has('up'))my--;
-      if(movementDirections.has('down'))my++;
-      if(movementDirections.has('left'))mx--;
-      if(movementDirections.has('right'))mx++;
+      const movementHeld=direction=>{
+        const configured=gameSettings.keyBindings?.[direction];
+        return movementDirections.has(direction)||MOVEMENT_CODE_BY_DIRECTION[direction].some(code=>pressedMovementCodes.has(code))||
+          (!!configured&&pressedMovementCodes.has(configured));
+      };
+      if(movementHeld('up'))my--;
+      if(movementHeld('down'))my++;
+      if(movementHeld('left'))mx--;
+      if(movementHeld('right'))mx++;
       if(dodgeTimer>0){mx=dodgeVX;my=dodgeVY;}
       if (mx && my) { mx *= .7071; my *= .7071; }
       const sprinting=keys.has('shift')&&(mx||my)&&player.stamina>15&&!sleeping&&!mineMode;
@@ -3739,6 +3751,11 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       keys.add(k);
       const movementDirection=MOVEMENT_DIRECTION_BY_ACTION[k];
       if(movementDirection) movementDirections.add(movementDirection);
+      if(movementKey){
+        const codeDirection=Object.entries(MOVEMENT_CODE_BY_DIRECTION).find(([,codes])=>codes.includes(e.code))?.[0];
+        if(codeDirection)pressedMovementCodes.add(e.code);
+        for(const [direction,code] of Object.entries(gameSettings.keyBindings||{}))if(['up','down','left','right'].includes(direction)&&code===e.code)pressedMovementCodes.add(e.code);
+      }
     }
   }, true);
   // Listen at document capture level as well: WebView keyboard focus can move
@@ -3748,10 +3765,11 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     keys.delete(released);
     const direction=MOVEMENT_DIRECTION_BY_ACTION[released];
     if(direction) movementDirections.delete(direction);
+    pressedMovementCodes.delete(e.code);
   }, true);
-  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); }, true);
-  document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); } });
-  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); });
+  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); pressedMovementCodes.clear(); }, true);
+  document.addEventListener('visibilitychange', () => { if(document.hidden){ keys.clear(); movementDirections.clear(); pressedMovementCodes.clear(); } });
+  window.addEventListener('blur', () => { keys.clear(); movementDirections.clear(); pressedMovementCodes.clear(); });
   window.addEventListener('beforeunload',()=>{try{saveGame();}catch(_){}});
   window.addEventListener('resize', resize);
   window.addEventListener('fullscreenchange',()=>{gameSettings.windowMode=document.fullscreenElement?'fullscreen':'windowed';document.getElementById('game-window-mode-select').value=gameSettings.windowMode;localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));});
