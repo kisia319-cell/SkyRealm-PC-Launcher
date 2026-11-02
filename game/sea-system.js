@@ -144,13 +144,17 @@
     }
     if(state.vaultPath!==2){$('vault-log').textContent='Этот маршрут пройден. Выбери другой глубокий путь или открой путь Безды.';return;}
     if(!state.vaultBosses.tide){
-      if(state.bossHp<=0){state.bossHp=1800;$('vault-log').textContent='БОГ №1: НЕПТУН РАЗЛОМА · 1800 здоровья. Нажимай «Атаковать босса», чтобы сражаться.';msg('Пробуждается первый бог моря!');}
-      else {state.bossHp=Math.max(0,state.bossHp-260);if(state.air!==Infinity)drainAir(7);$('vault-log').textContent='Нептун Разлома · здоровье: '+state.bossHp+'/1800. Бог отвечает приливным ударом.';}
-      if(state.bossHp===0){state.vaultBosses.tide=true;b?.addItem?.('Сердце прилива',1,'Уникальный трофей первого бога моря. Не создаётся на верстаке.');$('vault-log').textContent='Нептун Разлома повержен! Выпало Сердце прилива. В глубине пробуждается второй бог.';msg('Первый бог моря повержен!');}
+      const diff=b?.getDifficulty?.()||'medium',scale={easy:.65,medium:1,hard:1.45,hell:2,impossible:2.8}[diff]||1,maxHp=Math.round(5400*scale),damage={easy:8,medium:13,hard:19,hell:27,impossible:38}[diff]||13;
+      if(state.bossHp<=0){state.bossHp=maxHp;state.bossAttack=0;$('vault-log').textContent='БОГ №1: НЕПТУН РАЗЛОМА · '+maxHp+' здоровья · сложность '+diff+'. Используй морское оружие!';msg('Нептун Разлома пробудился!');}
+      const hit=Math.max(1,Math.round(b?.getWeaponDamage?.()||20));state.bossHp=Math.max(0,state.bossHp-hit);state.bossAttack=(state.bossAttack||0)+1;if(state.air!==Infinity)drainAir(4);
+      if(state.bossHp>0){const incoming=damage*(state.bossAttack%3===0?2:1);b?.damagePlayer?.(incoming);$('vault-log').textContent='Нептун Разлома · '+state.bossHp+'/'+maxHp+' HP. Твоё оружие нанесло '+hit+' урона. Приливный удар: −'+incoming+' HP.';}
+      if(state.bossHp===0){state.vaultBosses.tide=true;state.bossHp=0;b?.addItem?.('Сердце прилива',1,'Уникальный трофей первого бога моря. Не создаётся на верстаке.');$('vault-log').textContent='Нептун Разлома повержен! Выпало Сердце прилива. В глубине пробуждается второй бог.';msg('Первый бог моря повержен!');}
     }else if(!state.vaultBosses.abyss){
-      if(state.bossHp<=0){state.bossHp=2600;$('vault-log').textContent='БОГ №2: ЛЕВИАФАН БЕЗДНЫ · 2600 здоровья. Это последний бог моря.';msg('Пробуждается второй бог моря!');}
-      else {state.bossHp=Math.max(0,state.bossHp-260);if(state.air!==Infinity)drainAir(10);$('vault-log').textContent='Левиафан Бездны · здоровье: '+state.bossHp+'/2600. Удар бездны отнимает воздух.';}
-      if(state.bossHp===0){state.vaultBosses.abyss=true;b?.addItem?.('Око бездны',1,'Уникальный трофей второго бога моря. Не создаётся на верстаке.');b?.addItem?.('Ключ великой сокровищницы',1);$('vault-log').textContent='Левиафан Бездны повержен! Получен Ключ великой сокровищницы.';msg('Второй и последний бог моря повержен!');}
+      const diff=b?.getDifficulty?.()||'medium',scale={easy:.65,medium:1,hard:1.45,hell:2,impossible:2.8}[diff]||1,maxHp=Math.round(7800*scale),damage={easy:12,medium:18,hard:27,hell:38,impossible:52}[diff]||18;
+      if(state.bossHp<=0){state.bossHp=maxHp;state.bossAttack=0;$('vault-log').textContent='БОГ №2: ЛЕВИАФАН БЕЗДНЫ · '+maxHp+' здоровья · сложность '+diff+'. Это последний бог моря.';msg('Пробуждается Левиафан Бездны!');}
+      const hit=Math.max(1,Math.round(b?.getWeaponDamage?.()||20));state.bossHp=Math.max(0,state.bossHp-hit);state.bossAttack=(state.bossAttack||0)+1;if(state.air!==Infinity)drainAir(6);
+      if(state.bossHp>0){const incoming=damage*(state.bossAttack%2===0?2:1);b?.damagePlayer?.(incoming);$('vault-log').textContent='Левиафан Бездны · '+state.bossHp+'/'+maxHp+' HP. Твоё оружие нанесло '+hit+' урона. Удар бездны: −'+incoming+' HP.';}
+      if(state.bossHp===0){state.vaultBosses.abyss=true;state.bossHp=0;b?.addItem?.('Око бездны',1,'Трофей второго бога моря. Не создаётся на верстаке.');b?.addItem?.('Ключ великой сокровищницы',1);$('vault-log').textContent='Левиафан Бездны повержен! Получен Ключ великой сокровищницы.';msg('Второй и последний бог моря повержен!');}
     }else if(!state.vaultUnlocked){
       state.vaultUnlocked=true;b?.addItem?.('Корона двух морей',1,'Уникальная награда за победу над двумя богами.');b?.addItem?.('Реликвия древних глубин',1,'Нельзя создать на верстаке.');$('vault-log').textContent='Открыта главная сокровищница! Получены Корона двух морей и Реликвия древних глубин.';msg('Великая сокровищница открыта!');
     }else{$('vault-log').textContent='Оба бога повержены, главная сокровищница уже разграблена.';}
