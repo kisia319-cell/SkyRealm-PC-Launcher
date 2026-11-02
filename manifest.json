@@ -1,9 +1,9 @@
 {
-  "game_sha256": "05484a2e33dcffe823387bf336e0ac0c9e6f64cd390a05ab68330518225b9683",
+  "game_sha256": "218d17f15ce3b78be5c1a66e4409a60a04165f348f599b3d0dad10b936aba4ba",
   "game_version": "0.20.50.6",
-  "notes": "SkyRealm 0.20.50.6: морская экспедиция за береговой линией; парусный корабль; волны, дождь и штормы; акулы; морская карта 220×164 и карты сокровищ с реальными отметками сундуков; редкие предметы, которые нельзя создать на верстаке; подводная сокровищница с тремя глубокими маршрутами, стражами и ровно двумя богами моря; водяной шлем 1–4 уровня (1/4/8 минут и бесконечное дыхание), без бонуса к защите; ремонт корабля у берега. Морские открытия входят в сохранение каждого мира.",
+  "notes": "SkyRealm Launcher 1.2.7 + Game 0.20.50.6: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.7",
-  "sha256": "b6969bbf00d5b5750c10e6e5c445f8670952f55ae5cb70f81512e0705b49ee76",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-f08edfc/SkyRealm_Game.zip"
+  "sha256": "b4b658a9fe4e0ab11e2d8e39a9e699b7a80913607d78a6fa8744494e61c569df",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
