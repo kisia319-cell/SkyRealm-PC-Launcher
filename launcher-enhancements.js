@@ -109,7 +109,7 @@
     const cards=Array.from(grid.querySelectorAll('.launcher-mod-card'));
     if(!cards.length)return;
     grid.dataset.filtersBound='1';
-    const collator=new Intl.Collator('ru',{sensitivity:'base',numeric:true});
+    let collator=new Intl.Collator(enhancementLanguage==='en'?'en':'ru',{sensitivity:'base',numeric:true});
     const categoryOf=card=>(card.querySelector('.launcher-mod-meta')?.textContent||'').split('·')[0].trim();
     const titleOf=card=>(card.querySelector('h2')?.textContent||'').trim();
     const modIdOf=card=>card.querySelector('[data-install-mod]')?.dataset.installMod||'';
@@ -146,9 +146,10 @@
     try{saved=JSON.parse(localStorage.getItem(MOD_FILTER_STORAGE_KEY)||'{}');}catch(_){}
     search.value=typeof saved.query==='string'?saved.query.slice(0,80):'';
     sortSelect.value=['default','name-asc','name-desc','category'].includes(saved.sort)?saved.sort:'default';
-    categorySelect.value=categories.includes(saved.category)?saved.category:'all';
+    categorySelect.value=saved.category==='favorites'||categories.includes(saved.category)?saved.category:'all';
     const normalize=value=>String(value||'').normalize('NFKC').toLocaleLowerCase();
     const apply=()=>{
+      collator=new Intl.Collator(enhancementLanguage==='en'?'en':'ru',{sensitivity:'base',numeric:true});
       const query=normalize(search.value.trim()),category=categorySelect.value,sort=sortSelect.value;
       const visible=cards.filter(card=>{
         const id=modIdOf(card);
