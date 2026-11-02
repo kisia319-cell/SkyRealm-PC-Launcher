@@ -93,7 +93,7 @@
     const b=bridge();state.helmetLevel=b?.getWaterHelmetLevel?.()||0;
     if(!state.helmetLevel){msg('Без водяного шлема нельзя погружаться. Создай его на верстаке.');return;}
     state.underwater=true;state.air=state.helmetLevel>=4?Infinity:(state.helmetLevel===3?480:(state.helmetLevel===2?240:60));state.airEndsAt=state.air===Infinity?Infinity:Date.now()+state.air*1000;
-    msg(state.helmetLevel>=3?'Шлем четвёртого уровня: запас воздуха больше не ограничен.':'Погружение! Запас воздуха: '+state.air+' секунд.');save();
+    msg(state.helmetLevel>=4?'Шлем четвёртого уровня: запас воздуха больше не ограничен.':'Погружение! Запас воздуха: '+state.air+' секунд.');save();
   }
   function interact(){
     if(state.underwater){const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет.');return;}
@@ -118,7 +118,7 @@
     if(t.kind==='wreck'&&roll<.38){const chart={name:'Карта сокровищ',icon:'🗺️',description:'Отмечает один тайник с редкой добычей в море.'};b?.addItem?.(chart.name,1,chart.description);state.chartFound=true;const mark={x:rand(12,W-12),y:rand(8,H-8)};state.mapMarks.push(mark);state.treasures.push({id:'charted-'+Date.now(),x:mark.x,y:mark.y,kind:'chest'});msg('Найдена карта сокровищ! На карте отмечен настоящий сундук с редкой добычей.');}
     else if(roll<.25){b?.addItem?.('Кристалл',2);b?.addGold?.(18000);msg('В сундуке кристаллы и 180 золотых.');}
     else {const q=UNIQUE_LOOT[Math.floor(Math.random()*UNIQUE_LOOT.length)];b?.addItem?.(q[0],1,q[2]);state.relics.push(q[0]);msg('Редкая находка: '+q[1]+' '+q[0]+'! Этот предмет нельзя создать на верстаке.');}
-    if(state.underwater)state.air=Math.max(0,state.air-5);save();b?.save?.();
+    if(state.underwater)drainAir(5);save();b?.save?.();
   }
   function enterVault(){
     if(!state.underwater){msg('Вход в сокровищницу находится под водой. Сначала нырни.');return;}
