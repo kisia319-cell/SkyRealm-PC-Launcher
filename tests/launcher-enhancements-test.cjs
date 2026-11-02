@@ -139,6 +139,13 @@ assert.ok(enhancements.includes('matchesCategory&&(!query||haystack.includes(que
 assert.ok(enhancements.includes("if(empty)empty.hidden=visible.length!==0"),'Empty search results must be shown accessibly');
 assert.ok(enhancements.includes("event.key==='Escape'"),'Escape must clear the active mod search query');
 assert.ok(enhancements.includes('initModCatalogFilters();')&&enhancements.includes('initModCatalogFilters();\n  });'),'Mod controls must initialize on startup and remain usable after language changes');
+assert.ok(enhancements.includes('skyrealm_mod_favorite_ids_v1')&&enhancements.includes('localStorage.setItem(MOD_FAVORITES_STORAGE_KEY'),'Favorite mods must persist locally across launcher restarts');
+assert.ok(enhancements.includes('button.classList.toggle(\'is-favorite\',active)')&&enhancements.includes('aria-pressed'),'Favorite buttons must expose and update an accessible pressed state');
+assert.ok(enhancements.includes("favoriteOption.value='favorites'")&&enhancements.includes("category==='favorites'?favorites.has(id)"),'The mod catalogue must support an actual favorites-only filter');
+assert.ok(enhancements.includes('favorites=new Set(stored.filter(id=>cards.some(card=>modIdOf(card)===id)))'),'Favorite restore must discard IDs that are not present in the current mod catalogue');
+assert.ok(css.includes('.mod-favorite-toggle.is-favorite')&&css.includes('.mod-favorite-toggle:hover'),'Favorite state must have distinct visual feedback');
+assert.ok(enhancements.includes("'Добавить в избранное':'Add to favorites'")&&enhancements.includes("'Избранное ★':'Favorites ★'"),'Favorite controls and filter must be localized');
+
 assert.ok(enhancements.includes("'Поиск модов':'Search mods'")&&enhancements.includes("'Все категории':'All categories'")&&enhancements.includes("'Название: А–Я':'Name: A–Z'"),'Mod filters must be translated in English');
 assert.ok(css.includes('.mod-browser-toolbar')&&css.includes('.launcher-mod-card[hidden]')&&css.includes('@media(max-width:520px){.mod-browser-toolbar'), 'Mod filter controls must be responsive and hide filtered-out cards');
 
