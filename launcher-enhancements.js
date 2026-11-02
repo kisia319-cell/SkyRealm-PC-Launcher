@@ -77,6 +77,7 @@
   window.addEventListener('skyrealm:language-changed',event=>{
     enhancementLanguage=event.detail?.language==='en'?'en':'ru';
     applyDynamicTranslations();
+    refreshServices();
   });
 
   function ensureSystemPage() {
