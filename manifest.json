@@ -1,9 +1,9 @@
 {
-  "game_sha256": "2cd2eeb7abaefd8552a6bc7b4f322ca437eab733d790dc7c5467ede0c473193f",
+  "game_sha256": "202d8974be2012b32d2513f1038a27cdfeedd60f8a4aaa80ccf39ec62efb95d7",
   "game_version": "0.20.50.8",
-  "notes": "SkyRealm 0.20.50.8: исправлено управление движением с независимым отслеживанием физических клавиш и сбросом ввода при паузе/потере фокуса. Добавлены анимации шага и атаки персонажа, движения монстров, покачивания деревьев и цветов, а также плавные переходы интерфейса. Сохранения миров совместимы.",
+  "notes": "SkyRealm Launcher 1.2.7 + Game 0.20.50.8: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.7",
-  "sha256": "533525af43dbccd3030e8a6beefda30e16706cd4d978514d6b84f602736060b5",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-d497705/SkyRealm_Game.zip"
+  "sha256": "9a35bfbe683497bf52f25bbccac830f5db3e4007cab2cb46fe3bd8a25647f6ca",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
