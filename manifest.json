@@ -1,7 +1,7 @@
 {
   "game_sha256": "2cd2eeb7abaefd8552a6bc7b4f322ca437eab733d790dc7c5467ede0c473193f",
   "game_version": "0.20.50.8",
-  "notes": "SkyRealm 0.20.50.8: shared co-op monsters and boss health, owner-validated combat, and one-time shared loot drops. Every player keeps a separate inventory, wallet, equipment and XP; only the player who picks up a shared drop receives it. Existing worlds and single-player saves remain compatible. Co-op remains a preview.",
+  "notes": "SkyRealm 0.20.50.8: исправлено управление движением с независимым отслеживанием физических клавиш и сбросом ввода при паузе/потере фокуса. Добавлены анимации шага и атаки персонажа, движения монстров, покачивания деревьев и цветов, а также плавные переходы интерфейса. Сохранения миров совместимы.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.7",
   "sha256": "533525af43dbccd3030e8a6beefda30e16706cd4d978514d6b84f602736060b5",
