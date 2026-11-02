@@ -390,3 +390,7 @@ assert.ok(game.includes('const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.cod
 assert.ok(game.includes("window.addEventListener('blur',clearMovementInput,true)") && game.includes("window.addEventListener('pagehide',clearMovementInput,true)"), 'Blur and pagehide must clear held movement state');
 assert.ok(game.includes("localStorage.setItem(saveKey+'.backup',previous)") && game.includes('World save verification failed'), 'Saving must preserve the previous snapshot and verify the new write');
 assert.ok(game.includes("localStorage.getItem(saveKey+'.backup')") && game.includes('trying the last verified backup'), 'A damaged primary save must recover from its previous snapshot');
+assert.ok(game.includes('function readWorldSaveSnapshot(){') && game.includes("const backupRaw=localStorage.getItem(saveKey+'.backup'),backupData=JSON.parse(backupRaw||'null')"), 'A missing or non-object primary save must fall back to the backup');
+assert.ok(game.includes("if(primaryData&&typeof primaryData==='object'&&!Array.isArray(primaryData))return primaryData"), 'Valid primary save data must remain preferred over backup data');
+assert.ok(game.includes("catch(restoreError){console.warn('SkyRealm backup was loaded, but restoring the primary save key was unavailable:',restoreError);}") && game.includes('return backupData;'), 'A valid backup must load in memory even when restoring the primary key fails');
+
