@@ -1,9 +1,9 @@
 {
-  "game_sha256": "cac5b9ac0688353efbdb35469a091b19db1312b373f577b2cd9539da93ca44e0",
+  "game_sha256": "605acc89e1f4076503ace5553c280c93e68d30ae1b6abcb4457a4da02ebc598d",
   "game_version": "0.20.50.7",
-  "notes": "SkyRealm 0.20.50.7: морская экспедиция, два усиленных бога моря с параметрами по сложности, ответные атаки по здоровью игрока, три новых легендарных морских оружия (Трезубец прилива, Гарпун бури, Клинок бездны). Сохранения мира и одиночная игра сохранены.",
+  "notes": "SkyRealm Launcher 1.2.7 + Game 0.20.50.7: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.7",
-  "sha256": "b4b658a9fe4e0ab11e2d8e39a9e699b7a80913607d78a6fa8744494e61c569df",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-d287275/SkyRealm_Game.zip"
+  "sha256": "533525af43dbccd3030e8a6beefda30e16706cd4d978514d6b84f602736060b5",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
