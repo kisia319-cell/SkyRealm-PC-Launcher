@@ -108,6 +108,8 @@ assert.ok(game.includes("function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS
 
 assert.ok(game.includes('gameMinuteTotal+=dt*Math.max(1,Math.min(4,Number(worldTimeMultiplier)||1))') && gameHtml.includes('id="world-time-multiplier"'), 'World time multiplier must affect the authoritative game clock and be configurable');
 assert.ok(game.includes('gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+NIGHT_MINUTE') && game.includes('День пропущен до 20:00'), 'Skipping a day must stop at 20:00 of the next day');
+assert.ok(game.includes('forceNightStart=true;monsters.length=0;skipDayRealSeconds=300;updateWorldClock(.001)') && game.includes('const wasNightBefore=isNightTime()&&!forceNightStart'), 'Skipping to 20:00 must trigger the normal night-start transition immediately');
+assert.ok(game.includes('if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){toast(\'Пропуск дня доступен владельцу кооперативного мира.\')'), 'Only the co-op owner may skip the shared day');
 assert.ok(game.includes("Math.random()<.15") && game.includes("lastYetiSpawnDay=currentDay") && game.includes("!tradeWorldMode&&currentDay!==lastYetiSpawnDay"), 'Yeti must have a 15 percent hourly roll and a once-per-day limit');
 assert.ok(game.includes('mineOreRegenTimer=5') && game.includes('const depleted=mineRocks.filter(r=>r.hp<=0)'), 'One depleted mine vein must regenerate every five seconds');
 assert.ok(game.includes("target.fleeTimer=2.5;target.dir=Math.atan2(target.y-player.y,target.x-player.x)") && game.includes('Math.hypot(player.vx,player.vy)||155'), 'Hit sheep must flee away at player movement speed');
