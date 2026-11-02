@@ -86,18 +86,19 @@
   }
   function leave(){if(!active)return;active=false;keys.clear();cancelAnimationFrame(raf);save();root.hidden=true;bridge()?.resume?.();}
   function toggleMap(){if(!active)return;state.mapOpen=!state.mapOpen;$('sea-map').classList.toggle('open',state.mapOpen);if(state.mapOpen)drawMap();}
+  function drainAir(seconds){if(state.air===Infinity)return;state.air=Math.max(0,state.air-Math.max(0,seconds));state.airEndsAt=Date.now()+state.air*1000;}
   function toggleDive(){
     if(!active)return;
     if(state.underwater){state.underwater=false;msg('Ты всплыл на поверхность.');save();return;}
     const b=bridge();state.helmetLevel=b?.getWaterHelmetLevel?.()||0;
     if(!state.helmetLevel){msg('Без водяного шлема нельзя погружаться. Создай его на верстаке.');return;}
-    state.underwater=true;state.air=state.helmetLevel>=3?Infinity:(state.helmetLevel===2?240:60);
+    state.underwater=true;state.air=state.helmetLevel>=4?Infinity:(state.helmetLevel===3?480:(state.helmetLevel===2?240:60));state.airEndsAt=state.air===Infinity?Infinity:Date.now()+state.air*1000;
     msg(state.helmetLevel>=3?'Шлем четвёртого уровня: запас воздуха больше не ограничен.':'Погружение! Запас воздуха: '+state.air+' секунд.');save();
   }
   function interact(){
     if(state.underwater){const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет.');return;}
     const t=nearestTreasure();if(t){openTreasure(t);return;}
-    const b=bridge(); if(state.boatHp<=0){msg('Корабль разрушен. Вернись на берег и отремонтируй его.');return;}
+    const b=bridge();if(state.x<=12&&state.boatHp<100){if((b?.getItemCount?.('Древесина')||0)<8||(b?.getItemCount?.('Железо')||0)<2){msg('Для ремонта у берега нужно 8 древесины и 2 железа.');return;}b.changeItem('Древесина',-8);b.changeItem('Железо',-2);state.boatHp=Math.min(100,state.boatHp+45);msg('Корабль отремонтирован у берега. Прочность '+state.boatHp+'%.');save();b.save?.();return;} if(state.boatHp<=0){msg('Корабль разрушен. Вернись на берег и отремонтируй его.');return;}
     msg('Волны несут корабль вперёд. Ищи обломки, метки на карте и вход в сокровищницу.'); 
   }
   function nearestTreasure(){return state.treasures.find(t=>!state.opened.includes(t.id)&&Math.hypot(t.x-state.x,t.y-state.y)<4.5);}
@@ -115,7 +116,7 @@
     if(state.underwater&&state.air<=0){msg('Нельзя открывать сундук без воздуха!');return;}
     state.opened.push(t.id);const b=bridge();const roll=Math.random();
     if(t.kind==='wreck'&&roll<.38){const chart={name:'Карта сокровищ',icon:'🗺️',description:'Отмечает один тайник с редкой добычей в море.'};b?.addItem?.(chart.name,1,chart.description);state.chartFound=true;const mark={x:rand(12,W-12),y:rand(8,H-8)};state.mapMarks.push(mark);state.treasures.push({id:'charted-'+Date.now(),x:mark.x,y:mark.y,kind:'chest'});msg('Найдена карта сокровищ! На карте отмечен настоящий сундук с редкой добычей.');}
-    else if(roll<.25){b?.addItem?.('Кристалл',2);b?.addGold?.(180);msg('В сундуке кристаллы и 180 золотых.');}
+    else if(roll<.25){b?.addItem?.('Кристалл',2);b?.addGold?.(18000);msg('В сундуке кристаллы и 180 золотых.');}
     else {const q=UNIQUE_LOOT[Math.floor(Math.random()*UNIQUE_LOOT.length)];b?.addItem?.(q[0],1,q[2]);state.relics.push(q[0]);msg('Редкая находка: '+q[1]+' '+q[0]+'! Этот предмет нельзя создать на верстаке.');}
     if(state.underwater)state.air=Math.max(0,state.air-5);save();b?.save?.();
   }
@@ -131,7 +132,7 @@
     if(state.vaultRoom<=5){
       if(state.bossHp<=0)state.bossHp=180+state.vaultRoom*45;
       state.bossHp=Math.max(0,state.bossHp-95);
-      if(state.air!==Infinity)state.air=Math.max(0,state.air-3);
+      if(state.air!==Infinity)drainAir(3);
       if(state.bossHp<=0){
         state.vaultRoom++;
         if(state.vaultRoom>5){
@@ -144,11 +145,11 @@
     if(state.vaultPath!==2){$('vault-log').textContent='Этот маршрут пройден. Выбери другой глубокий путь или открой путь Безды.';return;}
     if(!state.vaultBosses.tide){
       if(state.bossHp<=0){state.bossHp=1800;$('vault-log').textContent='БОГ №1: НЕПТУН РАЗЛОМА · 1800 здоровья. Нажимай «Атаковать босса», чтобы сражаться.';msg('Пробуждается первый бог моря!');}
-      else {state.bossHp=Math.max(0,state.bossHp-260);if(state.air!==Infinity)state.air=Math.max(0,state.air-7);$('vault-log').textContent='Нептун Разлома · здоровье: '+state.bossHp+'/1800. Бог отвечает приливным ударом.';}
+      else {state.bossHp=Math.max(0,state.bossHp-260);if(state.air!==Infinity)drainAir(7);$('vault-log').textContent='Нептун Разлома · здоровье: '+state.bossHp+'/1800. Бог отвечает приливным ударом.';}
       if(state.bossHp===0){state.vaultBosses.tide=true;b?.addItem?.('Сердце прилива',1,'Уникальный трофей первого бога моря. Не создаётся на верстаке.');$('vault-log').textContent='Нептун Разлома повержен! Выпало Сердце прилива. В глубине пробуждается второй бог.';msg('Первый бог моря повержен!');}
     }else if(!state.vaultBosses.abyss){
       if(state.bossHp<=0){state.bossHp=2600;$('vault-log').textContent='БОГ №2: ЛЕВИАФАН БЕЗДНЫ · 2600 здоровья. Это последний бог моря.';msg('Пробуждается второй бог моря!');}
-      else {state.bossHp=Math.max(0,state.bossHp-260);if(state.air!==Infinity)state.air=Math.max(0,state.air-10);$('vault-log').textContent='Левиафан Бездны · здоровье: '+state.bossHp+'/2600. Удар бездны отнимает воздух.';}
+      else {state.bossHp=Math.max(0,state.bossHp-260);if(state.air!==Infinity)drainAir(10);$('vault-log').textContent='Левиафан Бездны · здоровье: '+state.bossHp+'/2600. Удар бездны отнимает воздух.';}
       if(state.bossHp===0){state.vaultBosses.abyss=true;b?.addItem?.('Око бездны',1,'Уникальный трофей второго бога моря. Не создаётся на верстаке.');b?.addItem?.('Ключ великой сокровищницы',1);$('vault-log').textContent='Левиафан Бездны повержен! Получен Ключ великой сокровищницы.';msg('Второй и последний бог моря повержен!');}
     }else if(!state.vaultUnlocked){
       state.vaultUnlocked=true;b?.addItem?.('Корона двух морей',1,'Уникальная награда за победу над двумя богами.');b?.addItem?.('Реликвия древних глубин',1,'Нельзя создать на верстаке.');$('vault-log').textContent='Открыта главная сокровищница! Получены Корона двух морей и Реликвия древних глубин.';msg('Великая сокровищница открыта!');
@@ -170,10 +171,10 @@
     state.x=clamp(state.x+dx*speed*dt,2,W-2);state.y=clamp(state.y+dy*speed*dt,2,H-2);
     if(dx||dy){const cell=Math.floor(state.x)+','+Math.floor(state.y);if(!state.discovered.includes(cell))state.discovered.push(cell);}
     state.diveCooldown=Math.max(0,state.diveCooldown-dt);
-    if(state.underwater&&state.air!==Infinity){state.air=Math.max(0,state.air-dt);if(state.air<=0){state.underwater=false;msg('Воздух закончился! Тебя вынесло на поверхность.');}}
+    if(state.underwater&&state.air!==Infinity){state.air=Math.max(0,((Number(state.airEndsAt)||Date.now())-Date.now())/1000);if(state.air<=0){state.underwater=false;msg('Воздух закончился! Тебя вынесло на поверхность.');}}
     if(state.weather==='storm'&&!state.underwater&&Math.random()<dt*.06){state.boatHp=Math.max(0,state.boatHp-1);if(state.boatHp<=0)msg('Шторм разбил корабль! Вернись на берег.');}
     for(const s of state.sharks){const vx=state.x-s.x,vy=state.y-s.y,d=Math.hypot(vx,vy)||1;if(d<24){s.x+=vx/d*s.speed*dt;s.y+=vy/d*s.speed*dt;s.cool-=dt;if(s.cool<=0){s.cool=2.2;state.boatHp=Math.max(0,state.boatHp-5);msg('Акула укусила корабль! Прочность '+state.boatHp+'%.');}}else{s.angle+=rand(-.6,.6)*dt;s.x+=Math.cos(s.angle)*s.speed*.25*dt;s.y+=Math.sin(s.angle)*s.speed*.25*dt;}s.x=clamp(s.x,2,W-2);s.y=clamp(s.y,2,H-2);}
-    if(state.underwater){for(const m of state.monsters){const vx=state.x-m.x,vy=state.y-m.y,d=Math.hypot(vx,vy)||1;if(d<20){m.x+=vx/d*m.speed*dt;m.y+=vy/d*m.speed*dt;if(Math.random()<dt*.08){state.air=Math.max(0,state.air-3);msg('Подводный страж атакует!');}}}}
+    if(state.underwater){for(const m of state.monsters){const vx=state.x-m.x,vy=state.y-m.y,d=Math.hypot(vx,vy)||1;if(d<20){m.x+=vx/d*m.speed*dt;m.y+=vy/d*m.speed*dt;if(Math.random()<dt*.08){drainAir(3);msg('Подводный страж атакует!');}}}}
     if(state.weather==='storm'&&Math.random()<dt*.04)spawnShark();
     $('sea-weather').textContent='Погода: '+({calm:'штиль',rain:'дождь',storm:'ШТОРМ'}[state.weather]);
     $('sea-boat-hp').textContent='Корабль: '+state.boatHp+'%';$('sea-air').textContent=state.underwater?'Воздух: '+(state.air===Infinity?'∞':Math.ceil(state.air)+' с'):'Воздух: —';
