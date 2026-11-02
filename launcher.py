@@ -924,6 +924,14 @@ def _skyrealm_version_tuple(value):
         return ()
 
 
+def _skyrealm_preferred_local_game_version(installed_version: str, bundled_version: str) -> str:
+    """Prefer the newer safe local build; on ties prefer the copy bundled with this launcher."""
+    installed_tuple = _skyrealm_version_tuple(installed_version)
+    bundled_tuple = _skyrealm_version_tuple(bundled_version)
+    if bundled_tuple and (not installed_tuple or bundled_tuple >= installed_tuple):
+        return bundled_version
+    return installed_version or bundled_version
+
 
 def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update: bool = True, force: bool = False) -> str:
     """Download and atomically install the latest game package before launching it."""
@@ -944,13 +952,7 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
             pass
 
     def fallback_version():
-        installed_tuple = _skyrealm_version_tuple(installed_version)
-        bundled_tuple = _skyrealm_version_tuple(bundled_version)
-        # Never keep an older installed game when this EXE already contains a newer one.
-        if bundled_tuple and (not installed_tuple or bundled_tuple > installed_tuple):
-            selected = bundled_version
-        else:
-            selected = installed_version or bundled_version
+        selected = _skyrealm_preferred_local_game_version(installed_version, bundled_version)
         write_update_log(
             f"game update fallback: installed={installed_version or 'missing'}, "
             f"bundled={bundled_version}, selected={selected}"
@@ -981,6 +983,21 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
         required_game_files = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
         game_ok = all((install_dir / name).is_file() for name in required_game_files)
         installed_tuple = _skyrealm_version_tuple(installed_version)
+        preferred_local_version = _skyrealm_preferred_local_game_version(installed_version, bundled_version)
+        preferred_local_tuple = _skyrealm_version_tuple(preferred_local_version)
+        # A stable manifest can lag behind this launcher when it carries a hotfix from
+        # a development branch. Never replace a newer installed/bundled game with it.
+        # Returning the bundled version makes launch_game verify/copy the bundled files
+        # into the install directory while leaving the separate WebView save profile intact.
+        if preferred_local_tuple and (
+            latest_tuple < preferred_local_tuple
+            or (latest_tuple == preferred_local_tuple and not force)
+        ):
+            write_update_log(
+                f"game update skipped stale/equal manifest: installed={installed_version or 'missing'}, "
+                f"bundled={bundled_version}, latest={latest}, selected={preferred_local_version}"
+            )
+            return preferred_local_version
         if not allow_update and latest_tuple > max(_skyrealm_version_tuple(installed_version), _skyrealm_version_tuple(bundled_version)):
             selected = installed_version if game_ok and installed_version else bundled_version
             write_update_log(f"game update declined: installed={installed_version or 'missing'}, latest={latest}, selected={selected}")
