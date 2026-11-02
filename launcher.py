@@ -556,6 +556,32 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Ошибка диагностики: " + str(exc)}
 
+    def get_local_versions(self):
+        """Return installed and bundled version metadata without requiring an internet connection."""
+        try:
+            launcher_path = Path(resource_path("launcher_version.txt"))
+            launcher_version = launcher_path.read_text(encoding="utf-8").strip() if launcher_path.is_file() else "неизвестна"
+            install_dir = skyrealm_game_dir()
+            installed_game = ""
+            bundled_game = ""
+            try:
+                installed_game = (install_dir / "version.txt").read_text(encoding="utf-8").strip()
+            except OSError:
+                pass
+            try:
+                bundled_game = (Path(resource_path("game")) / "version.txt").read_text(encoding="utf-8").strip()
+            except OSError:
+                pass
+            known = [value for value in (installed_game, bundled_game) if _skyrealm_version_tuple(value)]
+            current_game = max(known, key=_skyrealm_version_tuple) if known else ""
+            return {"ok": True, "launcher_version": launcher_version,
+                    "game_version": installed_game or "не установлена",
+                    "bundled_game_version": bundled_game or "неизвестна",
+                    "latest_local_game_version": current_game or "не установлена",
+                    "game_installed": bool(installed_game), "game_path": str(install_dir)}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось прочитать локальные версии: " + str(exc)}
+
     def get_update_status(self):
         """Return release metadata and local version state without modifying files."""
         try:
