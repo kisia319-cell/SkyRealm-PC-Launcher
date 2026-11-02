@@ -373,6 +373,18 @@ assert.equal(movementResolver('w','KeyD'),'up','A KeyD binding assigned to Up mu
 assert.equal(movementResolver('arrowup','ArrowRight'),'up','Logical ArrowUp must take priority over physical ArrowRight');
 assert.equal(movementResolver('','KeyD'),'right','Unmapped physical D must retain the default Right direction');
 assert.equal(movementResolver('','KeyQ'),null,'Non-movement keys must not resolve to a direction');
+const heldDirectionMatch=game.match(/function restoreHeldMovementDirections\(\)\{[\s\S]*?\n  \}/);
+assert.ok(heldDirectionMatch && game.includes('movementKeyDirections = new Map()') && game.includes('restoreHeldMovementDirections();'), 'Held movement keys must be tracked separately and restored on key release');
+const testMovementDirections=new Set(['right']);
+const testMovementKeyDirections=new Map([['KeyI','up'],['KeyW','up'],['KeyA','left']]);
+const restoreHeldDirections=vm.runInNewContext('('+heldDirectionMatch[0]+')',{movementDirections:testMovementDirections,movementKeyDirections:testMovementKeyDirections});
+restoreHeldDirections();
+assert.deepEqual([...testMovementDirections].sort(),['left','up'],'Holding two keys assigned to the same direction must preserve that direction');
+testMovementKeyDirections.delete('KeyI');restoreHeldDirections();
+assert.deepEqual([...testMovementDirections].sort(),['left','up'],'Releasing one of two held keys must not cancel the other key in the same direction');
+testMovementKeyDirections.delete('KeyW');restoreHeldDirections();
+assert.deepEqual([...testMovementDirections],['left'],'The direction must clear after the last mapped key is released');
+assert.ok(game.includes('movementKeyDirections.clear()') && game.includes('movementKeyDirections.delete(e.code)'), 'Focus loss and key release must clear the per-key movement ledger');
 assert.ok(game.includes('function clearMovementInput(){'), 'All focus/window transitions must share one movement reset function');
 assert.ok(game.includes('const physicalDirection=PHYSICAL_MOVEMENT_BY_CODE[e.code]') && game.includes("keys.delete(({up:'w',left:'a',down:'s',right:'d'})[physicalDirection])"), 'Physical keyup must release the matching direction even when keyboard layout changes');
 assert.ok(game.includes("window.addEventListener('blur',clearMovementInput,true)") && game.includes("window.addEventListener('pagehide',clearMovementInput,true)"), 'Blur and pagehide must clear held movement state');
