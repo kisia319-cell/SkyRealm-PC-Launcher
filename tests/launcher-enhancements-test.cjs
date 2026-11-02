@@ -13,6 +13,10 @@ assert.match(launcher,/def install_game_update/);
 assert.match(launcher,/def repair_game_files/);
 assert.match(launcher,/def rollback_game_update/);
 assert.match(launcher,/def get_system_metrics/);
+assert.match(launcher,/def _skyrealm_preferred_local_game_version\(installed_version: str, bundled_version: str\)/,'Launcher must compare the installed build with its bundled game version');
+assert.ok(launcher.includes('preferred_local_version = _skyrealm_preferred_local_game_version(installed_version, bundled_version)') && launcher.includes('latest_tuple < preferred_local_tuple'), 'A stale stable manifest must never downgrade or block a newer bundled game hotfix');
+assert.ok(launcher.includes('return preferred_local_version'), 'When the stable manifest is older, launch_game must use the preferred local build so bundled game files are installed');
+
 const launchGameSource=launcher.match(/def launch_game\([\s\S]*?(?=\n\nclass GameApi:)/);
 assert.ok(launchGameSource,'Game launch method must be present');
 const appDataDeclaration=launchGameSource[0].indexOf('app_data = Path(');
