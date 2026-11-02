@@ -12,7 +12,7 @@
   let cachedNotifications = [], cachedUpdate = null, pollTimer = null;
   let enhancementLanguage = document.documentElement.lang === 'en' ? 'en' : 'ru';
   const DYNAMIC_TEXT_EN = {
-    'Центр управления':'Control Center','Центр':'Control','управления':'center','КАЛЕНДАРЬ':'CALENDAR','ПОДДЕРЖКА':'SUPPORT','СКРИНШОТЫ':'SCREENSHOTS',
+    'Центр управления':'Control Center','Проверяем manifest и текущую установку…':'Checking the manifest and current installation…','Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.':'A launcher update is available. It will be installed automatically on the next start.','Доступно обновление игры. Перед установкой закрой игру.':'A game update is available. Close the game before installing it.','Установлены последние версии.':'The latest versions are installed.','Проверяем игровые файлы и локальные данные…':'Checking game files and local data…','Основные файлы и контрольные суммы совпадают. ':'Core files and checksums match. ','Нужен ремонт. ':'Repair required. ','Версия: ':'Version: ','Отсутствуют: ':'Missing: ','нет':'none','найдено':'found','ещё не создано':'not created yet','Игровой запускатель: ':'Game runner: ','установлен.':'installed.','будет установлен при следующем запуске.':'will be installed on next launch.','Сверено файлов с комплектом: ':'Bundled files checked: ','совпадают.':'all match.','Несовпадения: ':'Mismatches: ','Центр':'Control','управления':'center','ЦЕНТР УПРАВЛЕНИЯ':'CONTROL CENTER','КАЛЕНДАРЬ':'CALENDAR','ПОДДЕРЖКА':'SUPPORT','СКРИНШОТЫ':'SCREENSHOTS','Создать копию':'Create backup','Восстановить выбранную':'Restore selected','Обновить список':'Refresh list','Последняя исправная копия':'Latest valid backup','Восстановить':'Restore','Просмотреть':'View','Просмотр':'View',
     'SKYREALM · КОНТРОЛЬ':'SKYREALM · CONTROL','Обновления, состояние сервисов, диагностика, облачные сохранения и показатели компьютера.':'Updates, service status, diagnostics, cloud saves and computer metrics.',
     '↻ Обновить всё':'↻ Refresh all','СЕТЬ':'NETWORK','Состояние сервисов':'Service status','Ещё не проверяли':'Not checked yet',
     'Авторизация: проверка':'Authentication: checking','Вход и регистрация игроков':'Player sign-in and registration',
@@ -179,6 +179,7 @@
       const remove=document.createElement('button');remove.type='button';remove.className='secondary-btn';remove.textContent='Удалить';remove.addEventListener('click',()=>{saveCalendarEvents(readCalendarEvents().filter(item=>item.id!==event.id));renderCalendar();});
       info.append(title,meta);row.append(info,remove);list.append(row);
     });
+    applyDynamicTranslations($('#page-calendar'));
   }
   function openCalendarPage(){
     ensureCalendarPage();document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id==='page-calendar'));
@@ -260,11 +261,11 @@
   async function refreshScreenshots(){
     const grid=$('#screenshots-grid');if(!grid)return;grid.replaceChildren();
     const api=window.pywebview?.api;
-    if(typeof api?.get_screenshots!=='function'){grid.textContent='Галерея доступна в установленной Windows-версии лаунчера.';return;}
+    if(typeof api?.get_screenshots!=='function'){grid.textContent='Галерея доступна в установленной Windows-версии лаунчера.';applyDynamicTranslations($('#page-screenshots'));return;}
     try{
       const result=await api.get_screenshots();if(!result?.ok)throw new Error(result?.message||'Не удалось загрузить скриншоты.');
       const items=Array.isArray(result.screenshots)?result.screenshots:[];
-      if(!items.length){grid.innerHTML='<div class="screenshots-empty"><b>Пока нет скриншотов</b><span>Запусти игру и нажми F12, чтобы сделать первый снимок.</span></div>';return;}
+      if(!items.length){grid.innerHTML='<div class="screenshots-empty"><b>Пока нет скриншотов</b><span>Запусти игру и нажми F12, чтобы сделать первый снимок.</span></div>';applyDynamicTranslations($('#page-screenshots'));return;}
       items.forEach(item=>{
         const card=document.createElement('article');card.className='screenshot-card';
         const preview=document.createElement('div');preview.className='screenshot-card-preview';preview.textContent='▧';
@@ -280,7 +281,8 @@
         });
         details.append(title,meta,open);card.append(preview,details);grid.append(card);
       });
-    }catch(error){grid.textContent=error.message||'Галерея временно недоступна.';}
+      applyDynamicTranslations($('#page-screenshots'));
+    }catch(error){grid.textContent=error.message||'Галерея временно недоступна.';applyDynamicTranslations($('#page-screenshots'));}
   }
   function setService(key,ok,detail) {
     const dot=$('#system-'+key+'-dot'),title=$('#system-'+key+'-title'),copy=$('#system-'+key+'-copy');
