@@ -20,12 +20,12 @@
   const bridge = () => window.SkyRealmSeaBridge;
   const msg = (s) => { state.message=s; state.messageLeft=4.5; const el=$('sea-message'); if(el)el.textContent=s; };
   function save(){
-    try { localStorage.setItem(KEY(), JSON.stringify({...state, sharks:state.sharks.slice(0,40), monsters:state.monsters.slice(0,40)})); }
+    try { const snapshot={...state, sharks:state.sharks.slice(0,40), monsters:state.monsters.slice(0,40), discovered:state.discovered.slice(-5000)};localStorage.setItem(KEY(), JSON.stringify(snapshot));bridge()?.setSeaData?.(snapshot); }
     catch(e){ console.warn('Sea save failed',e); }
   }
   function load(){
     try {
-      const d=JSON.parse(localStorage.getItem(KEY())||'null');
+      const d=bridge()?.getSeaData?.()||JSON.parse(localStorage.getItem(KEY())||'null');
       if(!d || d.version!==VERSION){Object.assign(state,JSON.parse(JSON.stringify(DEFAULT_STATE)));return;}
       Object.assign(state,d);
       state.x=clamp(Number(state.x)||8,3,W-3); state.y=clamp(Number(state.y)||82,3,H-3);
@@ -169,7 +169,7 @@
     const dy=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);
     const boost=keys.has(' ')?1.6:1, speed=(state.underwater?7:state.weather==='storm'?10:16)*boost;
     state.x=clamp(state.x+dx*speed*dt,2,W-2);state.y=clamp(state.y+dy*speed*dt,2,H-2);
-    if(dx||dy){const cell=Math.floor(state.x)+','+Math.floor(state.y);if(!state.discovered.includes(cell))state.discovered.push(cell);}
+    if(dx||dy){const cell=Math.floor(state.x)+','+Math.floor(state.y);if(!state.discovered.includes(cell)&&state.discovered.length<5000)state.discovered.push(cell);}
     state.diveCooldown=Math.max(0,state.diveCooldown-dt);
     if(state.underwater&&state.air!==Infinity){state.air=Math.max(0,((Number(state.airEndsAt)||Date.now())-Date.now())/1000);if(state.air<=0){state.underwater=false;msg('Воздух закончился! Тебя вынесло на поверхность.');}}
     if(state.weather==='storm'&&!state.underwater&&Math.random()<dt*.06){state.boatHp=Math.max(0,state.boatHp-1);if(state.boatHp<=0)msg('Шторм разбил корабль! Вернись на берег.');}
