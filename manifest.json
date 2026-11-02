@@ -1,9 +1,9 @@
 {
-  "game_sha256": "605acc89e1f4076503ace5553c280c93e68d30ae1b6abcb4457a4da02ebc598d",
-  "game_version": "0.20.50.7",
-  "notes": "SkyRealm Launcher 1.2.7 + Game 0.20.50.7: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible.",
+  "game_sha256": "5a34ccf96e0d3e0009c5e8dfa503941b43372140325ef60e66d6c7a3a74e7b31",
+  "game_version": "0.20.50.8",
+  "notes": "SkyRealm 0.20.50.8: shared co-op monsters and boss health, owner-validated combat, and one-time shared loot drops. Every player keeps a separate inventory, wallet, equipment and XP; only the player who picks up a shared drop receives it. Existing worlds and single-player saves remain compatible. Co-op remains a preview.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.7",
   "sha256": "533525af43dbccd3030e8a6beefda30e16706cd4d978514d6b84f602736060b5",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-55aa27f/SkyRealm_Game.zip"
 }
