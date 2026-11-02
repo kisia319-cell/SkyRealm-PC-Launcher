@@ -181,7 +181,28 @@
 .progress-stats-grid small{font-size:10px;color:#9fb3d0}.progress-stats-grid b{font-size:17px;color:#f2f6ff}
 @media(max-width:560px){.progress-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
-<style>.world-import-row{display:flex;justify-content:flex-end;margin:10px 0 2px}.world-import-button{border:1px solid #45638f;border-radius:9px;padding:9px 12px;background:#10233d;color:#cfe0ff;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.world-import-button:hover{border-color:#8eaeff;background:#172f50}.world-export-button{white-space:nowrap}@media(max-width:760px){.world-import-row{justify-content:stretch}.world-import-button{width:100%}}</style></head>
+<style>.world-import-row{display:flex;justify-content:flex-end;margin:10px 0 2px}.world-import-button{border:1px solid #45638f;border-radius:9px;padding:9px 12px;background:#10233d;color:#cfe0ff;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.world-import-button:hover{border-color:#8eaeff;background:#172f50}.world-export-button{white-space:nowrap}@media(max-width:760px){.world-import-row{justify-content:stretch}.world-import-button{width:100%}}</style>
+<style id="skyrealm-animation-pack">
+/* SkyRealm motion polish: subtle feedback without affecting the simulation loop. */
+.game-shell canvas{image-rendering:auto;}
+.game-shell button,.game-shell .action,.game-shell .inventory-slot{transition:transform .14s ease,filter .16s ease,box-shadow .16s ease,background-color .16s ease;}
+.game-shell button:hover,.game-shell .action:hover{filter:brightness(1.12);transform:translateY(-1px);}
+.game-shell button:active,.game-shell .action:active{transform:translateY(1px) scale(.98);}
+.shade:not([hidden]){animation:sr-overlay-in .18s ease-out both;}
+.shade:not([hidden]) .dialog,.shade:not([hidden]) .modal,.shade:not([hidden]) .panel{animation:sr-dialog-in .22s cubic-bezier(.2,.8,.2,1) both;}
+#toast.show{animation:sr-toast-in .2s ease-out both;}
+#hint.show{animation:sr-hint-in .16s ease-out both;}
+#world-fade.active{animation:sr-world-fade .28s ease-in-out both;}
+#inventory-slots .inventory-slot:hover{z-index:2;transform:translateY(-3px) scale(1.035);box-shadow:0 7px 18px #0007;}
+#quest,.quest-panel,#location-chip{transition:opacity .2s ease,transform .2s ease;}
+@keyframes sr-overlay-in{from{opacity:0}to{opacity:1}}
+@keyframes sr-dialog-in{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes sr-toast-in{from{opacity:0;transform:translate(-50%,8px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes sr-hint-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sr-world-fade{0%{opacity:0}45%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.game-shell button,.game-shell .action,.game-shell .inventory-slot,.shade:not([hidden]),.shade:not([hidden]) .dialog,.shade:not([hidden]) .modal,.shade:not([hidden]) .panel,#toast.show,#hint.show,#world-fade.active{animation:none!important;transition:none!important}}
+</style>
+</head>
 <body>
 <div class="game-shell">
 
