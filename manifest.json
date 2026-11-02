@@ -1,9 +1,9 @@
 {
-  "game_sha256": "50b54cf8d512d4bbdc55a8749478e9f8777bccb95f1fb5298a7e45e5d87a7a83",
+  "game_sha256": "7aadee236979a8665b4c3d1cbf526249728f7aee6184cd3ec782b401a551d4be",
   "game_version": "0.20.50.1",
-  "notes": "SkyRealm 0.20.50.1: shared co-op monsters and boss health, owner-validated combat, and one-time shared loot drops. Every player keeps a separate inventory, wallet, equipment and XP; only the player who picks up a shared drop receives it. Existing worlds and single-player saves remain compatible. Co-op remains a preview.",
+  "notes": "SkyRealm 0.20.50.1: морская экспедиция, корабли, волны, погода, штормы, акулы, карты сокровищ, редкие некрафтовые артефакты, подводная сокровищница с тремя путями и ровно двумя богами моря, водяной шлем с четырьмя уровнями дыхания. Существующие миры сохраняются.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.7",
   "sha256": "b6969bbf00d5b5750c10e6e5c445f8670952f55ae5cb70f81512e0705b49ee76",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-376fe1e/SkyRealm_Game.zip"
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/game-0.20.50.1/SkyRealm_Game.zip"
 }
