@@ -54,7 +54,7 @@ assert.ok(launcherHtml.includes('Никаких скрытых покупок'),
 assert.ok(app.includes('function runGameDiagnostics()'), 'Launcher diagnostics button must be wired');
 assert.ok(py.includes('def get_diagnostics(self):') && py.includes('def open_update_log(self):'), 'Desktop launcher must provide diagnostics and log actions');
 assert.ok(py.includes('installed_files_ok'), 'Play flow must repair missing or size-mismatched installed files');
-assert.ok(launcherHtml.includes('v'+fs.readFileSync('launcher_version.txt','utf8').trim()), 'Launcher UI version must match launcher_version.txt');
+assert.ok(launcherHtml.includes('id="launcher-version-label"') && py.includes('def get_local_versions(self):') && app.includes('launcher-version-label'), 'Launcher UI version must be loaded dynamically from launcher_version.txt, including while offline');
 assert.ok(gameHtml.includes('360 × 280') && gameHtml.includes('440 × 328') && gameHtml.includes('520 × 384') && gameHtml.includes('600 × 440') && gameHtml.includes('720 × 520'), 'Difficulty picker must show doubled map dimensions at every difficulty');
 
 assert.match(version, /^\d+\.\d+\.\d+\.\d+$/, 'game/version.txt must include the cumulative bug-fix counter');
