@@ -120,6 +120,14 @@ assert.ok(game.includes('const movementKeyCodes = new Set()') && game.includes("
 assert.ok(game.includes('if(hudMoveMode){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}') && game.includes('if(sleeping){keys.clear();movementDirections.clear();movementKeyCodes.clear();movementKeyDirections.clear();}'), 'HUD editing and sleeping must clear all held physical movement keys');
 
 assert.ok(game.includes('quickbarItemNames') && game.includes('for(let index=0;index<10;index++)') && game.includes('pageSize=20'), 'Inventory must have ten persistent hotbar slots and twenty-slot pages');
+const lowerBoundMatch=game.match(/function lowerBoundByY\(items,minY\)\{[^}]*\}/);
+assert.ok(lowerBoundMatch,'Large-map decoration renderer must expose its sorted-row lower-bound helper');
+const lowerBoundByY=vm.runInNewContext('('+lowerBoundMatch[0]+')');
+const sortedDecorationRows=[{y:1},{y:3},{y:6},{y:9},{y:14}];
+assert.equal(lowerBoundByY(sortedDecorationRows,6),2,'Viewport culling must start at the first visible decoration row');
+assert.equal(lowerBoundByY(sortedDecorationRows,15),5,'Viewport culling must return array length when no rows are visible');
+assert.ok(game.includes('lowerBoundByY(items,camY-20)') && game.includes('lowerBoundByY(items,camY-15)'), 'Flowers and fireflies must scan only the visible Y range on large maps');
+
 assert.ok(gameHtml.includes('id="inventory-page-prev"') && gameHtml.includes('id="inventory-page-next"') && gameHtml.includes('СЛОТЫ 1–10'), 'Inventory UI must expose ten hotbar slots and paging');
 assert.ok(game.includes("id:'storm'") && game.includes("id:'abyss'"), 'Two additional world bosses must be defined');
 assert.ok(game.includes('function makeDungeonRoomMobs') && game.includes("type:'skeleton'") && game.includes("type:'ice'") && game.includes("type:'scorpion'") && game.includes("type:'brute'"), 'Each dungeon room must generate four distinct enemy types');
