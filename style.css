@@ -94,7 +94,10 @@
 @media(max-width:520px){.mod-browser-toolbar{grid-template-columns:1fr}.mod-browser-search{grid-column:auto}.mod-browser-clear{width:100%}}
 
 .launcher-mod-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
-.launcher-mod-card{min-width:0;padding:17px;border:1px solid #2a405e;border-radius:15px;background:linear-gradient(145deg,#12233a,#0b1728);display:flex;flex-direction:column;align-items:flex-start}
+.launcher-mod-card{min-width:0;padding:17px;border:1px solid #2a405e;border-radius:15px;background:linear-gradient(145deg,#12233a,#0b1728);display:flex;flex-direction:column;align-items:flex-start}.launcher-mod-card{position:relative}
+.launcher-mod-card .mod-favorite-toggle{position:absolute;top:12px;right:12px;z-index:1;width:34px;height:34px;margin:0;padding:0;display:grid;place-items:center;border:1px solid #40597b;border-radius:9px;background:#0a192c;color:#8ea6c8;font-size:20px;line-height:1;cursor:pointer}
+.launcher-mod-card .mod-favorite-toggle:hover{border-color:#8ca8ff;color:#dce7ff}
+.launcher-mod-card .mod-favorite-toggle.is-favorite{border-color:#9c8145;background:#4a3a1b;color:#ffdb87;box-shadow:0 0 15px #d5a64225}
 .launcher-mod-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#20395d;font-size:22px;margin-bottom:12px}
 .launcher-mod-meta{color:#91b2f5;font-size:8px;font-weight:900;letter-spacing:1.5px}
 .launcher-mod-card h2{font-size:15px;margin:7px 0}.launcher-mod-card p{color:#b1c2db;font-size:11px;line-height:1.6;margin:0 0 8px;min-height:36px}
