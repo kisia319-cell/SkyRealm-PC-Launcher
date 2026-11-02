@@ -116,7 +116,7 @@ assert.match(app,/pageSystem:'CONTROL CENTER'/,'Page navigation names must inclu
 assert.match(enhancements,/function applyDynamicTranslations\(root=document\)/,'Dynamic pages must be localized when created and after language changes');
 assert.ok(enhancements.includes('integrity_mismatches')&&enhancements.includes('runner_exists'),'System diagnostics must display file mismatches and runner status');
 assert.ok(html.includes('id="home-launcher-version"')&&html.includes('id="home-game-version"'),'Home status must contain dynamic version fields');
-assert.ok(html.includes('id="launcher-version-label"')&&app.includes("'\.side-version':'SKYREALM <b id=\"launcher-version-label\">—</b>"),'Sidebar version label must be populated from launcher metadata');
+assert.ok(html.includes('id="launcher-version-label"')&&app.includes("'.side-version':'SKYREALM <b id=\\\"launcher-version-label\\\">—</b>"),'Sidebar version label must be populated from launcher metadata');
 assert.ok(!html.includes('nav-badge">2')&&!html.includes('nav-badge">8'),'Navigation must not display stale hard-coded notification counts');
 assert.ok(html.includes('id="mods-catalog-count"'),'Mod catalog badge must be calculated from the real catalog');
 
