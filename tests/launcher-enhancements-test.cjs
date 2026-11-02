@@ -109,6 +109,12 @@ assert.match(launcher,/integrity_mismatches/,'Diagnostics must compare installed
 assert.match(launcher,/integrity_checked/,'Diagnostics must report how many bundled files were checked');
 assert.match(launcher,/bundled_game_version/,'Update status must account for a newer game bundled with the launcher');
 assert.match(launcher,/missing_game_files/,'Update status must offer repair when required installed files are missing');
+assert.match(launcher,/def get_local_versions\(self\)/,'The launcher must expose its local version even while offline');
+assert.match(enhancements,/async function refreshLocalVersions\(\)/,'The home screen must populate version labels without depending on the remote manifest');
+assert.ok(enhancements.includes('refreshLocalVersions();refreshServices();refreshNotifications();checkUpdates();'),'Local versions must load before the remote update request');
+assert.ok(app.includes("'#backup-worlds':'Create backup'")&&app.includes("'#restore-worlds':'Restore selected'"),'Backup manager controls must be localized');
+assert.ok(enhancements.includes("calendarMonth.toLocaleDateString(enhancementLanguage==='en'?'en-US':'ru-RU'"),'The dynamic calendar must respect the selected language');
+
 assert.ok(html.includes('id="world-backup-select"')&&html.includes('id="refresh-world-backups"'),'Settings must expose backup selection and list refresh controls');
 assert.ok(app.includes('list_world_backups')&&app.includes('restore_worlds(selectedBackup)'),'Backup UI must list archives and pass the selected archive to restore');
 assert.ok(app.includes("new CustomEvent('skyrealm:language-changed'"),'Launcher language changes must notify dynamically-created pages');
