@@ -15,6 +15,7 @@ import urllib.error
 import functools
 import http.server
 import threading
+import ctypes
 from urllib.parse import urlencode
 from pathlib import Path
 
@@ -708,13 +709,21 @@ class LauncherApi:
                 launch_env["SKYREALM_SESSION_TOKEN"] = safe_session_token
             else:
                 launch_env.pop("SKYREALM_SESSION_TOKEN", None)
-            subprocess.Popen(
+            game_process = subprocess.Popen(
                 command,
                 cwd=str(install_dir),
                 close_fds=True,
                 creationflags=creationflags,
                 env=launch_env,
             )
+            # Windows restricts foreground activation by newly spawned processes.
+            # The launcher was just interacted with by the user, so explicitly grant
+            # its game child permission to activate the game window.
+            if os.name == "nt":
+                try:
+                    ctypes.windll.user32.AllowSetForegroundWindow(game_process.pid)
+                except Exception:
+                    pass
             _js_update(100, "Запускаем SkyRealm…", "Лаунчер закроется через мгновение")
             return {"ok": True, "installed": not already_installed, "version": version}
         except Exception as exc:
@@ -859,6 +868,68 @@ class QuietGameFileHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+def _skyrealm_activate_current_window() -> bool:
+    """Bring the current game runner's native WebView window to the foreground on Windows."""
+    if os.name != "nt":
+        return False
+    try:
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        current_pid = kernel32.GetCurrentProcessId()
+        matches = []
+        enum_proc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+
+        def visit(hwnd, _):
+            process_id = ctypes.c_ulong()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(process_id))
+            if process_id.value == current_pid and user32.IsWindowVisible(hwnd):
+                length = user32.GetWindowTextLengthW(hwnd)
+                title = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(hwnd, title, length + 1)
+                if "SkyRealm" in title.value:
+                    matches.append((hwnd, title.value))
+            return True
+
+        user32.EnumWindows(enum_proc(visit), 0)
+        if not matches:
+            return False
+        hwnd = next((handle for handle, title in matches if title == "SkyRealm — Первый рассвет"), matches[0][0])
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+        foreground = user32.GetForegroundWindow()
+        current_thread = kernel32.GetCurrentThreadId()
+        target_thread = user32.GetWindowThreadProcessId(hwnd, None)
+        foreground_thread = user32.GetWindowThreadProcessId(foreground, None) if foreground else 0
+        attached = []
+        try:
+            for thread_id in {target_thread, foreground_thread}:
+                if thread_id and thread_id != current_thread and user32.AttachThreadInput(current_thread, thread_id, True):
+                    attached.append(thread_id)
+            user32.BringWindowToTop(hwnd)
+            user32.SetForegroundWindow(hwnd)
+            user32.SetActiveWindow(hwnd)
+            user32.SetFocus(hwnd)
+            return user32.GetForegroundWindow() == hwnd
+        finally:
+            for thread_id in attached:
+                user32.AttachThreadInput(current_thread, thread_id, False)
+    except Exception:
+        return False
+
+
+def _activate_game_window(*_):
+    """Retry native activation after WebView2 has created and loaded its HWND."""
+    try:
+        if game_window is not None:
+            game_window.show()
+    except Exception:
+        pass
+    _skyrealm_activate_current_window()
+    for delay in (0.25, 0.8):
+        retry = threading.Timer(delay, _skyrealm_activate_current_window)
+        retry.daemon = True
+        retry.start()
+
+
 def run_game_window(game_html: str) -> None:
     """Run the game in its own lightweight window, serving installed files over loopback."""
     global game_window, game_fullscreen
@@ -903,8 +974,14 @@ def run_game_window(game_html: str) -> None:
             background_color="#07111f",
             text_select=False,
             fullscreen=game_fullscreen,
+            focus=True,
             js_api=GameApi(),
         )
+        # A child game process can be launched while another Edge/WebView window still
+        # owns the foreground. Activate the actual game HWND after both native show and
+        # page load so keyboard events reach the canvas, not the previous window.
+        game_window.events.shown += _activate_game_window
+        game_window.events.loaded += _activate_game_window
         # Explicit persistent WebView2 profile: keep localStorage (world saves) across
         # launcher/game updates instead of relying on pywebview's private-mode default.
         profile_dir = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "webview-profile"
