@@ -27,10 +27,10 @@ jobs:
       - name: Publish game release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: game-0.20.50.0
-          name: SkyRealm Game 0.20.50.0
+          tag_name: game-0.20.50.1
+          name: SkyRealm Game 0.20.50.1
           body: |
-            SkyRealm 0.20.50.0 — морская экспедиция:
+            SkyRealm 0.20.50.1 — морская экспедиция:
             парусный корабль, море за береговой линией, волны, погода и штормы,
             акулы, морские карты и сундуки с уникальными предметами,
             большая подводная сокровищница с тремя маршрутами и ровно двумя богами моря,
@@ -50,10 +50,10 @@ jobs:
           path = "manifest.json"
           with open(path, "r", encoding="utf-8") as f:
               data = json.load(f)
-          data["game_version"] = "0.20.50.0"
+          data["game_version"] = "0.20.50.1"
           data["game_sha256"] = os.environ["GAME_SHA256"]
-          data["game_download_url"] = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/game-0.20.50.0/SkyRealm_Game.zip"
-          data["notes"] = "SkyRealm 0.20.50.0: морская экспедиция, корабли, волны, погода, штормы, акулы, карты сокровищ, редкие некрафтовые артефакты, подводная сокровищница с тремя путями и ровно двумя богами моря, водяной шлем с четырьмя уровнями дыхания. Существующие миры сохраняются."
+          data["game_download_url"] = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/game-0.20.50.1/SkyRealm_Game.zip"
+          data["notes"] = "SkyRealm 0.20.50.1: морская экспедиция, корабли, волны, погода, штормы, акулы, карты сокровищ, редкие некрафтовые артефакты, подводная сокровищница с тремя путями и ровно двумя богами моря, водяной шлем с четырьмя уровнями дыхания. Существующие миры сохраняются."
           with open(path, "w", encoding="utf-8") as f:
               json.dump(data, f, ensure_ascii=False, indent=2)
               f.write(chr(10))
@@ -61,5 +61,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add manifest.json
-          git commit -m "Publish game package 0.20.50.0" || exit 0
+          git commit -m "Publish game package 0.20.50.1" || exit 0
           git push
