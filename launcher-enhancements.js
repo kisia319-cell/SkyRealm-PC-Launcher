@@ -381,6 +381,7 @@
       if($('#launcher-version-label'))$('#launcher-version-label').textContent='v'+launcherVersion;
       if($('#home-launcher-version'))$('#home-launcher-version').textContent=launcherVersion;
       if($('#home-game-version'))$('#home-game-version').textContent=gameVersion;
+      if($('#install-version-label'))$('#install-version-label').textContent='v'+(result.bundled_game_version||gameVersion);
       if($('#system-launcher-version'))$('#system-launcher-version').textContent=launcherVersion;
       if($('#system-game-version'))$('#system-game-version').textContent=gameVersion+' → '+(result.latest_local_game_version||gameVersion);
     }catch(error){console.warn('[SkyRealm] Local version check failed:',error);}
