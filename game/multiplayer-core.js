@@ -137,12 +137,22 @@
     if(typeof input.blood_moon_active!=='boolean')return null;
     return {minute_total:Math.round(minute*1000)/1000,survived_nights:nights,blood_moon_active:input.blood_moon_active};
   }
-  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","meteorPoint","meteorShowerTimer","worldEventCamp","worldEventTraveler","lastWorldMeteorNight","lastWorldHordeNight","lastWorldCampDay","lastWorldTravelerDay"]);
+  const SHARED_WORLD_FIELDS=Object.freeze(["clearedSnowTiles","snowShovelHits","worldTimeMultiplier","lastYetiSpawnDay","worldEarlyMonsters","mineLevel","houseLevel","dungeonRoom","dungeonClearedRooms","dungeonChestOpened","dungeonEnemyHp","biomeBosses","caveBossDefeated","caveBossHp","caveChestOpened","treasureChests","mineTileX","mineTileY","mineRocks","tradeEntranceX","tradeEntranceY","furnaceCrafted","placedStructures","lootDrops","adventureQuestProgress","farmCrops","discovered","exploredCells","wolfBossActive","wolfBossHp","wolfBossX","wolfBossY","wolfBossKeyDropped","wolfCageOpen","wolfDogCaged","wolfBossDefeated","wolfCompanionUnlocked","wolfCompanionHp","wolfCompanionRevivals","wolfCompanionOffsetX","wolfCompanionOffsetY","dogBehavior","villageQuestStage","blacksmithQuestStage","explorerQuestStage","npcQuestState","villageReputation","lastVillageRaidDay","villageRaidActive","villageRaidKills","villageRaidTimer","weatherMode","weatherTimer","coopWorldEntry","meteorPoint","meteorShowerTimer","worldEventCamp","worldEventTraveler","lastWorldMeteorNight","lastWorldHordeNight","lastWorldCampDay","lastWorldTravelerDay"]);
   function sanitizeSharedWorldSnapshot(input){
     if(!input||typeof input!=='object'||Array.isArray(input))return null;
     const output={};
     for(const key of SHARED_WORLD_FIELDS){
       if(Object.prototype.hasOwnProperty.call(input,key))output[key]=input[key];
+    }
+    if(output.worldTimeMultiplier!==undefined){
+      const multiplier=Number(output.worldTimeMultiplier);
+      if(![1,2,3,4].includes(multiplier))return null;
+      output.worldTimeMultiplier=multiplier;
+    }
+    if(output.lastYetiSpawnDay!==undefined){
+      const day=Number(output.lastYetiSpawnDay);
+      if(!Number.isSafeInteger(day)||day < -1 || day > 1000000)return null;
+      output.lastYetiSpawnDay=day;
     }
     if(output.coopWorldEntry!==undefined){
       const entry=output.coopWorldEntry;
