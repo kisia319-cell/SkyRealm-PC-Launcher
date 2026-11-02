@@ -127,17 +127,20 @@
   function fightVaultBoss(){
     if(!state.vaultRoom){msg('Сначала пройди один из глубоких путей.');return;}
     const b=bridge();
-    if(state.vaultPath!==2){
-      if(state.vaultRoom<=5){
-        if(state.bossHp<=0)state.bossHp=180+state.vaultRoom*45;
-        state.bossHp=Math.max(0,state.bossHp-95);
-        if(state.air!==Infinity)state.air=Math.max(0,state.air-3);
-        if(state.bossHp<=0){state.vaultRoom++;if(state.vaultRoom>5){$('vault-log').textContent='Путь очищен! Ты победил всех стражей и нашёл тайный сундук с уникальной реликвией.';b?.addItem?.('Кольцо глубин',1,'Не создаётся на верстаке.');}else{$('vault-log').textContent='Страж побеждён. В следующем зале появился новый монстр. Зал '+state.vaultRoom+'/5.';state.bossHp=0;}}
-        else $('vault-log').textContent='Страж глубин · осталось здоровья: '+state.bossHp+'. Он наносит ответный удар и отнимает воздух.';
-        save();b?.save?.();return;
-      }
-      return;
+    if(state.vaultRoom<=5){
+      if(state.bossHp<=0)state.bossHp=180+state.vaultRoom*45;
+      state.bossHp=Math.max(0,state.bossHp-95);
+      if(state.air!==Infinity)state.air=Math.max(0,state.air-3);
+      if(state.bossHp<=0){
+        state.vaultRoom++;
+        if(state.vaultRoom>5){
+          if(state.vaultPath===2){$('vault-log').textContent='Все пять залов бездны очищены. За древними вратами пробуждаются два бога моря.';msg('Ты дошёл до зала двух богов!');}
+          else{$('vault-log').textContent='Путь очищен! Ты победил всех стражей и нашёл тайный сундук с уникальной реликвией.';b?.addItem?.('Кольцо глубин',1,'Не создаётся на верстаке.');}
+        }else{$('vault-log').textContent='Страж побеждён. В следующем зале появился новый монстр. Зал '+state.vaultRoom+'/5.';state.bossHp=0;}
+      }else $('vault-log').textContent='Страж глубин · осталось здоровья: '+state.bossHp+'. Он наносит ответный удар и отнимает воздух.';
+      save();b?.save?.();return;
     }
+    if(state.vaultPath!==2){$('vault-log').textContent='Этот маршрут пройден. Выбери другой глубокий путь или открой путь Безды.';return;}
     if(!state.vaultBosses.tide){
       if(state.bossHp<=0){state.bossHp=1800;$('vault-log').textContent='БОГ №1: НЕПТУН РАЗЛОМА · 1800 здоровья. Нажимай «Атаковать босса», чтобы сражаться.';msg('Пробуждается первый бог моря!');}
       else {state.bossHp=Math.max(0,state.bossHp-260);if(state.air!==Infinity)state.air=Math.max(0,state.air-7);$('vault-log').textContent='Нептун Разлома · здоровье: '+state.bossHp+'/1800. Бог отвечает приливным ударом.';}
