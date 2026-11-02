@@ -205,6 +205,14 @@
       <div class="page-heading"><div class="section-kicker">SKYREALM · МАСТЕРСКАЯ</div><h1>Каталог <span>модов</span></h1><p>35 встроенных модов SkyRealm и мастерская пользовательских скриптов. Нажми «Добавить в игру» — лаунчер запустит игру и откроет каталог на выбранном моде.</p></div>
       <div class="mods-launcher-note panel"><div class="mods-launcher-note-icon">🧩</div><div><b>35 встроенных модов готовы</b><p>Моды уже входят в игру. Отдельно скачивать архивы не нужно: лаунчер проверит и обновит игровые файлы перед запуском. Установка не меняет миры и сохранения.</p></div><button class="primary-btn" id="open-full-mod-catalog" type="button">Открыть каталог в игре →</button></div>
       <div class="mods-launcher-community panel"><div><b>Хочешь стать автором?</b><p>Напиши собственный мод на JavaScript или Python, проверь его и сохрани локально. Скрипт можно экспортировать в файл.</p></div><button class="primary-btn" id="create-own-mod" type="button">＋ Создать свой мод</button></div>
+      <div class="mod-browser-toolbar" id="mod-browser-toolbar">
+        <label class="mod-browser-search"><span>Поиск модов</span><input id="mod-catalog-search" type="search" maxlength="80" placeholder="Название, описание или ID мода" autocomplete="off"></label>
+        <label class="mod-browser-filter"><span>Категория</span><select id="mod-catalog-category"><option value="all">Все категории</option></select></label>
+        <label class="mod-browser-filter"><span>Сортировка</span><select id="mod-catalog-sort"><option value="default">По умолчанию</option><option value="name-asc">Название: А–Я</option><option value="name-desc">Название: Я–А</option><option value="category">По категории</option></select></label>
+        <button class="secondary-btn mod-browser-clear" id="mod-catalog-clear" type="button">Сбросить</button>
+        <p class="mod-browser-count" id="mod-catalog-results-count" aria-live="polite">Найдено модов: 35</p>
+        <p class="mod-browser-empty" id="mod-catalog-empty" hidden>Ничего не найдено. Измени поисковый запрос или категорию.</p>
+      </div>
       <div class="launcher-mod-grid">
         <article class="launcher-mod-card"><div class="launcher-mod-icon">🧭</div><div class="launcher-mod-meta">ИССЛЕДОВАНИЕ · v1.0.0</div><h2>Око картографа</h2><p>Открывает больше территории вокруг персонажа на мини-карте.</p><small>Радиус открытия карты: с 3 до 5 блоков.</small><button class="secondary-btn" data-install-mod="cartographer" type="button">Добавить в игру →</button></article>
         <article class="launcher-mod-card"><div class="launcher-mod-icon">🎣</div><div class="launcher-mod-meta">РЕСУРСЫ · v1.0.0</div><h2>Мастер рыбалки</h2><p>Помогает быстрее ловить рыбу и повышает шанс редкой находки.</p><small>Быстрее поклёвка, больше шанс жемчуга и второй рыбы.</small><button class="secondary-btn" data-install-mod="angler" type="button">Добавить в игру →</button></article>
