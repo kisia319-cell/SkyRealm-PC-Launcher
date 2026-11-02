@@ -105,7 +105,8 @@
     const search=$('#mod-catalog-search'),categorySelect=$('#mod-catalog-category');
     const sortSelect=$('#mod-catalog-sort'),clear=$('#mod-catalog-clear');
     const count=$('#mod-catalog-results-count'),empty=$('#mod-catalog-empty');
-    if(!grid||!search||!categorySelect||!sortSelect||!clear||grid.dataset.filtersBound==='1')return;
+    if(!grid||!search||!categorySelect||!sortSelect||!clear)return;
+    if(grid.dataset.filtersBound==='1'){if(typeof grid.__skyrealmApplyModFilters==='function')grid.__skyrealmApplyModFilters();return;}
     const cards=Array.from(grid.querySelectorAll('.launcher-mod-card'));
     if(!cards.length)return;
     grid.dataset.filtersBound='1';
@@ -170,6 +171,7 @@
       try{localStorage.setItem(MOD_FILTER_STORAGE_KEY,JSON.stringify({query:search.value.slice(0,80),category,sort}));}catch(_){}
       applyDynamicTranslations($('#mod-browser-toolbar')||document);
     };
+    grid.__skyrealmApplyModFilters=apply;
     search.addEventListener('input',apply);
     categorySelect.addEventListener('change',apply);
     sortSelect.addEventListener('change',apply);
