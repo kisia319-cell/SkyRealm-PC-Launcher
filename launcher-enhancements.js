@@ -49,6 +49,7 @@
     'Поиск модов':'Search mods','Категория':'Category','Сортировка':'Sort by',
     'Все категории':'All categories','По умолчанию':'Default order',
     'Название: А–Я':'Name: A–Z','Название: Я–А':'Name: Z–A',
+    'Избранное ★':'Favorites ★',
     'По категории':'By category','Сбросить':'Clear filters',
     'Найдено модов: 35':'Found mods: 35',
     'Ничего не найдено. Измени поисковый запрос или категорию.':'No mods found. Change the search or category.',
@@ -64,7 +65,8 @@
   const DYNAMIC_ATTR_EN = {
     'Например, вечер кооператива':'For example, co-op night',
     'Выбрать резервную копию':'Select a backup',
-    'Название, описание или ID мода':'Mod name, description or ID'
+    'Название, описание или ID мода':'Mod name, description or ID',
+    'Добавить в избранное':'Add to favorites','Убрать из избранного':'Remove from favorites'
   };
   function applyDynamicTranslations(root=document) {
     const toEnglish = enhancementLanguage === 'en';
