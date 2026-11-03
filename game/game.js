@@ -3829,7 +3829,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     document.getElementById('pause-admin-tools').hidden=!admin;
     document.getElementById('menu-moderator').hidden=!moderator;
     document.getElementById('pause-moderator-tools').hidden=!moderator;
-    const grants=document.getElementById('menu-privileges');if(grants)grants.hidden=!(publicStaffGrantsEnabled||admin);
+    const grants=document.getElementById('menu-privileges');if(grants)grants.hidden=!(publicStaffGrantsEnabled||staffBootstrapAvailable||admin);
   }
   function generateMineStock(dayIndex=0){
     const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);
@@ -3922,7 +3922,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   const SKYREALM_STAFF_API='https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-staff';
   const SKYREALM_STAFF_KEY='sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL';
-  let currentStaffRole='none',staffRoleLastChecked=0,staffRefreshPromise=null,publicStaffGrantsEnabled=false;
+  let currentStaffRole='none',staffRoleLastChecked=0,staffRefreshPromise=null,publicStaffGrantsEnabled=false,staffBootstrapAvailable=false;
   async function staffRequest(route,method='GET',payload=null){
     const token=await communityAccessToken();
     if(!token)throw new Error('Войди в аккаунт SkyRealm и подтверди почту.');
@@ -3942,9 +3942,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       try{
         const data=await staffRequest('/api/staff/me');
         currentStaffRole=['admin','moderator'].includes(data.role)?data.role:'none';
-        publicStaffGrantsEnabled=data.public_grants_enabled===true;
+        publicStaffGrantsEnabled=data.public_grants_enabled===true;staffBootstrapAvailable=data.bootstrap_available===true;
       }catch(error){
-        currentStaffRole='none';publicStaffGrantsEnabled=false;
+        currentStaffRole='none';publicStaffGrantsEnabled=false;staffBootstrapAvailable=false;
         if(error?.message&&!error.message.includes('Войди в аккаунт'))console.warn('[SkyRealm staff role]',error.message);
       }finally{
         staffRoleLastChecked=Date.now();
@@ -3992,15 +3992,21 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   async function openPrivilegesPanel(){
     await refreshStaffRole(true);
-    if(!publicStaffGrantsEnabled&&currentStaffRole!=='admin'&&gameSettings.adminMode!==true){toast('Выдача ролей сейчас закрыта.');return;}
+    if(!publicStaffGrantsEnabled&&!staffBootstrapAvailable&&currentStaffRole!=='admin'&&gameSettings.adminMode!==true){toast('Выдача ролей сейчас закрыта.');return;}
     const toggle=document.getElementById('admin-public-grants-toggle');
     const control=document.getElementById('admin-public-grants-control');
     const revoke=document.getElementById('admin-privileges-revoke');
+    const grant=document.getElementById('admin-privileges-grant');
+    const fields=document.getElementById('admin-role-grant-controls');
+    const bootstrap=document.getElementById('admin-bootstrap-control');
     if(control)control.hidden=currentStaffRole!=='admin';
     if(revoke)revoke.hidden=currentStaffRole!=='admin';
+    if(grant)grant.hidden=currentStaffRole!=='admin'&&!publicStaffGrantsEnabled;
+    if(fields)fields.hidden=currentStaffRole!=='admin'&&!publicStaffGrantsEnabled;
+    if(bootstrap)bootstrap.hidden=!staffBootstrapAvailable||currentStaffRole==='admin';
     if(toggle)toggle.checked=publicStaffGrantsEnabled;
     const status=document.getElementById('admin-privileges-status');
-    if(status)status.textContent=publicStaffGrantsEnabled?'Открытый режим включён: любой подтверждённый аккаунт может выдать роль.':'Открытый режим выключен: выдавать роли может только администратор.';
+    if(status)status.textContent=staffBootstrapAvailable?'Доступно одноразовое получение администратора для своего аккаунта.':publicStaffGrantsEnabled?'Открытый режим включён: любой подтверждённый аккаунт может выдавать роли.':'Открытая выдача выключена: выдавать роли может только администратор.';
     setPanelOpen('admin-privileges-shade',true);
   }
   async function submitPlayerRole(action='grant'){
@@ -4014,6 +4020,18 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       if(status)status.textContent=action==='revoke'?'Роль снята с игрока '+result.username+'.':'Игрок '+result.username+' получил роль '+(result.role==='admin'?'администратора':'модератора')+'. Срок: '+(result.expires_at?new Date(result.expires_at).toLocaleString():'навсегда')+'.';
       await refreshStaffRole(true);
     }catch(error){if(status)status.textContent=error.message||'Не удалось изменить привилегию.';}
+  }
+  async function claimAdminBootstrap(){
+    const username=document.getElementById('admin-privileges-username')?.value.trim()||'';
+    const code=document.getElementById('admin-privileges-bootstrap-code')?.value.trim()||'';
+    const status=document.getElementById('admin-privileges-status');
+    if(!username||!code){if(status)status.textContent='Введи свой логин и одноразовый код.';return;}
+    try{
+      const result=await staffRequest('/api/staff/bootstrap','POST',{username,code});
+      document.getElementById('admin-privileges-bootstrap-code').value='';
+      await refreshStaffRole(true);
+      if(status)status.textContent='Администратор назначен аккаунту '+result.username+'. Привилегия сохранена на сервере навсегда.';
+    }catch(error){if(status)status.textContent=error.message||'Не удалось получить роль администратора.';}
   }
   async function savePublicGrantSetting(){
     const toggle=document.getElementById('admin-public-grants-toggle');
@@ -4405,6 +4423,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('admin-privileges-open').addEventListener('click',openPrivilegesPanel);
   document.getElementById('menu-privileges').addEventListener('click',openPrivilegesPanel);
   document.getElementById('admin-privileges-grant').addEventListener('click',()=>submitPlayerRole('grant'));
+  document.getElementById('admin-privileges-bootstrap').addEventListener('click',claimAdminBootstrap);
   document.getElementById('admin-privileges-revoke').addEventListener('click',()=>submitPlayerRole('revoke'));
   document.getElementById('admin-public-grants-save').addEventListener('click',savePublicGrantSetting);
   document.getElementById('admin-privileges-close').addEventListener('click',()=>setPanelOpen('admin-privileges-shade',false));
