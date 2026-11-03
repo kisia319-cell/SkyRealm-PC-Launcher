@@ -105,3 +105,61 @@ linear-gradient(180deg,#173c69 0%,#477eaa 30%,#9ab5c0 55%,#e6c6a1 78%,#7d6c65 10
 @keyframes sr-airship-drift{from{translate:0 0}to{translate:16vw -3vh}}
 @media(max-width:650px){.sr-cine-spire-a{left:39%}.sr-cine-spire-b{left:59%}.sr-cine-bridge{left:25%;width:50%}.sr-enter-button{bottom:4%;padding:12px 28px}}
 @media(prefers-reduced-motion:reduce){.sr-cine-airship,.sr-cine-crystal,.sr-cine-island:after{animation:none!important}}
+
+
+/* Interactive cinematic controls and dual realm presentation */
+#skyrealm-intro{--sun-x:78%;--sun-y:20%;--sun-glow:1;--scene-shadow:0.42;--scene-warmth:1}
+.sr-cine-sun{left:var(--sun-x);right:auto;top:var(--sun-y);transform:translateX(-50%);box-shadow:0 0 calc(90px * var(--sun-glow)) calc(35px * var(--sun-glow)) #ffe3b066;transition:left .12s linear,top .12s linear,filter .3s}
+.sr-cine-light{left:var(--sun-x);right:auto;top:var(--sun-y);height:100%;width:3px;transform-origin:top center;transform:rotate(24deg);opacity:var(--sun-glow);transition:left .12s linear,top .12s linear,opacity .3s}
+.sr-cinematic-scene:before{filter:drop-shadow(0 20px 24px rgba(4,12,22,var(--scene-shadow)))}
+.sr-cinematic-scene:after{opacity:calc(.45 + var(--scene-shadow))}
+.sr-cine-island,.sr-cine-citadel,.sr-cine-forest,.sr-cine-bridge,.sr-cine-spire{filter:drop-shadow(0 15px 14px rgba(3,10,20,var(--scene-shadow)))}
+.sr-intro-tools{position:absolute;z-index:9;left:50%;bottom:1.2%;transform:translateX(-50%);width:min(660px,94vw);display:grid;justify-items:center;gap:8px;color:#f8ecd0;font:600 10px/1.35 "Segoe UI",sans-serif;text-shadow:0 2px 8px #000;pointer-events:none}
+.sr-sun-control{display:flex;align-items:center;gap:10px;width:min(390px,88vw);padding:7px 12px;border-radius:30px;background:linear-gradient(90deg,#081526b8,#1a2942c9,#081526b8);border:1px solid #f6dfad66;backdrop-filter:blur(8px);pointer-events:auto}
+.sr-sun-control label{white-space:nowrap;letter-spacing:1px;font-size:9px}
+.sr-sun-control input{width:100%;accent-color:#f4ca79;cursor:ew-resize}
+.sr-sun-status{min-width:62px;text-align:right;color:#ffe3a5;font-size:9px}
+.sr-scene-switch{border:0;background:none;color:#fff1cf;font:800 11px/1.4 "Segoe UI",sans-serif;letter-spacing:1.6px;text-shadow:0 2px 10px #000,0 0 15px #f4d59b88;cursor:pointer;pointer-events:auto;padding:2px 12px;transition:color .3s,transform .3s}
+.sr-scene-switch:hover{color:#fff;transform:translateY(-2px)}
+.sr-cine-airship{pointer-events:auto;cursor:grab;touch-action:none;z-index:6}
+.sr-cine-airship:active{cursor:grabbing}
+.sr-cine-pickaxe{position:absolute;z-index:6;left:24%;bottom:17%;width:clamp(44px,6vw,76px);height:clamp(72px,10vw,112px);filter:drop-shadow(0 8px 8px #071321aa);animation:sr-pickaxe-swing 5s ease-in-out infinite;transform-origin:55% 85%}
+.sr-cine-neptune{position:absolute;z-index:5;right:7%;bottom:12%;width:clamp(120px,19vw,245px);height:clamp(145px,24vh,260px);opacity:0;transform:translateY(45px) scale(.8);filter:drop-shadow(0 0 24px #49c8eaaa);transition:opacity 1.2s,transform 1.4s}
+.sr-cine-neptune .neptune-body{position:absolute;left:30%;top:24%;width:42%;height:54%;border-radius:48% 48% 38% 38%;background:radial-gradient(ellipse at 35% 25%,#b4fff2,#267f9a 40%,#102c55 78%);border:2px solid #8ce8e8;box-shadow:inset -15px -8px 20px #071c4b,0 0 30px #45d9d088}
+.sr-cine-neptune .neptune-crown{position:absolute;left:30%;top:10%;width:43%;height:30%;background:linear-gradient(135deg,#d4fbff,#478db4 55%,#163a69);clip-path:polygon(0 100%,8% 0,30% 65%,49% 0,69% 65%,94% 4%,100% 100%)}
+.sr-cine-neptune .neptune-trident{position:absolute;right:5%;top:20%;width:9%;height:78%;background:linear-gradient(90deg,#72522b,#ffe6a1,#7d5b2e);border-radius:8px;transform:rotate(12deg)}
+.sr-cine-neptune .neptune-trident:before{content:"";position:absolute;top:-8%;left:-95%;width:290%;height:20%;border-top:5px solid #ffe7a5;border-left:4px solid #ffe7a5;border-right:4px solid #ffe7a5;border-radius:50% 50% 0 0}
+.sr-cine-neptune .neptune-tentacle{position:absolute;bottom:0;width:23%;height:43%;border:9px solid #238aa0;border-top:0;border-radius:0 0 50% 50%;filter:drop-shadow(0 0 7px #4dd7d4);animation:sr-tentacle-wave 2.6s ease-in-out infinite alternate}
+.sr-cine-neptune .tentacle-a{left:10%;transform:rotate(24deg)}.sr-cine-neptune .tentacle-b{left:39%;height:50%;animation-delay:-.8s}.sr-cine-neptune .tentacle-c{right:4%;transform:rotate(-25deg);animation-delay:-1.3s}
+#skyrealm-intro.neptune-visible .sr-cine-neptune{opacity:1;transform:translateY(0) scale(1)}
+#skyrealm-intro.hell-scene{background:#160407!important}
+#skyrealm-intro.hell-scene:before{background:radial-gradient(circle at var(--sun-x) var(--sun-y),#ff302b 0 9%,#8b101c 10% 15%,transparent 30%),linear-gradient(180deg,#16040c 0%,#4a0914 38%,#8e1b0e 72%,#160407 100%)!important;animation:sr-hell-sky 12s ease-in-out infinite alternate!important}
+#skyrealm-intro.hell-scene .sr-cine-sun{background:radial-gradient(circle,#fff0cf 0 17%,#ff5944 30%,#a40022 65%,transparent 73%);box-shadow:0 0 95px 35px #ff171c99}
+#skyrealm-intro.hell-scene .sr-cine-cloud{background:radial-gradient(ellipse,#ff693a99,#5c1019aa 45%,transparent 74%);filter:blur(22px)}
+#skyrealm-intro.hell-scene .sr-cine-island i{background:linear-gradient(#7b322a,#37151b 75%,#1b101a)}
+#skyrealm-intro.hell-scene .sr-cine-island b{background:linear-gradient(110deg,#21131c,#0b0a13 56%,#50201e)}
+#skyrealm-intro.hell-scene .sr-cine-citadel:before{background:linear-gradient(90deg,#28151d,#8c3930 48%,#27131d)}
+#skyrealm-intro.hell-scene .sr-cine-crystal{background:linear-gradient(135deg,#fff0b2,#ff472d 45%,#791021);filter:drop-shadow(0 0 15px #ff351f)}
+#skyrealm-intro.hell-scene .sr-cine-airship:before{background:linear-gradient(#a14b38,#35151c 60%,#150d16);border-color:#ff8b61}
+#skyrealm-intro.hell-scene .sr-cine-light{background:linear-gradient(transparent,#ff5a32,transparent);box-shadow:0 0 65px 28px #ff3c2455}
+#skyrealm-intro.hell-scene .sr-cine-particles{background-image:radial-gradient(3px 3px at 18% 28%,#ffdb8b 60%,transparent),radial-gradient(2px 2px at 73% 61%,#ff6947 60%,transparent),radial-gradient(2px 2px at 43% 17%,#ffd0a0 60%,transparent),radial-gradient(3px 3px at 86% 38%,#ff4a32 60%,transparent);animation:sr-embers 4s linear infinite}
+#skyrealm-intro.hell-scene .sr-cine-water{background:linear-gradient(180deg,transparent,#f0441caa 45%,#31050d)}
+#skyrealm-intro.hell-scene .sr-cine-neptune{opacity:0;pointer-events:none}
+#skyrealm-intro.hell-scene .sr-cine-neptune:after{content:"";position:absolute;inset:-20%;border-radius:50%;background:radial-gradient(circle,#f5c5a9 0 23%,#c51632 24% 34%,transparent 35%);z-index:-1;filter:drop-shadow(0 0 35px #ff123d)}
+.sr-hell-boss{position:absolute;z-index:5;left:12%;bottom:11%;width:clamp(115px,17vw,210px);height:clamp(140px,23vh,245px);opacity:0;transform:translateY(35px) scale(.85);transition:opacity 1s,transform 1.2s;filter:drop-shadow(0 0 22px #ff382b)}
+.sr-hell-boss:before{content:"";position:absolute;left:22%;top:25%;width:58%;height:62%;border-radius:48% 48% 35% 35%;background:radial-gradient(ellipse at 50% 30%,#8e3230,#30101c 62%,#090811);border:2px solid #bd463e;box-shadow:inset 0 0 25px #ff3b2b55}
+.sr-hell-boss:after{content:"";position:absolute;left:18%;top:12%;width:70%;height:35%;background:linear-gradient(90deg,#7c2028,#e55b35,#5b1526);clip-path:polygon(0 100%,8% 0,28% 60%,45% 0,61% 58%,91% 0,100% 100%)}
+#skyrealm-intro.hell-scene .sr-hell-boss{opacity:1;transform:translateY(0) scale(1);animation:sr-boss-breathe 3s ease-in-out infinite}
+.sr-hell-flames{position:absolute;z-index:3;inset:auto 0 0;height:27%;pointer-events:none;opacity:0}
+#skyrealm-intro.hell-scene .sr-hell-flames{opacity:1;background:radial-gradient(ellipse at 8% 100%,#ffb02c 0 5%,transparent 26%),radial-gradient(ellipse at 28% 100%,#ff4a21 0 8%,transparent 28%),radial-gradient(ellipse at 53% 100%,#ffb02c 0 6%,transparent 26%),radial-gradient(ellipse at 78% 100%,#ff4321 0 8%,transparent 30%),linear-gradient(0deg,#7b130f99,transparent 78%);animation:sr-flame-flicker .7s ease-in-out infinite alternate}
+#skyrealm-intro.hell-scene .sr-scene-switch{color:#ffb8a0;text-shadow:0 0 14px #ff302a,0 2px 10px #000}
+#skyrealm-intro.hell-scene .sr-enter-button{background:linear-gradient(135deg,#ffb08a,#b62c30 55%,#4a101d);border-color:#ffb49b;color:#fff4e8}
+#skyrealm-intro.hell-scene .sr-intro-content{filter:drop-shadow(0 0 20px #ff382b66)}
+@keyframes sr-pickaxe-swing{0%,100%{transform:rotate(-18deg)}50%{transform:rotate(22deg)}}
+@keyframes sr-tentacle-wave{from{transform:rotate(-14deg)}to{transform:rotate(17deg)}}
+@keyframes sr-hell-sky{to{filter:hue-rotate(-12deg) brightness(1.18)}}
+@keyframes sr-embers{to{background-position:0 -280px,0 -330px,0 -210px,0 -370px}}
+@keyframes sr-boss-breathe{0%,100%{filter:drop-shadow(0 0 13px #ff382b)}50%{filter:drop-shadow(0 0 30px #ff6a35)}}
+@keyframes sr-flame-flicker{from{transform:scaleY(.82);filter:brightness(.85)}to{transform:scaleY(1.12);filter:brightness(1.3)}}
+@media(max-width:650px){.sr-intro-tools{bottom:1%;gap:5px}.sr-cine-neptune{right:1%;bottom:15%}.sr-hell-boss{left:2%;bottom:14%}.sr-cine-pickaxe{left:12%;bottom:20%}.sr-enter-button{bottom:8%}}
+@media(prefers-reduced-motion:reduce){.sr-cine-neptune,.sr-hell-boss,.sr-cine-pickaxe,.sr-hell-flames{animation:none!important}}
