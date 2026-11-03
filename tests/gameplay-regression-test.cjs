@@ -275,7 +275,7 @@ assert.match(source,/async function enterBossWorld\(\)/);
 assert.match(source,/async function leaveBossWorld\(\)/);
 assert.match(source,/if\(bossWorldMode\)return;/,
   'The empty first-stage boss dimension must not activate existing biome bosses.');
-assert.match(source,/id="boss-world-loading"/,
+assert.match(source,/getElementById\('boss-world-loading'\)/,
   'The boss dimension must show a dedicated loading screen.');
 console.log('SkyRealm sea expedition launch, prerequisite feedback and world-entry tests passed.');
 
