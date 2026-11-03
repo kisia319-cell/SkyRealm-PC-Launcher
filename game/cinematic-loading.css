@@ -163,3 +163,17 @@ linear-gradient(180deg,#173c69 0%,#477eaa 30%,#9ab5c0 55%,#e6c6a1 78%,#7d6c65 10
 @keyframes sr-flame-flicker{from{transform:scaleY(.82);filter:brightness(.85)}to{transform:scaleY(1.12);filter:brightness(1.3)}}
 @media(max-width:650px){.sr-intro-tools{bottom:1%;gap:5px}.sr-cine-neptune{right:1%;bottom:15%}.sr-hell-boss{left:2%;bottom:14%}.sr-cine-pickaxe{left:12%;bottom:20%}.sr-enter-button{bottom:8%}}
 @media(prefers-reduced-motion:reduce){.sr-cine-neptune,.sr-hell-boss,.sr-cine-pickaxe,.sr-hell-flames{animation:none!important}}
+
+/* Atmospheric states driven by the sun control */
+#skyrealm-intro.intro-night:before{background:radial-gradient(circle at 78% 19%,#d9e5ff 0 1.2%,#b5c8ed 1.5% 2.1%,transparent 3%),linear-gradient(180deg,#03091d 0%,#101b3d 42%,#263451 72%,#111b2c 100%)!important;filter:saturate(.72) brightness(.78)}
+#skyrealm-intro.intro-night .sr-cine-sun{opacity:.14;filter:grayscale(1);box-shadow:0 0 45px 18px #b7d1ff55}
+#skyrealm-intro.intro-night .sr-cine-light{opacity:.08}
+#skyrealm-intro.intro-night .sr-cine-citadel:before,#skyrealm-intro.intro-night .sr-cine-spire{filter:brightness(.52) saturate(.8)}
+#skyrealm-intro.intro-night .sr-cine-lantern{box-shadow:0 0 18px 7px #ffd98bbb}
+#skyrealm-intro.intro-night .sr-cine-particles{opacity:1;filter:brightness(1.4)}
+#skyrealm-intro.intro-dawn:before{background:linear-gradient(180deg,#283c70 0%,#b56c70 42%,#f4b67e 68%,#586b75 100%)!important}
+#skyrealm-intro.intro-dawn .sr-cine-sun{filter:drop-shadow(0 0 25px #ffad72);background:radial-gradient(circle,#fff8db 0 22%,#ffbd82 43%,#ff8c6c55 70%,transparent 74%)}
+#skyrealm-intro.intro-dusk:before{background:linear-gradient(180deg,#1b2d55 0%,#80465e 43%,#e18b61 70%,#342c43 100%)!important}
+#skyrealm-intro.intro-dusk .sr-cine-sun{filter:drop-shadow(0 0 28px #ff895d);background:radial-gradient(circle,#fff0cb 0 20%,#ff9a67 42%,#d64b5a55 70%,transparent 74%)}
+#skyrealm-intro.hell-scene.intro-night:before{background:linear-gradient(180deg,#13030b,#4b0716 48%,#160407)!important}
+.sr-cine-airship{touch-action:none;user-select:none}
