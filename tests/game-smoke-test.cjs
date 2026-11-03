@@ -253,7 +253,7 @@ assert.ok(game.includes('Mine coordinates are deterministic from the world ID; d
 assert.ok(!game.includes('Math.max(20,Math.min(31,d.mineTileX))') && !game.includes('Math.max(24,Math.min(29,d.mineTileY))'), 'Legacy mine coordinate clamps must not move the mine back beside the starting area');
 
 assert.ok(game.includes('function updateVillageNpcs(dt){\n    if(inHouse||mineMode||caveMode||dungeonMode)return;') && !game.includes('function updateVillageNpcs(dt){\n    if(!tradeWorldMode'), 'Trade residents must remain active in ordinary single-player play, not only when co-op is enabled');
-assert.ok(game.includes('function updateWolfAndDog(dt){\n    if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;'), 'Forest boss and companion simulation must not leak into Trade World or interiors');
+assert.ok(game.includes('function updateWolfAndDog(dt){\n    if(bossRealmMode||tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;'), 'Forest boss and companion simulation must not leak into Trade World, the empty Boss Realm or interiors');
 
 assert.ok(py.includes('"multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js"'), 'Launcher diagnostics must detect missing multiplayer scripts');
 assert.ok(py.includes('required_game_files = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")'), 'Game updater must reinstall a package missing any multiplayer script');
