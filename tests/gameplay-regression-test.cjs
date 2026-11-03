@@ -202,6 +202,13 @@ assert.equal(nemesisSaves,1);
 eventContext.updateNemesisEvents();
 assert.equal(monsters.length,3,'A second tick on the same night must not duplicate the raid.');
 
+const initialSkills = source.match(/let skillPoints=0,skills=\{([^}]+)\}/);
+assert.ok(initialSkills, 'Initial skill schema must exist.');
+const resetSkills = source.match(/skills=\{([^}]+)\};equipment=/);
+assert.ok(resetSkills, 'New-world skill reset must exist.');
+const skillKeys = block => [...block.matchAll(/([A-Za-z]+):0/g)].map(match => match[1]).sort();
+assert.deepEqual(skillKeys(resetSkills[1]), skillKeys(initialSkills[1]),
+  'Creating a new world must reset every skill in the complete skill tree, not drop defensive and utility skill fields.');
 console.log('SkyRealm mine refresh, forest boundary, biome boss attacks, rebirth queue and next-night raid tests passed.');
 
 
