@@ -52,9 +52,9 @@
   }
   async function enterBossRealm(){
     if(!currentWorldId||!bossRealmPortalUnlocked())return false;
-    const originId=currentWorldId,originX=player.x,originY=player.y;saveGame();let worlds=readWorlds();let realm=worlds.find(w=>w.bossRealm===true);
-    if(!realm){realm={id:makeWorldId(),name:'Мир боссов',createdAt:Date.now(),updatedAt:Date.now(),difficulty:currentDifficulty,bossRealm:true};worlds.push(realm);}
-    realm.bossRealm=true;realm.name='Мир боссов';realm.difficulty=DIFFICULTIES[realm.difficulty]?realm.difficulty:currentDifficulty;realm.bossReturnWorldId=originId;realm.bossReturnX=originX;realm.bossReturnY=originY;realm.updatedAt=Date.now();writeWorlds(worlds);
+    const originId=currentWorldId,originX=player.x,originY=player.y;saveGame();let worlds=readWorlds();let realm=worlds.find(w=>w.bossRealm===true&&w.bossParentWorldId===originId);
+    if(!realm){realm={id:makeWorldId(),name:'Мир боссов',createdAt:Date.now(),updatedAt:Date.now(),difficulty:currentDifficulty,bossRealm:true,bossParentWorldId:originId};worlds.push(realm);}
+    realm.bossRealm=true;realm.bossParentWorldId=originId;realm.name='Мир боссов';realm.difficulty=DIFFICULTIES[realm.difficulty]?realm.difficulty:currentDifficulty;realm.bossReturnWorldId=originId;realm.bossReturnX=originX;realm.bossReturnY=originY;realm.updatedAt=Date.now();writeWorlds(worlds);
     const loading=showBossRealmLoading('МИР БОССОВ','Создаём отдельное измерение и загружаем его сохранение…');await new Promise(resolve=>setTimeout(resolve,180));loading.set(28,'Подготовка карты и биомов…');await new Promise(resolve=>requestAnimationFrame(()=>resolve()));loading.set(58,'Создание объектов нового мира…');enterWorld(realm.id);
     bossRealmMode=true;bossReturnWorldId=originId;bossReturnX=originX;bossReturnY=originY;saveGame();await new Promise(resolve=>requestAnimationFrame(()=>resolve()));loading.set(100,'Мир готов.');await new Promise(resolve=>setTimeout(resolve,260));loading.close();toast('Ты вошёл в отдельный Мир боссов.');return true;
   }
