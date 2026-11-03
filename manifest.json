@@ -1,9 +1,9 @@
 {
-  "game_sha256": "60ebe61fe4ef2b0698550e5bdbbf27786c832e02325754e212c2e265aa23e644",
-  "game_version": "0.20.50.14",
-  "notes": "SkyRealm Launcher 1.2.8 + Game 0.20.50.14: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible.",
+  "game_sha256": "e79a83f3476c64f4f9e212d2bd827b4c6ddfee4e9c9546f05de5ec7baa89b5c2",
+  "game_version": "0.20.50.15",
+  "notes": "SkyRealm Launcher 1.2.8 + Game 0.20.50.15: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.8",
-  "sha256": "1a4108ebd23c31618516d65250b34fabff09c88c272a1864ff32d31f979f56df",
+  "sha256": "02a47978765a4c8458bc825deaa7c169cdc9dca320e1d61456fde1fe6462830b",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
