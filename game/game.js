@@ -2425,8 +2425,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
         spawnVisualBurst(treeTarget.x,treeTarget.y-15,7,'leaf','#78c96d');playSound('wood');
         if(treeTarget.chops>=5){
           markTreeFelled(treeTarget);world.trees.splice(world.trees.indexOf(treeTarget),1);
-          const add=(name,n)=>{const it=inventoryItems.find(i=>i.name===name);if(it)it.count+=n;};
-          add('Древесина',7);add('Листья',3);add('Палка',1);questStage=Math.max(questStage,2);
+          changeItem('Древесина',7);changeItem('Листья',3);changeItem('Палка',1);questStage=Math.max(questStage,2);
           renderInventory();awardXP(12,'дерево срублено');saveGame();toast('Дерево срублено: +7 древесины, +3 листка, +1 палка.');
         }else{saveGame();toast('Удар топором '+treeTarget.chops+'/5');}
         renderInventory();return;
@@ -2786,7 +2785,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function weaponRange(name=equipment.weapon){return name==='Ледяной посох'?230:name==='Молниеносное копьё'?125:82;}
   function armorReduction(){let r=equipment.armor==='Нагрудник Бога'?.90:equipment.armor==='Кожаная броня'?.4:equipment.armor==='Броня стража'?.52:equipment.armor==='Мантия мага'?.25:0;if(equipment.armor)r+=armorUpgrade*.035;r+=(equipment.helmet==='Шлем лесника'?.15:0)+(equipment.amulet==='Амулет стража'?.1:0)+(wardPotionTimer>0?.2:0)+skills.guardian*.025+communityModBonus('defense')*.015+(isModInstalled('guardian_oath')?.08:0);return Math.min(.95,r);}
   function itemCount(name){const i=inventoryItems.find(v=>v.name===name);return i?i.count:0;}
-  function changeItem(name,delta){const i=inventoryItems.find(v=>v.name===name);if(!i)return false;if(i.count+delta<0)return false;i.count+=delta;return true;}
+  function changeItem(name,delta){const i=inventoryItems.find(v=>v.name===name);if(!i)return false;if(i.count+delta<0)return false;i.count+=delta;if(delta>0){try{window.SkyRealmChallengeHooks?.onItemGained?.(name,delta);}catch(error){console.warn('[SkyRealm challenge progress]',error);}}return true;}
   function formatMoney(cents){return (Math.floor(cents/100))+','+String(Math.abs(cents%100)).padStart(2,'0')+' 🟡';}
   function openShop(kind){activeShop=kind;shopDialogOpen=true;paused=true;keys.clear();pressedMovementCodes.clear();const shade=document.getElementById('shop-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');renderShop();}
   function closeShop(){shopDialogOpen=false;const shade=document.getElementById('shop-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');paused=false;saveGame();}
@@ -4286,8 +4285,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(target.hp>0){playSound(target.ore==='Железо'?'iron':target.ore==='Уголь'?'coal':'stone');toast('Удар киркой · осталось '+target.hp+' из 2.');saveGame();return;}
     spawnVisualBurst(target.x,target.y,12,'spark',({'Кристалл':'#9ef5ff','Железо':'#c7d6e6','Медь':'#ffc08a','Олово':'#eef4ff','Серебро':'#ffffff','Золото':'#ffe68a','Рубин':'#ff829a','Сапфир':'#9bc8ff','Обсидиан':'#ad8bdf','Мифрил':'#d1ffff','Уран':'#baff7d','Алмаз':'#ffffff'}[target.ore]||'#d8c6a0'));
     const resource=inventoryItems.find(i=>i.name===target.ore),stone=inventoryItems.find(i=>i.name==='Камень');
-    playSound(target.ore==='Железо'?'iron':target.ore==='Уголь'?'coal':target.ore==='Кристалл'?'iron':'stone');if(target.ore==='Камень'){if(stone)stone.count++;}else{if(resource)resource.count++;if(['Уголь','Железо','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(target.ore)&&stone)stone.count++;}
-    const bonusOre=Math.random()<Math.min(.75,(skills.miner*.08)+(classHas('miner')?0.2:0)+(isModInstalled('miners_luck')?0.15:0));if(bonusOre){const bonusItem=inventoryItems.find(i=>i.name===target.ore);if(bonusItem)bonusItem.count++;else if(target.ore==='Камень'&&stone)stone.count++;}trackAdventureQuest('mining',1);renderInventory();awardXP(target.ore==='Кристалл'?18:target.ore==='Железо'?10:6,'добыча в шахте');saveGame();toast('Добыто: '+target.ore+' ×'+(bonusOre?2:1)+(target.ore==='Камень'||target.ore==='Кристалл'?'':' и камень ×1'));
+    playSound(target.ore==='Железо'?'iron':target.ore==='Уголь'?'coal':target.ore==='Кристалл'?'iron':'stone');if(target.ore==='Камень'){changeItem('Камень',1);}else{changeItem(target.ore,1);if(['Уголь','Железо','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(target.ore))changeItem('Камень',1);}
+    const bonusOre=Math.random()<Math.min(.75,(skills.miner*.08)+(classHas('miner')?0.2:0)+(isModInstalled('miners_luck')?0.15:0));if(bonusOre)changeItem(target.ore,1);trackAdventureQuest('mining',1);renderInventory();awardXP(target.ore==='Кристалл'?18:target.ore==='Железо'?10:6,'добыча в шахте');saveGame();toast('Добыто: '+target.ore+' ×'+(bonusOre?2:1)+(target.ore==='Камень'||target.ore==='Кристалл'?'':' и камень ×1'));
   });
   document.getElementById('pause').addEventListener('click', () => { if(hudMoveMode)finishHudMoveMode();if(!inMainMenu)setPaused(true); });
   document.getElementById('resume').addEventListener('click', () => setPaused(false));
