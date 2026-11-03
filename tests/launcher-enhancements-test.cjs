@@ -6,6 +6,7 @@ const app=fs.readFileSync('app.js','utf8');
 const auth=app;
 const enhancements=fs.readFileSync('launcher-enhancements.js','utf8');
 const ui=fs.readFileSync('launcher-enhancements.js','utf8');
+const css=fs.readFileSync('launcher-enhancements.css','utf8');
 const html=fs.readFileSync('index.html','utf8');
 assert.match(launcher,/def get_update_status/);
 assert.match(launcher,/def install_game_update/);
