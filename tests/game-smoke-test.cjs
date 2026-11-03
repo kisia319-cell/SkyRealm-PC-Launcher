@@ -326,6 +326,14 @@ assert.match(game,/toggleFavoriteWorld/,'Players must be able to add and remove 
 assert.match(game,/data-favorite-world/,'Each world card must expose a favorite toggle');
 assert.ok(gameHtml.includes('id="world-filter"')&&gameHtml.includes('value="favorites"'),'World selector must offer a favorites filter');
 
+const biomeBossUpdateStart = game.indexOf('function updateBiomeBosses(dt)');
+const biomeBossUpdateEnd = game.indexOf('function defeatBiomeBoss', biomeBossUpdateStart);
+const biomeBossUpdate = game.slice(biomeBossUpdateStart, biomeBossUpdateEnd);
+assert.ok(biomeBossUpdate.includes('Number.isFinite(b.attackTimer)') && biomeBossUpdate.includes('Number.isFinite(b.specialTimer)') && biomeBossUpdate.includes('Number.isFinite(b.hp)'), 'Biome boss HP and attack timers must recover from invalid save/runtime values');
+assert.ok(biomeBossUpdate.includes("def.id==='jungle'?138:108"), 'The vine guardian must have a reliable melee hit range');
+assert.ok(biomeBossUpdate.includes('b.specialTimer=.2') && biomeBossUpdate.includes('ready special attack queued'), 'A missed special attack must remain queued until the player enters its hit radius');
+assert.ok(game.includes('Number.isFinite(rawHp)') && game.includes('Number.isFinite(rawAttackTimer)') && game.includes('Number.isFinite(rawSpecialTimer)'), 'Saved biome boss values must be normalized before they are restored');
+
 assert.ok(game.includes('const movementDirections = new Set()'), 'Movement input must be tracked independently from action keys');
 assert.ok(game.includes('MOVEMENT_DIRECTION_BY_ACTION'), 'WASD and arrow keys must resolve to movement directions');
 assert.ok(game.includes('movementDirections.add(movementDirection)'), 'Movement keydown must register a held direction');
