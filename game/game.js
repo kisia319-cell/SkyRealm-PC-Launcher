@@ -211,6 +211,7 @@
   const DAWN_MINUTE = 6 * 60;
   const NIGHT_MINUTE = 20 * 60;
   let gameMinuteTotal = 8 * 60;
+  let totalGameMinutesPlayed = 0;
   let survivedNights = 0;
   let lastDawnMarker = Math.floor((gameMinuteTotal - DAWN_MINUTE) / GAME_MINUTES_PER_DAY);
   let lastClockMinute = -1;
@@ -1724,6 +1725,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     const previousMinute=gameMinuteTotal;
     gameMinuteTotal+=dt*GAME_TIME_SPEED;
     const elapsedGameMinutes=gameMinuteTotal-previousMinute;
+    totalGameMinutesPlayed+=elapsedGameMinutes;
     hungerElapsedMinutes+=elapsedGameMinutes;
     while(hungerElapsedMinutes>=(isModInstalled('brutal_world')?7:isModInstalled('survivalist')?12:10)+skills.survivor*.7+communityModBonus('hunger')*.35){hungerElapsedMinutes-=(isModInstalled('brutal_world')?7:isModInstalled('survivalist')?12:10)+skills.survivor*.7+communityModBonus('hunger')*.35;hunger=Math.max(0,hunger-1);}
     if(hunger<=10&&!immortal){player.hp=Math.max(0,player.hp-dt*(hunger<=0?2.2:0.7)*(1-skills.survivor*.04)*(1-skillBonus('guardian')*.025));updateVitals();if(player.hp<=0)respawnPlayerAfterDefeat();}
@@ -2647,16 +2649,26 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   }
   function skipGameDay(){
     if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}
+    const previousTotal=gameMinuteTotal;
     const target=calculateSkipDayTarget(gameMinuteTotal,lastDawnMarker);
+    const skippedMinutes=Math.max(0,target.minuteTotal-previousTotal);
     gameMinuteTotal=target.minuteTotal;
+    // A skipped interval is still elapsed in-game time: add it to the playtime counter and survival systems.
+    totalGameMinutesPlayed+=skippedMinutes;
+    const hungerStep=(isModInstalled('brutal_world')?7:isModInstalled('survivalist')?12:10)+skills.survivor*.7+communityModBonus('hunger')*.35;
+    hungerElapsedMinutes+=skippedMinutes;
+    const hungerTicks=Math.floor(hungerElapsedMinutes/Math.max(1,hungerStep));
+    if(hungerTicks>0){hungerElapsedMinutes-=hungerTicks*hungerStep;hunger=Math.max(0,hunger-hungerTicks);}
+    sheepSpawnTimer+=skippedMinutes;
+    if(target.nightsPassed>0)refreshMineDailyStock();
     survivedNights+=target.nightsPassed;
     lastDawnMarker=target.dawnMarker;
     wasNight=isNightTime();
     monsters.length=0;
     skipDayRealSeconds=300;
-    updateClockDisplay(true);
+    updateVitals();updateClockDisplay(true);
     saveGame();
-    toast('Время перемотано до 20:00. Пройденные ночи засчитаны.');
+    toast('Пропущено '+Math.floor(skippedMinutes)+' игровых минут. Они добавлены к наигранному времени; ночей засчитано: '+target.nightsPassed+'.');
   }
   function houseFurnitureBlocked(x,y){const r=9,boxes=[[42,35,148,186],[153,91,190,143],[174,27,272,61],[286,72,379,98],[272,105,390,177],[296,201,380,279],[155,266,190,296],[203,249,241,278]];return boxes.some(([l,t,rr,b])=>x+r>l&&x-r<rr&&y+r>t&&y-r<b);}
   function houseInteractionNear(x,y,rect){return x>=rect[0]&&x<=rect[2]&&y>=rect[1]&&y<=rect[3];}
@@ -3584,6 +3596,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     requestAnimationFrame(tick);
   }
   function resetWorldState(){
+    totalGameMinutesPlayed=0;
     bossRealmMode=false;bossReturnWorldId=null;bossReturnX=21*TILE+16;bossReturnY=26*TILE+16;bossRealmState={kills:0,wave:1,elapsed:0,spawnTimer:0,eventTimer:65,eventName:'',eventId:'',eventRemaining:0,introSeen:false,defeatedBosses:[],defeatedGods:[]};bossRealmInvisibleTimer=0;bossRealmDamageBoostTimer=0;bossRealmAbilityCooldown=0;
     dungeonMode=false;dungeonReturn={x:player.x,y:player.y};dungeonRoom=1;dungeonClearedRooms=[];dungeonEnemyHp=0;dungeonEnemyX=0;dungeonEnemyY=0;dungeonChestOpened=false;dungeonTrapCooldown=0;biomeBosses=makeBiomeBossState();strengthPotionTimer=0;wardPotionTimer=0;speedPotionTimer=0;healPotionTimer=0;healPotionRemaining=0;eventRollTimer=74;meteorShowerTimer=0;meteorPoint=null;worldEventCamp=null;worldEventTraveler=null;lastWorldMeteorNight=-1;lastWorldHordeNight=-1;lastWorldCampDay=-1;lastWorldTravelerDay=-2;
     bloodMoonActive=false;bloodMoonRewardPending=false;lastBloodMoonNight=-1;wolfBossActive=false;wolfBossHp=0;wolfBossKeyDropped=false;wolfCageOpen=false;wolfDogCaged=true;wolfBossX=0;wolfBossY=0;wolfBossFlash=0;wolfBossAttackTimer=1.2;wolfBossDefeated=false;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfCompanionAttackTimer=.5;wolfCompanionRevivals=0;wolfDogDeathHandled=false;wolfCompanionOffsetX=20;wolfCompanionOffsetY=24;dogBehavior='follow';villageQuestStage=0;blacksmithQuestStage=0;explorerQuestStage=0;npcQuestState={};villageReputation=0;villageRaidActive=false;villageRaidKills=0;villageRaidTimer=0;lastVillageRaidDay=-1;
@@ -3605,7 +3618,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function saveGame(){
     if(!currentWorldId)return false;
-    const serialized=JSON.stringify({bossRealmMode,bossReturnWorldId,bossReturnX,bossReturnY,bossRealmState,bossRealmCreatures:bossRealmMode?monsters.filter(m=>m.bossRealmCreature).map(m=>({...m})):[],seaWorldData,clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,specialCooldown:m.specialCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},nemesisEvents,lastNemesisRaidDay,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,waterHelmetLevel,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
+    const serialized=JSON.stringify({bossRealmMode,bossReturnWorldId,bossReturnX,bossReturnY,bossRealmState,bossRealmCreatures:bossRealmMode?monsters.filter(m=>m.bossRealmCreature).map(m=>({...m})):[],seaWorldData,clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,specialCooldown:m.specialCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},nemesisEvents,lastNemesisRaidDay,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,totalGameMinutesPlayed,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,waterHelmetLevel,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay});
     try{
       localStorage.setItem(saveKey,serialized);
     }catch(error){
@@ -3664,6 +3677,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         exploredCells=new Set(Array.isArray(d.exploredCells)?d.exploredCells.filter(v=>typeof v==='string'&&/^\d+,\d+$/.test(v)):[]);
         selectedSlot=Number.isInteger(d.selectedSlot)&&d.selectedSlot>=1&&d.selectedSlot<=inventoryItems.length?d.selectedSlot:1;
         if(Number.isFinite(d.gameMinuteTotal)&&d.gameMinuteTotal>=0)gameMinuteTotal=d.gameMinuteTotal;
+        if(Number.isFinite(d.totalGameMinutesPlayed)&&d.totalGameMinutesPlayed>=0)totalGameMinutesPlayed=d.totalGameMinutesPlayed;
+        else totalGameMinutesPlayed=Math.max(0,gameMinuteTotal-8*60);
         if(Number.isInteger(d.survivedNights)&&d.survivedNights>=0)survivedNights=d.survivedNights;
         bossRealmMode=d.bossRealmMode===true;bossReturnWorldId=typeof d.bossReturnWorldId==='string'?d.bossReturnWorldId:null;if(Number.isFinite(d.bossReturnX))bossReturnX=d.bossReturnX;if(Number.isFinite(d.bossReturnY))bossReturnY=d.bossReturnY;
         if(Number.isFinite(d.hp))player.hp=Math.max(1,Math.min(100,d.hp));
@@ -3809,11 +3824,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     closeRenameWorld();renderWorldList();
   }
   function syncAdminMenu(){
-    const isAdmin=currentStaffRole==='admin',isStaff=isAdmin||currentStaffRole==='moderator';
-    document.getElementById('menu-admin').hidden=!isAdmin;
-    document.getElementById('menu-moderator').hidden=!isStaff;
-    document.getElementById('pause-admin-tools').hidden=!isAdmin;
-    document.getElementById('pause-moderator-tools').hidden=!isStaff;
+    // Keep staff entry points visible: role lookup can fail temporarily during auth/network startup.
+    // Every panel still performs a fresh server-side role check before exposing privileged actions.
+    ['menu-admin','menu-moderator','pause-admin-tools','pause-moderator-tools'].forEach(id=>{const el=document.getElementById(id);if(el)el.hidden=false;});
   }
   function generateMineStock(dayIndex=0){
     const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);
@@ -4000,10 +4013,20 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const b=document.getElementById('mod-immortal');
     if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}
   }
-  function refreshAdminStats(){const m=minuteOfDay(),label=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');const t=document.getElementById('admin-time-label');if(t)t.textContent=label;const c=document.getElementById('admin-monster-count');if(c)c.textContent=String(monsters.length);}
+  function refreshAdminStats(){const m=minuteOfDay(),label=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');const t=document.getElementById('admin-time-label');if(t)t.textContent=label;const c=document.getElementById('admin-monster-count');if(c)c.textContent=String(monsters.length);const p=document.getElementById('admin-playtime-label');if(p){const mins=Math.floor(totalGameMinutesPlayed),hours=Math.floor(mins/60);p.textContent=hours+' ч '+String(mins%60).padStart(2,'0')+' мин';}}
   function requireWorld(){if(!currentWorldId){toast('Сначала выбери или создай мир.');return false;}return true;}
   function setGameTime(minute){if(!requireWorld())return;const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=day*GAME_MINUTES_PER_DAY+minute;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();lastClockMinute=-1;monsterSpawnTimer=0;updateClockDisplay(true);saveGame();refreshAdminStats();toast('Время изменено вручную — день или ночь не засчитаны.');}
-  function giveResource(){if(!requireWorld())return;const name=document.getElementById('admin-resource-select').value;const amount=Math.max(1,Math.min(999,parseInt(document.getElementById('admin-resource-amount').value,10)||1));let item=inventoryItems.find(x=>x.name===name);if(!item){item={name,icon:'🌿',count:0,description:'Ресурс, выданный администратором.'};inventoryItems.push(item);}item.count+=amount;renderInventory();saveGame();toast('Выдано: '+name+' × '+amount);}
+  function giveResource(){
+    if(!requireWorld())return;
+    const custom=document.getElementById('admin-resource-custom')?.value.trim();
+    const name=(custom||document.getElementById('admin-resource-select').value||'').trim().slice(0,64);
+    const amount=Math.max(1,Math.min(9999999,Math.floor(Number(document.getElementById('admin-resource-amount').value)||1)));
+    if(!name){toast('Выбери предмет или введи его название.');return;}
+    if(['Монеты','Золото','Золотые монеты'].includes(name)){walletCents+=amount*100;updateWalletHud();saveGame();toast('Выдано золото: '+amount+'.');return;}
+    let item=inventoryItems.find(x=>String(x.name).toLocaleLowerCase()===name.toLocaleLowerCase());
+    if(!item){item={name,icon:'✨',count:0,description:'Предмет, выданный администратором.'};inventoryItems.push(item);}
+    item.count=Math.min(9999999,(Number(item.count)||0)+amount);renderInventory();saveGame();toast('Выдан предмет: '+name+' × '+amount);
+  }
   function healPlayer(){if(!requireWorld())return;player.hp=100;player.stamina=100;updateVitals();saveGame();toast('Здоровье и выносливость восстановлены.');}
   function toggleImmortal(buttonId){immortal=!immortal;['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});toast(immortal?'Бессмертие включено.':'Бессмертие выключено.');}
   function spawnAdminMonster(){if(!requireWorld())return;const angle=Math.random()*Math.PI*2,baseX=inHouse?36*TILE+40:player.x,baseY=inHouse?15*TILE+154:player.y;let x=baseX+Math.cos(angle)*150,y=baseY+Math.sin(angle)*150;x=Math.max(TILE*2,Math.min(COLS*TILE-TILE*2,x));y=Math.max(TILE*2,Math.min(ROWS*TILE-TILE*2,y));if(blocked(x,y)){x=player.x+90;y=player.y+70;}const type=['shadow','brute','wisp','skeleton','bomb'][Math.floor(Math.random()*5)];const hp=type==='bomb'?55:type==='skeleton'?80:type==='brute'?135:100;monsters.push({x,y,hp,maxHp:hp,type,speed:type==='brute'?30:type==='wisp'?58:type==='skeleton'?47:type==='bomb'?49:43,attackCooldown:0,phase:Math.random()*6.28,flash:0,fuseStarted:false,fuseTime:1.45,exploding:false,explosionTimer:0,damageApplied:false,adminSpawned:true});refreshAdminStats();drawMinimap();saveGame();toast('Создан монстр: '+monsterLabel(type)+'.');}
