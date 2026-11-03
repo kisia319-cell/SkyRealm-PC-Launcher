@@ -93,7 +93,7 @@ const makeBossState = extractFunction('makeBiomeBossState');
 const defs = extractFunction('biomeBossDefs');
 const normalize = extractFunction('normalizeBiomeBossState');
 const maxHp = extractFunction('bossHpMax');
-const bossContext = { COLS: 220, ROWS: 164, TILE: 32, Math, Number, difficultyConfig: () => ({ rank: 1 }) };
+const bossContext = { bossWorldMode:false, COLS: 220, ROWS: 164, TILE: 32, Math, Number, difficultyConfig: () => ({ rank: 1 }) };
 execute(bossContext, [makeBossState, defs, normalize, maxHp], ['makeBiomeBossState','biomeBossDefs','normalizeBiomeBossState','bossHpMax']);
 const normalized = plain(bossContext.normalizeBiomeBossState({
   jungle: { active: true, hp: 999999, attackTimer: 0, specialTimer: 0.2, rebirthMultiplier: 99, rebirthCount: 9 }
@@ -175,7 +175,7 @@ const monsters=[];
 const warning={hidden:true}, warningText={textContent:''};
 let nemesisSaves=0, nemesisToasts=0;
 const eventContext={
-  nemesisEvents,lastNemesisRaidDay:5,gameMinuteTotal:6*1440+1250,GAME_MINUTES_PER_DAY:1440,
+  bossWorldMode:false,nemesisEvents,lastNemesisRaidDay:5,gameMinuteTotal:6*1440+1250,GAME_MINUTES_PER_DAY:1440,
   isNightTime:()=>true,tradeWorldMode:false,mineMode:false,caveMode:false,dungeonMode:false,
   bedSpawn:{x:2000,y:1800},player:{x:100,y:100},monsters,
   newCoopEntityId:()=> 'spawn-' + monsters.length,
