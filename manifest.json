@@ -1,9 +1,9 @@
 {
-  "game_sha256": "b68b68ddf846611e85e2a4fcfe0855e6a2bcc4b9201a7c40685fe5f5ce4b972f",
+  "game_sha256": "7e64c60085549cba0c7ab30c69996a987e2e6c1e5b35257e9f4c058693f86d2c",
   "game_version": "0.20.50.20",
-  "notes": "SkyRealm 0.20.50.20: empowered enemy and boss rebirth raids at the home on the next night (1.7x power per return, capped at 8.35x); distinct monster special attacks and biome-boss elemental abilities; Neptune and Leviathan rebirth events; sheep drop raw meat, which can be cooked at a placed furnace into food restoring 15 hunger; cinematic rotating island, Neptune and Leviathan scenes in the main menu. Existing worlds and saves remain compatible. Co-op remains a preview.",
+  "notes": "SkyRealm Launcher 1.2.8 + Game 0.20.50.20: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "version": "1.2.8",
-  "sha256": "35c836788a09b961d69bce51d29e1881768cf8239803114fb785dad9d722a5ea",
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-e048ca3/SkyRealm_Game.zip"
+  "sha256": "f06d37a11d230c093428e09134523bad530b024633d96159c66f0c6060757906",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
