@@ -1,9 +1,9 @@
 {
-  "game_sha256": "afa22b51abd2f018d193330cf7b1c6430b2687dbbbc6ce2627656488b29319f9",
+  "game_sha256": "01746f0e03bac2a8dde9715bf9a9b1f6689bc9d8505294f4f021f27c7d977ca9",
   "game_version": "0.20.50.12",
-  "notes": "SkyRealm Launcher 1.2.7 + Game 0.20.50.12: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible.",
+  "notes": "SkyRealm Launcher 1.2.8 + Game 0.20.50.12: verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible.",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
-  "version": "1.2.7",
-  "sha256": "7dae936922161728a58b332cbcb2aed5e94397a308401d0c04f78272afff0e05",
+  "version": "1.2.8",
+  "sha256": "8103e761a0f534ea716ce9cf38a258ff2b67e6510909942a2ce451d5685013b1",
   "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
 }
