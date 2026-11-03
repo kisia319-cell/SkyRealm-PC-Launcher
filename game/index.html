@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta name="skyrealm-game-version" content="0.20.50.25">
+  <meta name="skyrealm-game-version" content="0.20.50.26">
 <meta charset="utf-8">
 <link rel="stylesheet" href="custom-mods.css">
 <link rel="stylesheet" href="cinematic-loading.css">
@@ -217,6 +217,34 @@
 @keyframes sr-scene-float{0%,100%{translate:0 0}50%{translate:0 -12px}}
 @media(prefers-reduced-motion:reduce){.main-menu-sky .menu-scene,.main-menu-sky .menu-scene svg{animation:none!important}.main-menu-sky .scene-islands{opacity:1}.main-menu-sky .scene-neptune,.main-menu-sky .scene-leviathan{display:none}}
 </style>
+<style>
+/* Prominent, readable gameplay notifications */
+#toast.toast{
+  position:absolute;left:50%;right:auto;top:88px;bottom:auto;z-index:120;
+  width:min(640px,calc(100% - 32px));max-width:640px;min-height:58px;
+  display:flex;align-items:center;justify-content:center;
+  padding:15px 22px 15px 58px;
+  transform:translateX(-50%);
+  border:2px solid #8fb5ff;border-left:5px solid #ffd36a;border-radius:14px;
+  background:linear-gradient(110deg,rgba(13,31,57,.98),rgba(21,43,76,.98));
+  color:#fff;font-size:14px;font-weight:800;line-height:1.55;text-align:left;
+  text-shadow:0 1px 2px #000;box-shadow:0 12px 38px #000b,0 0 24px #5c8fff55;
+  backdrop-filter:blur(14px);opacity:0;pointer-events:none;
+  transition:opacity .22s,transform .22s;
+}
+#toast.toast:before{
+  content:"✦";position:absolute;left:19px;top:50%;transform:translateY(-50%);
+  width:27px;height:27px;display:grid;place-items:center;border-radius:9px;
+  background:linear-gradient(145deg,#ffdc86,#e9a83e);color:#18243a;
+  font-size:17px;font-weight:1000;box-shadow:0 2px 12px #ffc85c55;
+}
+#toast.toast.show{opacity:1;transform:translate(-50%,0);animation:sr-toast-in .22s ease-out both}
+@media(max-width:700px){
+  #toast.toast{top:14px;width:calc(100% - 24px);max-width:520px;min-height:54px;
+    padding:12px 14px 12px 48px;font-size:12px;border-radius:12px}
+  #toast.toast:before{left:12px;width:25px;height:25px;font-size:15px}
+}
+</style>
 </head>
 <body>
 <div class="game-shell">
@@ -299,7 +327,7 @@
       <header class="main-menu-hero">
         <div class="main-menu-emblem">✦</div>
         <div class="main-menu-brand"><div class="main-menu-kicker">SKYREALM · ПЕРВЫЙ РАССВЕТ</div><h1>Твоя история <span>начинается здесь</span></h1><p>Создай мир, исследуй неизведанные земли и оставь след в долине.</p></div>
-        <div class="main-menu-version"><span class="live-pip"></span> 2D SURVIVAL · 0.20.50.25</div>
+        <div class="main-menu-version"><span class="live-pip"></span> 2D SURVIVAL · 0.20.50.26</div>
       </header>
       <div class="main-menu-content">
         <nav class="main-menu-actions" aria-label="Действия главного меню">
@@ -498,7 +526,7 @@
     <button class="action secondary" id="coop-close" type="button" style="margin-top:15px">Назад в игру</button>
   </div>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 </div>
 <div class="shade custom-modal-shade" id="cloud-save-shade" hidden aria-hidden="true">
   <div class="dialog custom-modal cloud-save-dialog" role="dialog" aria-modal="true" aria-labelledby="cloud-save-title">
