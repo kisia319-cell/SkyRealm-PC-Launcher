@@ -103,6 +103,16 @@ assert.deepEqual(m.sanitizeSharedWorldSnapshot({coopWorldEntry:coOpEntry}),{coop
   'The owner world-entry signal must be safe to persist for members who poll after the broadcast.');
 assert.equal(m.sanitizeSharedWorldSnapshot({coopWorldEntry:{...coOpEntry,world_id:'other'}}),null,
   'A world-entry signal cannot point to another room.');
+assert.equal(m.sanitizeSharedWorldSnapshot({
+  biomeBosses:{jungle:{hp:'bad',attackTimer:{}}}
+}),null,'Malformed biome-boss values must never enter a shared world snapshot.');
+assert.equal(m.sanitizeSharedWorldSnapshot({
+  biomeBosses:{jungle:{active:true,defeated:false,hp:350,attackTimer:1.2,specialTimer:7,flash:0,rebirthMultiplier:1.7,rebirthCount:1}}
+})?.biomeBosses?.jungle?.rebirthMultiplier,1.7,'Valid rebirth state must survive snapshot sanitization.');
+assert.equal(m.sanitizeSharedWorldSnapshot({
+  biomeBosses:{unknown:{active:false,hp:0}}
+}),null,'Unknown boss identifiers must be rejected.');
+
 const sharedSnapshot=m.sanitizeSharedWorldSnapshot({
   placedStructures:[{type:'house',x:20,y:40}],
   farmCrops:[{crop:'wheat',x:10,y:10}],
