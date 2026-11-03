@@ -3616,7 +3616,13 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const worlds=readWorlds(),record=worlds.find(w=>w.id===renameWorldId);if(record){record.name=clean;record.updatedAt=Date.now();writeWorlds(worlds);if(record.id===currentWorldId){currentWorldName=clean;document.querySelector('.realm-sub').textContent=clean+' · ПЕРВЫЙ РАССВЕТ';}}
     closeRenameWorld();renderWorldList();
   }
-  function syncAdminMenu(){document.getElementById('menu-admin').hidden=gameSettings.adminMode!==true;document.getElementById('menu-moderator').hidden=gameSettings.moderatorMode!==true;document.getElementById('pause-admin-tools').hidden=gameSettings.adminMode!==true;document.getElementById('pause-moderator-tools').hidden=gameSettings.moderatorMode!==true;}
+  function syncAdminMenu(){
+    const isAdmin=currentStaffRole==='admin',isStaff=isAdmin||currentStaffRole==='moderator';
+    document.getElementById('menu-admin').hidden=!isAdmin;
+    document.getElementById('menu-moderator').hidden=!isStaff;
+    document.getElementById('pause-admin-tools').hidden=!isAdmin;
+    document.getElementById('pause-moderator-tools').hidden=!isStaff;
+  }
   function generateMineStock(dayIndex=0){
     const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);
     // Upgraded mines contain more nodes; deep levels can reveal crystals.
@@ -3706,8 +3712,83 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(settingsOpenedFromMainMenu){settingsOpenedFromMainMenu=false;paused=true;keys.clear();pressedMovementCodes.clear();document.getElementById('pause-shade').hidden=true;document.getElementById('pause-settings-view').hidden=true;document.getElementById('main-menu-shade').hidden=false;document.getElementById('main-menu-shade').setAttribute('aria-hidden','false');renderWorldList();}
     else showPauseMain();
   }
-  function openAdminGate(){
-    toast('Панель администратора отключена: серверная проверка роли ещё не настроена.');
+  const SKYREALM_STAFF_API='https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-staff';
+  const SKYREALM_STAFF_KEY='sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL';
+  let currentStaffRole='none',staffRoleLastChecked=0,staffRefreshPromise=null;
+  async function staffRequest(route,method='GET',payload=null){
+    const token=await communityAccessToken();
+    if(!token)throw new Error('Войди в аккаунт SkyRealm и подтверди почту.');
+    const response=await fetch(SKYREALM_STAFF_API+'?route='+encodeURIComponent(route),{
+      method,
+      headers:{apikey:SKYREALM_STAFF_KEY,Authorization:'Bearer '+token,...(payload?{'Content-Type':'application/json'}:{})},
+      body:payload?JSON.stringify(payload):undefined
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data?.error?.message||'Сервер не подтвердил права доступа.');
+    return data;
+  }
+  async function refreshStaffRole(force=false){
+    if(!force&&staffRoleLastChecked&&Date.now()-staffRoleLastChecked<30000)return currentStaffRole;
+    if(staffRefreshPromise)return staffRefreshPromise;
+    staffRefreshPromise=(async()=>{
+      try{
+        const data=await staffRequest('/api/staff/me');
+        currentStaffRole=['admin','moderator'].includes(data.role)?data.role:'none';
+      }catch(error){
+        currentStaffRole='none';
+        if(error?.message&&!error.message.includes('Войди в аккаунт'))console.warn('[SkyRealm staff role]',error.message);
+      }finally{
+        staffRoleLastChecked=Date.now();
+        syncAdminMenu();
+        if(currentStaffRole!=='admin')setPanelOpen('admin-panel-shade',false);
+        if(currentStaffRole!=='admin'&&currentStaffRole!=='moderator')setPanelOpen('moderator-panel-shade',false);
+      }
+      return currentStaffRole;
+    })();
+    try{return await staffRefreshPromise;}finally{staffRefreshPromise=null;}
+  }
+  function setStaffManageStatus(message,isError=false){
+    const el=document.getElementById('admin-staff-status');if(!el)return;
+    el.textContent=message;el.classList.toggle('error',!!isError);
+  }
+  async function loadStaffPlayers(){
+    const select=document.getElementById('admin-staff-select');
+    if(!select||currentStaffRole!=='admin')return;
+    setStaffManageStatus('Загружаю список игроков…');
+    try{
+      const data=await staffRequest('/api/staff/players');
+      const players=Array.isArray(data.players)?data.players:[];
+      select.replaceChildren();
+      const first=document.createElement('option');first.value='';first.textContent='Выбери игрока';select.appendChild(first);
+      for(const player of players){
+        const option=document.createElement('option');option.value=player.user_id;
+        const label=player.display_name?player.username+' · '+player.display_name:player.username;
+        option.textContent=label+' — '+(player.role==='admin'?'администратор':player.role==='moderator'?'модератор':'игрок');
+        option.disabled=player.role==='admin';option.dataset.role=player.role;select.appendChild(option);
+      }
+      setStaffManageStatus('Игроков: '+players.length+'. Администратор защищён от изменения этой панелью.');
+    }catch(error){setStaffManageStatus(error.message||'Не удалось загрузить игроков.',true);}
+  }
+  async function changeStaffModerator(action){
+    if(currentStaffRole!=='admin'){setStaffManageStatus('Нужны права администратора.',true);return;}
+    const select=document.getElementById('admin-staff-select'),userId=select?.value||'';
+    if(!userId){setStaffManageStatus('Сначала выбери игрока.',true);return;}
+    const selected=select.options[select.selectedIndex];
+    if(selected?.dataset.role==='admin'){setStaffManageStatus('Права администратора нельзя менять здесь.',true);return;}
+    try{
+      const result=await staffRequest('/api/staff/moderators','POST',{user_id:userId,action});
+      setStaffManageStatus(result.action==='grant'?'Модератор назначен.':'Права модератора сняты.');
+      await loadStaffPlayers();
+    }catch(error){setStaffManageStatus(error.message||'Не удалось изменить роль.',true);}
+  }
+  async function openAdminGate(){
+    const role=await refreshStaffRole(true);
+    if(role!=='admin'){
+      toast(role==='none'?'Нет прав администратора. Войди в аккаунт с назначенной ролью.':'Доступ запрещён.');
+      if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}
+      return;
+    }
+    openAdminPanel();
   }
   function closeAdminGate(){const shade=document.getElementById('admin-password-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');document.getElementById('admin-password-input').value='';if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}}
   async function submitAdminPassword(){
@@ -3715,8 +3796,18 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     toast('Панель администратора отключена: серверная проверка роли ещё не настроена.');
   }
   function setPanelOpen(id,open){const el=document.getElementById(id);el.hidden=!open;el.setAttribute('aria-hidden',open?'false':'true');}
-  function openAdminPanel(){renderWorldList();setPanelOpen('admin-panel-shade',true);document.getElementById('admin-world-count').textContent=String(readWorlds().length);refreshAdminStats();renderBanList('admin-ban-list');['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});}
-  function openModeratorPanel(){toast('Панель модератора отключена: серверная проверка роли ещё не настроена.');}
+  function openAdminPanel(){if(currentStaffRole!=='admin'){toast('Нет подтверждённых прав администратора.');return;}renderWorldList();setPanelOpen('admin-panel-shade',true);document.getElementById('admin-world-count').textContent=String(readWorlds().length);refreshAdminStats();renderBanList('admin-ban-list');['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});void loadStaffPlayers();}
+  async function openModeratorPanel(){
+    const role=await refreshStaffRole(true);
+    if(role!=='admin'&&role!=='moderator'){
+      toast('Нет подтверждённых прав модератора.');
+      if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}
+      return;
+    }
+    setPanelOpen('moderator-panel-shade',true);
+    const b=document.getElementById('mod-immortal');
+    if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}
+  }
   function refreshAdminStats(){const m=minuteOfDay(),label=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');const t=document.getElementById('admin-time-label');if(t)t.textContent=label;const c=document.getElementById('admin-monster-count');if(c)c.textContent=String(monsters.length);}
   function requireWorld(){if(!currentWorldId){toast('Сначала выбери или создай мир.');return false;}return true;}
   function setGameTime(minute){if(!requireWorld())return;const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=day*GAME_MINUTES_PER_DAY+minute;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();lastClockMinute=-1;monsterSpawnTimer=0;updateClockDisplay(true);saveGame();refreshAdminStats();toast('Время изменено вручную — день или ночь не засчитаны.');}
@@ -4041,6 +4132,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('full-map-close').addEventListener('click',closeFullMap);
   document.getElementById('full-map-canvas').addEventListener('click',teleportFromMap);
   document.getElementById('admin-refresh-worlds').addEventListener('click',()=>{renderWorldList();refreshAdminStats();renderBanList('admin-ban-list');toast('Список миров обновлён.');});
+  document.getElementById('admin-staff-grant').addEventListener('click',()=>changeStaffModerator('grant'));
+  document.getElementById('admin-staff-revoke').addEventListener('click',()=>changeStaffModerator('revoke'));
+  document.getElementById('admin-staff-refresh').addEventListener('click',loadStaffPlayers);
   document.getElementById('back-to-pause').addEventListener('click',returnFromSettings);
   document.querySelectorAll('[data-settings-tab]').forEach(btn=>btn.addEventListener('click',()=>{
     document.querySelectorAll('[data-settings-tab]').forEach(tab=>{const active=tab===btn;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',active?'true':'false');});
@@ -4108,5 +4202,5 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   window.SkyRealmCustomModHost={getContext:customModContext,canRun:canRunCustomScriptMods,applyActions:applyCustomScriptActions};
   window.SkyRealmSeaBridge={getWorldId:()=>currentWorldId,getChallengeSnapshot:()=>({worldId:currentWorldId,difficulty:currentDifficulty,paused:paused||inMainMenu||window.SkyRealmCoopClient?.getRoomState?.()?.status==='paused',gameMinuteTotal,day:Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY),survivedNights,level:playerLevel,hp:Math.round(player.hp),exploredCells:exploredCells.size,totalCells:Math.max(1,COLS*ROWS),items:Object.fromEntries(inventoryItems.map(i=>[i.name,i.count])),caveBossDefeated,dungeonClearedRooms:[...dungeonClearedRooms],dungeonChestOpened,biomeBosses:Object.fromEntries(Object.entries(biomeBosses||{}).map(([id,v])=>[id,!!v?.defeated]))}),hasItem:name=>itemCount(name)>0,getItemCount:name=>itemCount(name),addItem:(name,count=1,description='Морская находка')=>{const seaIcons={'Карта сокровищ':'🗺️','Компас приливов':'🧭','Плащ морского странника':'🧥','Кольцо глубин':'💍','Коралловая корона':'👑','Сфера прилива':'🔵','Сапоги волн':'🥾','Перо штормового ската':'🪶','Морской талисман':'🔱','Трезубец прилива':'🔱','Гарпун бури':'⚡','Клинок бездны':'🌊','Сердце прилива':'❤️','Око бездны':'👁️','Ключ великой сокровищницы':'🗝️','Корона двух морей':'👑','Реликвия древних глубин':'🔱'};let item=inventoryItems.find(i=>i.name===name);if(!item){item={name,icon:seaIcons[name]||'✨',count:0,description};inventoryItems.push(item);}item.count+=Math.max(1,Math.floor(Number(count)||1));renderInventory();saveGame();return item.count;},changeItem:(name,count)=>changeItem(name,count),addGold:cents=>{walletCents=Math.max(0,walletCents+Math.max(0,Math.floor(Number(cents)||0)));updateWalletHud();saveGame();},getWaterHelmetLevel:()=>waterHelmetLevel,getDifficulty:()=>currentDifficulty,getGameDay:()=>Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY),isNightTime:()=>isNightTime(),scheduleGodRebirth:(name,id,multiplier=1.7)=>scheduleNemesis('boss',id,name,id==='neptune'?'wisp':'shadow',multiplier),getWeaponDamage:()=>weaponDamage(equipment.weapon),getWeaponName:()=>equipment.weapon,damagePlayer:amount=>{const hit=Math.max(0,Number(amount)||0);player.hp=Math.max(0,player.hp-hit*(1-armorReduction()));updateVitals();if(player.hp<=0)respawnPlayerAfterDefeat();saveGame();return player.hp;},getSeaData:()=>seaWorldData,setSeaData:data=>{seaWorldData=data&&typeof data==='object'?JSON.parse(JSON.stringify(data)):null;saveGame();},pause:()=>{paused=true;keys.clear();pressedMovementCodes.clear();movementDirections.clear();},resume:()=>{paused=false;keys.clear();pressedMovementCodes.clear();movementDirections.clear();last=performance.now();canvas?.focus?.();},save:()=>saveGame(),toast:message=>toast(String(message||''))};
-  setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
+  setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); void refreshStaffRole(true); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
 })();
