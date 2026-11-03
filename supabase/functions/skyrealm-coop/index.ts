@@ -83,7 +83,7 @@ function sanitizeSharedSnapshot(value: unknown): Record<string, unknown> {
     const bossIds = new Set(["frost","sand","blight","jungle"]);
     const bossFields = new Set(["active","defeated","hp","attackTimer","specialTimer","flash","rebirthMultiplier","rebirthCount"]);
     const numericRanges: Record<string, [number, number]> = {
-      hp: [0, 1_000_000], attackTimer: [0.15, 5], specialTimer: [0.5, 20],
+      hp: [0, 1_000_000], attackTimer: [0, 5], specialTimer: [0, 20],
       flash: [0, 10], rebirthMultiplier: [1, 8.35], rebirthCount: [0, 4],
     };
     if (!sourceBosses || typeof sourceBosses !== "object" || Array.isArray(sourceBosses)) {
