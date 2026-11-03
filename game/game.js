@@ -968,8 +968,8 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
         active:v.active===true&&!defeated,
         defeated,
         hp:defeated?0:(Number.isFinite(rawHp)?Math.max(0,Math.min(maxHp,rawHp)):maxHp),
-        attackTimer:Number.isFinite(rawAttackTimer)?Math.max(.15,Math.min(5,rawAttackTimer)):1.3,
-        specialTimer:Number.isFinite(rawSpecialTimer)?Math.max(.5,Math.min(20,rawSpecialTimer)):7,
+        attackTimer:Number.isFinite(rawAttackTimer)?Math.max(0,Math.min(5,rawAttackTimer)):1.3,
+        specialTimer:Number.isFinite(rawSpecialTimer)?Math.max(0,Math.min(20,rawSpecialTimer)):7,
         flash:0,rebirthMultiplier:multiplier,
         rebirthCount:Math.max(0,Math.min(4,Math.floor(Number(v.rebirthCount)||0)))
       };
