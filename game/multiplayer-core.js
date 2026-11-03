@@ -148,7 +148,7 @@
       const sourceBosses=output.biomeBosses;
       const bossIds=['frost','sand','blight','jungle'];
       const bossFields=['active','defeated','hp','attackTimer','specialTimer','flash','rebirthMultiplier','rebirthCount'];
-      const numericRanges={hp:[0,1000000],attackTimer:[0.15,5],specialTimer:[0.5,20],flash:[0,10],rebirthMultiplier:[1,8.35],rebirthCount:[0,4]};
+      const numericRanges={hp:[0,1000000],attackTimer:[0,5],specialTimer:[0,20],flash:[0,10],rebirthMultiplier:[1,8.35],rebirthCount:[0,4]};
       if(!sourceBosses||typeof sourceBosses!=='object'||Array.isArray(sourceBosses)||
         Object.keys(sourceBosses).some(id=>!bossIds.includes(id)))return null;
       const safeBosses={};
