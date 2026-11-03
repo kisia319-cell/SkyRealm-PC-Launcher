@@ -288,8 +288,12 @@ assert.ok(game.includes("const visible = id => { const el=document.getElementByI
 assert.ok(game.includes("pauseShade?.hidden === true && !blockingOverlay && !sleeping"), 'A movement key must recover a stale pause state when no blocking modal is visible');
 assert.ok(game.includes("['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)"), 'Movement must accept physical WASD and arrow key codes in embedded WebViews');
 assert.ok(game.includes("window.addEventListener('keyup', e => {") && game.includes("keys.delete(released)"), 'Movement key releases must be captured at window level');
-const hiddenMovementReset = game.match(/document\\.addEventListener\\('visibilitychange',\\s*\\(\\)\\s*=>\\s*\\{\\s*if\\s*\\(document\\.hidden\\)\\s*\\{([^}]*)\\}\\s*\\}\\);/);
-assert.ok(hiddenMovementReset && ['keys.clear();','pressedMovementCodes.clear();','movementDirections.clear();'].every(reset => hiddenMovementReset[1].includes(reset)), 'Hidden game windows must clear all held movement state');
+const hiddenMovementResetStart = game.indexOf("document.addEventListener('visibilitychange'");
+const hiddenMovementResetEnd = game.indexOf("});", hiddenMovementResetStart);
+const hiddenMovementReset = hiddenMovementResetStart >= 0 && hiddenMovementResetEnd > hiddenMovementResetStart
+  ? game.slice(hiddenMovementResetStart, hiddenMovementResetEnd)
+  : '';
+assert.ok(['if(document.hidden)','keys.clear();','pressedMovementCodes.clear();','movementDirections.clear();'].every(reset => hiddenMovementReset.includes(reset)), 'Hidden game windows must clear all held movement state');
 
 assert.ok(game.includes("window.addEventListener('keydown', e => {"), 'Keyboard input must be captured at the WebView window level');
 const keydownStart = game.indexOf("window.addEventListener('keydown'");
