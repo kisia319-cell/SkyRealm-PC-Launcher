@@ -968,8 +968,8 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
         active:v.active===true&&!defeated,
         defeated,
         hp:defeated?0:(Number.isFinite(rawHp)?Math.max(0,Math.min(maxHp,rawHp)):maxHp),
-        attackTimer:Number.isFinite(rawAttackTimer)?Math.max(.15,Math.min(5,rawAttackTimer)):1.3,
-        specialTimer:Number.isFinite(rawSpecialTimer)?Math.max(.5,Math.min(20,rawSpecialTimer)):7,
+        attackTimer:Number.isFinite(rawAttackTimer)?Math.max(0,Math.min(5,rawAttackTimer)):1.3,
+        specialTimer:Number.isFinite(rawSpecialTimer)?Math.max(0,Math.min(20,rawSpecialTimer)):7,
         flash:0,rebirthMultiplier:multiplier,
         rebirthCount:Math.max(0,Math.min(4,Math.floor(Number(v.rebirthCount)||0)))
       };
@@ -1983,8 +1983,17 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     toast(message+(dropped?' Выпавшие вещи остались на месте смерти.':''));saveGame();
   }
   function interactWolfCage(){const p=wolfCagePosition();if(Math.hypot(player.x-p.x,player.y-p.y)>92)return false;if(!wolfCageOpen){if(!wolfBossKeyDropped||itemCount('Ключ от клетки')<1){toast('Клетка заперта. Победи Оборотня и забери ключ!');return true;}changeItem('Ключ от клетки',-1);wolfCageOpen=true;playWolfSound('howl');toast('Клетка открыта! Нажми E рядом с собакой, чтобы приручить её.');saveGame();return true;}if(wolfDogCaged){wolfDogCaged=false;wolfCompanionUnlocked=true;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;playSound('sheep');toast('Собака приручена! Она будет ходить за тобой. У неё 300 HP.');saveGame();return true;}return true;}
+  function clampWolfBossToForest(x,y){
+    const minX=(COLS-32)*TILE+16,maxX=(COLS-3)*TILE+16;
+    const minY=(ROWS-27)*TILE+16,maxY=(ROWS-3)*TILE+16;
+    return {
+      x:Math.max(minX,Math.min(maxX,Number.isFinite(x)?x:minX)),
+      y:Math.max(minY,Math.min(maxY,Number.isFinite(y)?y:minY))
+    };
+  }
   function updateWolfAndDog(dt){
     if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
+    if(wolfBossActive){const bounded=clampWolfBossToForest(wolfBossX,wolfBossY);wolfBossX=bounded.x;wolfBossY=bounded.y;}
     if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
       coopGuestWolfAttackCooldown=Math.max(0,coopGuestWolfAttackCooldown-dt);
       if(wolfBossActive&&wolfBossHp>0&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=112&&
@@ -1997,7 +2006,17 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       return;
     }
     if(!wolfCompanionUnlocked&&!wolfBossDefeated&&!wolfBossKeyDropped&&inForest(player.x,player.y)&&!wolfBossActive){const den=wolfDenPosition();wolfBossActive=true;wolfBossHp=1000+difficultyConfig().rank*500;wolfBossX=den.x;wolfBossY=den.y;wolfBossAttackTimer=1.2;toast('Ты вошёл в Лес! В логове ждёт босс Оборотень. Победи его, чтобы приручить собаку.');saveGame();}
-    if(wolfBossActive){const dx=player.x-wolfBossX,dy=player.y-wolfBossY,dist=Math.hypot(dx,dy)||1;const wolfAttackRange=112;if(dist>wolfAttackRange-8){const step=(42+difficultyConfig().rank*4)*dt,nx=wolfBossX+dx/dist*step,ny=wolfBossY+dy/dist*step;if(!world.trees.some(t=>Math.hypot(t.x-nx,t.y-ny)<22)){wolfBossX=nx;wolfBossY=ny;}else{const sx=wolfBossX+Math.sign(dx)*step,sy=wolfBossY+Math.sign(dy)*step;if(!world.trees.some(t=>Math.hypot(t.x-sx,t.y-wolfBossY)<22))wolfBossX=sx;if(!world.trees.some(t=>Math.hypot(t.x-wolfBossX,t.y-sy)<22))wolfBossY=sy;}}wolfBossAttackTimer-=dt;wolfBossSpecialTimer=Math.max(0,wolfBossSpecialTimer-dt);if(wolfBossSpecialTimer<=0){wolfBossSpecialTimer=8.5;if(dist<190&&!immortal&&dodgeTimer<=0){const howlDamage=Math.max(1,Math.round((18+difficultyConfig().rank*5)*(1-armorReduction())));player.hp=Math.max(0,player.hp-howlDamage);spawnVisualBurst(player.x,player.y,26,'spark','#a9d7ff');updateVitals();playWolfSound('howl');toast('ОБОРОТЕН · ОГЛУШИТЕЛЬНЫЙ ВОЙ: −'+howlDamage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}if(wolfBossAttackTimer<=0){wolfBossAttackTimer=Math.max(.7,1.5-difficultyConfig().rank*.12);playWolfSound(Math.random()<.28?'howl':'growl');if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<48){wolfCompanionHp=Math.max(0,wolfCompanionHp-Math.round((12+difficultyConfig().rank*3)*(dogBehavior==='guard' ? 0.55 : 1)));if(wolfCompanionHp<=0)onWolfDogDeath();}else if(dist<wolfAttackRange&&!immortal&&dodgeTimer<=0){const damage=12+difficultyConfig().rank*4;player.hp=Math.max(0,player.hp-damage);updateVitals();toast('Оборотень ударил тебя: −'+damage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
+    if(wolfBossActive){const dx=player.x-wolfBossX,dy=player.y-wolfBossY,dist=Math.hypot(dx,dy)||1;const wolfAttackRange=112;if(dist>wolfAttackRange-8){
+      const step=(42+difficultyConfig().rank*4)*dt;
+      const next=clampWolfBossToForest(wolfBossX+dx/dist*step,wolfBossY+dy/dist*step);
+      if(!world.trees.some(t=>Math.hypot(t.x-next.x,t.y-next.y)<22)){wolfBossX=next.x;wolfBossY=next.y;}
+      else{
+        const slideX=clampWolfBossToForest(wolfBossX+Math.sign(dx)*step,wolfBossY);
+        if(!world.trees.some(t=>Math.hypot(t.x-slideX.x,t.y-wolfBossY)<22))wolfBossX=slideX.x;
+        const slideY=clampWolfBossToForest(wolfBossX,wolfBossY+Math.sign(dy)*step);
+        if(!world.trees.some(t=>Math.hypot(t.x-wolfBossX,t.y-slideY.y)<22))wolfBossY=slideY.y;
+      }
+    }wolfBossAttackTimer-=dt;wolfBossSpecialTimer=Math.max(0,wolfBossSpecialTimer-dt);if(wolfBossSpecialTimer<=0){wolfBossSpecialTimer=8.5;if(dist<190&&!immortal&&dodgeTimer<=0){const howlDamage=Math.max(1,Math.round((18+difficultyConfig().rank*5)*(1-armorReduction())));player.hp=Math.max(0,player.hp-howlDamage);spawnVisualBurst(player.x,player.y,26,'spark','#a9d7ff');updateVitals();playWolfSound('howl');toast('ОБОРОТЕН · ОГЛУШИТЕЛЬНЫЙ ВОЙ: −'+howlDamage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}if(wolfBossAttackTimer<=0){wolfBossAttackTimer=Math.max(.7,1.5-difficultyConfig().rank*.12);playWolfSound(Math.random()<.28?'howl':'growl');if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<48){wolfCompanionHp=Math.max(0,wolfCompanionHp-Math.round((12+difficultyConfig().rank*3)*(dogBehavior==='guard' ? 0.55 : 1)));if(wolfCompanionHp<=0)onWolfDogDeath();}else if(dist<wolfAttackRange&&!immortal&&dodgeTimer<=0){const damage=12+difficultyConfig().rank*4;player.hp=Math.max(0,player.hp-damage);updateVitals();toast('Оборотень ударил тебя: −'+damage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
     if(wolfCompanionUnlocked&&wolfCompanionHp>0&&!inHouse&&!mineMode&&!caveMode&&!tradeWorldMode){wolfCompanionAttackTimer-=dt;if(wolfCompanionAttackTimer<=0){wolfCompanionAttackTimer=.85;const damage=Math.round((10+difficultyConfig().rank*5)*(dogBehavior==='hunt'?1.45:dogBehavior==='guard' ? 0.75 : 1)*(isModInstalled('beast_companions')?1.5:1)*(1+skillBonus('beastmaster')*.08));if(wolfBossActive&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<70){wolfBossHp-=damage;if(wolfBossHp<=0)defeatWolfBoss();}else{let target=null,bd=70;for(const mob of monsters){if(mob.exploding)continue;const d=Math.hypot(mob.x-wolfCompanionX(),mob.y-wolfCompanionY());if(d<bd){bd=d;target=mob;}}if(target){target.hp-=damage;if(target.hp<=0){scheduleNemesis(target.isRebornBoss?'boss':'monster',target.id,target.bossTitle||monsterLabel(target.type),target.type,Math.min(8.35,(target.rebirthMultiplier||1)*1.7));const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);awardXP(12,'помощь собаки');}}}}
     }
   }
@@ -3492,7 +3511,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         meteorShowerTimer=meteorPoint&&Number.isFinite(d.meteorShowerTimer)?Math.max(0,Math.min(WORLD_EVENT_CHANCES.meteorLifetime,d.meteorShowerTimer)):0;
         worldEventCamp=d.worldEventCamp&&Number.isFinite(d.worldEventCamp.x)&&Number.isFinite(d.worldEventCamp.y)?{x:Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,d.worldEventCamp.x)),y:Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,d.worldEventCamp.y)),life:Math.max(0,Math.min(WORLD_EVENT_CHANCES.campLifetime,Number(d.worldEventCamp.life)||0))}:null;
         worldEventTraveler=d.worldEventTraveler&&Number.isFinite(d.worldEventTraveler.x)&&Number.isFinite(d.worldEventTraveler.y)?{x:Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,d.worldEventTraveler.x)),y:Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,d.worldEventTraveler.y)),life:Math.max(0,Math.min(WORLD_EVENT_CHANCES.travelerLifetime,Number(d.worldEventTraveler.life)||0))}:null;
-        immortal=d.immortal===true;bloodMoonActive=d.bloodMoonActive===true;bloodMoonRewardPending=d.bloodMoonRewardPending===true;lastBloodMoonNight=Number.isInteger(d.lastBloodMoonNight)?d.lastBloodMoonNight:-1;wolfBossActive=d.wolfBossActive===true;wolfBossHp=Math.max(0,Number(d.wolfBossHp)||0);wolfBossKeyDropped=d.wolfBossKeyDropped===true;wolfCageOpen=d.wolfCageOpen===true;wolfDogCaged=d.wolfDogCaged!==false;wolfBossX=Number.isFinite(d.wolfBossX)?d.wolfBossX:wolfDenPosition().x;wolfBossY=Number.isFinite(d.wolfBossY)?d.wolfBossY:wolfDenPosition().y;wolfBossDefeated=d.wolfBossDefeated===true;wolfCompanionUnlocked=d.wolfCompanionUnlocked===true;wolfCompanionHp=Math.max(0,Math.min(300,Number(d.wolfCompanionHp)||300));wolfCompanionRevivals=Math.max(0,Math.min(3,Number(d.wolfCompanionRevivals)||0));wolfCompanionOffsetX=Number.isFinite(d.wolfCompanionOffsetX)?d.wolfCompanionOffsetX:28;wolfCompanionOffsetY=Number.isFinite(d.wolfCompanionOffsetY)?d.wolfCompanionOffsetY:22;dogBehavior=['follow','guard','hunt'].includes(d.dogBehavior)?d.dogBehavior:'follow';villageQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.villageQuestStage)||0)));blacksmithQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.blacksmithQuestStage)||0)));explorerQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.explorerQuestStage)||0)));
+        immortal=d.immortal===true;bloodMoonActive=d.bloodMoonActive===true;bloodMoonRewardPending=d.bloodMoonRewardPending===true;lastBloodMoonNight=Number.isInteger(d.lastBloodMoonNight)?d.lastBloodMoonNight:-1;wolfBossActive=d.wolfBossActive===true;wolfBossHp=Math.max(0,Number(d.wolfBossHp)||0);wolfBossKeyDropped=d.wolfBossKeyDropped===true;wolfCageOpen=d.wolfCageOpen===true;wolfDogCaged=d.wolfDogCaged!==false;wolfBossX=Number.isFinite(d.wolfBossX)?d.wolfBossX:wolfDenPosition().x;wolfBossY=Number.isFinite(d.wolfBossY)?d.wolfBossY:wolfDenPosition().y;if(wolfBossActive){const bounded=clampWolfBossToForest(wolfBossX,wolfBossY);wolfBossX=bounded.x;wolfBossY=bounded.y;}wolfBossDefeated=d.wolfBossDefeated===true;wolfCompanionUnlocked=d.wolfCompanionUnlocked===true;wolfCompanionHp=Math.max(0,Math.min(300,Number(d.wolfCompanionHp)||300));wolfCompanionRevivals=Math.max(0,Math.min(3,Number(d.wolfCompanionRevivals)||0));wolfCompanionOffsetX=Number.isFinite(d.wolfCompanionOffsetX)?d.wolfCompanionOffsetX:28;wolfCompanionOffsetY=Number.isFinite(d.wolfCompanionOffsetY)?d.wolfCompanionOffsetY:22;dogBehavior=['follow','guard','hunt'].includes(d.dogBehavior)?d.dogBehavior:'follow';villageQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.villageQuestStage)||0)));blacksmithQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.blacksmithQuestStage)||0)));explorerQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.explorerQuestStage)||0)));
       }
     }catch(error){
       loadedSuccessfully=false;
@@ -3616,7 +3635,13 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const worlds=readWorlds(),record=worlds.find(w=>w.id===renameWorldId);if(record){record.name=clean;record.updatedAt=Date.now();writeWorlds(worlds);if(record.id===currentWorldId){currentWorldName=clean;document.querySelector('.realm-sub').textContent=clean+' · ПЕРВЫЙ РАССВЕТ';}}
     closeRenameWorld();renderWorldList();
   }
-  function syncAdminMenu(){document.getElementById('menu-admin').hidden=gameSettings.adminMode!==true;document.getElementById('menu-moderator').hidden=gameSettings.moderatorMode!==true;document.getElementById('pause-admin-tools').hidden=gameSettings.adminMode!==true;document.getElementById('pause-moderator-tools').hidden=gameSettings.moderatorMode!==true;}
+  function syncAdminMenu(){
+    const isAdmin=currentStaffRole==='admin',isStaff=isAdmin||currentStaffRole==='moderator';
+    document.getElementById('menu-admin').hidden=!isAdmin;
+    document.getElementById('menu-moderator').hidden=!isStaff;
+    document.getElementById('pause-admin-tools').hidden=!isAdmin;
+    document.getElementById('pause-moderator-tools').hidden=!isStaff;
+  }
   function generateMineStock(dayIndex=0){
     const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);
     // Upgraded mines contain more nodes; deep levels can reveal crystals.
@@ -3706,8 +3731,83 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(settingsOpenedFromMainMenu){settingsOpenedFromMainMenu=false;paused=true;keys.clear();pressedMovementCodes.clear();document.getElementById('pause-shade').hidden=true;document.getElementById('pause-settings-view').hidden=true;document.getElementById('main-menu-shade').hidden=false;document.getElementById('main-menu-shade').setAttribute('aria-hidden','false');renderWorldList();}
     else showPauseMain();
   }
-  function openAdminGate(){
-    toast('Панель администратора отключена: серверная проверка роли ещё не настроена.');
+  const SKYREALM_STAFF_API='https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-staff';
+  const SKYREALM_STAFF_KEY='sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL';
+  let currentStaffRole='none',staffRoleLastChecked=0,staffRefreshPromise=null;
+  async function staffRequest(route,method='GET',payload=null){
+    const token=await communityAccessToken();
+    if(!token)throw new Error('Войди в аккаунт SkyRealm и подтверди почту.');
+    const response=await fetch(SKYREALM_STAFF_API+'?route='+encodeURIComponent(route),{
+      method,
+      headers:{apikey:SKYREALM_STAFF_KEY,Authorization:'Bearer '+token,...(payload?{'Content-Type':'application/json'}:{})},
+      body:payload?JSON.stringify(payload):undefined
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data?.error?.message||'Сервер не подтвердил права доступа.');
+    return data;
+  }
+  async function refreshStaffRole(force=false){
+    if(!force&&staffRoleLastChecked&&Date.now()-staffRoleLastChecked<30000)return currentStaffRole;
+    if(staffRefreshPromise)return staffRefreshPromise;
+    staffRefreshPromise=(async()=>{
+      try{
+        const data=await staffRequest('/api/staff/me');
+        currentStaffRole=['admin','moderator'].includes(data.role)?data.role:'none';
+      }catch(error){
+        currentStaffRole='none';
+        if(error?.message&&!error.message.includes('Войди в аккаунт'))console.warn('[SkyRealm staff role]',error.message);
+      }finally{
+        staffRoleLastChecked=Date.now();
+        syncAdminMenu();
+        if(currentStaffRole!=='admin')setPanelOpen('admin-panel-shade',false);
+        if(currentStaffRole!=='admin'&&currentStaffRole!=='moderator')setPanelOpen('moderator-panel-shade',false);
+      }
+      return currentStaffRole;
+    })();
+    try{return await staffRefreshPromise;}finally{staffRefreshPromise=null;}
+  }
+  function setStaffManageStatus(message,isError=false){
+    const el=document.getElementById('admin-staff-status');if(!el)return;
+    el.textContent=message;el.classList.toggle('error',!!isError);
+  }
+  async function loadStaffPlayers(){
+    const select=document.getElementById('admin-staff-select');
+    if(!select||currentStaffRole!=='admin')return;
+    setStaffManageStatus('Загружаю список игроков…');
+    try{
+      const data=await staffRequest('/api/staff/players');
+      const players=Array.isArray(data.players)?data.players:[];
+      select.replaceChildren();
+      const first=document.createElement('option');first.value='';first.textContent='Выбери игрока';select.appendChild(first);
+      for(const player of players){
+        const option=document.createElement('option');option.value=player.user_id;
+        const label=player.display_name?player.username+' · '+player.display_name:player.username;
+        option.textContent=label+' — '+(player.role==='admin'?'администратор':player.role==='moderator'?'модератор':'игрок');
+        option.disabled=player.role==='admin';option.dataset.role=player.role;select.appendChild(option);
+      }
+      setStaffManageStatus('Игроков: '+players.length+'. Администратор защищён от изменения этой панелью.');
+    }catch(error){setStaffManageStatus(error.message||'Не удалось загрузить игроков.',true);}
+  }
+  async function changeStaffModerator(action){
+    if(currentStaffRole!=='admin'){setStaffManageStatus('Нужны права администратора.',true);return;}
+    const select=document.getElementById('admin-staff-select'),userId=select?.value||'';
+    if(!userId){setStaffManageStatus('Сначала выбери игрока.',true);return;}
+    const selected=select.options[select.selectedIndex];
+    if(selected?.dataset.role==='admin'){setStaffManageStatus('Права администратора нельзя менять здесь.',true);return;}
+    try{
+      const result=await staffRequest('/api/staff/moderators','POST',{user_id:userId,action});
+      setStaffManageStatus(result.action==='grant'?'Модератор назначен.':'Права модератора сняты.');
+      await loadStaffPlayers();
+    }catch(error){setStaffManageStatus(error.message||'Не удалось изменить роль.',true);}
+  }
+  async function openAdminGate(){
+    const role=await refreshStaffRole(true);
+    if(role!=='admin'){
+      toast(role==='none'?'Нет прав администратора. Войди в аккаунт с назначенной ролью.':'Доступ запрещён.');
+      if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}
+      return;
+    }
+    openAdminPanel();
   }
   function closeAdminGate(){const shade=document.getElementById('admin-password-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');document.getElementById('admin-password-input').value='';if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}}
   async function submitAdminPassword(){
@@ -3715,8 +3815,18 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     toast('Панель администратора отключена: серверная проверка роли ещё не настроена.');
   }
   function setPanelOpen(id,open){const el=document.getElementById(id);el.hidden=!open;el.setAttribute('aria-hidden',open?'false':'true');}
-  function openAdminPanel(){renderWorldList();setPanelOpen('admin-panel-shade',true);document.getElementById('admin-world-count').textContent=String(readWorlds().length);refreshAdminStats();renderBanList('admin-ban-list');['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});}
-  function openModeratorPanel(){toast('Панель модератора отключена: серверная проверка роли ещё не настроена.');}
+  function openAdminPanel(){if(currentStaffRole!=='admin'){toast('Нет подтверждённых прав администратора.');return;}renderWorldList();setPanelOpen('admin-panel-shade',true);document.getElementById('admin-world-count').textContent=String(readWorlds().length);refreshAdminStats();renderBanList('admin-ban-list');['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});void loadStaffPlayers();}
+  async function openModeratorPanel(){
+    const role=await refreshStaffRole(true);
+    if(role!=='admin'&&role!=='moderator'){
+      toast('Нет подтверждённых прав модератора.');
+      if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}
+      return;
+    }
+    setPanelOpen('moderator-panel-shade',true);
+    const b=document.getElementById('mod-immortal');
+    if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}
+  }
   function refreshAdminStats(){const m=minuteOfDay(),label=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');const t=document.getElementById('admin-time-label');if(t)t.textContent=label;const c=document.getElementById('admin-monster-count');if(c)c.textContent=String(monsters.length);}
   function requireWorld(){if(!currentWorldId){toast('Сначала выбери или создай мир.');return false;}return true;}
   function setGameTime(minute){if(!requireWorld())return;const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=day*GAME_MINUTES_PER_DAY+minute;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();lastClockMinute=-1;monsterSpawnTimer=0;updateClockDisplay(true);saveGame();refreshAdminStats();toast('Время изменено вручную — день или ночь не засчитаны.');}
@@ -4041,6 +4151,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('full-map-close').addEventListener('click',closeFullMap);
   document.getElementById('full-map-canvas').addEventListener('click',teleportFromMap);
   document.getElementById('admin-refresh-worlds').addEventListener('click',()=>{renderWorldList();refreshAdminStats();renderBanList('admin-ban-list');toast('Список миров обновлён.');});
+  document.getElementById('admin-staff-grant').addEventListener('click',()=>changeStaffModerator('grant'));
+  document.getElementById('admin-staff-revoke').addEventListener('click',()=>changeStaffModerator('revoke'));
+  document.getElementById('admin-staff-refresh').addEventListener('click',loadStaffPlayers);
   document.getElementById('back-to-pause').addEventListener('click',returnFromSettings);
   document.querySelectorAll('[data-settings-tab]').forEach(btn=>btn.addEventListener('click',()=>{
     document.querySelectorAll('[data-settings-tab]').forEach(tab=>{const active=tab===btn;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',active?'true':'false');});
@@ -4108,5 +4221,5 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   window.SkyRealmCustomModHost={getContext:customModContext,canRun:canRunCustomScriptMods,applyActions:applyCustomScriptActions};
   window.SkyRealmSeaBridge={getWorldId:()=>currentWorldId,getChallengeSnapshot:()=>({worldId:currentWorldId,difficulty:currentDifficulty,paused:paused||inMainMenu||window.SkyRealmCoopClient?.getRoomState?.()?.status==='paused',gameMinuteTotal,day:Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY),survivedNights,level:playerLevel,hp:Math.round(player.hp),exploredCells:exploredCells.size,totalCells:Math.max(1,COLS*ROWS),items:Object.fromEntries(inventoryItems.map(i=>[i.name,i.count])),caveBossDefeated,dungeonClearedRooms:[...dungeonClearedRooms],dungeonChestOpened,biomeBosses:Object.fromEntries(Object.entries(biomeBosses||{}).map(([id,v])=>[id,!!v?.defeated]))}),hasItem:name=>itemCount(name)>0,getItemCount:name=>itemCount(name),addItem:(name,count=1,description='Морская находка')=>{const seaIcons={'Карта сокровищ':'🗺️','Компас приливов':'🧭','Плащ морского странника':'🧥','Кольцо глубин':'💍','Коралловая корона':'👑','Сфера прилива':'🔵','Сапоги волн':'🥾','Перо штормового ската':'🪶','Морской талисман':'🔱','Трезубец прилива':'🔱','Гарпун бури':'⚡','Клинок бездны':'🌊','Сердце прилива':'❤️','Око бездны':'👁️','Ключ великой сокровищницы':'🗝️','Корона двух морей':'👑','Реликвия древних глубин':'🔱'};let item=inventoryItems.find(i=>i.name===name);if(!item){item={name,icon:seaIcons[name]||'✨',count:0,description};inventoryItems.push(item);}item.count+=Math.max(1,Math.floor(Number(count)||1));renderInventory();saveGame();return item.count;},changeItem:(name,count)=>changeItem(name,count),addGold:cents=>{walletCents=Math.max(0,walletCents+Math.max(0,Math.floor(Number(cents)||0)));updateWalletHud();saveGame();},getWaterHelmetLevel:()=>waterHelmetLevel,getDifficulty:()=>currentDifficulty,getGameDay:()=>Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY),isNightTime:()=>isNightTime(),scheduleGodRebirth:(name,id,multiplier=1.7)=>scheduleNemesis('boss',id,name,id==='neptune'?'wisp':'shadow',multiplier),getWeaponDamage:()=>weaponDamage(equipment.weapon),getWeaponName:()=>equipment.weapon,damagePlayer:amount=>{const hit=Math.max(0,Number(amount)||0);player.hp=Math.max(0,player.hp-hit*(1-armorReduction()));updateVitals();if(player.hp<=0)respawnPlayerAfterDefeat();saveGame();return player.hp;},getSeaData:()=>seaWorldData,setSeaData:data=>{seaWorldData=data&&typeof data==='object'?JSON.parse(JSON.stringify(data)):null;saveGame();},pause:()=>{paused=true;keys.clear();pressedMovementCodes.clear();movementDirections.clear();},resume:()=>{paused=false;keys.clear();pressedMovementCodes.clear();movementDirections.clear();last=performance.now();canvas?.focus?.();},save:()=>saveGame(),toast:message=>toast(String(message||''))};
-  setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
+  setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); void refreshStaffRole(true); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
 })();
