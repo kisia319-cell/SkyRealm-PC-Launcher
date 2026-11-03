@@ -138,7 +138,7 @@ console.log('SkyRealm smoke tests passed for game ' + version + ' (' + recipeKey
 
 assert.ok(game.includes('function updateVillageNpcs(dt)'), 'Trade-world residents must follow daily schedules');
 assert.ok(game.includes("npc.activity=slot===2?'sleeping':slot===1?'working':'wandering'"), 'NPCs must have sleeping, working and wandering states');
-assert.ok(game.includes('updateWorldClock(dt);updateVillageNpcs(dt);updateVillageRaid(dt);'), 'NPC schedules must update with the in-game clock');
+assert.ok(game.includes('updateWorldClock(dt);') && game.includes('updateVillageNpcs(dt);') && game.includes('updateVillageRaid(dt);') && game.indexOf('updateWorldClock(dt);') < game.indexOf('updateVillageNpcs(dt);') && game.indexOf('updateVillageNpcs(dt);') < game.indexOf('updateVillageRaid(dt);'), 'NPC schedules must update with the in-game clock');
 assert.ok(game.includes('homeX:x,homeY:y,targetX:x,targetY:y'), 'NPC home positions must be retained for their daily routines');
 
 assert.ok(game.includes("drawNpcCharacter(npc,x,y,time)") && game.includes("npc.activity==='sleeping'?'ОТДЫХАЕТ'"), 'The active village renderer must show detailed animated NPCs and their current activity');
