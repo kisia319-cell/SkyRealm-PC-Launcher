@@ -24,8 +24,12 @@ function body(name) {
   throw new Error('Unclosed function ' + name);
 }
 const menu = body('syncAdminMenu');
-assert.ok(menu.includes('el.hidden=false'));
+assert.ok(menu.includes("currentStaffRole==='admin'||gameSettings.adminMode===true"));
+assert.ok(menu.includes("gameSettings.moderatorMode===true"));
 assert.ok(body('openAdminGate').includes('refreshStaffRole(true)'));
+assert.ok(body('openAdminGate').includes('gameSettings.adminMode===true&&!isCoopWorldActive()'));
+assert.ok(body('openAdminPanel').includes('staffSection.hidden=!serverAdmin'));
+assert.ok(body('openModeratorPanel').includes('gameSettings.moderatorMode===true&&!isCoopWorldActive()'));
 assert.ok(body('openModeratorPanel').includes('refreshStaffRole(true)'));
 assert.ok(body('openAdminGate').includes("role!=='admin'"));
 assert.ok(body('openModeratorPanel').includes("role!=='admin'&&role!=='moderator'"));
