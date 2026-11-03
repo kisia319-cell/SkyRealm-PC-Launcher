@@ -114,7 +114,7 @@ linear-gradient(180deg,#173c69 0%,#477eaa 30%,#9ab5c0 55%,#e6c6a1 78%,#7d6c65 10
 .sr-cinematic-scene:before{filter:drop-shadow(0 20px 24px rgba(4,12,22,var(--scene-shadow)))}
 .sr-cinematic-scene:after{opacity:calc(.45 + var(--scene-shadow))}
 .sr-cine-island,.sr-cine-citadel,.sr-cine-forest,.sr-cine-bridge,.sr-cine-spire{filter:drop-shadow(0 15px 14px rgba(3,10,20,var(--scene-shadow)))}
-.sr-intro-tools{position:absolute;z-index:9;left:50%;bottom:1.2%;transform:translateX(-50%);width:min(660px,94vw);display:grid;justify-items:center;gap:8px;color:#f8ecd0;font:600 10px/1.35 "Segoe UI",sans-serif;text-shadow:0 2px 8px #000;pointer-events:none}
+.sr-intro-tools{position:absolute;z-index:9;left:50%;bottom:9%;transform:translateX(-50%);width:min(660px,94vw);display:grid;justify-items:center;gap:8px;color:#f8ecd0;font:600 10px/1.35 "Segoe UI",sans-serif;text-shadow:0 2px 8px #000;pointer-events:none}
 .sr-sun-control{display:flex;align-items:center;gap:10px;width:min(390px,88vw);padding:7px 12px;border-radius:30px;background:linear-gradient(90deg,#081526b8,#1a2942c9,#081526b8);border:1px solid #f6dfad66;backdrop-filter:blur(8px);pointer-events:auto}
 .sr-sun-control label{white-space:nowrap;letter-spacing:1px;font-size:9px}
 .sr-sun-control input{width:100%;accent-color:#f4ca79;cursor:ew-resize}
