@@ -210,3 +210,16 @@ linear-gradient(180deg,#173c69 0%,#477eaa 30%,#9ab5c0 55%,#e6c6a1 78%,#7d6c65 10
 @keyframes hell-boss-idle{0%,100%{translate:0 0}50%{translate:0 -7px}}
 .sr-sun-control input{touch-action:pan-x}
 #skyrealm-intro .sr-cine-sun{cursor:ew-resize}
+
+/* Compact startup settings and exit controls */
+.sr-start-actions{position:absolute;z-index:12;top:18px;right:20px;display:flex;gap:9px;align-items:center}
+.sr-round-control{display:grid;place-items:center;width:39px;height:39px;padding:0;border:1px solid #d9e8ff66;border-radius:50%;background:linear-gradient(145deg,#152b43d9,#071321e8);color:#eaf3ff;font:700 20px/1 "Segoe UI",sans-serif;cursor:pointer;backdrop-filter:blur(10px);box-shadow:0 5px 20px #0006, inset 0 1px 0 #ffffff22;transition:transform .18s,border-color .18s,background .18s,box-shadow .18s}
+.sr-round-control:hover{transform:translateY(-2px) scale(1.06);border-color:#f4d99a;background:linear-gradient(145deg,#29466b,#10233b);box-shadow:0 7px 24px #0008,0 0 16px #9dc5ff33}
+.sr-round-control:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.sr-exit-control{font-size:25px;color:#ffd0cb;border-color:#ff9b8a55}
+.sr-exit-control:hover{border-color:#ff9b8a;background:linear-gradient(145deg,#6a2730,#2b101b);box-shadow:0 0 18px #ff554433}
+.sr-intro-exit-hint{position:absolute;z-index:13;top:66px;right:20px;max-width:min(310px,calc(100vw - 40px));padding:9px 12px;border:1px solid #ffb5a266;border-radius:10px;background:#190e18ed;color:#ffe5dc;font:600 11px/1.45 "Segoe UI",sans-serif;box-shadow:0 8px 25px #0008}
+.sr-intro-exit-hint[hidden]{display:none}
+#skyrealm-intro.hell-scene .sr-round-control{background:linear-gradient(145deg,#481923e8,#190b14ed);border-color:#ff9b8a77;color:#ffe9dd}
+#skyrealm-intro.hell-scene .sr-settings-control:hover{border-color:#ffd0a4}
+@media(max-width:650px){.sr-start-actions{top:12px;right:12px;gap:7px}.sr-round-control{width:35px;height:35px;font-size:18px}.sr-exit-control{font-size:23px}.sr-intro-exit-hint{top:56px;right:12px}}
