@@ -331,7 +331,9 @@ assert.ok(game.includes('MOVEMENT_DIRECTION_BY_ACTION'), 'WASD and arrow keys mu
 assert.ok(game.includes('movementDirections.add(movementDirection)'), 'Movement keydown must register a held direction');
 assert.ok(game.includes('movementDirections.delete(direction)'), 'Movement keyup must release the held direction');
 assert.ok(game.includes('movementDirections.clear()'), 'Movement input must be cleared on blur, hidden window, HUD edit mode and sleep');
-assert.ok(game.includes("if(movementDirections.has('up'))my--") && game.includes("if(movementDirections.has('right'))mx++"), 'Player movement must use the dedicated held-direction state');
+assert.ok(game.includes('const movementHeld=direction=>{') &&
+  ["movementHeld('up')","movementHeld('down')","movementHeld('left')","movementHeld('right')"].every(check => game.includes(check)),
+  'Player movement must use the dedicated held-direction state and resolve all four directions');
 
 assert.ok(game.includes('desynchronized: !initialVsyncEnabled()'),'VSync preference must be passed to the canvas low-latency hint when disabled');
 assert.ok(game.includes('s.vsync = s.vsync !== false'),'Game settings must normalize VSync to enabled by default');
