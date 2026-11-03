@@ -1307,8 +1307,8 @@ if __name__ == "__main__":
                 log_path = skyrealm_default_data_root() / "launch-errors.log"
                 log_path.parent.mkdir(parents=True, exist_ok=True)
                 with log_path.open("a", encoding="utf-8") as log:
-                    log.write(f"\\n{time.strftime('%Y-%m-%d %H:%M:%S')} | GAME WINDOW FAILED | {type(exc).__name__}: {exc}\\n")
-                    log.write(details + "\\n")
+                    log.write(f"\n{time.strftime('%Y-%m-%d %H:%M:%S')} | GAME WINDOW FAILED | {type(exc).__name__}: {exc}\n")
+                    log.write(details + "\n")
                 log_hint = str(log_path)
             except Exception:
                 pass
@@ -1316,7 +1316,7 @@ if __name__ == "__main__":
                 import ctypes
                 ctypes.windll.user32.MessageBoxW(
                     0,
-                    f"Не удалось открыть окно SkyRealm.\\n\\n{type(exc).__name__}: {exc}\\n\\nЖурнал ошибки: {log_hint}",
+                    f"Не удалось открыть окно SkyRealm.\n\n{type(exc).__name__}: {exc}\n\nЖурнал ошибки: {log_hint}",
                     "Ошибка запуска SkyRealm",
                     0x10,
                 )
