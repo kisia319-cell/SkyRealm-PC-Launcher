@@ -55,13 +55,13 @@
     const originId=currentWorldId,originX=player.x,originY=player.y;saveGame();let worlds=readWorlds();let realm=worlds.find(w=>w.bossRealm===true&&w.bossParentWorldId===originId);
     if(!realm){realm={id:makeWorldId(),name:'Мир боссов',createdAt:Date.now(),updatedAt:Date.now(),difficulty:currentDifficulty,bossRealm:true,bossParentWorldId:originId};worlds.push(realm);}
     realm.bossRealm=true;realm.bossParentWorldId=originId;realm.name='Мир боссов';realm.difficulty=DIFFICULTIES[realm.difficulty]?realm.difficulty:currentDifficulty;realm.bossReturnWorldId=originId;realm.bossReturnX=originX;realm.bossReturnY=originY;realm.updatedAt=Date.now();writeWorlds(worlds);
-    const loading=showBossRealmLoading('МИР БОССОВ','Создаём отдельное измерение и загружаем его сохранение…');await new Promise(resolve=>setTimeout(resolve,180));loading.set(28,'Подготовка карты и биомов…');await new Promise(resolve=>requestAnimationFrame(()=>resolve()));loading.set(58,'Создание объектов нового мира…');enterWorld(realm.id);
+    const loading=showBossRealmLoading('МИР БОССОВ','Создаём отдельное измерение и загружаем его сохранение…');await new Promise(resolve=>setTimeout(resolve,180));loading.set(28,'Подготовка карты и биомов…');await new Promise(resolve=>requestAnimationFrame(()=>resolve()));loading.set(58,'Создание объектов нового мира…');enterWorld(realm.id,null,{skipCharacterEntry:true});
     bossRealmMode=true;bossReturnWorldId=originId;bossReturnX=originX;bossReturnY=originY;saveGame();await new Promise(resolve=>requestAnimationFrame(()=>resolve()));loading.set(100,'Мир готов.');await new Promise(resolve=>setTimeout(resolve,260));loading.close();toast('Ты вошёл в отдельный Мир боссов.');return true;
   }
   async function leaveBossRealm(){
     if(!bossRealmMode)return false;const worlds=readWorlds(),realm=worlds.find(w=>w.id===currentWorldId&&w.bossRealm===true);const targetId=realm?.bossReturnWorldId||bossReturnWorldId;
     if(!targetId||!worlds.some(w=>w.id===targetId)){toast('Исходный мир не найден. Вернись через меню миров.');return true;}
-    const targetX=Number.isFinite(realm?.bossReturnX)?realm.bossReturnX:bossReturnX,targetY=Number.isFinite(realm?.bossReturnY)?realm.bossReturnY:bossReturnY;saveGame();const loading=showBossRealmLoading('ВОЗВРАЩЕНИЕ','Загружаем твой исходный мир…');await new Promise(resolve=>setTimeout(resolve,160));loading.set(55,'Восстанавливаем сохранение…');enterWorld(targetId);bossRealmMode=false;player.x=targetX;player.y=targetY;player.vx=player.vy=0;saveGame();await new Promise(resolve=>requestAnimationFrame(()=>resolve()));loading.set(100,'Готово.');await new Promise(resolve=>setTimeout(resolve,220));loading.close();toast('Ты вернулся в исходный мир.');return true;
+    const targetX=Number.isFinite(realm?.bossReturnX)?realm.bossReturnX:bossReturnX,targetY=Number.isFinite(realm?.bossReturnY)?realm.bossReturnY:bossReturnY;saveGame();const loading=showBossRealmLoading('ВОЗВРАЩЕНИЕ','Загружаем твой исходный мир…');await new Promise(resolve=>setTimeout(resolve,160));loading.set(55,'Восстанавливаем сохранение…');enterWorld(targetId,null,{skipCharacterEntry:true});bossRealmMode=false;player.x=targetX;player.y=targetY;player.vx=player.vy=0;saveGame();await new Promise(resolve=>requestAnimationFrame(()=>resolve()));loading.set(100,'Готово.');await new Promise(resolve=>setTimeout(resolve,220));loading.close();toast('Ты вернулся в исходный мир.');return true;
   }
   async function interactBossRealmPortal(){
     if(!currentWorldId||tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return false;const p=bossRealmPortalPosition();if(Math.hypot(player.x-p.x,player.y-p.y)>112)return false;
@@ -3705,7 +3705,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function openDifficultyPicker(id){pendingWorldId=id;const shade=document.getElementById('difficulty-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');}
   function closeDifficultyPicker(){const shade=document.getElementById('difficulty-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');pendingWorldId=null;}
   function confirmDifficultySelection(id){const worldId=pendingWorldId;if(!worldId)return;closeDifficultyPicker();enterWorld(worldId,id);}
-  function enterWorld(id,difficultyChoice=null){
+  function enterWorld(id,difficultyChoice=null,options={}){
     let record=readWorlds().find(w=>w.id===id);if(!record){toast('Этот мир не найден. Обнови список миров.');renderWorldList();return;}
     const network=window.SkyRealmCoopClient,coopSession=network?.getWorldSession?.()||null;
     if(!coopSession&&difficultyChoice&&DIFFICULTIES[difficultyChoice]){difficultyMigrationPending=!DIFFICULTIES[record.difficulty];record.difficulty=difficultyChoice;record.updatedAt=Date.now();writeWorlds(readWorlds().map(w=>w.id===record.id?record:w));}
@@ -3732,7 +3732,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     document.querySelector('.realm-sub').textContent=record.name+' · '+difficultyConfig().name.toUpperCase()+' · ПЕРВЫЙ РАССВЕТ';
     document.getElementById('main-menu-shade').hidden=true;document.getElementById('main-menu-shade').setAttribute('aria-hidden','true');
     document.getElementById('pause-shade').hidden=true;document.getElementById('pause-main-view').hidden=false;document.getElementById('pause-settings-view').hidden=true;
-    inMainMenu=false;paused=true;settingsOpenedFromMainMenu=false;keys.clear();pressedMovementCodes.clear();canvas.focus();last=performance.now();openCharacterEditor(true);renderWorldList();
+    inMainMenu=false;paused=true;settingsOpenedFromMainMenu=false;keys.clear();pressedMovementCodes.clear();canvas.focus();last=performance.now();if(options?.skipCharacterEntry){paused=false;last=performance.now();}else openCharacterEditor(true);renderWorldList();
   }
   function receiveCoopWorldEntry(entry){
     const network=window.SkyRealmCoopClient,state=network?.getRoomState?.();
