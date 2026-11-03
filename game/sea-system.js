@@ -18,7 +18,7 @@
   const rand = (a,b) => a + Math.random()*(b-a);
   const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
   const bridge = () => window.SkyRealmSeaBridge;
-  const msg = (s) => { state.message=s; state.messageLeft=4.5; const el=$('sea-message'); if(el)el.textContent=s; };
+  function msg(s){ state.message=s; state.messageLeft=4.5; const el=$('sea-message'); if(el)el.textContent=s; else bridge()?.toast?.(s); }
   function save(){
     try { const snapshot={...state, sharks:state.sharks.slice(0,40), monsters:state.monsters.slice(0,40), discovered:state.discovered.slice(-5000)};localStorage.setItem(KEY(), JSON.stringify(snapshot));bridge()?.setSeaData?.(snapshot); }
     catch(e){ console.warn('Sea save failed',e); }
@@ -209,5 +209,23 @@
   }
   function api(){return {open:enter,isOpen:()=>active,save};}
   window.SkyRealmSea=api();
-  document.addEventListener('DOMContentLoaded',()=>{build();const b=document.createElement('button');b.type='button';b.id='open-sea-expedition';b.textContent='🌊 Морская экспедиция';b.style.cssText='position:fixed;right:16px;top:72px;z-index:40;display:none;background:#123b55;color:#eaf8ff;border:1px solid #5a9cbb;border-radius:9px;padding:8px 12px;font-weight:800;cursor:pointer';b.onclick=enter;document.body.appendChild(b);setInterval(()=>{const live=!!bridge()?.getWorldId?.();b.style.display=live&&!active?'block':'none';},800);});
+  function installExpeditionButton(){
+    if($('open-sea-expedition'))return;
+    const button=document.createElement('button');
+    button.type='button';button.id='open-sea-expedition';button.textContent='🌊 Морская экспедиция';
+    button.style.cssText='position:fixed;right:16px;top:72px;z-index:40;display:none;background:#123b55;color:#eaf8ff;border:1px solid #5a9cbb;border-radius:9px;padding:8px 12px;font-weight:800;cursor:pointer';
+    button.addEventListener('click',()=>{
+      try{enter();}
+      catch(error){console.error('SkyRealm sea expedition failed to open:',error);bridge()?.toast?.('Не удалось открыть морскую экспедицию. Попробуй ещё раз.');}
+    });
+    document.body.appendChild(button);
+    const refresh=()=>{
+      const live=!!bridge()?.getWorldId?.(),visible=live&&!active;
+      button.style.display=visible?'block':'none';button.disabled=!visible;
+      button.title=!live?'Сначала выбери или создай мир.':bridge()?.hasItem?.('Корабль')?'Открыть морскую экспедицию':'Сначала создай корабль на второй странице верстака.';
+    };
+    refresh();window.setInterval(refresh,800);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installExpeditionButton,{once:true});
+  else installExpeditionButton();
 })();
