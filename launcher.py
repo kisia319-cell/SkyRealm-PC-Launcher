@@ -675,7 +675,7 @@ class LauncherApi:
                     return {"ok": False, "message": "В сборке отсутствует отдельный игровой запускатель. Пересобери EXE через build_exe.bat из полного архива."}
                 runner_version = bundled_runner_version.read_text(encoding="utf-8").strip()
                 safe_version = "".join(ch if ch.isalnum() else "_" for ch in runner_version).strip("_") or "current"
-                runner_dir = app_data / "SkyRealm" / "bin"
+                runner_dir = skyrealm_default_data_root() / "bin"
                 runner_dir.mkdir(parents=True, exist_ok=True)
                 runner_path = runner_dir / ("SkyRealmGame_" + safe_version + ".exe")
                 if (not runner_path.is_file()) or file_sha256(runner_path) != file_sha256(bundled_runner):
