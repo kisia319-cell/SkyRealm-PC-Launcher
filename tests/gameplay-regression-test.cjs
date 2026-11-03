@@ -284,6 +284,7 @@ assert.equal(bossRealmGateContext.bossRealmPortalUnlocked(), true, 'The boss por
 bossRealmGateContext.survivedNights = 0; bossRealmGateContext.bossRealmMode = true;
 assert.equal(bossRealmGateContext.bossRealmPortalUnlocked(), true, 'The return portal must remain available inside the boss realm.');
 assert.match(source, /bossRealm:true/);
+assert.match(source, /bossRealm===true&&w\.bossParentWorldId===originId/, 'Each normal world must have its own independent Boss Realm.');
 assert.match(source, /bossReturnWorldId,bossReturnX,bossReturnY/);
 assert.match(source, /function enterBossRealm\(\)/);
 assert.match(source, /function leaveBossRealm\(\)/);
