@@ -78,6 +78,47 @@ function sanitizeSharedSnapshot(value: unknown): Record<string, unknown> {
     }
     output[key] = entry;
   }
+  if (output.biomeBosses !== undefined) {
+    const sourceBosses = output.biomeBosses;
+    const bossIds = new Set(["frost","sand","blight","jungle"]);
+    const bossFields = new Set(["active","defeated","hp","attackTimer","specialTimer","flash","rebirthMultiplier","rebirthCount"]);
+    const numericRanges: Record<string, [number, number]> = {
+      hp: [0, 1_000_000], attackTimer: [0.15, 5], specialTimer: [0.5, 20],
+      flash: [0, 10], rebirthMultiplier: [1, 8.35], rebirthCount: [0, 4],
+    };
+    if (!sourceBosses || typeof sourceBosses !== "object" || Array.isArray(sourceBosses)) {
+      throw new ApiError(400,"INVALID_SNAPSHOT_PAYLOAD","Некорректные данные боссов общего мира.");
+    }
+    const safeBosses: Record<string, unknown> = {};
+    for (const [id, value] of Object.entries(sourceBosses as Record<string, unknown>)) {
+      if (!bossIds.has(id) || !value || typeof value !== "object" || Array.isArray(value)) {
+        throw new ApiError(400,"INVALID_SNAPSHOT_PAYLOAD","Некорректные данные босса общего мира.");
+      }
+      const boss = value as Record<string, unknown>;
+      if (Object.keys(boss).some(field => !bossFields.has(field))) {
+        throw new ApiError(400,"INVALID_SNAPSHOT_PAYLOAD","В состоянии босса есть неизвестные поля.");
+      }
+      for (const field of ["active","defeated"]) {
+        if (Object.prototype.hasOwnProperty.call(boss,field) && typeof boss[field] !== "boolean") {
+          throw new ApiError(400,"INVALID_SNAPSHOT_PAYLOAD","Некорректный статус босса.");
+        }
+      }
+      for (const [field, [min, max]] of Object.entries(numericRanges)) {
+        if (!Object.prototype.hasOwnProperty.call(boss,field)) continue;
+        const fieldValue = boss[field];
+        if (typeof fieldValue !== "number" || !Number.isFinite(fieldValue) || fieldValue < min || fieldValue > max ||
+            (field === "rebirthCount" && !Number.isSafeInteger(fieldValue))) {
+          throw new ApiError(400,"INVALID_SNAPSHOT_PAYLOAD","Некорректные характеристики босса.");
+        }
+      }
+      const safe: Record<string, unknown> = {};
+      for (const field of bossFields) {
+        if (Object.prototype.hasOwnProperty.call(boss,field)) safe[field] = boss[field];
+      }
+      safeBosses[id] = safe;
+    }
+    output.biomeBosses = safeBosses;
+  }
   if (output.coopWorldEntry !== undefined) {
     const entry = output.coopWorldEntry as Record<string, unknown>;
     const difficulties = ["easy","medium","hard","hell","impossible"];
