@@ -208,19 +208,15 @@ function extractSeaFunction(name) {
   const start = seaSource.indexOf('function ' + name + '(');
   assert.ok(start >= 0, 'Missing sea function ' + name);
   const open = seaSource.indexOf('{', start);
-  let depth = 0, quote = '', escaped = false, lineComment = false, blockComment = false;
+  let depth = 0, quote = '', escaped = false;
   for (let i = open; i < seaSource.length; i++) {
-    const c = seaSource[i], n = seaSource[i + 1];
-    if (lineComment) { if (c === '\\n') lineComment = false; continue; }
-    if (blockComment) { if (c === '*' && n === '/') { blockComment = false; i++; } continue; }
+    const c = seaSource[i];
     if (quote) {
       if (escaped) { escaped = false; continue; }
-      if (c === '\\\\') { escaped = true; continue; }
+      if (c === '\\') { escaped = true; continue; }
       if (c === quote) quote = '';
       continue;
     }
-    if (c === '/' && n === '/') { lineComment = true; i++; continue; }
-    if (c === '/' && n === '*') { blockComment = true; i++; continue; }
     if (c === "'" || c === '"' || c.charCodeAt(0) === 96) { quote = c; continue; }
     if (c === '{') depth++;
     else if (c === '}' && --depth === 0) return seaSource.slice(start, i + 1);
@@ -267,8 +263,8 @@ assert.equal(seaOpened.state.helmetLevel,2);
 assert.equal(seaOpened.paused,true);
 assert.equal(seaOpened.saveCalls,1);
 assert.deepEqual(seaOpened.messages,['Ты вышел за горизонт. Исследуй море и ищи затонувшие сокровища.']);
-assert.match(seaSource,/function installExpeditionButton\\(\\)/);
-assert.match(seaSource,/document\\.readyState==='loading'/,
+assert.match(seaSource,/function installExpeditionButton\(\)/);
+assert.match(seaSource,/document\.readyState==='loading'/,
   'Expedition button initialization must work whether the script loads before or after DOMContentLoaded.');
 
 console.log('SkyRealm sea expedition launch, prerequisite feedback and world-entry tests passed.');
