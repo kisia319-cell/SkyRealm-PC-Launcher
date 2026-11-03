@@ -298,3 +298,25 @@ assert.doesNotMatch(source, /setTimeout\(resolve,180\)|setTimeout\(resolve,160\)
 assert.match(source, /drawBossRealmPortal\(camX,camY,time\)/);
 assert.match(source, /await interactBossRealmPortal\(\)/);
 console.log('SkyRealm boss realm portal unlock, separate save slot and return flow tests passed.');
+
+// Boss Realm creature roster, combat progression, abilities, presentation and first-entry onboarding.
+assert.equal((source.match(/tier:'mob'/g)||[]).length,8,'Boss Realm must define eight regular creatures.');
+assert.equal((source.match(/tier:'elite'/g)||[]).length,4,'Boss Realm must define four elite creatures.');
+assert.equal((source.match(/tier:'boss'/g)||[]).length,4,'Boss Realm must define four bosses.');
+assert.equal((source.match(/tier:'god'/g)||[]).length,2,'Boss Realm must define two gods.');
+for(const event of ['meteor','horde','blood_moon','awakening','rift','storm'])assert.ok(source.includes("['"+event+"'"),'Missing Boss Realm event '+event);
+for(const type of ['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit','abyss_general','blood_berserker','rift_warden','soul_devourer','abyss_king','rift_dragon','ancient_devourer','end_knight','astral_god','chronos_god'])assert.ok(source.includes(type),'Missing Boss Realm creature '+type);
+assert.match(source,/function updateBossRealmEnemies\(dt\)/);
+assert.match(source,/function drawBossRealmCreature\(m,x,y,time\)/);
+assert.match(source,/m\.phaseStage=2/,'Bosses must have a second phase.');
+assert.match(source,/m\.phaseStage=3/,'Bosses must have an enraged third phase.');
+assert.match(source,/bossRealmInvisibleTimer=4\.5/,'Invisibility must last 4.5 seconds.');
+assert.match(source,/bossRealmDamageBoostTimer=5;bossRealmAbilityCooldown=10/,'Damage boost must last 5 seconds with a 10 second cooldown.');
+assert.match(source,/equipment\.armor==='Нагрудник Бога'\?\.90/,'God chest armor must provide 90% base protection.');
+assert.match(source,/if\(k==='v'.*useBossRealmInvisibility/s,'V must activate invisibility.');
+assert.match(source,/if\(k==='b'.*useBossRealmDamageBoost/s,'B must activate the damage boost.');
+assert.match(source,/урон меча меньше 67/,'The first-entry warning must use corrected Russian text.');
+assert.match(source,/setTimeout\(\(\)=>\{stage=1/,'The second intro panel must appear after the five-second first-panel pause.');
+assert.match(source,/bossRealmCreatures:bossRealmMode\?/,'Boss Realm creatures must be stored in its independent save.');
+assert.match(source,/document\.getElementById\('boss-realm-welcome'\)/,'The first-entry overlay must keep gameplay paused.');
+console.log('SkyRealm Boss Realm creatures, bosses, gods, abilities, events, visuals and onboarding tests passed.');
