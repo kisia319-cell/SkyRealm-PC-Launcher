@@ -3824,9 +3824,12 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     closeRenameWorld();renderWorldList();
   }
   function syncAdminMenu(){
-    // Keep staff entry points visible: role lookup can fail temporarily during auth/network startup.
-    // Every panel still performs a fresh server-side role check before exposing privileged actions.
-    ['menu-admin','menu-moderator','pause-admin-tools','pause-moderator-tools'].forEach(id=>{const el=document.getElementById(id);if(el)el.hidden=false;});
+    const admin=currentStaffRole==='admin'||gameSettings.adminMode===true;
+    const moderator=admin||currentStaffRole==='moderator'||gameSettings.moderatorMode===true;
+    document.getElementById('menu-admin').hidden=!admin;
+    document.getElementById('pause-admin-tools').hidden=!admin;
+    document.getElementById('menu-moderator').hidden=!moderator;
+    document.getElementById('pause-moderator-tools').hidden=!moderator;
   }
   function generateMineStock(dayIndex=0){
     const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);
@@ -3988,7 +3991,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   async function openAdminGate(){
     const role=await refreshStaffRole(true);
-    if(role!=='admin'){
+    const localAdmin=gameSettings.adminMode===true&&!isCoopWorldActive();
+    if(role!=='admin'&&!localAdmin){
       toast(role==='none'?'Нет прав администратора. Войди в аккаунт с назначенной ролью.':'Доступ запрещён.');
       if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}
       return;
@@ -4001,10 +4005,20 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     toast('Панель администратора отключена: серверная проверка роли ещё не настроена.');
   }
   function setPanelOpen(id,open){const el=document.getElementById(id);el.hidden=!open;el.setAttribute('aria-hidden',open?'false':'true');}
-  function openAdminPanel(){if(currentStaffRole!=='admin'){toast('Нет подтверждённых прав администратора.');return;}renderWorldList();setPanelOpen('admin-panel-shade',true);document.getElementById('admin-world-count').textContent=String(readWorlds().length);refreshAdminStats();renderBanList('admin-ban-list');['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});void loadStaffPlayers();}
+  function openAdminPanel(){
+    const serverAdmin=currentStaffRole==='admin',localAdmin=gameSettings.adminMode===true&&!isCoopWorldActive();
+    if(!serverAdmin&&!localAdmin){toast('Нет подтверждённых прав администратора.');return;}
+    renderWorldList();setPanelOpen('admin-panel-shade',true);
+    document.getElementById('admin-world-count').textContent=String(readWorlds().length);
+    refreshAdminStats();renderBanList('admin-ban-list');
+    const staffSection=document.querySelector('.admin-staff-section');if(staffSection)staffSection.hidden=!serverAdmin;
+    ['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});
+    if(serverAdmin)void loadStaffPlayers();
+  }
   async function openModeratorPanel(){
     const role=await refreshStaffRole(true);
-    if(role!=='admin'&&role!=='moderator'){
+    const localModerator=gameSettings.moderatorMode===true&&!isCoopWorldActive();
+    if(role!=='admin'&&role!=='moderator'&&!localModerator){
       toast('Нет подтверждённых прав модератора.');
       if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}
       return;
