@@ -3995,7 +3995,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(!publicStaffGrantsEnabled&&currentStaffRole!=='admin'&&gameSettings.adminMode!==true){toast('Выдача ролей сейчас закрыта.');return;}
     const toggle=document.getElementById('admin-public-grants-toggle');
     const control=document.getElementById('admin-public-grants-control');
+    const revoke=document.getElementById('admin-privileges-revoke');
     if(control)control.hidden=currentStaffRole!=='admin';
+    if(revoke)revoke.hidden=currentStaffRole!=='admin';
     if(toggle)toggle.checked=publicStaffGrantsEnabled;
     const status=document.getElementById('admin-privileges-status');
     if(status)status.textContent=publicStaffGrantsEnabled?'Открытый режим включён: любой подтверждённый аккаунт может выдать роль.':'Открытый режим выключен: выдавать роли может только администратор.';
