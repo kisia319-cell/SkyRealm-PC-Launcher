@@ -23,7 +23,7 @@ assert.ok(challenge.includes("lastSnapshot.gameMinuteTotal-t.startMinute"));
 assert.ok(!challenge.includes("(lastSnapshot.gameMinuteTotal-t.startMinute)/60"));
 assert.ok(!challenge.includes("(s.gameMinuteTotal-state.timed.startMinute)/60"));
 assert.ok(challenge.includes("state.timed.collected[name]"));
-assert.ok(challenge.includes("timedProgress(state.timed)"));
+assert.ok(challenge.includes("timedProgress(state.timed,def)"));
 
 class FakeElement {
   constructor(id='') { this.id=id; this.hidden=false; this.listeners={}; this.children=[]; this.dataset={}; this.classList={add(){},remove(){},toggle(){}}; this.options=[]; this.selectedIndex=0; this.value=''; this.textContent=''; }
