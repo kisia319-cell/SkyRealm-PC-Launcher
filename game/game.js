@@ -1425,6 +1425,37 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(!bossRealmPortalUnlocked()||tradeWorldMode)return;const p=bossRealmPortalPosition(),x=p.x-camX,y=p.y-camY;if(x<-100||x>width+100||y<-110||y>height+110)return;
     const pulse=.5+.5*Math.sin(time/420);ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(4,8,24,.52)';ctx.beginPath();ctx.ellipse(0,18,43,17,0,0,Math.PI*2);ctx.fill();ctx.shadowColor=bossRealmMode?'#6be9ff':'#9a68ff';ctx.shadowBlur=22+pulse*12;ctx.strokeStyle=bossRealmMode?'#8cecff':'#b48cff';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(0,-7,27,39,0,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#10152b';ctx.beginPath();ctx.ellipse(0,-7,21,33,0,0,Math.PI*2);ctx.fill();const grad=ctx.createLinearGradient(-17,-35,18,25);grad.addColorStop(0,'rgba(104,118,255,.35)');grad.addColorStop(.5,'rgba(80,218,232,.55)');grad.addColorStop(1,'rgba(142,85,225,.28)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(0,-7,18,29,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff0c5';ctx.font='900 11px Segoe UI';ctx.textAlign='center';ctx.fillText(bossRealmMode?'ВОЗВРАТ':'МИР БОССОВ',0,-58);ctx.font='bold 10px Segoe UI';ctx.fillStyle='#e5eaff';ctx.fillText('E · '+(bossRealmMode?'ВЫЙТИ':'ВОЙТИ'),0,51);ctx.restore();
   }
+  function drawBossRealmGround(camX,camY,time){
+    ctx.fillStyle='#171326';ctx.fillRect(0,0,width,height);
+    const left=Math.max(0,Math.floor(camX/TILE)-1),top=Math.max(0,Math.floor(camY/TILE)-1);
+    const right=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),bottom=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
+    for(let ty=top;ty<bottom;ty++)for(let tx=left;tx<right;tx++){
+      const x=tx*TILE-camX,y=ty*TILE-camY,r=hash(tx*71+ty*19,113);
+      ctx.fillStyle=r<.22?'#211a35':r<.48?'#29213d':r<.76?'#30263e':'#382940';ctx.fillRect(x,y,TILE,TILE);
+      ctx.strokeStyle='rgba(142,112,180,.12)';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,TILE-1,TILE-1);
+      if(r>.72){ctx.strokeStyle='rgba(182,103,194,.34)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+5,y+7);ctx.lineTo(x+13,y+14);ctx.lineTo(x+10,y+24);ctx.lineTo(x+25,y+28);ctx.stroke();}
+      if(r>.91){ctx.fillStyle='#8e5caa';ctx.globalAlpha=.35;ctx.beginPath();ctx.arc(x+16,y+16,2+Math.sin(time/190+tx)*1.2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+    }
+    const pulse=.5+.5*Math.sin(time/520);
+    ctx.save();ctx.globalAlpha=.13+.06*pulse;const haze=ctx.createRadialGradient(width*.5,height*.45,10,width*.5,height*.45,Math.max(width,height)*.72);haze.addColorStop(0,'#9b54cb');haze.addColorStop(1,'rgba(22,12,43,0)');ctx.fillStyle=haze;ctx.fillRect(0,0,width,height);ctx.restore();
+  }
+  function drawBossRealmEnvironment(camX,camY,time){
+    for(let i=0;i<14;i++){
+      const wx=hash(i+41,701)*COLS*TILE,wy=hash(i+41,911)*ROWS*TILE,x=wx-camX,y=wy-camY;
+      if(x<-65||x>width+65||y<-80||y>height+80)continue;
+      const h=24+hash(i+7,331)*42,pulse=.65+.35*Math.sin(time/240+i);
+      ctx.save();ctx.translate(x,y);ctx.globalAlpha=.55+.25*pulse;ctx.shadowColor='#ad72d5';ctx.shadowBlur=12;
+      ctx.fillStyle=i%3===0?'#77518d':'#4c4169';ctx.beginPath();ctx.moveTo(-h*.35,12);ctx.lineTo(-h*.22,-h*.55);ctx.lineTo(0,-h);ctx.lineTo(h*.24,-h*.48);ctx.lineTo(h*.4,12);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#d5a5ff';ctx.beginPath();ctx.moveTo(0,-h*.76);ctx.lineTo(h*.13,-h*.24);ctx.lineTo(0,2);ctx.lineTo(-h*.13,-h*.24);ctx.closePath();ctx.fill();ctx.restore();
+    }
+    if(bossRealmState.eventId==='blood_moon'||bossRealmState.eventId==='storm'){
+      ctx.save();ctx.globalAlpha=.12+.05*Math.sin(time/180);ctx.fillStyle=bossRealmState.eventId==='blood_moon'?'#b92f55':'#477bb2';ctx.fillRect(0,0,width,height);ctx.restore();
+    }
+    if(bossRealmState.eventId==='meteor'){
+      for(let i=0;i<7;i++){const x=hash(i+Math.floor(time/90),127)*width,y=hash(i+Math.floor(time/90),239)*height;ctx.strokeStyle='#ffb36b';ctx.lineWidth=2;ctx.globalAlpha=.65;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-18,y+25);ctx.stroke();}ctx.globalAlpha=1;
+    }
+  }
+
   function draw(dt,time){
     if(dungeonMode){drawDungeonInterior(dt,time);updateObjective();return;}
     if(caveMode){drawCaveInterior(dt,time);updateObjective();return;}
@@ -1432,8 +1463,9 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(inHouse){drawHouseInterior(dt,time);updateObjective();return;}
     const camX=Math.max(0,Math.min(COLS*TILE-width,player.x-width/2));
     const camY=Math.max(0,Math.min(ROWS*TILE-height,player.y-height/2));
-    if(tradeWorldMode){drawTradeGround(camX,camY);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
-    if(tradeWorldMode){
+    if(tradeWorldMode){drawTradeGround(camX,camY);}else if(bossRealmMode){drawBossRealmGround(camX,camY,time);drawBossRealmEnvironment(camX,camY,time);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
+    if(bossRealmMode){drawMonsters(camX,camY,time);drawLootDrops(camX,camY,time);drawBossRealmPortal(camX,camY,time);}
+    else if(tradeWorldMode){
       drawTradeEntrance(camX,camY); drawVillageSettlements(camX,camY,time); drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);
       drawTradeShop(SELL_SHOP,camX,camY,'ЛАВКА ЛЕСНИКА','T · ОТКРЫТЬ ЛАВКУ','#d7a52c');
       drawTradeShop(BUY_SHOP,camX,camY,'ЛАВКА РУДОКОПА','T · ОТКРЫТЬ ЛАВКУ','#70818d');
