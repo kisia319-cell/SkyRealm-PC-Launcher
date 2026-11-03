@@ -954,8 +954,79 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function makeBiomeBossState(){return {frost:{active:false,defeated:false,hp:0,attackTimer:1.35,specialTimer:7,flash:0,rebirthMultiplier:1,rebirthCount:0},sand:{active:false,defeated:false,hp:0,attackTimer:1.5,specialTimer:8,flash:0,rebirthMultiplier:1,rebirthCount:0},blight:{active:false,defeated:false,hp:0,attackTimer:1.7,specialTimer:9,flash:0,rebirthMultiplier:1,rebirthCount:0},jungle:{active:false,defeated:false,hp:0,attackTimer:1.6,specialTimer:7.5,flash:0,rebirthMultiplier:1,rebirthCount:0}};}
   function biomeBossDefs(){const rank=difficultyConfig().rank;return [{id:'frost',name:'Ледяной титан',x:(COLS-10)*TILE+16,y:9*TILE+16,color:'#83e9ff',reward:'Сердце ледника',maxHp:850+rank*330,damage:10+rank*6},{id:'sand',name:'Король скорпионов',x:9*TILE+16,y:(ROWS-12)*TILE+16,color:'#ffb24a',reward:'Жало короля',maxHp:780+rank*300,damage:9+rank*5},{id:'blight',name:'Страж порчи',x:(COLS-9)*TILE+16,y:Math.max(46,ROWS-24)*TILE+16,color:'#b7ed6e',reward:'Сердце порчи',maxHp:1000+rank*360,damage:12+rank*6},{id:'jungle',name:'Хранитель лиан',x:Math.floor(COLS*.29)*TILE+16,y:Math.floor(ROWS*.49)*TILE+16,color:'#73d45b',reward:'Сердце джунглей',maxHp:1050+rank*390,damage:12+rank*6}];}
   function bossHpMax(def){const state=biomeBosses?.[def.id];return Math.round(def.maxHp*Math.max(1,Math.min(8.35,Number(state?.rebirthMultiplier)||1)));}
-  function normalizeBiomeBossState(saved){const out=makeBiomeBossState();if(!saved||typeof saved!=='object')return out;for(const def of biomeBossDefs()){const v=saved[def.id];if(!v||typeof v!=='object')continue;const multiplier=Math.max(1,Math.min(8.35,Number(v.rebirthMultiplier)||1));out[def.id]={active:v.active===true,defeated:v.defeated===true,hp:Math.max(0,Math.min(Math.round(def.maxHp*multiplier),Number(v.hp)||Math.round(def.maxHp*multiplier))),attackTimer:Math.max(.15,Math.min(5,Number(v.attackTimer)||1.4)),specialTimer:Math.max(.5,Math.min(20,Number(v.specialTimer)||7)),flash:0,rebirthMultiplier:multiplier,rebirthCount:Math.max(0,Math.min(4,Math.floor(Number(v.rebirthCount)||0)))};if(out[def.id].defeated){out[def.id].active=false;out[def.id].hp=0;}else if(out[def.id].hp<=0)out[def.id].hp=bossHpMax(def);}return out;}
-  function updateBiomeBosses(dt){if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode)return;for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||b.defeated)continue;const d=Math.hypot(player.x-def.x,player.y-def.y);b.flash=Math.max(0,(b.flash||0)-dt);if(!b.active&&d<440){b.active=true;b.hp=b.hp>0?Math.min(b.hp,bossHpMax(def)):bossHpMax(def);b.attackTimer=1.3;b.specialTimer=Math.max(2,b.specialTimer||7);toast('ОПАСНОСТЬ: '+def.name+' заметил тебя!');playSound('portal');saveGame();}if(!b.active)continue;const power=b.rebirthMultiplier||1;b.attackTimer-=dt;b.specialTimer-=dt;if(d<108&&b.attackTimer<=0&&!immortal&&dodgeTimer<=0){b.attackTimer=Math.max(.65,1.65-difficultyConfig().rank*.13);const hit=Math.max(1,Math.round(def.damage*power*(1-armorReduction())*(isModInstalled('elemental_lords')?1.25:1)));player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,9,'spark',def.color);updateVitals();toast(def.name+' атакует: −'+hit+' HP');if(player.hp<=0)respawnPlayerAfterDefeat();}if(b.specialTimer<=0){b.specialTimer=Math.max(5.5,9-difficultyConfig().rank*.55);const radius=def.id==='frost'?148:def.id==='sand'?126:def.id==='blight'?174:158;if(d<=radius&&!immortal&&dodgeTimer<=0){const special=Math.max(1,Math.round(def.damage*power*1.65*(1-armorReduction())));player.hp=Math.max(0,player.hp-special);spawnVisualBurst(player.x,player.y,22,'spark',def.color);updateVitals();const move={frost:'ЛЕДЯНАЯ БУРЯ',sand:'ЯДОВИТОЕ ЖАЛО',blight:'ВОЛНА ПОРОЧИ',jungle:'УДАР КОРНЕЙ'}[def.id];toast(def.name+' применяет '+move+': −'+special+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}else spawnVisualBurst(def.x,def.y,14,'spark',def.color);}}}
+  function normalizeBiomeBossState(saved){
+    const out=makeBiomeBossState();
+    if(!saved||typeof saved!=='object')return out;
+    for(const def of biomeBossDefs()){
+      const v=saved[def.id];
+      if(!v||typeof v!=='object')continue;
+      const rawMultiplier=Number(v.rebirthMultiplier);
+      const multiplier=Number.isFinite(rawMultiplier)?Math.max(1,Math.min(8.35,rawMultiplier)):1;
+      const maxHp=Math.round(def.maxHp*multiplier);
+      const rawHp=Number(v.hp),rawAttackTimer=Number(v.attackTimer),rawSpecialTimer=Number(v.specialTimer);
+      const defeated=v.defeated===true;
+      out[def.id]={
+        active:v.active===true&&!defeated,
+        defeated,
+        hp:defeated?0:(Number.isFinite(rawHp)?Math.max(0,Math.min(maxHp,rawHp)):maxHp),
+        attackTimer:Number.isFinite(rawAttackTimer)?Math.max(.15,Math.min(5,rawAttackTimer)):1.3,
+        specialTimer:Number.isFinite(rawSpecialTimer)?Math.max(.5,Math.min(20,rawSpecialTimer)):7,
+        flash:0,rebirthMultiplier:multiplier,
+        rebirthCount:Math.max(0,Math.min(4,Math.floor(Number(v.rebirthCount)||0)))
+      };
+      if(!defeated&&out[def.id].hp<=0)out[def.id].hp=maxHp;
+    }
+    return out;
+  }
+  function updateBiomeBosses(dt){
+    if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode)return;
+    const step=Number.isFinite(dt)?Math.max(0,Math.min(.1,dt)):0;
+    for(const def of biomeBossDefs()){
+      const b=biomeBosses[def.id];
+      if(!b||b.defeated)continue;
+      if(!Number.isFinite(b.rebirthMultiplier)||b.rebirthMultiplier<1)b.rebirthMultiplier=1;
+      const maxHp=bossHpMax(def);
+      if(!Number.isFinite(b.hp))b.hp=maxHp;
+      else b.hp=Math.max(0,Math.min(maxHp,b.hp));
+      if(!Number.isFinite(b.attackTimer))b.attackTimer=.35;
+      if(!Number.isFinite(b.specialTimer))b.specialTimer=.5;
+      const d=Math.hypot(player.x-def.x,player.y-def.y);
+      if(!Number.isFinite(d))continue;
+      b.flash=Math.max(0,(b.flash||0)-step);
+      if(!b.active&&d<440){
+        b.active=true;b.hp=b.hp>0?Math.min(b.hp,maxHp):maxHp;
+        b.attackTimer=1.3;b.specialTimer=Math.max(2,b.specialTimer||7);
+        toast('ОПАСНОСТЬ: '+def.name+' заметил тебя!');playSound('portal');saveGame();
+      }
+      if(!b.active)continue;
+      const power=Math.max(1,Math.min(8.35,b.rebirthMultiplier));
+      b.attackTimer=Math.max(0,b.attackTimer-step);
+      b.specialTimer=Math.max(0,b.specialTimer-step);
+      const canBossHit=!immortal&&(!Number.isFinite(dodgeTimer)||dodgeTimer<=0);
+      const meleeRange=def.id==='jungle'?138:108;
+      if(d<=meleeRange&&b.attackTimer<=0&&canBossHit){
+        b.attackTimer=Math.max(.65,1.65-difficultyConfig().rank*.13);
+        const hit=Math.max(1,Math.round(def.damage*power*(1-armorReduction())*(isModInstalled('elemental_lords')?1.25:1)));
+        player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,9,'spark',def.color);
+        updateVitals();toast(def.name+' атакует: −'+hit+' HP');
+        if(player.hp<=0)respawnPlayerAfterDefeat();
+      }
+      if(b.specialTimer<=0){
+        const radius=def.id==='frost'?148:def.id==='sand'?126:def.id==='blight'?174:158;
+        if(d<=radius&&canBossHit){
+          b.specialTimer=Math.max(5.5,9-difficultyConfig().rank*.55);
+          const special=Math.max(1,Math.round(def.damage*power*1.65*(1-armorReduction())));
+          player.hp=Math.max(0,player.hp-special);spawnVisualBurst(player.x,player.y,22,'spark',def.color);
+          updateVitals();const move={frost:'ЛЕДЯНАЯ БУРЯ',sand:'ЯДОВИТОЕ ЖАЛО',blight:'ВОЛНА ПОРОЧИ',jungle:'УДАР КОРНЕЙ'}[def.id];
+          toast(def.name+' применяет '+move+': −'+special+' HP!');
+          if(player.hp<=0)respawnPlayerAfterDefeat();
+        }else{
+          // Keep a ready special attack queued until the player enters its hit radius.
+          b.specialTimer=.2;
+        }
+      }
+    }
+  }
   function defeatBiomeBoss(def,b){if(!def||!b||b.defeated)return;scheduleNemesis('boss',def.id,def.name,'brute',Math.min(8.35,(b.rebirthMultiplier||1)*1.7));b.defeated=true;if(isModInstalled('elemental_lords')){walletCents+=5000;changeItem('Кристалл',2);updateWalletHud();toast('Повелитель стихий: дополнительная награда +50 золота и 2 кристалла!');}b.active=false;b.hp=0;
     if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner){
       spawnSharedLoot(def.x,def.y,[{name:def.reward,count:1},{name:'Кристалл',count:3},{name:'Малое зелье',count:2},{name:'Золото',count:75}],'surface');
