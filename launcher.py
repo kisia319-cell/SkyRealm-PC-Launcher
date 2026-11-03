@@ -9,6 +9,7 @@ import json
 import base64
 import hashlib
 import re
+import traceback
 import zipfile
 import urllib.request
 import urllib.error
@@ -592,7 +593,9 @@ class LauncherApi:
 
     def launch_game(self, settings=None, allow_game_update=True, session_token=None, open_mod_id=None):
         """Install the bundled prototype into LocalAppData and start it in a new process."""
+        launch_stage = "initialization"
         try:
+            launch_stage = "save settings"
             preferences = save_user_settings(settings if isinstance(settings, dict) else read_user_settings())
             source_dir = Path(resource_path("game")).resolve()
             source_index = source_dir / "index.html"
@@ -604,6 +607,7 @@ class LauncherApi:
             install_dir = skyrealm_game_dir(preferences)
             installed_index = install_dir / "index.html"
             installed_version_file = install_dir / "version.txt"
+            launch_stage = "check and install game update"
             _js_update(8, "Проверяем обновления…", "Проверяем версию игры и загружаем обновления при необходимости")
             version = _skyrealm_update_game(install_dir, bundled_version, allow_update=allow_game_update is not False) if getattr(sys, "frozen", False) else bundled_version
             installed_version = ""
@@ -666,6 +670,7 @@ class LauncherApi:
             _js_update(92, "Всё готово", "Открываем отдельное окно игры")
             time.sleep(0.25)
             if getattr(sys, "frozen", False):
+                launch_stage = "prepare separate game runner"
                 # Launch a SEPARATELY BUILT game runner stored outside this launcher's
                 # temporary PyInstaller _MEI directory. The main launcher may then close
                 # without deleting files still used by the game process.
@@ -705,17 +710,36 @@ class LauncherApi:
                 launch_env["SKYREALM_SESSION_TOKEN"] = safe_session_token
             else:
                 launch_env.pop("SKYREALM_SESSION_TOKEN", None)
-            subprocess.Popen(
+            launch_stage = "start game process"
+            game_process = subprocess.Popen(
                 command,
                 cwd=str(install_dir),
                 close_fds=True,
                 creationflags=creationflags,
                 env=launch_env,
             )
+            try:
+                log_path = skyrealm_default_data_root() / "launch-errors.log"
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+                with log_path.open("a", encoding="utf-8") as log:
+                    log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | launched | version={version} | pid={game_process.pid} | executable={command[0]}\\n")
+            except Exception:
+                pass
             _js_update(100, "Запускаем SkyRealm…", "Лаунчер закроется через мгновение")
             return {"ok": True, "installed": not already_installed, "version": version}
         except Exception as exc:
-            return {"ok": False, "message": "Ошибка подготовки игры: " + str(exc)}
+            details = traceback.format_exc()
+            error_log_hint = "не удалось записать журнал"
+            try:
+                log_path = skyrealm_default_data_root() / "launch-errors.log"
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+                with log_path.open("a", encoding="utf-8") as log:
+                    log.write(f"\\n{time.strftime('%Y-%m-%d %H:%M:%S')} | FAILED | stage={launch_stage} | {type(exc).__name__}: {exc}\\n")
+                    log.write(details + "\\n")
+                error_log_hint = str(log_path)
+            except Exception:
+                pass
+            return {"ok": False, "message": f"Ошибка подготовки игры на этапе «{launch_stage}»: {exc}. Подробности: {error_log_hint}"}
 
 
 class GameApi:
