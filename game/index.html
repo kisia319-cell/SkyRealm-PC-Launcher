@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta name="skyrealm-game-version" content="0.20.50.13">
+  <meta name="skyrealm-game-version" content="0.20.50.14">
 <meta charset="utf-8">
 <link rel="stylesheet" href="custom-mods.css">
 <link rel="stylesheet" href="cinematic-loading.css">
@@ -249,8 +249,15 @@
       <div class="sr-title">SKYREALM</div>
       <div class="sr-subtitle">ТВОЙ МИР · ТВОЯ ИСТОРИЯ</div>
     </div>
+      <div class="sr-cine-neptune" aria-hidden="true"><div class="neptune-crown"></div><div class="neptune-body"></div><div class="neptune-trident"></div><i class="neptune-tentacle tentacle-a"></i><i class="neptune-tentacle tentacle-b"></i><i class="neptune-tentacle tentacle-c"></i></div>
+      <div class="sr-hell-boss" aria-hidden="true"></div><div class="sr-hell-flames" aria-hidden="true"></div>
+      <svg class="sr-cine-pickaxe" viewBox="0 0 80 120" aria-hidden="true"><defs><linearGradient id="srPickMetal"><stop stop-color="#d9f7ff"/><stop offset=".5" stop-color="#7596aa"/><stop offset="1" stop-color="#253b58"/></linearGradient></defs><path d="M37 34 46 39 20 116 11 112Z" fill="#80552d" stroke="#d4ae72" stroke-width="2"/><path d="M8 34Q19 8 42 17L70 30 64 43 39 33Q24 27 15 48Z" fill="url(#srPickMetal)" stroke="#e1f8ff" stroke-width="3"/><path d="M12 34 3 47 17 51Z" fill="#9eb8c8"/></svg>
     <div class="sr-loading" aria-hidden="true"><span></span></div>
     <button class="sr-enter-button" id="sr-enter-game" type="button">Зайти в игру <span aria-hidden="true">✦</span></button>
+    <div class="sr-intro-tools">
+      <div class="sr-sun-control"><label for="sr-sun-slider">☀ СОЛНЦЕ</label><input id="sr-sun-slider" type="range" min="0" max="100" value="78" aria-label="Переместить солнце по небу"><span class="sr-sun-status" id="sr-sun-status">ДЕНЬ</span></div>
+      <button class="sr-scene-switch" id="sr-scene-switch" type="button">СМЕНИТЬ ЗАСТАВКУ · НЕБЕСНОЕ КОРОЛЕВСТВО ↓</button>
+    </div>
   </div>
 
   <canvas id="world" tabindex="0" aria-label="Мир SkyRealm, управление WASD"></canvas>
@@ -487,24 +494,51 @@
 </div>
 <script>
 (() => {
-  const intro = document.getElementById('skyrealm-intro');
-  const enter = document.getElementById('sr-enter-game');
-  if (!intro || !enter) return;
-  let leaving = false;
-  const showEnter = () => window.setTimeout(() => {
-    if (!leaving && intro.isConnected) intro.classList.add('intro-ready');
-  }, 1500);
-  const leave = () => {
-    if (leaving) return;
-    leaving = true;
-    enter.disabled = true;
-    intro.classList.remove('intro-ready');
-    intro.classList.add('intro-exit');
-    window.setTimeout(() => intro.remove(), 1100);
-  };
-  enter.addEventListener('click', leave, {once:true});
-  if (document.readyState === 'complete') showEnter();
-  else window.addEventListener('load', showEnter, {once:true});
+  const intro=document.getElementById('skyrealm-intro');
+  const enter=document.getElementById('sr-enter-game');
+  if(!intro||!enter)return;
+  let leaving=false,dragging=false;
+  const slider=document.getElementById('sr-sun-slider');
+  const status=document.getElementById('sr-sun-status');
+  const ship=intro.querySelector('.sr-cine-airship');
+  const switcher=document.getElementById('sr-scene-switch');
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+  function setSun(value){
+    const t=Number(value)/100;
+    const x=5+t*90;
+    const y=9+Math.sin(t*Math.PI)*38;
+    const elevation=Math.sin(t*Math.PI);
+    intro.style.setProperty('--sun-x',x+'%');
+    intro.style.setProperty('--sun-y',y+'%');
+    intro.style.setProperty('--sun-glow',String(.25+elevation*.95));
+    intro.style.setProperty('--scene-shadow',String(.78-elevation*.55));
+    intro.style.setProperty('--scene-warmth',String(.4+elevation*.8));
+    const phase=t<.14?'НОЧЬ':t<.30?'УТРО':t<.70?'ДЕНЬ':t<.86?'ВЕЧЕР':'НОЧЬ';
+    status.textContent=phase;
+    intro.dataset.timeOfDay=phase.toLowerCase();
+    intro.classList.toggle('intro-night',phase==='НОЧЬ');
+    intro.classList.toggle('intro-dawn',phase==='УТРО');
+    intro.classList.toggle('intro-dusk',phase==='ВЕЧЕР');
+    if(phase==='НОЧЬ'){
+      intro.style.setProperty('--sun-glow','.08');
+      intro.style.setProperty('--scene-shadow','.92');
+    }
+  }
+  if(slider){slider.addEventListener('input',()=>setSun(slider.value));setSun(slider.value);}
+  if(switcher)switcher.addEventListener('click',()=>{
+    const hell=intro.classList.toggle('hell-scene');
+    switcher.textContent=hell?'СМЕНИТЬ ЗАСТАВКУ · НЕБЕСНОЕ КОРОЛЕВСТВО ↑':'СМЕНИТЬ ЗАСТАВКУ · РЕЖИМ АДА ↓';
+  });
+  if(ship){
+    ship.addEventListener('pointerdown',e=>{if(leaving)return;dragging=true;ship.setPointerCapture(e.pointerId);e.preventDefault();});
+    ship.addEventListener('pointermove',e=>{if(!dragging)return;const r=intro.getBoundingClientRect();const x=clamp((e.clientX-r.left)/r.width*100,2,88);const y=clamp((e.clientY-r.top)/r.height*100,5,68);ship.style.left=x+'%';ship.style.top=y+'%';ship.style.right='auto';});
+    const stop=()=>{dragging=false;};ship.addEventListener('pointerup',stop);ship.addEventListener('pointercancel',stop);
+  }
+  let neptuneTimer=window.setTimeout(()=>{if(!leaving)intro.classList.add('neptune-visible');},2200);
+  const showEnter=()=>window.setTimeout(()=>{if(!leaving&&intro.isConnected)intro.classList.add('intro-ready');},1500);
+  const leave=()=>{if(leaving)return;leaving=true;window.clearTimeout(neptuneTimer);enter.disabled=true;intro.classList.remove('intro-ready');intro.classList.add('intro-exit');window.setTimeout(()=>intro.remove(),1100);};
+  enter.addEventListener('click',leave,{once:true});
+  if(document.readyState==='complete')showEnter();else window.addEventListener('load',showEnter,{once:true});
 })();
 </script>
 <style>.workbench-page-tabs{display:flex;gap:8px;margin:10px 0 14px}.workbench-page-tabs .active{border-color:#72c5e9;background:#173d56;color:#fff}#workbench-page-two[hidden]{display:none}#workbench-page-two h2{font-size:15px;color:#9ddcf6;margin:12px 0}</style><script src="game.js"></script><script src="challenge-mode.js"></script><script src="sea-system.js"></script>
