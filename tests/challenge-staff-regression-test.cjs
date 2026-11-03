@@ -26,17 +26,19 @@ assert.ok(challenge.includes("state.timed.collected[name]"));
 assert.ok(challenge.includes("timedProgress(state.timed,def)"));
 
 class FakeElement {
-  constructor(id='') { this.id=id; this.hidden=false; this.listeners={}; this.children=[]; this.dataset={}; this.classList={add(){},remove(){},toggle(){}}; this.options=[]; this.selectedIndex=0; this.value=''; this.textContent=''; }
+  constructor(id='') { this.id=id; this.hidden=false; this.listeners={}; this.children=[]; this.dataset={}; this.classList={add(){},remove(){},toggle(){}}; this.options=[]; this.selectedIndex=0; this.value=''; this.textContent=''; this._queryCache={}; }
   addEventListener(name,fn){this.listeners[name]=fn;}
   appendChild(el){this.children.push(el);if(el.id)elements[el.id]=el;return el;}
   replaceChildren(){this.children=[];}
   click(){this.listeners.click?.();}
-  set innerHTML(value){this._html=value;}
+  set innerHTML(value){this._html=value;this._queryCache={};}
   get innerHTML(){return this._html||'';}
   querySelectorAll(selector){
+    if(this._queryCache[selector])return this._queryCache[selector];
     if(selector!=='[data-challenge-start]')return [];
     const ids=[...this.innerHTML.matchAll(/data-challenge-start="([^"]+)"/g)].map(m=>m[1]);
-    return ids.map(id=>{const el=new FakeElement();el.dataset.challengeStart=id;el.addEventListener('click',fn=>{});return el;});
+    this._queryCache[selector]=ids.map(id=>{const el=new FakeElement();el.dataset.challengeStart=id;return el;});
+    return this._queryCache[selector];
   }
 }
 const elements={};
