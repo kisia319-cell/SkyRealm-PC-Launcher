@@ -50,6 +50,8 @@
   let saveKey = LEGACY_SAVE_KEY;
   let currentWorldId = null;
   let currentWorldName = '';
+  let bossWorldMode=false,bossWorldReturnState=null;
+  const BOSS_WORLD_SAVE_PREFIX='skyrealm_boss_world_save_v1_';
   let worldSessionStartedAt=0,worldSessionRecorded=false;
   let renameWorldId = null;
   let discovered = false;
@@ -978,6 +980,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     return out;
   }
   function updateBiomeBosses(dt){
+    if(bossWorldMode)return;
     if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode)return;
     const step=Number.isFinite(dt)?Math.max(0,Math.min(.1,dt)):0;
     for(const def of biomeBossDefs()){
@@ -1032,6 +1035,8 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     }else{walletCents+=7500;changeItem(def.reward,1);changeItem('Кристалл',3);changeItem('Малое зелье',2);renderInventory();}
     spawnVisualBurst(def.x,def.y,32,'spark',def.color);playSound('portal');awardXP(220,'победа: '+def.name);saveGame();toast(def.name+' повержен! Награда появилась в мире.');}
   function drawBiomeBosses(camX,camY,time){for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||b.defeated)continue;const dist=Math.hypot(player.x-def.x,player.y-def.y);if(!b.active&&dist>560)continue;const x=def.x-camX,y=def.y-camY;if(x<-100||x>width+100||y<-100||y>height+100)continue;ctx.save();ctx.translate(x,y);ctx.scale(1+Math.sin(time/170)*.035,1+Math.sin(time/170)*.035);ctx.fillStyle='#08101ba8';ctx.beginPath();ctx.ellipse(0,17,35,11,0,0,Math.PI*2);ctx.fill();ctx.shadowColor=def.color;ctx.shadowBlur=20;ctx.fillStyle=b.flash>0?'#fff':def.color;if(def.id==='frost'){ctx.beginPath();ctx.moveTo(-24,17);ctx.lineTo(-20,-12);ctx.lineTo(-11,-25);ctx.lineTo(-4,-13);ctx.lineTo(3,-33);ctx.lineTo(12,-14);ctx.lineTo(23,-22);ctx.lineTo(26,14);ctx.closePath();ctx.fill();}else if(def.id==='sand'){ctx.beginPath();ctx.ellipse(0,1,24,19,0,0,Math.PI*2);ctx.fill();ctx.fillRect(-28,-10,9,7);ctx.fillRect(19,-10,9,7);ctx.strokeStyle=def.color;ctx.lineWidth=5;ctx.beginPath();ctx.arc(3,-12,24,Math.PI,Math.PI*1.8);ctx.stroke();}else if(def.id==='jungle'){ctx.fillStyle='#6a432d';ctx.fillRect(-8,-5,16,26);ctx.fillStyle=b.flash>0?'#fff':'#73d45b';ctx.beginPath();ctx.ellipse(0,-14,23,18,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(-16,-22);ctx.lineTo(-30,-35);ctx.lineTo(-13,-31);ctx.moveTo(16,-22);ctx.lineTo(30,-35);ctx.lineTo(13,-31);ctx.strokeStyle=def.color;ctx.lineWidth=6;ctx.stroke();ctx.fillStyle='#fff3b0';ctx.fillRect(-9,-17,5,4);ctx.fillRect(4,-17,5,4);ctx.fillStyle='#284b25';ctx.fillRect(-5,-6,10,3);}else{ctx.beginPath();ctx.moveTo(-25,15);ctx.lineTo(-23,-10);ctx.lineTo(-9,-20);ctx.lineTo(0,-14);ctx.lineTo(12,-28);ctx.lineTo(24,-8);ctx.lineTo(28,15);ctx.closePath();ctx.fill();}ctx.shadowBlur=0;ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#fff';ctx.fillText(def.name,x,y-40);ctx.fillStyle='#241a27';ctx.fillRect(x-39,y-32,78,6);ctx.fillStyle=def.color;ctx.fillRect(x-39,y-32,78*Math.max(0,(b.active?b.hp:bossHpMax(def))/bossHpMax(def)),6);ctx.restore();}}
+  function bossWorldPortalPosition(){return {x:27*TILE+16,y:26*TILE+16};}
+  function drawBossWorldPortal(camX,camY,time){if(!bossWorldMode&&survivedNights<3)return;const p=bossWorldPortalPosition(),x=p.x-camX,y=p.y-camY;if(x<-100||x>width+100||y<-110||y>height+100)return;ctx.save();ctx.translate(x,y);ctx.fillStyle='#080b18aa';ctx.beginPath();ctx.ellipse(0,17,42,14,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#30334d';ctx.fillRect(-31,-18,9,42);ctx.fillRect(22,-18,9,42);ctx.fillRect(-34,-22,68,8);ctx.fillStyle='#101327';ctx.beginPath();ctx.ellipse(0,-2,25,31,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#a98aff';ctx.lineWidth=4;ctx.shadowColor='#a45dff';ctx.shadowBlur=18+Math.sin(time/180)*7;ctx.beginPath();ctx.ellipse(0,-2,20,26,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#e6caff';ctx.globalAlpha=.5+Math.sin(time/220)*.18;ctx.beginPath();ctx.ellipse(0,-2,13,19,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText(bossWorldMode?'В ДОЛИНУ':'МИР БОССОВ',0,43);ctx.fillText('E · '+(bossWorldMode?'ВЫЙТИ':'ВОЙТИ'),0,56);ctx.restore();}
   function dungeonGatePosition(){return {x:(COLS-15)*TILE+16,y:25*TILE+16};}
   function drawDungeonGate(camX,camY,time){const p=dungeonGatePosition(),x=p.x-camX,y=p.y-camY;if(x<-90||x>width+90||y<-100||y>height+100)return;ctx.save();ctx.translate(x,y);ctx.fillStyle='#11192599';ctx.beginPath();ctx.ellipse(0,14,42,16,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#716a73';ctx.fillRect(-28,-16,10,38);ctx.fillRect(18,-16,10,38);ctx.fillRect(-30,-20,60,8);ctx.fillStyle='#262b3a';ctx.beginPath();ctx.arc(0,-5,19,Math.PI,Math.PI*2);ctx.lineTo(19,19);ctx.lineTo(-19,19);ctx.closePath();ctx.fill();ctx.strokeStyle='#b99cff';ctx.lineWidth=3;ctx.shadowColor='#a77bff';ctx.shadowBlur=12+Math.sin(time/200)*4;ctx.beginPath();ctx.arc(0,-4,15,Math.PI,Math.PI*2);ctx.stroke();ctx.fillStyle='#f3eaff';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('РУИНЫ',0,34);ctx.fillText('E · ВОЙТИ',0,46);ctx.restore();}
   function dungeonEnemyMaxHp(room=dungeonRoom){return Math.round((room===5?620:90+room*42)*(.65+difficultyConfig().rank*.28)*(isModInstalled('lost_dungeons')?1.35:1));}
@@ -1104,7 +1109,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     }
     return null;
   }
-  function updateWorldEvents(dt){
+  function updateWorldEvents(dt){if(bossWorldMode)return;
     const coop=window.SkyRealmCoopClient;const coopRoom=coop?.getRoomState?.();if(coopRoom&&(!coop.isRoomOwner||coopRoom.status!=='running'))return;
     if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode||paused||inMainMenu)return;
     if(!Number.isFinite(dt)||dt<=0)return;
@@ -1298,8 +1303,10 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(inHouse){drawHouseInterior(dt,time);updateObjective();return;}
     const camX=Math.max(0,Math.min(COLS*TILE-width,player.x-width/2));
     const camY=Math.max(0,Math.min(ROWS*TILE-height,player.y-height/2));
-    if(tradeWorldMode){drawTradeGround(camX,camY);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
-    if(tradeWorldMode){
+    if(bossWorldMode){drawGround(camX,camY);if(gameSettings.graphicsQuality!=='low')drawFlowers(camX,camY,time);for(const tree of world.trees){const x=tree.x-camX,y=tree.y-camY;if(x>-60&&x<width+60&&y>-70&&y<height+40)drawTree(tree,camX,camY);}for(const rock of world.rocks){const x=rock.x-camX,y=rock.y-camY;if(x>-30&&x<width+30&&y>-30&&y<height+30)drawRock(rock,camX,camY);}drawBossWorldPortal(camX,camY,time);}
+    else if(tradeWorldMode){drawTradeGround(camX,camY);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
+    if(bossWorldMode){/* The boss dimension is intentionally an empty first-stage world. */}
+    else if(tradeWorldMode){
       drawTradeEntrance(camX,camY); drawVillageSettlements(camX,camY,time); drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);
       drawTradeShop(SELL_SHOP,camX,camY,'ЛАВКА ЛЕСНИКА','T · ОТКРЫТЬ ЛАВКУ','#d7a52c');
       drawTradeShop(BUY_SHOP,camX,camY,'ЛАВКА РУДОКОПА','T · ОТКРЫТЬ ЛАВКУ','#70818d');
@@ -1309,7 +1316,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       drawCabin(camX,camY); drawFences(camX,camY); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
       for(const rock of world.rocks){const x=rock.x-camX,y=rock.y-camY;if(x>-30&&x<width+30&&y>-30&&y<height+30)drawRock(rock,camX,camY);}
       for(const tree of world.trees){const x=tree.x-camX,y=tree.y-camY;if(x>-60&&x<width+60&&y>-70&&y<height+40)drawTree(tree,camX,camY);}
-      world.signs.forEach(s=>drawSign(s,camX,camY));drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawWorldEventCamp(camX,camY,time);drawWorldEventTraveler(camX,camY,time);drawWolfCage(camX,camY,time);drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);drawWolfCompanion(camX,camY,time);const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
+      world.signs.forEach(s=>drawSign(s,camX,camY));drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawWorldEventCamp(camX,camY,time);drawWorldEventTraveler(camX,camY,time);drawWolfCage(camX,camY,time);drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);drawWolfCompanion(camX,camY,time);drawBossWorldPortal(camX,camY,time);const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
     }
     if(gameSettings.graphicsQuality==='high'){
       const px=player.x-camX,py=player.y-camY;
@@ -1824,7 +1831,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     nemesisEvents.push({id:newCoopEntityId(),kind:kind==='boss'?'boss':'monster',target:String(id||type||'enemy').slice(0,48),name:String(name||monsterLabel(type)).slice(0,48),type:['shadow','brute','wisp','skeleton','bomb','ice','scorpion','ember','yeti'].includes(type)?type:'brute',multiplier:Math.max(1.7,Math.min(8.35,Number(multiplier)||1.7)),dueDay:day+1,createdDay:day});
     saveGame();
   }
-  function updateNemesisEvents(){
+  function updateNemesisEvents(){if(bossWorldMode)return;
     if(!nemesisEvents.length||!isNightTime()||tradeWorldMode||mineMode||caveMode||dungeonMode)return;
     const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);if(lastNemesisRaidDay===day)return;
     const due=nemesisEvents.filter(e=>e&&Number(e.dueDay)<=day);if(!due.length)return;
@@ -1992,6 +1999,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     };
   }
   function updateWolfAndDog(dt){
+    if(bossWorldMode)return;
     if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
     if(wolfBossActive){const bounded=clampWolfBossToForest(wolfBossX,wolfBossY);wolfBossX=bounded.x;wolfBossY=bounded.y;}
     if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
@@ -2028,7 +2036,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     else{changeItem('Ключ от клетки',1);walletCents+=5000;changeItem('Кристалл',2);renderInventory();}
     spawnVisualBurst(wolfBossX,wolfBossY,34,'spark','#b6d6ff');playWolfSound('howl');toast('ОБОРОТЕН ПОБЕЖДЁН! Награда появилась в общей добыче леса.');awardXP(180,'победа над Оборотнем');saveGame();
   }
-  function updateMonsters(dt){
+  function updateMonsters(dt){if(bossWorldMode){monsters.length=0;return;}
     if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode){return;}
     const coopNetwork=window.SkyRealmCoopClient,coopRoom=coopNetwork?.getRoomState?.();
     if(isCoopWorldActive()&&coopRoom&&!coopNetwork?.isRoomOwner){
@@ -2501,7 +2509,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     const d = Math.hypot(s.x-player.x, s.y-player.y);
     const objective = document.getElementById('objective');
     const liveSheep=sheep.filter(a=>a.alive).length;const targets=['Найди и прочитай дорожный знак','Войди в дом и осмотри кровать и верстак','Собери древесину: возьми топор и сруби дерево','Используй верстак в доме','Победи монстра','Добудь мясо овцы и съешь его','Исследуй не менее 10% карты','Посети берег озера','Переживи первую ночь'];if(exploredCells.size>=Math.ceil(COLS*ROWS*.1))questStage=Math.max(questStage,7);if(player.x/TILE<20&&waterAt(player.x/TILE,player.y/TILE))questStage=Math.max(questStage,7);if(survivedNights>0)questStage=Math.max(questStage,9);const target=targets[Math.min(questStage,targets.length-1)];objective.textContent='Задание '+Math.min(questStage+1,targets.length)+'/'+targets.length+': '+target;
-    document.getElementById('location-name').textContent = tradeWorldMode ? 'Мир торговли' : (waterAt(player.x/TILE,player.y/TILE) ? 'Берег тихого озера' : (player.x/TILE>31&&player.x/TILE<42&&player.y/TILE>13&&player.y/TILE<24 ? 'Старая деревня' : biomeNameAt(player.x/TILE,player.y/TILE)));
+    document.getElementById('location-name').textContent = bossWorldMode ? 'Мир боссов' : tradeWorldMode ? 'Мир торговли' : (waterAt(player.x/TILE,player.y/TILE) ? 'Берег тихого озера' : (player.x/TILE>31&&player.x/TILE<42&&player.y/TILE>13&&player.y/TILE<24 ? 'Старая деревня' : biomeNameAt(player.x/TILE,player.y/TILE)));
   }
   function toast(text){const el=document.getElementById('toast');if(!el)return;el.textContent=String(text??'');el.classList.remove('show');void el.offsetWidth;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),4200);}let toastTimer;
   const ACHIEVEMENT_KEY='skyrealm_achievements_v1';
@@ -2654,6 +2662,8 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   }
   async function interact(){
     if(dungeonMode){interactDungeon();return;}
+    if(bossWorldMode){const portal=bossWorldPortalPosition();if(Math.hypot(player.x-portal.x,player.y-portal.y)<118){await leaveBossWorld();return;}toast('В этом мире пока доступен только портал обратно в долину.');return;}
+    if(survivedNights>=3){const portal=bossWorldPortalPosition();if(Math.hypot(player.x-portal.x,player.y-portal.y)<118){await enterBossWorld();return;}}
     if(collectMeteor())return;
     if(collectWorldEventCamp())return;
     if(collectWorldEventTraveler())return;
@@ -3445,7 +3455,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     }
     try{
       const worlds=readWorlds();const worldRecord=worlds.find(w=>w.id===currentWorldId);
-      if(worldRecord){worldRecord.updatedAt=Date.now();writeWorlds(worlds);}
+      if(worldRecord&&!bossWorldMode){worldRecord.updatedAt=Date.now();writeWorlds(worlds);}
     }catch(metadataError){console.warn('SkyRealm save metadata could not be updated:',metadataError);}
     saveErrorNotified=false;lastSaveAt=Date.now();syncProfileStats(false);evaluateAchievements(false);
     const status=document.getElementById('save-status');
@@ -3690,7 +3700,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       };
       window.__skyrealmPendingCoopWorldEntry=null;
     }else coopWorldEntry=null;
-    const migrateLegacyDifficulty=!coopSession&&difficultyMigrationPending;difficultyMigrationPending=false;setWorldDifficulty(selectedDifficulty);resetWorldState();configureTreasureChests();setupWorld();
+    const migrateLegacyDifficulty=!coopSession&&difficultyMigrationPending;difficultyMigrationPending=false;bossWorldMode=false;bossWorldReturnState=null;setWorldDifficulty(selectedDifficulty);resetWorldState();configureTreasureChests();setupWorld();
     currentWorldId=record.id;currentWorldName=coopSession?('Кооператив · '+record.name):record.name;worldSessionStartedAt=Date.now();worldSessionRecorded=false;
     saveKey=coopSession?('skyrealm_coop_save_v1_'+coopSession.id+'_'+network.userId):worldSaveKey(record.id);
     localStorage.setItem('skyrealm_active_world_id',record.id);mineMode=false;workbenchDialogOpen=false;
@@ -3700,6 +3710,55 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     document.getElementById('main-menu-shade').hidden=true;document.getElementById('main-menu-shade').setAttribute('aria-hidden','true');
     document.getElementById('pause-shade').hidden=true;document.getElementById('pause-main-view').hidden=false;document.getElementById('pause-settings-view').hidden=true;
     inMainMenu=false;paused=true;settingsOpenedFromMainMenu=false;keys.clear();pressedMovementCodes.clear();canvas.focus();last=performance.now();openCharacterEditor(true);renderWorldList();
+  }
+  function bossWorldYield(){return new Promise(resolve=>requestAnimationFrame(()=>resolve()));}
+  function setBossWorldLoading(progress,message){
+    const overlay=document.getElementById('boss-world-loading'),bar=document.getElementById('boss-world-loading-bar'),label=document.getElementById('boss-world-loading-label'),value=document.getElementById('boss-world-loading-value');
+    if(!overlay)return;overlay.hidden=false;overlay.setAttribute('aria-hidden','false');if(bar)bar.style.width=Math.max(0,Math.min(100,progress))+'%';if(label)label.textContent=message||'Подготовка мира…';if(value)value.textContent=Math.round(Math.max(0,Math.min(100,progress)))+'%';
+  }
+  function hideBossWorldLoading(){const overlay=document.getElementById('boss-world-loading');if(overlay){overlay.hidden=true;overlay.setAttribute('aria-hidden','true');}}
+  async function enterBossWorld(){
+    if(bossWorldMode||!currentWorldId)return;
+    if(survivedNights<3){toast('Портал откроется после трёх пережитых ночей.');return;}
+    if(!saveGame()){toast('Сначала сохрани обычный мир.');return;}
+    const original={saveKey,currentDifficulty,name:currentWorldName,x:player.x,y:player.y};
+    bossWorldReturnState=original;paused=true;keys.clear();pressedMovementCodes.clear();
+    try{
+      setBossWorldLoading(6,'Сохраняем долину…');await bossWorldYield();
+      bossWorldMode=true;tradeWorldMode=false;setWorldDifficulty(original.currentDifficulty);resetWorldState();configureTreasureChests();
+      setBossWorldLoading(28,'Создаём отдельный мир…');await bossWorldYield();
+      setupWorld();createMineForWorld('boss-world-'+currentWorldId);
+      setBossWorldLoading(61,'Генерируем карту…');await bossWorldYield();
+      saveKey=BOSS_WORLD_SAVE_PREFIX+currentWorldId;const hadBossSave=!!localStorage.getItem(saveKey);loadGame();
+      bossWorldMode=true;tradeWorldMode=false;dungeonMode=false;caveMode=false;mineMode=false;inHouse=false;monsters.length=0;
+      if(!hadBossSave){const portal=bossWorldPortalPosition();player.x=portal.x-5*TILE;player.y=portal.y;player.vx=player.vy=0;gameMinuteTotal=8*60;survivedNights=0;}
+      setBossWorldLoading(88,'Загружаем сохранение и готовим вход…');await bossWorldYield();
+      markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
+      currentWorldName='Мир боссов';document.querySelector('.realm-sub').textContent='МИР БОССОВ · ОТДЕЛЬНОЕ ИЗМЕРЕНИЕ';
+      inMainMenu=false;paused=false;settingsOpenedFromMainMenu=false;keys.clear();pressedMovementCodes.clear();canvas.focus();last=performance.now();
+      setBossWorldLoading(100,'Мир готов!');await bossWorldYield();hideBossWorldLoading();playSound('portal');toast('Ты вошёл в Мир боссов. Пока здесь только новая отдельная локация.');
+    }catch(error){
+      console.error('[SkyRealm boss world load]',error);
+      bossWorldMode=false;saveKey=original.saveKey;setWorldDifficulty(original.currentDifficulty);resetWorldState();configureTreasureChests();setupWorld();createMineForWorld(currentWorldId);loadGame();
+      currentWorldName=original.name;player.x=original.x;player.y=original.y;paused=false;document.querySelector('.realm-sub').textContent=original.name+' · '+difficultyConfig().name.toUpperCase()+' · ПЕРВЫЙ РАССВЕТ';
+      toast('Не удалось загрузить Мир боссов. Обычный мир восстановлен.');
+    }finally{hideBossWorldLoading();}
+  }
+  async function leaveBossWorld(){
+    if(!bossWorldMode||!bossWorldReturnState){toast('Вернись в меню миров и открой свой обычный мир.');return;}
+    if(!saveGame())return;
+    const original=bossWorldReturnState;bossWorldReturnState=null;bossWorldMode=false;
+    setBossWorldLoading(12,'Сохраняем Мир боссов…');paused=true;await bossWorldYield();
+    try{
+      saveKey=original.saveKey;setWorldDifficulty(original.currentDifficulty);resetWorldState();configureTreasureChests();
+      setBossWorldLoading(48,'Возвращаем исходный мир…');await bossWorldYield();
+      setupWorld();createMineForWorld(currentWorldId);loadGame();
+      player.x=Math.max(TILE,Math.min(COLS*TILE-TILE,original.x));player.y=Math.max(TILE,Math.min(ROWS*TILE-TILE,original.y));player.vx=player.vy=0;
+      currentWorldName=original.name;markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
+      document.querySelector('.realm-sub').textContent=original.name+' · '+difficultyConfig().name.toUpperCase()+' · ПЕРВЫЙ РАССВЕТ';
+      paused=false;keys.clear();pressedMovementCodes.clear();canvas.focus();last=performance.now();setBossWorldLoading(100,'Возвращаемся в долину…');await bossWorldYield();playSound('portal');toast('Ты вернулся в свой обычный мир. Его сохранение не затронуто.');
+    }catch(error){console.error('[SkyRealm boss world return]',error);paused=false;toast('Ошибка возврата. Открой обычный мир через меню миров.');}
+    finally{hideBossWorldLoading();}
   }
   function receiveCoopWorldEntry(entry){
     const network=window.SkyRealmCoopClient,state=network?.getRoomState?.();
