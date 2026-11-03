@@ -4,6 +4,7 @@
   <meta name="skyrealm-game-version" content="0.20.50.10">
 <meta charset="utf-8">
 <link rel="stylesheet" href="custom-mods.css">
+<link rel="stylesheet" href="cinematic-loading.css">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#091426">
 <title>SkyRealm — Первый рассвет</title>
@@ -476,7 +477,7 @@
     window.setTimeout(() => {
       intro.classList.add('intro-out');
       window.setTimeout(() => intro.remove(), 750);
-    }, 2700);
+    }, 9000);
   };
   if (document.readyState === 'complete') finish();
   else window.addEventListener('load', finish, {once:true});
