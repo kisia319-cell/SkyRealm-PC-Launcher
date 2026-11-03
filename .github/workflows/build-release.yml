@@ -60,6 +60,7 @@ jobs:
           node --check tests/multiplayer-client-test.cjs
           node --check tests/coop-ui-integration-test.cjs
           node --check tests/supabase-migration-history-test.cjs
+          node --check tests/time-mechanics-test.cjs
           node tests/game-smoke-test.cjs
           node tests/achievement-system-test.cjs
           node tests/world-library-test.cjs
@@ -77,6 +78,7 @@ jobs:
           node tests/cloud-save-ui-test.cjs
           node tests/cloud-save-api-test.cjs
           node tests/supabase-migration-history-test.cjs
+          node tests/time-mechanics-test.cjs
 
       - name: Install build tools
         run: python -m pip install --upgrade pip pywebview pyinstaller psutil
