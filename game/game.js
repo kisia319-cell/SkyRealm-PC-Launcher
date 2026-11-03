@@ -67,8 +67,6 @@
   ];
   let exploredCells = new Set();
   let clearedSnowTiles=new Set(),snowShovelHits={};
-  // Hash only hides the prototype password from casual reading; client-side checks are not secure admin auth.
-  const ADMIN_PASSWORD_SHA256 = '98afe2c58807589c4c816138a1efd5f4e3fdb06a5dc3e0f4a4f7a0371212198c';
   let hintTimer = 0;
   let saveTimer = 0;
   let saveErrorNotified = false, lastSaveAt = 0;
@@ -77,7 +75,8 @@
   let inventoryTab = 'items';
   let questPanelVisible = false;
   let selectedSlot = 1;
-  // Game clock: one real second advances one in-game minute; pause stops the clock.
+  // Game clock: two in-game minutes advance per real second; pause stops the clock.
+  const GAME_TIME_SPEED=2;
   const GAME_MINUTES_PER_DAY = 24 * 60;
   const DAWN_MINUTE = 6 * 60;
   const NIGHT_MINUTE = 20 * 60;
@@ -1556,7 +1555,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     }
     const wasNightBefore=isNightTime();
     const previousMinute=gameMinuteTotal;
-    gameMinuteTotal+=dt;
+    gameMinuteTotal+=dt*GAME_TIME_SPEED;
     const elapsedGameMinutes=gameMinuteTotal-previousMinute;
     hungerElapsedMinutes+=elapsedGameMinutes;
     while(hungerElapsedMinutes>=(isModInstalled('brutal_world')?7:isModInstalled('survivalist')?12:10)+skills.survivor*.7+communityModBonus('hunger')*.35){hungerElapsedMinutes-=(isModInstalled('brutal_world')?7:isModInstalled('survivalist')?12:10)+skills.survivor*.7+communityModBonus('hunger')*.35;hunger=Math.max(0,hunger-1);}
@@ -2448,7 +2447,29 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function eatMeat(){const cooked=inventoryItems.find(i=>i.name==='Жареное мясо'),raw=inventoryItems.find(i=>i.name==='Сырое мясо'),meat=inventoryItems.find(i=>i.name==='Мясо'),fish=inventoryItems.find(i=>i.name==='Рыба'),food=cooked?.count>0?cooked:raw?.count>0?raw:meat?.count>0?meat:fish?.count>0?fish:null;if(!food){toast('Нет еды. Найди овцу или поймай рыбу на озере.');return;}food.count--;const restored=food.name==='Жареное мясо'?15:food.name==='Рыба'?12:10;hunger=Math.min(100,hunger+restored);questStage=Math.max(questStage,6);hungerElapsedMinutes=0;renderInventory();updateClockDisplay(true);saveGame();toast('Ты съел '+food.name.toLowerCase()+'. +'+restored+' голода.');}
   function cookMeatAtFurnace(){const raw=inventoryItems.find(i=>i.name==='Сырое мясо'),coal=inventoryItems.find(i=>i.name==='Уголь'),cooked=inventoryItems.find(i=>i.name==='Жареное мясо');if(!raw||raw.count<1){toast('Нужно сырое мясо. Получить его можно с овец.');return;}if(!coal||coal.count<1){toast('Для жарки нужно 1 уголь.');return;}raw.count--;coal.count--;cooked.count++;playSound('craft');spawnVisualBurst(player.x,player.y,8,'spark','#ffb56d');renderInventory();saveGame();toast('Мясо пожарено! Жареное мясо восстанавливает 15 голода (+5 к сырому).');}
   function updateSkipDayHud(){const t=document.getElementById('skip-day-timer'),b=document.getElementById('skip-day-button');if(!t||!b)return;const left=Math.max(0,Math.ceil(skipDayRealSeconds));t.textContent=left>0?`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'Готово';b.disabled=left>0||paused||inMainMenu;b.title=left>0?'Пропустить день можно после 5 минут реального времени':'Пропустить игровой день';}
-  function skipGameDay(){if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(day+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;survivedNights++;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;skipDayRealSeconds=300;updateClockDisplay(true);saveGame();toast('День пропущен. Он засчитан как прожитый.');}
+  function calculateSkipDayTarget(totalMinutes,lastDawnMarker){
+    const safeTotal=Number.isFinite(totalMinutes)?Math.max(0,totalMinutes):0;
+    const currentDay=Math.floor(safeTotal/GAME_MINUTES_PER_DAY);
+    const minuteOfDay=safeTotal-currentDay*GAME_MINUTES_PER_DAY;
+    const targetDay=currentDay+(minuteOfDay>=NIGHT_MINUTE?1:0);
+    const minuteTotal=targetDay*GAME_MINUTES_PER_DAY+NIGHT_MINUTE;
+    const dawnMarker=Math.floor((minuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
+    const previousDawnMarker=Number.isFinite(lastDawnMarker)?Math.floor(lastDawnMarker):dawnMarker;
+    return {minuteTotal,dawnMarker,nightsPassed:Math.max(0,dawnMarker-previousDawnMarker)};
+  }
+  function skipGameDay(){
+    if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}
+    const target=calculateSkipDayTarget(gameMinuteTotal,lastDawnMarker);
+    gameMinuteTotal=target.minuteTotal;
+    survivedNights+=target.nightsPassed;
+    lastDawnMarker=target.dawnMarker;
+    wasNight=isNightTime();
+    monsters.length=0;
+    skipDayRealSeconds=300;
+    updateClockDisplay(true);
+    saveGame();
+    toast('Время перемотано до 20:00. Пройденные ночи засчитаны.');
+  }
   function houseFurnitureBlocked(x,y){const r=9,boxes=[[42,35,148,186],[153,91,190,143],[174,27,272,61],[286,72,379,98],[272,105,390,177],[296,201,380,279],[155,266,190,296],[203,249,241,278]];return boxes.some(([l,t,rr,b])=>x+r>l&&x-r<rr&&y+r>t&&y-r<b);}
   function houseInteractionNear(x,y,rect){return x>=rect[0]&&x<=rect[2]&&y>=rect[1]&&y<=rect[3];}
   function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>322||houseFurnitureBlocked(x,y);}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){const forest=villageCenters.find(v=>v.id==='forest');if(forest){const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270];for(let row=0;row<3;row++)for(let col=0;col<6;col++){const hx=forest.x*TILE+16+xOffsets[col]+(row===1?28:row===2?-24:0),hy=forest.y*TILE+16+rowY[row];if(x>hx-76&&x<hx+76&&y>hy-12*TILE-54&&y<hy-12*TILE+84)return true;}}for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
@@ -2770,19 +2791,33 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     const core=window.SkyRealmMultiplayerCore;
     const shared=core?.sanitizeSharedWorldSnapshot?.(snapshot.payload);
     if(!shared||!Object.keys(shared).length)return false;
+    let previousSave=null,wroteSnapshot=false;
     try{
       if(!saveGame())return false;
-      const current=JSON.parse(localStorage.getItem(saveKey)||'null');
+      previousSave=localStorage.getItem(saveKey);
+      const current=JSON.parse(previousSave||'null');
       if(!current||typeof current!=='object')return false;
       const personalDrops=Array.isArray(current.lootDrops)?current.lootDrops.filter(d=>d&&d.shared!==true):[];
       const merged={...current,...shared};
       merged.lootDrops=[...personalDrops,...(Array.isArray(shared.lootDrops)?shared.lootDrops:[])];
       localStorage.setItem(saveKey,JSON.stringify(merged));
+      wroteSnapshot=true;
+      loadGame();renderInventory();drawMinimap();updateVitals();updateWalletHud();
+      // A version is acknowledged only after persistence and every restore step succeeded.
       lastAppliedCoopSnapshotVersion=version;
       lastCoopSnapshotSignature=JSON.stringify(shared);
-      loadGame();renderInventory();drawMinimap();updateVitals();updateWalletHud();
       return true;
-    }catch(error){console.warn('[SkyRealm co-op snapshot apply]',error);return false;}
+    }catch(error){
+      if(wroteSnapshot){
+        try{
+          if(previousSave===null)localStorage.removeItem(saveKey);
+          else localStorage.setItem(saveKey,previousSave);
+          loadGame();renderInventory();drawMinimap();updateVitals();updateWalletHud();
+        }catch(rollbackError){console.warn('[SkyRealm co-op snapshot rollback]',rollbackError);}
+      }
+      console.warn('[SkyRealm co-op snapshot apply]',error);
+      return false;
+    }
   }
   async function syncCoopWorldSnapshot(){
     const network=window.SkyRealmCoopClient;
@@ -3665,23 +3700,16 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     else showPauseMain();
   }
   function openAdminGate(){
-    if(gameSettings.adminMode!==true){toast('Включи режим администратора в настройках лаунчера и перезапусти игру.');return;}
-    const input=document.getElementById('admin-password-input');input.value='';document.getElementById('admin-password-error').hidden=true;
-    const shade=document.getElementById('admin-password-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');setTimeout(()=>input.focus(),30);
+    toast('Панель администратора отключена: серверная проверка роли ещё не настроена.');
   }
   function closeAdminGate(){const shade=document.getElementById('admin-password-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');document.getElementById('admin-password-input').value='';if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}}
   async function submitAdminPassword(){
-    const input=document.getElementById('admin-password-input');
-    try{
-      const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(input.value));
-      const hash=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
-      if(hash===ADMIN_PASSWORD_SHA256){const returnPause=panelReturnToPause;panelReturnToPause=false;closeAdminGate();panelReturnToPause=returnPause;openAdminPanel();}
-      else{document.getElementById('admin-password-error').hidden=false;input.select();}
-    }catch(_){document.getElementById('admin-password-error').hidden=false;toast('Не удалось проверить пароль в этой среде.');}
+    closeAdminGate();
+    toast('Панель администратора отключена: серверная проверка роли ещё не настроена.');
   }
   function setPanelOpen(id,open){const el=document.getElementById(id);el.hidden=!open;el.setAttribute('aria-hidden',open?'false':'true');}
   function openAdminPanel(){renderWorldList();setPanelOpen('admin-panel-shade',true);document.getElementById('admin-world-count').textContent=String(readWorlds().length);refreshAdminStats();renderBanList('admin-ban-list');['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});}
-  function openModeratorPanel(){const pass=window.prompt('Введите пароль модератора:');if(pass!=='1234'){if(pass!==null)toast('Неверный пароль модератора.');return;}setPanelOpen('moderator-panel-shade',true);renderBanList('mod-ban-list');const b=document.getElementById('mod-immortal');if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}}
+  function openModeratorPanel(){toast('Панель модератора отключена: серверная проверка роли ещё не настроена.');}
   function refreshAdminStats(){const m=minuteOfDay(),label=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');const t=document.getElementById('admin-time-label');if(t)t.textContent=label;const c=document.getElementById('admin-monster-count');if(c)c.textContent=String(monsters.length);}
   function requireWorld(){if(!currentWorldId){toast('Сначала выбери или создай мир.');return false;}return true;}
   function setGameTime(minute){if(!requireWorld())return;const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=day*GAME_MINUTES_PER_DAY+minute;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();lastClockMinute=-1;monsterSpawnTimer=0;updateClockDisplay(true);saveGame();refreshAdminStats();toast('Время изменено вручную — день или ночь не засчитаны.');}

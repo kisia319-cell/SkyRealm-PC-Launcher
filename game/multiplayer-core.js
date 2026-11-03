@@ -144,6 +144,33 @@
     for(const key of SHARED_WORLD_FIELDS){
       if(Object.prototype.hasOwnProperty.call(input,key))output[key]=input[key];
     }
+    if(output.biomeBosses!==undefined){
+      const sourceBosses=output.biomeBosses;
+      const bossIds=['frost','sand','blight','jungle'];
+      const bossFields=['active','defeated','hp','attackTimer','specialTimer','flash','rebirthMultiplier','rebirthCount'];
+      const numericRanges={hp:[0,1000000],attackTimer:[0.15,5],specialTimer:[0.5,20],flash:[0,10],rebirthMultiplier:[1,8.35],rebirthCount:[0,4]};
+      if(!sourceBosses||typeof sourceBosses!=='object'||Array.isArray(sourceBosses)||
+        Object.keys(sourceBosses).some(id=>!bossIds.includes(id)))return null;
+      const safeBosses={};
+      for(const [id,value] of Object.entries(sourceBosses)){
+        if(!value||typeof value!=='object'||Array.isArray(value)||
+          Object.keys(value).some(field=>!bossFields.includes(field)))return null;
+        for(const field of ['active','defeated']){
+          if(Object.prototype.hasOwnProperty.call(value,field)&&typeof value[field]!=='boolean')return null;
+        }
+        for(const [field,[min,max]] of Object.entries(numericRanges)){
+          if(!Object.prototype.hasOwnProperty.call(value,field))continue;
+          if(typeof value[field]!=='number'||!Number.isFinite(value[field])||
+            value[field]<min||value[field]>max||
+            (field==='rebirthCount'&&!Number.isSafeInteger(value[field])))return null;
+        }
+        safeBosses[id]={};
+        for(const field of bossFields){
+          if(Object.prototype.hasOwnProperty.call(value,field))safeBosses[id][field]=value[field];
+        }
+      }
+      output.biomeBosses=safeBosses;
+    }
     if(output.coopWorldEntry!==undefined){
       const entry=output.coopWorldEntry;
       const difficulties=['easy','medium','hard','hell','impossible'];
