@@ -1339,7 +1339,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       drawCabin(camX,camY); drawFences(camX,camY); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
       for(const rock of world.rocks){const x=rock.x-camX,y=rock.y-camY;if(x>-30&&x<width+30&&y>-30&&y<height+30)drawRock(rock,camX,camY);}
       for(const tree of world.trees){const x=tree.x-camX,y=tree.y-camY;if(x>-60&&x<width+60&&y>-70&&y<height+40)drawTree(tree,camX,camY);}
-      world.signs.forEach(s=>drawSign(s,camX,camY));drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawWorldEventCamp(camX,camY,time);drawWorldEventTraveler(camX,camY,time);drawWolfCage(camX,camY,time);drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);drawWolfCompanion(camX,camY,time);drawBossRealmPortal(camX,camY,time);if(bossRealmMode){ctx.fillStyle='rgba(31,20,78,.20)';ctx.fillRect(0,0,width,height);}const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
+      world.signs.forEach(s=>drawSign(s,camX,camY));drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawWorldEventCamp(camX,camY,time);drawWorldEventTraveler(camX,camY,time);drawWolfCage(camX,camY,time);if(!bossRealmMode){drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);}drawWolfCompanion(camX,camY,time);drawBossRealmPortal(camX,camY,time);if(bossRealmMode){ctx.fillStyle='rgba(31,20,78,.20)';ctx.fillRect(0,0,width,height);}const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
     }
     if(gameSettings.graphicsQuality==='high'){
       const px=player.x-camX,py=player.y-camY;
@@ -2022,7 +2022,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     };
   }
   function updateWolfAndDog(dt){
-    if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
+    if(bossRealmMode||tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
     if(wolfBossActive){const bounded=clampWolfBossToForest(wolfBossX,wolfBossY);wolfBossX=bounded.x;wolfBossY=bounded.y;}
     if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
       coopGuestWolfAttackCooldown=Math.max(0,coopGuestWolfAttackCooldown-dt);
