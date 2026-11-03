@@ -1,0 +1,34 @@
+/* SkyRealm cinematic fantasy arrival — independent from gameplay and movement code */
+#skyrealm-intro{isolation:isolate;background:#102b4a!important;color:#fff!important}
+#skyrealm-intro:before{content:"";position:absolute;inset:-2%!important;width:auto!important;height:auto!important;aspect-ratio:auto!important;border:0!important;border-radius:0!important;box-shadow:none!important;z-index:0!important;background:
+radial-gradient(ellipse at 78% 22%,rgba(255,235,184,.98) 0,rgba(255,218,154,.38) 7%,transparent 24%),
+linear-gradient(180deg,#173c69 0%,#477eaa 30%,#9ab5c0 55%,#e6c6a1 78%,#7d6c65 100%)!important;animation:sr-cine-sky 22s ease-in-out infinite alternate!important}
+#skyrealm-intro:after{content:"";position:absolute;inset:0;z-index:2!important;pointer-events:none;background:linear-gradient(180deg,transparent 45%,rgba(12,28,47,.08) 64%,rgba(8,20,35,.64) 100%),radial-gradient(ellipse at 50% 45%,transparent 35%,rgba(5,18,36,.34) 100%)!important}
+.sr-cinematic-scene{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none}
+.sr-cine-sun{position:absolute;right:13%;top:8%;width:clamp(110px,18vw,240px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff8df 0 22%,#ffe2ad 35%,rgba(255,207,143,.26) 66%,transparent 72%);filter:blur(1px);box-shadow:0 0 90px 35px #ffe3b044}
+.sr-cine-cloud{position:absolute;width:62vw;height:19vh;min-height:90px;border-radius:50%;filter:blur(20px);background:radial-gradient(ellipse,rgba(255,247,231,.76),rgba(231,238,239,.34) 42%,transparent 72%);animation:sr-cine-cloud-drift 34s ease-in-out infinite alternate}
+.sr-cine-cloud-a{left:-13%;top:34%}.sr-cine-cloud-b{right:-19%;top:48%;transform:scale(1.3);animation-delay:-13s}
+.sr-cine-mountain{position:absolute;bottom:16%;width:75vw;height:36vh;background:linear-gradient(145deg,#9eb7bd,#526f79 58%,#263f51);clip-path:polygon(0 100%,22% 42%,31% 60%,49% 8%,67% 58%,80% 31%,100% 100%);opacity:.62;filter:drop-shadow(0 18px 22px #152c43)}
+.sr-cine-mountain-back{left:-17%;transform:scale(1.2);opacity:.42}.sr-cine-mountain-front{right:-23%;bottom:10%;transform:scale(1.28);opacity:.72}
+.sr-cine-island{position:absolute;width:clamp(170px,25vw,390px);height:clamp(90px,14vw,190px);filter:drop-shadow(0 25px 22px #10243b88);animation:sr-cine-float 8s ease-in-out infinite}
+.sr-cine-island i{position:absolute;left:0;right:0;top:0;height:38%;border-radius:50%;background:linear-gradient(180deg,#b7c4a5,#597c70 72%,#344f4e);clip-path:polygon(0 50%,10% 20%,30% 5%,68% 4%,90% 20%,100% 50%,88% 83%,55% 100%,20% 86%)}
+.sr-cine-island b{position:absolute;left:19%;right:19%;top:24%;height:76%;background:linear-gradient(110deg,#304c52,#182d3b 56%,#41545a);clip-path:polygon(0 0,100% 0,78% 32%,62% 62%,51% 100%,38% 64%,20% 36%)}
+.sr-cine-island-left{left:7%;top:31%;transform:scale(.86);animation-delay:-2s}.sr-cine-island-right{right:4%;top:43%;transform:scale(.65);animation-delay:-5s}
+.sr-cine-citadel{position:absolute;left:50%;top:25%;width:clamp(120px,19vw,260px);height:clamp(160px,28vh,300px);transform:translateX(-50%);filter:drop-shadow(0 15px 20px #14283e99);opacity:.94}
+.sr-cine-citadel:before{content:"";position:absolute;left:17%;right:17%;bottom:0;height:66%;background:linear-gradient(90deg,#536a70,#d3c6a7 48%,#526a72);clip-path:polygon(8% 100%,8% 28%,22% 28%,22% 0,37% 0,37% 28%,63% 28%,63% 0,78% 0,78% 28%,92% 28%,92% 100%)}
+.sr-cine-citadel i,.sr-cine-citadel b,.sr-cine-citadel em{position:absolute;bottom:48%;width:18%;height:48%;background:linear-gradient(90deg,#6e7d7c,#e1d2b2 55%,#687b7b);clip-path:polygon(0 100%,0 24%,20% 24%,20% 0,50% 0,80% 0,80% 24%,100% 24%,100% 100%)}
+.sr-cine-citadel i{left:13%}.sr-cine-citadel b{right:13%;height:57%}.sr-cine-citadel em{left:41%;height:72%;width:18%;bottom:57%}
+.sr-cine-light{position:absolute;right:19%;top:18%;width:2px;height:70%;background:linear-gradient(transparent,#fff1c5aa,transparent);box-shadow:0 0 50px 22px #fff0c555;transform:rotate(19deg);filter:blur(3px)}
+.sr-cine-particles{position:absolute;inset:0;background-image:radial-gradient(2px 2px at 18% 28%,#fff8d9 60%,transparent),radial-gradient(2px 2px at 73% 61%,#fff 60%,transparent),radial-gradient(1px 1px at 43% 17%,#fff4d0 60%,transparent),radial-gradient(2px 2px at 86% 38%,#fff2d1 60%,transparent);background-size:280px 220px;animation:sr-cine-sparkle 5s ease-in-out infinite alternate;opacity:.8}
+.sr-intro-content{z-index:3!important;position:absolute!important;left:50%;bottom:12%;transform:translateX(-50%);gap:5px!important;text-shadow:0 3px 18px #07192b!important}
+.sr-sword{display:none!important}.sr-logo{width:clamp(90px,13vw,150px)!important;filter:drop-shadow(0 4px 20px #102e4e)!important}
+.sr-title{color:#fff8e9!important;letter-spacing:.28em!important;text-shadow:0 2px 5px #162f49,0 0 30px #fff6d4!important}
+.sr-subtitle{color:#fff0d1!important;letter-spacing:.32em!important}
+.sr-loading{z-index:4!important;width:min(280px,58vw)!important;height:3px!important;background:#d9e5e6aa!important}
+.sr-loading span{background:linear-gradient(90deg,#d4b47a,#fff4d2,#c9e6e8)!important;box-shadow:0 0 16px #fff2c9!important}
+@keyframes sr-cine-sky{to{transform:scale(1.07) translateX(-1%)}}
+@keyframes sr-cine-cloud-drift{to{translate:5vw 0}}
+@keyframes sr-cine-float{0%,100%{translate:0 0}50%{translate:0 -15px}}
+@keyframes sr-cine-sparkle{to{opacity:.3;transform:translateY(-10px)}}
+@media(max-width:650px){.sr-cine-citadel{top:29%}.sr-cine-island-left{left:-8%}.sr-cine-island-right{right:-12%}.sr-intro-content{bottom:13%}}
+@media(prefers-reduced-motion:reduce){.sr-cine-cloud,.sr-cine-island,.sr-cine-particles,#skyrealm-intro:before{animation:none!important}}
