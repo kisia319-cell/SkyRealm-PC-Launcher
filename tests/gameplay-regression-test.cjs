@@ -202,6 +202,73 @@ assert.equal(nemesisSaves,1);
 eventContext.updateNemesisEvents();
 assert.equal(monsters.length,3,'A second tick on the same night must not duplicate the raid.');
 
+
+const seaSource = fs.readFileSync(path.join(__dirname, '../game/sea-system.js'), 'utf8');
+function extractSeaFunction(name) {
+  const start = seaSource.indexOf('function ' + name + '(');
+  assert.ok(start >= 0, 'Missing sea function ' + name);
+  const open = seaSource.indexOf('{', start);
+  let depth = 0, quote = '', escaped = false;
+  for (let i = open; i < seaSource.length; i++) {
+    const c = seaSource[i];
+    if (quote) {
+      if (escaped) { escaped = false; continue; }
+      if (c === '\\') { escaped = true; continue; }
+      if (c === quote) quote = '';
+      continue;
+    }
+    if (c === "'" || c === '"' || c.charCodeAt(0) === 96) { quote = c; continue; }
+    if (c === '{') depth++;
+    else if (c === '}' && --depth === 0) return seaSource.slice(start, i + 1);
+  }
+  throw new Error('Unclosed sea function ' + name);
+}
+
+const seaMessageCalls = [];
+const seaMessageContext = {state:{message:'',messageLeft:0},$:()=>null,bridge:()=>({toast:text=>seaMessageCalls.push(text)})};
+execute(seaMessageContext,[extractSeaFunction('msg')],['msg']);
+seaMessageContext.msg('Сначала создай корабль на второй странице верстака.');
+assert.deepEqual(seaMessageCalls,['Сначала создай корабль на второй странице верстака.'],
+  'Sea expedition prerequisites must show a visible game toast before the sea overlay exists.');
+const seaMessageElement={textContent:''};
+seaMessageContext.$=id=>id==='sea-message'?seaMessageElement:null;
+seaMessageContext.msg('Ты вышел за горизонт.');
+assert.equal(seaMessageElement.textContent,'Ты вышел за горизонт.');
+assert.equal(seaMessageCalls.length,1,'In-expedition messages must stay inside the sea overlay.');
+
+function runSeaEntry(worldId, hasBoat) {
+  const messages=[],pauseLock={hidden:true},root={hidden:true},state={underwater:false,helmetLevel:0};
+  let buildCalls=0,saveCalls=0,paused=false;
+  const context={
+    bridge:()=>({getWorldId:()=>worldId,hasItem:()=>hasBoat,getWaterHelmetLevel:()=>2,pause:()=>{paused=true;}}),
+    msg:text=>messages.push(text),build:()=>{buildCalls++;},load:()=>{},ensureWorld:()=>{},
+    state,active:false,root,$:()=>pauseLock,resize:()=>{},performance:{now:()=>100},
+    cancelAnimationFrame:()=>{},requestAnimationFrame:()=>7,frame:()=>{},save:()=>{saveCalls++;},raf:0
+  };
+  execute(context,[extractSeaFunction('enter')],['enter']);
+  context.enter();
+  return {context,messages,pauseLock,root,state,buildCalls,saveCalls,paused};
+}
+const noWorld=runSeaEntry(null,false);
+assert.deepEqual(noWorld.messages,['Сначала загрузи игровой мир.']);
+assert.equal(noWorld.buildCalls,0,'Do not build the expedition UI before a world is selected.');
+const noBoat=runSeaEntry('world-1',false);
+assert.deepEqual(noBoat.messages,['Сначала создай корабль на второй странице верстака.']);
+assert.equal(noBoat.buildCalls,0);
+const seaOpened=runSeaEntry('world-1',true);
+assert.equal(seaOpened.context.active,true,'A valid world with a crafted ship must open the sea expedition.');
+assert.equal(seaOpened.root.hidden,false);
+assert.equal(seaOpened.pauseLock.hidden,false);
+assert.equal(seaOpened.state.helmetLevel,2);
+assert.equal(seaOpened.paused,true);
+assert.equal(seaOpened.saveCalls,1);
+assert.deepEqual(seaOpened.messages,['Ты вышел за горизонт. Исследуй море и ищи затонувшие сокровища.']);
+assert.match(seaSource,/function installExpeditionButton\(\)/);
+assert.match(seaSource,/document\.readyState==='loading'/,
+  'Expedition button initialization must work whether the script loads before or after DOMContentLoaded.');
+
+console.log('SkyRealm sea expedition launch, prerequisite feedback and world-entry tests passed.');
+
 console.log('SkyRealm mine refresh, forest boundary, biome boss attacks, rebirth queue and next-night raid tests passed.');
 
 
