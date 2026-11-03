@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta name="skyrealm-game-version" content="0.20.50.12">
+  <meta name="skyrealm-game-version" content="0.20.50.13">
 <meta charset="utf-8">
 <link rel="stylesheet" href="custom-mods.css">
 <link rel="stylesheet" href="cinematic-loading.css">
@@ -226,7 +226,15 @@
       <div class="sr-cine-sun"></div><div class="sr-cine-cloud sr-cine-cloud-a"></div><div class="sr-cine-cloud sr-cine-cloud-b"></div>
       <div class="sr-cine-mountain sr-cine-mountain-back"></div><div class="sr-cine-mountain sr-cine-mountain-front"></div>
       <div class="sr-cine-island sr-cine-island-left"><i></i><b></b></div><div class="sr-cine-island sr-cine-island-right"><i></i><b></b></div>
-      <div class="sr-cine-citadel"><i></i><b></b><em></em></div><div class="sr-cine-light"></div><div class="sr-cine-particles"></div>
+      <div class="sr-cine-citadel"><i></i><b></b><em></em></div>
+      <div class="sr-cine-detail sr-cine-spire sr-cine-spire-a"></div><div class="sr-cine-detail sr-cine-spire sr-cine-spire-b"></div><div class="sr-cine-detail sr-cine-spire sr-cine-spire-c"></div>
+      <div class="sr-cine-detail sr-cine-bridge"></div>
+      <div class="sr-cine-detail sr-cine-forest sr-cine-forest-a"></div><div class="sr-cine-detail sr-cine-forest sr-cine-forest-b"></div><div class="sr-cine-detail sr-cine-forest sr-cine-forest-c"></div><div class="sr-cine-detail sr-cine-forest sr-cine-forest-d"></div>
+      <div class="sr-cine-detail sr-cine-crystal sr-cine-crystal-a"></div><div class="sr-cine-detail sr-cine-crystal sr-cine-crystal-b"></div>
+      <div class="sr-cine-detail sr-cine-airship"></div><div class="sr-cine-detail sr-cine-bird sr-cine-bird-a"></div><div class="sr-cine-detail sr-cine-bird sr-cine-bird-b"></div>
+      <div class="sr-cine-detail sr-cine-lantern sr-cine-lantern-a"></div><div class="sr-cine-detail sr-cine-lantern sr-cine-lantern-b"></div>
+      <div class="sr-cine-detail sr-cine-runestone sr-cine-runestone-a"></div><div class="sr-cine-detail sr-cine-runestone sr-cine-runestone-b"></div>
+      <div class="sr-cine-detail sr-cine-water"></div><div class="sr-cine-light"></div><div class="sr-cine-particles"></div>
     </div>
     <div class="sr-intro-content">
       <svg class="sr-sword" viewBox="0 0 100 250" aria-hidden="true">
@@ -242,6 +250,7 @@
       <div class="sr-subtitle">ТВОЙ МИР · ТВОЯ ИСТОРИЯ</div>
     </div>
     <div class="sr-loading" aria-hidden="true"><span></span></div>
+    <button class="sr-enter-button" id="sr-enter-game" type="button">Зайти в игру <span aria-hidden="true">✦</span></button>
   </div>
 
   <canvas id="world" tabindex="0" aria-label="Мир SkyRealm, управление WASD"></canvas>
@@ -479,15 +488,23 @@
 <script>
 (() => {
   const intro = document.getElementById('skyrealm-intro');
-  if (!intro) return;
-  const finish = () => {
-    window.setTimeout(() => {
-      intro.classList.add('intro-out');
-      window.setTimeout(() => intro.remove(), 750);
-    }, 9000);
+  const enter = document.getElementById('sr-enter-game');
+  if (!intro || !enter) return;
+  let leaving = false;
+  const showEnter = () => window.setTimeout(() => {
+    if (!leaving && intro.isConnected) intro.classList.add('intro-ready');
+  }, 1500);
+  const leave = () => {
+    if (leaving) return;
+    leaving = true;
+    enter.disabled = true;
+    intro.classList.remove('intro-ready');
+    intro.classList.add('intro-exit');
+    window.setTimeout(() => intro.remove(), 1100);
   };
-  if (document.readyState === 'complete') finish();
-  else window.addEventListener('load', finish, {once:true});
+  enter.addEventListener('click', leave, {once:true});
+  if (document.readyState === 'complete') showEnter();
+  else window.addEventListener('load', showEnter, {once:true});
 })();
 </script>
 <style>.workbench-page-tabs{display:flex;gap:8px;margin:10px 0 14px}.workbench-page-tabs .active{border-color:#72c5e9;background:#173d56;color:#fff}#workbench-page-two[hidden]{display:none}#workbench-page-two h2{font-size:15px;color:#9ddcf6;margin:12px 0}</style><script src="game.js"></script><script src="challenge-mode.js"></script><script src="sea-system.js"></script>
