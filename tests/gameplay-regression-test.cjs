@@ -274,3 +274,19 @@ console.log('SkyRealm mine refresh, forest boundary, biome boss attacks, rebirth
 
 
 
+
+const bossRealmPortalUnlockedFn = extractFunction('bossRealmPortalUnlocked');
+const bossRealmGateContext = { bossRealmMode:false, survivedNights:2 };
+execute(bossRealmGateContext, [bossRealmPortalUnlockedFn], ['bossRealmPortalUnlocked']);
+assert.equal(bossRealmGateContext.bossRealmPortalUnlocked(), false, 'The boss portal must stay locked before three survived nights.');
+bossRealmGateContext.survivedNights = 3;
+assert.equal(bossRealmGateContext.bossRealmPortalUnlocked(), true, 'The boss portal must unlock after three survived nights.');
+bossRealmGateContext.survivedNights = 0; bossRealmGateContext.bossRealmMode = true;
+assert.equal(bossRealmGateContext.bossRealmPortalUnlocked(), true, 'The return portal must remain available inside the boss realm.');
+assert.match(source, /bossRealm:true/);
+assert.match(source, /bossReturnWorldId,bossReturnX,bossReturnY/);
+assert.match(source, /function enterBossRealm\(\)/);
+assert.match(source, /function leaveBossRealm\(\)/);
+assert.match(source, /drawBossRealmPortal\(camX,camY,time\)/);
+assert.match(source, /await interactBossRealmPortal\(\)/);
+console.log('SkyRealm boss realm portal unlock, separate save slot and return flow tests passed.');
