@@ -123,6 +123,12 @@ assert.equal(m.sanitizeSharedWorldSnapshot({
   biomeBosses:{jungle:{active:true,defeated:false,hp:350,attackTimer:1.2,specialTimer:7,flash:0,rebirthMultiplier:1.7,rebirthCount:1}}
 })?.biomeBosses?.jungle?.rebirthMultiplier,1.7,'Valid rebirth state must survive snapshot sanitization.');
 assert.equal(m.sanitizeSharedWorldSnapshot({
+  biomeBosses:{jungle:{active:true,defeated:false,hp:350,attackTimer:0,specialTimer:0.2,flash:0,rebirthMultiplier:1.7,rebirthCount:1}}
+})?.biomeBosses?.jungle?.specialTimer,0.2,'Ready boss attack timers are valid shared state.');
+assert.equal(m.sanitizeSharedWorldSnapshot({
+  biomeBosses:{jungle:{active:true,attackTimer:-0.01,specialTimer:0.2}}
+}),null,'Negative boss attack timers must still be rejected.');
+assert.equal(m.sanitizeSharedWorldSnapshot({
   biomeBosses:{unknown:{active:false,hp:0}}
 }),null,'Unknown boss identifiers must be rejected.');
 
