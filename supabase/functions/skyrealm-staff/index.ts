@@ -91,10 +91,58 @@ async function db(path: string, init: RequestInit = {}) {
 async function currentRole(userId: string): Promise<"admin" | "moderator" | "none"> {
   const rows = await db(
     "skyrealm_staff_roles?user_id=eq." + userId +
-    "&is_active=eq.true&select=role&limit=1"
-  ) as Array<{role?: string}>;
-  const role = Array.isArray(rows) ? rows[0]?.role : "";
+    "&is_active=eq.true&select=role,expires_at&limit=1"
+  ) as Array<{role?: string; expires_at?: string|null}>;
+  const entry = Array.isArray(rows) ? rows[0] : undefined;
+  if (entry?.expires_at && Date.parse(entry.expires_at) <= Date.now()) return "none";
+  const role = entry?.role;
   return role === "admin" || role === "moderator" ? role : "none";
+}
+async function publicGrantsEnabled(): Promise<boolean> {
+  const rows = await db("skyrealm_staff_settings?id=eq.true&select=public_grants_enabled&limit=1") as Array<{public_grants_enabled?: boolean}>;
+  return Array.isArray(rows) && rows[0]?.public_grants_enabled === true;
+}
+async function setPublicGrants(actorId: string, body: Record<string, unknown>) {
+  await requireAdmin(actorId);
+  if (typeof body.enabled !== "boolean") {
+    throw new StaffError(400, "INVALID_SETTING", "Укажи включён или выключен открытый режим выдачи ролей.");
+  }
+  await db("skyrealm_staff_settings?id=eq.true", {
+    method: "PATCH",
+    body: JSON.stringify({ public_grants_enabled: body.enabled, updated_by: actorId, updated_at: new Date().toISOString() }),
+  });
+  console.info("[SkyRealm staff] public grants setting changed", { actor: actorId, enabled: body.enabled });
+  return { ok: true, public_grants_enabled: body.enabled };
+}
+async function grantRole(actorId: string, body: Record<string, unknown>) {
+  const username = typeof body.username === "string" ? body.username.trim() : "";
+  const role = body.role;
+  const action = body.action === "revoke" ? "revoke" : "grant";
+  if (!/^[A-Za-zА-Яа-яЁё0-9_]{3,20}$/.test(username) || (role !== "admin" && role !== "moderator")) {
+    throw new StaffError(400, "INVALID_ROLE_GRANT", "Проверь имя игрока и выбранную роль.");
+  }
+  const profiles = await db("profiles?username=ilike." + encodeURIComponent(username) + "&select=id,username&limit=2") as Array<{id: string; username: string}>;
+  if (!Array.isArray(profiles) || profiles.length === 0) throw new StaffError(404, "PLAYER_NOT_FOUND", "Игрок с таким именем не найден.");
+  if (profiles.length > 1) throw new StaffError(409, "PLAYER_NAME_AMBIGUOUS", "Найдено несколько игроков. Укажи точное имя.");
+  const target = profiles[0];
+  if (action === "revoke") {
+    await requireAdmin(actorId);
+    await db("skyrealm_staff_roles?user_id=eq." + target.id, { method: "DELETE" });
+    console.info("[SkyRealm staff] role revoked", { actor: actorId, target: target.id });
+    return { ok: true, action, username: target.username, role: "player", expires_at: null };
+  }
+  const duration = body.duration;
+  const durations: Record<string, number|null> = { permanent: null, "1h": 60*60*1000, "24h": 24*60*60*1000, "7d": 7*24*60*60*1000, "30d": 30*24*60*60*1000 };
+  if (typeof duration !== "string" || !(duration in durations)) throw new StaffError(400, "INVALID_DURATION", "Выбери срок действия роли.");
+  if (!await publicGrantsEnabled()) await requireAdmin(actorId);
+  const expiresAt = durations[duration] === null ? null : new Date(Date.now() + durations[duration]!).toISOString();
+  await db("skyrealm_staff_roles?on_conflict=user_id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify({ user_id: target.id, role, is_active: true, granted_by: actorId, expires_at: expiresAt, updated_at: new Date().toISOString() }),
+  });
+  console.info("[SkyRealm staff] role granted", { actor: actorId, target: target.id, role, expires_at: expiresAt });
+  return { ok: true, action, username: target.username, role, expires_at: expiresAt };
 }
 async function requireAdmin(userId: string) {
   if (await currentRole(userId) !== "admin") {
@@ -113,11 +161,12 @@ async function listPlayers() {
     "profiles?select=id,username,display_name&order=username.asc&limit=500"
   ) as Array<{id: string; username: string; display_name?: string|null}>;
   const roles = await db(
-    "skyrealm_staff_roles?select=user_id,role,is_active&order=created_at.asc&limit=500"
-  ) as Array<{user_id: string; role: string; is_active: boolean}>;
+    "skyrealm_staff_roles?select=user_id,role,is_active,expires_at&order=created_at.asc&limit=500"
+  ) as Array<{user_id: string; role: string; is_active: boolean; expires_at?: string|null}>;
   const roleByUser = new Map<string,string>();
   for (const row of Array.isArray(roles) ? roles : []) {
-    if (row.is_active && (row.role === "admin" || row.role === "moderator")) {
+    const notExpired = !row.expires_at || Date.parse(row.expires_at) > Date.now();
+    if (row.is_active && notExpired && (row.role === "admin" || row.role === "moderator")) {
       roleByUser.set(row.user_id, row.role);
     }
   }
@@ -177,12 +226,21 @@ Deno.serve(async (req: Request) => {
   }
   const route = routeFor(req);
   if (route === "/health" && req.method === "GET") {
-    return json({ status: "ok", service: "skyrealm-staff", version: "1" });
+    return json({ status: "ok", service: "skyrealm-staff", version: "2" });
   }
   try {
     const user = await authenticate(req);
     if (route === "/api/staff/me" && req.method === "GET") {
-      return json({ ok: true, user_id: user.id, role: await currentRole(user.id) });
+      return json({ ok: true, user_id: user.id, role: await currentRole(user.id), public_grants_enabled: await publicGrantsEnabled() });
+    }
+    if (route === "/api/staff/settings" && req.method === "GET") {
+      return json({ ok: true, role: await currentRole(user.id), public_grants_enabled: await publicGrantsEnabled() });
+    }
+    if (route === "/api/staff/grants" && req.method === "POST") {
+      return json(await grantRole(user.id, await readBody(req)));
+    }
+    if (route === "/api/staff/settings" && req.method === "POST") {
+      return json(await setPublicGrants(user.id, await readBody(req)));
     }
     const role = await requireStaff(user.id);
     if (route === "/api/staff/players" && req.method === "GET") {
@@ -211,5 +269,3 @@ Deno.serve(async (req: Request) => {
     return json({ error: { code: "INTERNAL_ERROR", message: "Внутренняя ошибка проверки прав." } }, 500);
   }
 });
-
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
