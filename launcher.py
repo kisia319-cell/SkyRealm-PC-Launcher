@@ -1298,7 +1298,31 @@ def _skyrealm_startup_update():
 
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "--skyrealm-game":
-        run_game_window(sys.argv[2])
+        try:
+            run_game_window(sys.argv[2])
+        except Exception as exc:
+            details = traceback.format_exc()
+            log_hint = "не удалось записать журнал"
+            try:
+                log_path = skyrealm_default_data_root() / "launch-errors.log"
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+                with log_path.open("a", encoding="utf-8") as log:
+                    log.write(f"\\n{time.strftime('%Y-%m-%d %H:%M:%S')} | GAME WINDOW FAILED | {type(exc).__name__}: {exc}\\n")
+                    log.write(details + "\\n")
+                log_hint = str(log_path)
+            except Exception:
+                pass
+            try:
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(
+                    0,
+                    f"Не удалось открыть окно SkyRealm.\\n\\n{type(exc).__name__}: {exc}\\n\\nЖурнал ошибки: {log_hint}",
+                    "Ошибка запуска SkyRealm",
+                    0x10,
+                )
+            except Exception:
+                pass
+            raise
     else:
         if _skyrealm_startup_update():
             raise SystemExit(0)
