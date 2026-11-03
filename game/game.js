@@ -2640,34 +2640,44 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     const safeTotal=Number.isFinite(totalMinutes)?Math.max(0,totalMinutes):0;
     const currentDay=Math.floor(safeTotal/GAME_MINUTES_PER_DAY);
     const minuteOfDay=safeTotal-currentDay*GAME_MINUTES_PER_DAY;
-    const targetDay=currentDay+(minuteOfDay>=NIGHT_MINUTE?1:0);
-    const minuteTotal=targetDay*GAME_MINUTES_PER_DAY+NIGHT_MINUTE;
+    // A real skipped day ends at the next dawn, not at 20:00. This guarantees
+    // that one complete night is crossed and can be counted by survival systems.
+    const targetDay=currentDay+(minuteOfDay>=DAWN_MINUTE?1:0);
+    const minuteTotal=targetDay*GAME_MINUTES_PER_DAY+DAWN_MINUTE;
     const dawnMarker=Math.floor((minuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
     const previousDawnMarker=Number.isFinite(lastDawnMarker)?Math.floor(lastDawnMarker):dawnMarker;
     return {minuteTotal,dawnMarker,nightsPassed:Math.max(0,dawnMarker-previousDawnMarker)};
   }
-  function skipGameDay(){
-    if(skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return;}
+  function skipGameDay(force=false){
+    if(!force&&skipDayRealSeconds>0){toast('Подожди, пока таймер дойдёт до нуля.');return false;}
+    if(!requireWorld())return false;
+    const network=window.SkyRealmCoopClient;
+    const room=network?.getRoomState?.();
+    if(room?.status==='running'&&!network?.isRoomOwner){toast('Пропустить день может только владелец кооперативного мира.');return false;}
     const previousTotal=gameMinuteTotal;
     const target=calculateSkipDayTarget(gameMinuteTotal,lastDawnMarker);
     const skippedMinutes=Math.max(0,target.minuteTotal-previousTotal);
+    if(skippedMinutes<=0){toast('Следующий рассвет уже наступил.');return false;}
     gameMinuteTotal=target.minuteTotal;
-    // A skipped interval is still elapsed in-game time: add it to the playtime counter and survival systems.
+    // A skipped interval is elapsed game time, not a cosmetic clock change.
     totalGameMinutesPlayed+=skippedMinutes;
     const hungerStep=(isModInstalled('brutal_world')?7:isModInstalled('survivalist')?12:10)+skills.survivor*.7+communityModBonus('hunger')*.35;
     hungerElapsedMinutes+=skippedMinutes;
     const hungerTicks=Math.floor(hungerElapsedMinutes/Math.max(1,hungerStep));
     if(hungerTicks>0){hungerElapsedMinutes-=hungerTicks*hungerStep;hunger=Math.max(0,hunger-hungerTicks);}
     sheepSpawnTimer+=skippedMinutes;
+    sheepSpawnTimer%=10;
     if(target.nightsPassed>0)refreshMineDailyStock();
     survivedNights+=target.nightsPassed;
     lastDawnMarker=target.dawnMarker;
     wasNight=isNightTime();
+    monsterSpawnTimer=0;
     monsters.length=0;
     skipDayRealSeconds=300;
-    updateVitals();updateClockDisplay(true);
-    saveGame();
-    toast('Пропущено '+Math.floor(skippedMinutes)+' игровых минут. Они добавлены к наигранному времени; ночей засчитано: '+target.nightsPassed+'.');
+    updateVitals();updateClockDisplay(true);refreshAdminStats();
+    if(!saveGame())return false;
+    toast('Игровой день действительно пропущен: +'+Math.floor(skippedMinutes)+' игровых минут, +'+target.nightsPassed+' прожитая ночь. Время засчитано в статистику.');
+    return true;
   }
   function houseFurnitureBlocked(x,y){const r=9,boxes=[[42,35,148,186],[153,91,190,143],[174,27,272,61],[286,72,379,98],[272,105,390,177],[296,201,380,279],[155,266,190,296],[203,249,241,278]];return boxes.some(([l,t,rr,b])=>x+r>l&&x-r<rr&&y+r>t&&y-r<b);}
   function houseInteractionNear(x,y,rect){return x>=rect[0]&&x<=rect[2]&&y>=rect[1]&&y<=rect[3];}
@@ -4059,12 +4069,29 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     toast('Панель администратора отключена: серверная проверка роли ещё не настроена.');
   }
   function setPanelOpen(id,open){const el=document.getElementById(id);el.hidden=!open;el.setAttribute('aria-hidden',open?'false':'true');}
+  function populateStaffItemCatalog(prefix){
+    const select=document.getElementById(prefix+'-resource-select'),suggestions=document.getElementById(prefix+'-item-suggestions');
+    if(!select)return;
+    const catalog=new Map();
+    [...inventoryItems,...resourceItems].forEach(item=>{
+      const name=String(item?.name||'').trim();if(!name)return;
+      const icon=String(item.icon||'✨');if(!catalog.has(name))catalog.set(name,icon);
+    });
+    ['Монеты','Золотые монеты'].forEach(name=>{if(!catalog.has(name))catalog.set(name,'🪙');});
+    const entries=[...catalog.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ru'));
+    const previous=select.value;
+    select.replaceChildren();
+    const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Выбери предмет из полного каталога';select.appendChild(placeholder);
+    entries.forEach(([name,icon])=>{const option=document.createElement('option');option.value=name;option.textContent=icon+' '+name;select.appendChild(option);});
+    if(entries.some(([name])=>name===previous))select.value=previous;
+    if(suggestions){suggestions.replaceChildren();entries.forEach(([name])=>{const option=document.createElement('option');option.value=name;suggestions.appendChild(option);});}
+  }
   function openAdminPanel(){
     const serverAdmin=currentStaffRole==='admin',localAdmin=gameSettings.adminMode===true&&!isCoopWorldActive();
     if(!serverAdmin&&!localAdmin){toast('Нет подтверждённых прав администратора.');return;}
     renderWorldList();setPanelOpen('admin-panel-shade',true);
     document.getElementById('admin-world-count').textContent=String(readWorlds().length);
-    refreshAdminStats();renderBanList('admin-ban-list');
+    populateStaffItemCatalog('admin');refreshAdminStats();renderBanList('admin-ban-list');
     const staffSection=document.querySelector('.admin-staff-section');if(staffSection)staffSection.hidden=!serverAdmin;
     ['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});
     if(serverAdmin)void loadStaffPlayers();
@@ -4078,19 +4105,23 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       return;
     }
     setPanelOpen('moderator-panel-shade',true);
+    populateStaffItemCatalog('mod');refreshAdminStats();
     const b=document.getElementById('mod-immortal');
     if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}
   }
-  function refreshAdminStats(){const m=minuteOfDay(),label=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');const t=document.getElementById('admin-time-label');if(t)t.textContent=label;const c=document.getElementById('admin-monster-count');if(c)c.textContent=String(monsters.length);const p=document.getElementById('admin-playtime-label');if(p){const mins=Math.floor(totalGameMinutesPlayed),hours=Math.floor(mins/60);p.textContent=hours+' ч '+String(mins%60).padStart(2,'0')+' мин';}}
+  function refreshAdminStats(){const m=minuteOfDay(),label=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');const t=document.getElementById('admin-time-label');if(t)t.textContent=label;const mt=document.getElementById('mod-time-label');if(mt)mt.textContent=label;const c=document.getElementById('admin-monster-count');if(c)c.textContent=String(monsters.length);const p=document.getElementById('admin-playtime-label');if(p){const mins=Math.floor(totalGameMinutesPlayed),hours=Math.floor(mins/60);p.textContent=hours+' ч '+String(mins%60).padStart(2,'0')+' мин';}const mp=document.getElementById('mod-playtime-label');if(mp){const mins=Math.floor(totalGameMinutesPlayed),hours=Math.floor(mins/60);mp.textContent=hours+' ч '+String(mins%60).padStart(2,'0')+' мин';}}
   function requireWorld(){if(!currentWorldId){toast('Сначала выбери или создай мир.');return false;}return true;}
   function setGameTime(minute){if(!requireWorld())return;const day=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=day*GAME_MINUTES_PER_DAY+minute;lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();lastClockMinute=-1;monsterSpawnTimer=0;updateClockDisplay(true);saveGame();refreshAdminStats();toast('Время изменено вручную — день или ночь не засчитаны.');}
-  function giveResource(){
+  function giveResource(prefix='admin'){
     if(!requireWorld())return;
-    const custom=document.getElementById('admin-resource-custom')?.value.trim();
-    const name=(custom||document.getElementById('admin-resource-select').value||'').trim().slice(0,64);
-    const amount=Math.max(1,Math.min(9999999,Math.floor(Number(document.getElementById('admin-resource-amount').value)||1)));
+    const customId=prefix==='mod'?'mod-resource-custom':'admin-resource-custom';
+    const selectId=prefix==='mod'?'mod-resource-select':'admin-resource-select';
+    const amountId=prefix==='mod'?'mod-resource-amount':'admin-resource-amount';
+    const custom=document.getElementById(customId)?.value.trim();
+    const name=(custom||document.getElementById(selectId)?.value||'').trim().slice(0,64);
+    const amount=Math.max(1,Math.min(9999999,Math.floor(Number(document.getElementById(amountId)?.value)||1)));
     if(!name){toast('Выбери предмет или введи его название.');return;}
-    if(['Монеты','Золото','Золотые монеты'].includes(name)){walletCents+=amount*100;updateWalletHud();saveGame();toast('Выдано золото: '+amount+'.');return;}
+    if(['Монеты','Золотые монеты'].includes(name)){walletCents+=amount*100;updateWalletHud();saveGame();toast('Выдано золото: '+amount+'.');return;}
     let item=inventoryItems.find(x=>String(x.name).toLocaleLowerCase()===name.toLocaleLowerCase());
     if(!item){item={name,icon:'✨',count:0,description:'Предмет, выданный администратором.'};inventoryItems.push(item);}
     item.count=Math.min(9999999,(Number(item.count)||0)+amount);renderInventory();saveGame();toast('Выдан предмет: '+name+' × '+amount);
@@ -4401,7 +4432,10 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('mod-heal').addEventListener('click',healPlayer);
   document.getElementById('admin-immortal').addEventListener('click',()=>toggleImmortal('admin-immortal'));
   document.getElementById('mod-immortal').addEventListener('click',()=>toggleImmortal('mod-immortal'));
-  document.getElementById('admin-give-resource').addEventListener('click',giveResource);
+  document.getElementById('admin-give-resource').addEventListener('click',()=>giveResource('admin'));
+  document.getElementById('mod-give-resource').addEventListener('click',()=>giveResource('mod'));
+  document.getElementById('admin-skip-day').addEventListener('click',()=>skipGameDay(true));
+  document.getElementById('mod-skip-day').addEventListener('click',()=>skipGameDay(true));
   document.getElementById('admin-set-day').addEventListener('click',()=>setGameTime(12*60));
   document.getElementById('admin-set-night').addEventListener('click',()=>setGameTime(22*60));
   document.getElementById('mod-set-day').addEventListener('click',()=>setGameTime(12*60));
