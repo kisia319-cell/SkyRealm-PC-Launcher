@@ -102,6 +102,37 @@ async function publicGrantsEnabled(): Promise<boolean> {
   const rows = await db("skyrealm_staff_settings?id=eq.true&select=public_grants_enabled&limit=1") as Array<{public_grants_enabled?: boolean}>;
   return Array.isArray(rows) && rows[0]?.public_grants_enabled === true;
 }
+async function bootstrapAvailable(): Promise<boolean> {
+  const rows = await db("skyrealm_staff_settings?id=eq.true&select=bootstrap_code_hash,bootstrap_claimed_at&limit=1") as Array<{bootstrap_code_hash?: string|null; bootstrap_claimed_at?: string|null}>;
+  return Array.isArray(rows) && !!rows[0]?.bootstrap_code_hash && !rows[0]?.bootstrap_claimed_at;
+}
+async function claimAdminBootstrap(actorId: string, body: Record<string, unknown>) {
+  const username = typeof body.username === "string" ? body.username.trim() : "";
+  const code = typeof body.code === "string" ? body.code.trim() : "";
+  if (!/^[A-Za-zА-Яа-яЁё0-9_]{3,20}$/.test(username) || code.length < 20 || code.length > 80) {
+    throw new StaffError(400, "INVALID_BOOTSTRAP", "Укажи своё имя игрока и действительный одноразовый код.");
+  }
+  const profiles = await db("profiles?username=ilike." + encodeURIComponent(username) + "&select=id,username&limit=2") as Array<{id: string; username: string}>;
+  if (!Array.isArray(profiles) || profiles.length !== 1 || profiles[0].id !== actorId) {
+    throw new StaffError(403, "BOOTSTRAP_SELF_ONLY", "Первоначальный код можно применить только к своему подтверждённому аккаунту.");
+  }
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code));
+  const codeHash = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, "0")).join("");
+  const claimed = await db(
+    "skyrealm_staff_settings?id=eq.true&bootstrap_claimed_at=is.null&bootstrap_code_hash=eq." + codeHash,
+    { method: "PATCH", body: JSON.stringify({ bootstrap_code_hash: null, bootstrap_claimed_at: new Date().toISOString(), public_grants_enabled: false, updated_by: actorId, updated_at: new Date().toISOString() }) }
+  ) as Array<{id?: boolean}>;
+  if (!Array.isArray(claimed) || claimed.length !== 1) {
+    throw new StaffError(403, "BOOTSTRAP_INVALID_OR_USED", "Код неверный или уже использован.");
+  }
+  await db("skyrealm_staff_roles?on_conflict=user_id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify({ user_id: actorId, role: "admin", is_active: true, granted_by: actorId, expires_at: null, updated_at: new Date().toISOString() }),
+  });
+  console.info("[SkyRealm staff] one-time admin bootstrap claimed", { actor: actorId });
+  return { ok: true, username: profiles[0].username, role: "admin" };
+}
 async function setPublicGrants(actorId: string, body: Record<string, unknown>) {
   await requireAdmin(actorId);
   if (typeof body.enabled !== "boolean") {
@@ -226,12 +257,15 @@ Deno.serve(async (req: Request) => {
   }
   const route = routeFor(req);
   if (route === "/health" && req.method === "GET") {
-    return json({ status: "ok", service: "skyrealm-staff", version: "2" });
+    return json({ status: "ok", service: "skyrealm-staff", version: "3" });
   }
   try {
     const user = await authenticate(req);
     if (route === "/api/staff/me" && req.method === "GET") {
-      return json({ ok: true, user_id: user.id, role: await currentRole(user.id), public_grants_enabled: await publicGrantsEnabled() });
+      return json({ ok: true, user_id: user.id, role: await currentRole(user.id), public_grants_enabled: await publicGrantsEnabled(), bootstrap_available: await bootstrapAvailable() });
+    }
+    if (route === "/api/staff/bootstrap" && req.method === "POST") {
+      return json(await claimAdminBootstrap(user.id, await readBody(req)));
     }
     if (route === "/api/staff/settings" && req.method === "GET") {
       return json({ ok: true, role: await currentRole(user.id), public_grants_enabled: await publicGrantsEnabled() });
