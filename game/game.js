@@ -2802,7 +2802,8 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       merged.lootDrops=[...personalDrops,...(Array.isArray(shared.lootDrops)?shared.lootDrops:[])];
       localStorage.setItem(saveKey,JSON.stringify(merged));
       wroteSnapshot=true;
-      loadGame();renderInventory();drawMinimap();updateVitals();updateWalletHud();
+      if(loadGame()!==true)throw new Error('The co-op snapshot was saved but the game state could not be restored.');
+      renderInventory();drawMinimap();updateVitals();updateWalletHud();
       // A version is acknowledged only after persistence and every restore step succeeded.
       lastAppliedCoopSnapshotVersion=version;
       lastCoopSnapshotSignature=JSON.stringify(shared);
@@ -2812,7 +2813,8 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
         try{
           if(previousSave===null)localStorage.removeItem(saveKey);
           else localStorage.setItem(saveKey,previousSave);
-          loadGame();renderInventory();drawMinimap();updateVitals();updateWalletHud();
+          if(loadGame()!==true)throw new Error('The previous local save could not be restored.');
+          renderInventory();drawMinimap();updateVitals();updateWalletHud();
         }catch(rollbackError){console.warn('[SkyRealm co-op snapshot rollback]',rollbackError);}
       }
       console.warn('[SkyRealm co-op snapshot apply]',error);
@@ -3433,6 +3435,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function loadGame(){
     monsters.length=0;coopGuestMobAttackCooldowns.clear();
+    let loadedSuccessfully=true;
     try{
       const d=JSON.parse(localStorage.getItem(saveKey)||'null');
       if(d&&typeof d==='object'){
@@ -3491,9 +3494,13 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         worldEventTraveler=d.worldEventTraveler&&Number.isFinite(d.worldEventTraveler.x)&&Number.isFinite(d.worldEventTraveler.y)?{x:Math.max(TILE*3,Math.min(COLS*TILE-TILE*3,d.worldEventTraveler.x)),y:Math.max(TILE*3,Math.min(ROWS*TILE-TILE*3,d.worldEventTraveler.y)),life:Math.max(0,Math.min(WORLD_EVENT_CHANCES.travelerLifetime,Number(d.worldEventTraveler.life)||0))}:null;
         immortal=d.immortal===true;bloodMoonActive=d.bloodMoonActive===true;bloodMoonRewardPending=d.bloodMoonRewardPending===true;lastBloodMoonNight=Number.isInteger(d.lastBloodMoonNight)?d.lastBloodMoonNight:-1;wolfBossActive=d.wolfBossActive===true;wolfBossHp=Math.max(0,Number(d.wolfBossHp)||0);wolfBossKeyDropped=d.wolfBossKeyDropped===true;wolfCageOpen=d.wolfCageOpen===true;wolfDogCaged=d.wolfDogCaged!==false;wolfBossX=Number.isFinite(d.wolfBossX)?d.wolfBossX:wolfDenPosition().x;wolfBossY=Number.isFinite(d.wolfBossY)?d.wolfBossY:wolfDenPosition().y;wolfBossDefeated=d.wolfBossDefeated===true;wolfCompanionUnlocked=d.wolfCompanionUnlocked===true;wolfCompanionHp=Math.max(0,Math.min(300,Number(d.wolfCompanionHp)||300));wolfCompanionRevivals=Math.max(0,Math.min(3,Number(d.wolfCompanionRevivals)||0));wolfCompanionOffsetX=Number.isFinite(d.wolfCompanionOffsetX)?d.wolfCompanionOffsetX:28;wolfCompanionOffsetY=Number.isFinite(d.wolfCompanionOffsetY)?d.wolfCompanionOffsetY:22;dogBehavior=['follow','guard','hunt'].includes(d.dogBehavior)?d.dogBehavior:'follow';villageQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.villageQuestStage)||0)));blacksmithQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.blacksmithQuestStage)||0)));explorerQuestStage=Math.max(0,Math.min(3,Math.floor(Number(d.explorerQuestStage)||0)));
       }
-    }catch(_){}
+    }catch(error){
+      loadedSuccessfully=false;
+      console.warn('[SkyRealm load failed]',error);
+    }
     lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);
     wasNight=isNightTime();lastClockMinute=-1;updateClockDisplay(true);updateVitals();updateProgressHud();
+    return loadedSuccessfully;
   }
   function escapeHtml(value){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
   function makeWorldId(){return 'world_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
