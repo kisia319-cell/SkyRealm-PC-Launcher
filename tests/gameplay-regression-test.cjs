@@ -93,7 +93,7 @@ const makeBossState = extractFunction('makeBiomeBossState');
 const defs = extractFunction('biomeBossDefs');
 const normalize = extractFunction('normalizeBiomeBossState');
 const maxHp = extractFunction('bossHpMax');
-const bossContext = { COLS: 220, ROWS: 164, TILE: 32, Math, Number, difficultyConfig: () => ({ rank: 1 }) };
+const bossContext = { COLS: 220, ROWS: 164, TILE: 32, bossRealmMode:false, Math, Number, difficultyConfig: () => ({ rank: 1 }) };
 execute(bossContext, [makeBossState, defs, normalize, maxHp], ['makeBiomeBossState','biomeBossDefs','normalizeBiomeBossState','bossHpMax']);
 const normalized = plain(bossContext.normalizeBiomeBossState({
   jungle: { active: true, hp: 999999, attackTimer: 0, specialTimer: 0.2, rebirthMultiplier: 99, rebirthCount: 9 }
