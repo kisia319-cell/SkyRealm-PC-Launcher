@@ -722,7 +722,7 @@ class LauncherApi:
                 log_path = skyrealm_default_data_root() / "launch-errors.log"
                 log_path.parent.mkdir(parents=True, exist_ok=True)
                 with log_path.open("a", encoding="utf-8") as log:
-                    log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | launched | version={version} | pid={game_process.pid} | executable={command[0]}\\n")
+                    log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | launched | version={version} | pid={game_process.pid} | executable={command[0]}\n")
             except Exception:
                 pass
             _js_update(100, "Запускаем SkyRealm…", "Лаунчер закроется через мгновение")
@@ -734,8 +734,8 @@ class LauncherApi:
                 log_path = skyrealm_default_data_root() / "launch-errors.log"
                 log_path.parent.mkdir(parents=True, exist_ok=True)
                 with log_path.open("a", encoding="utf-8") as log:
-                    log.write(f"\\n{time.strftime('%Y-%m-%d %H:%M:%S')} | FAILED | stage={launch_stage} | {type(exc).__name__}: {exc}\\n")
-                    log.write(details + "\\n")
+                    log.write(f"\n{time.strftime('%Y-%m-%d %H:%M:%S')} | FAILED | stage={launch_stage} | {type(exc).__name__}: {exc}\n")
+                    log.write(details + "\n")
                 error_log_hint = str(log_path)
             except Exception:
                 pass
