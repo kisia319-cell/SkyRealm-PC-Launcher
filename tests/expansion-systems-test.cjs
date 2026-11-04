@@ -32,7 +32,7 @@ const document={
   addEventListener(){}
 };
 const inventory={
-  'Древесина':500,'Камень':500,'Железо':500,'Медь':500,'Кристалл':100,'Уголь':100
+  'Древесина':500,'Камень':500,'Железо':500,'Медь':500,'Кристалл':100,'Уголь':100,'Мифрил':50,'Серебро':100
 };
 const rewards={gold:100000,items:{},damage:0,saves:0,toasts:[]};
 let snapshot={worldId:'expansion-test-world',difficulty:'medium',paused:false,day:4};
@@ -72,9 +72,16 @@ assert.equal(api.build('battery'),true,'Battery can be built');
 assert.equal(api.build('turret'),true,'Research I unlocks the defensive turret');
 assert.equal(api.build('wall'),true,'Settlement wall can be built');
 assert.ok(api.getState().grid.walls===1);
+assert.equal(api.research(),true,'Second technology research unlocks industrial mining');
+assert.equal(api.build('drill'),true,'Research II unlocks the automatic mining drill');
+assert.equal(api.research(),true,'Third technology research unlocks energy shields');
+assert.equal(api.build('shield'),true,'Research III unlocks the settlement power shield');
 api.update(30);
 assert.ok(api.getState().power>0,'Fueled generator must produce electricity');
 assert.ok(inventory['Уголь']<100,'Generator must consume actual fuel');
+const stoneBeforeDrill=inventory['Камень'];
+for(let i=0;i<30;i++)api.update(1);
+assert.ok(inventory['Камень']>stoneBeforeDrill,'Powered mining drill must add real stone to inventory');
 
 assert.equal(api.startEvent('invasion',3),true,'A night siege event can start');
 const beforeEventGold=rewards.gold;
@@ -83,6 +90,11 @@ assert.equal(api.getState().event,null,'Manual defence must be able to defeat a 
 assert.equal(api.getState().stats.eventsWon,1);
 assert.ok(rewards.gold>beforeEventGold,'Successful defence must award gold');
 assert.ok(inventory['Древний осколок']>=1,'Successful defence must grant a real inventory item');
+const shieldState=api.exportState();shieldState.grid.turrets=0;shieldState.power=100;shieldState.fuelSeconds=0;api.importState(shieldState);
+api.startEvent('invasion',4);const damageBeforeShield=rewards.damage;
+for(let i=0;i<120&&api.getState().event;i++)api.update(1);
+assert.equal(api.getState().event,null,'An unattended siege must resolve when its timer expires');
+assert.ok(rewards.damage-damageBeforeShield<15,'Powered shield and walls must reduce failure damage');
 night=true;gameMinuteTotal=3*1440+21*60;api.update(1);
 assert.ok(api.getState().event,'An automatic night siege should start after the second night');
 for(let i=0;i<10&&api.getState().event;i++)api.attackEvent();
