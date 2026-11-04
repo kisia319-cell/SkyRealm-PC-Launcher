@@ -424,6 +424,7 @@
       const players=playersData.players||[];
       const own=players.find(p=>p.user_id===me.user_id);
       panel.hidden=false;heading.hidden=false;
+      $('#staff-admin-account').dataset.username=own?.username||'';
       $('#staff-admin-account').textContent=(own?.display_name||own?.username||'Kisia')+' · серверная роль подтверждена';
       $('#staff-admin-role').textContent='АДМИНИСТРАТОР';
       $('#staff-public-grants-toggle').checked=settingsData.public_grants_enabled===true;
@@ -455,6 +456,7 @@
   if(staffRevokeButton)staffRevokeButton.addEventListener('click',async()=>{
     const username=$('#staff-player-select').value,role=$('#staff-role-select').value;
     if(!username){setStaffAdminStatus('Сначала выбери игрока.',true);return;}
+    if(role==='admin'&&username===$('#staff-admin-account').dataset.username){setStaffAdminStatus('Нельзя снять собственную роль администратора из этой панели.',true);return;}
     if(!confirm('Снять выбранную привилегию у игрока @'+username+'?'))return;
     setBusy(staffRevokeButton,true,'Снимаем…');
     try {
