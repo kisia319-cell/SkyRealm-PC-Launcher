@@ -53,12 +53,12 @@
     ensureUI();$('challenge-launch').hidden=s.difficulty!=='challenge';
     if(s.worldId!==lastWorld){lastWorld=s.worldId;state=load(lastWorld);}
     lastSnapshot=s;
-    if(!active){if(!$('challenge-panel').hidden)render();return;}
+    if(!active){if(state?.timed)state.timed.lastTickAt=Date.now();if(!$('challenge-panel').hidden)render();return;}
     if(state.timed){
       const def=timedDefs.find(v=>v.id===state.timed.id);
       if(def){
         const now=Date.now(),last=Number(state.timed.lastTickAt)||now;
-        if(!s.paused)state.timed.elapsedMs=Math.max(0,Number(state.timed.elapsedMs)||0)+Math.min(1000,Math.max(0,now-last));
+        if(!s.paused)state.timed.elapsedMs=Math.max(0,Number(state.timed.elapsedMs)||0)+Math.max(0,now-last);
         state.timed.lastTickAt=now;
         const elapsed=Math.max(0,Number(state.timed.elapsedMs)||0)/1000;
         if(timedProgress(state.timed,def)>=timedTarget(def)){
