@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 1;
+  const VERSION = 2;
   const $ = id => document.getElementById(id);
   const clamp = (n,min,max) => Math.max(min,Math.min(max,n));
   const clone = value => JSON.parse(JSON.stringify(value));
@@ -9,18 +9,20 @@
   const emptyState = () => ({
     version:VERSION,
     research:0,
-    grid:{generators:0,batteries:0,turrets:0,walls:0,lamps:0,drills:0,shields:0},
+    grid:{generators:0,batteries:0,turrets:0,walls:0,lamps:0,drills:0,shields:0,guards:0},
     drillClock:0,
     power:0,
     fuelSeconds:0,
     fuelKind:'',
     generatorClock:0,
     turretClock:0,
+    guardClock:0,
     lastSiegeNight:-1,
     event:null,
-    dungeon:{room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0},
+    dungeon:{room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0,seed:0,layout:[],trapRooms:[],keys:0,secretActive:false,secretHp:0,secretMaxHp:0,secretCleared:false},
     relics:[],
     equippedRelic:null,
+    gear:{},
     stats:{eventsWon:0,dungeonsCleared:0}
   });
 
@@ -35,6 +37,7 @@
   const RELIC_NAMES = ['Сердце титана','Линза древних','Печать стража','Осколок бурь','Звезда кузни','Кристалл глубин'];
   const BUILDINGS = {
     generator:{title:'Топливный генератор',icon:'⚡',cost:{Древесина:30,Камень:20,Железо:8,Медь:4},gold:15,limit:4},
+    guard:{title:'Пост деревенского стража',icon:'🛡️',cost:{Древесина:18,Камень:12,Железо:8,Мясо:2},gold:18,limit:5,research:1},
     battery:{title:'Аккумулятор',icon:'🔋',cost:{Железо:8,Медь:6,Кристалл:1},gold:10,limit:12},
     lamp:{title:'Электрический фонарь',icon:'💡',cost:{Медь:3,Древесина:4},gold:2,limit:20},
     turret:{title:'Автоматическая турель',icon:'🎯',cost:{Железо:12,Медь:5,Древесина:8,Кристалл:2},gold:25,limit:8,research:1},
@@ -58,10 +61,10 @@
 
   function normalizeState(raw) {
     const base = emptyState();
-    if (!raw || typeof raw !== 'object' || raw.version !== VERSION) return base;
+    if (!raw || typeof raw !== 'object' || ![1,VERSION].includes(Number(raw.version))) return base;
     base.research = clamp(Math.floor(Number(raw.research)||0),0,3);
     for (const key of Object.keys(base.grid)) {
-      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='batteries'?12:key==='drills'?3:key==='shields'?1:4);
+      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='batteries'?12:key==='drills'?3:key==='shields'?1:key==='guards'?5:4);
     }
     base.power = clamp(Number(raw.power)||0,0,capacityFor(base));
     base.fuelSeconds = clamp(Number(raw.fuelSeconds)||0,0,3600);
@@ -69,6 +72,7 @@
     base.generatorClock = clamp(Number(raw.generatorClock)||0,0,60);
     base.drillClock = clamp(Number(raw.drillClock)||0,0,120);
     base.turretClock = clamp(Number(raw.turretClock)||0,0,60);
+    base.guardClock = clamp(Number(raw.guardClock)||0,0,60);
     base.lastSiegeNight = Number.isInteger(raw.lastSiegeNight)?raw.lastSiegeNight:-1;
     if (raw.event && ['invasion','ancient'].includes(raw.event.kind)) {
       base.event = {
@@ -93,7 +97,15 @@
       cleared:Array.isArray(dungeon.cleared)?Array.from(new Set(dungeon.cleared.filter(n=>Number.isInteger(n)&&n>=1&&n<=5))).slice(0,5):[],
       enemyHp:clamp(Number(dungeon.enemyHp)||0,0,1000000),
       enemyMaxHp:clamp(Number(dungeon.enemyMaxHp)||0,0,1000000),
-      attacks:clamp(Math.floor(Number(dungeon.attacks)||0),0,100000)
+      attacks:clamp(Math.floor(Number(dungeon.attacks)||0),0,100000),
+      seed:clamp(Math.floor(Number(dungeon.seed)||0),0,2147483647),
+      layout:Array.isArray(dungeon.layout)?dungeon.layout.slice(0,5).filter(v=>v&&Number.isInteger(v.id)&&v.id>=1&&v.id<=5).map(v=>({id:v.id,x:clamp(Number(v.x)||0,-8,8),y:clamp(Number(v.y)||0,-8,8),trap:v.trap===true})):[],
+      trapRooms:Array.isArray(dungeon.trapRooms)?Array.from(new Set(dungeon.trapRooms.filter(n=>Number.isInteger(n)&&n>=2&&n<=4))).slice(0,3):[],
+      keys:clamp(Math.floor(Number(dungeon.keys)||0),0,5),
+      secretActive:dungeon.secretActive===true,
+      secretHp:clamp(Number(dungeon.secretHp)||0,0,1000000),
+      secretMaxHp:clamp(Number(dungeon.secretMaxHp)||0,0,1000000),
+      secretCleared:dungeon.secretCleared===true
     };
     base.relics=Array.isArray(raw.relics)?raw.relics.slice(-30).filter(v=>v&&typeof v.id==='string'&&typeof v.name==='string').map(v=>({
       id:String(v.id).slice(0,80),
@@ -103,6 +115,11 @@
       defense:clamp(Number(v.defense)||0,0,.15)
     })):[];
     base.equippedRelic=base.relics.some(v=>v.id===raw.equippedRelic)?raw.equippedRelic:null;
+    const validRarities=new Set(RARITIES.map(v=>v.name));
+    if(raw.gear&&typeof raw.gear==='object')for(const [name,value] of Object.entries(raw.gear).slice(0,12)){
+      if(!name||!value||typeof value!=='object')continue;
+      base.gear[String(name).slice(0,80)]={rarity:validRarities.has(value.rarity)?value.rarity:'Обычная',power:clamp(Number(value.power)||0,0,.35),defense:clamp(Number(value.defense)||0,0,.2)};
+    }
     base.stats={
       eventsWon:clamp(Math.floor(Number(raw.stats?.eventsWon)||0),0,100000),
       dungeonsCleared:clamp(Math.floor(Number(raw.stats?.dungeonsCleared)||0),0,100000)
@@ -153,7 +170,7 @@
     html+='<p class="ex-muted">Генератор сжигает уголь или древесину. Аккумуляторы хранят заряд. Турели используют энергию только во время тревоги.</p>';
     html+='<div class="ex-list">';
     for(const [id,item] of Object.entries(BUILDINGS)){
-      const count=g[{generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id]];
+      const count=g[{generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps',guard:'guards'}[id]];
       const locked=item.research&&state.research<item.research;
       const full=count>=item.limit;
       const affordable=canAfford(item.cost,item.gold);
@@ -171,16 +188,18 @@
     const g=state.grid,protection=Math.min(.6,g.walls*.025);
     let html='<div class="ex-grid-stats"><div><b>'+g.walls+'</b><small>Укрепления</small></div><div><b>'+g.turrets+'</b><small>Турели</small></div><div><b>'+g.shields+'</b><small>Силовые купола</small></div></div>';
     html+='<p class="ex-muted">Укреплённые стены уменьшают последствия проигранной осады. Электрические турели автоматически помогают во время мировых событий.</p>';
-    html+='<div class="ex-card"><b>🏰 Схема обороны</b><small>Каждая стена повышает защиту. Максимум 30 стен и 60% снижения урона от неудачной обороны.</small></div>';
+    html+='<div class="ex-card"><b>🏰 Схема обороны</b><small>Каждая стена повышает защиту. Максимум 30 стен и 60% снижения урона от неудачной обороны.</small><small>Посты деревенских стражей: '+g.guards+'/5. Во время осады стражи автоматически атакуют врагов.</small>'+renderButton('build:guard','Нанять стража и построить пост',g.guards>=5||state.research<1||!canAfford(BUILDINGS.guard.cost,BUILDINGS.guard.gold))+'</div>';
     html+='<div class="ex-card"><b>🔦 Освещение</b><small>Электрические фонари поддерживают сеть и показывают, сколько энергии вырабатывает генератор.</small><small>Фонарей: '+g.lamps+' · расход: '+(g.lamps*.035).toFixed(2)+' энергии/сек. Буров: '+g.drills+'.</small></div>';
     html+=renderButton('tab-power','Перейти к строительству',false,true);
     return html;
   }
   function renderDungeon() {
     const d=state.dungeon,room=DUNGEON_ROOMS[d.room-1];
+    ensureDungeonLayout();
     let html='<div class="ex-dungeon-banner"><span>🏛️ ЗАТЕРЯННАЯ ЦИТАДЕЛЬ</span><b>Комната '+d.room+' / 5</b></div>';
-    html+='<div class="ex-room-map">'+DUNGEON_ROOMS.map((r,i)=>'<div class="ex-room '+(d.cleared.includes(i+1)?'cleared':d.room===i+1&&d.active?'active':'')+'"><b>'+(d.cleared.includes(i+1)?'✓':i+1)+'</b><small>'+r.name+'</small></div>').join('')+'</div>';
-    if(d.cleared.length===5)html+='<article class="ex-card"><b>🏆 Цитадель очищена!</b><small>Ты победил всех хранителей. Награды и найденные реликвии сохранены.</small>'+renderButton('dungeon-reset','Начать новую экспедицию',false)+'</article>';
+    html+='<div class="ex-room-map">'+DUNGEON_ROOMS.map((r,i)=>{const node=d.layout[i]||{};return '<div class="ex-room '+(d.cleared.includes(i+1)?'cleared':d.room===i+1&&d.active&&!d.secretActive?'active':'')+'"><b>'+(d.cleared.includes(i+1)?'✓':i+1)+'</b><small>'+r.name+'</small><small>'+(node.trap?'⚠ Ловушка':'Маршрут '+(node.x+1)+':'+(node.y+1))+'</small></div>';}).join('')+'</div>';
+    if(d.keys&&!d.secretCleared)html+='<article class="ex-card"><b>🗝️ Найден древний ключ</b><small>Открывает скрытый боковой зал с сильным хранителем и редкой наградой.</small>'+renderButton('dungeon-secret','Открыть секретный зал',d.active||d.keys<1)+'</article>';
+    if(d.secretActive&&d.active)html+='<article class="ex-card ex-enemy"><b>🗝️ Тайный хранитель</b><div class="ex-meter"><i style="width:'+Math.round(d.secretHp/Math.max(1,d.secretMaxHp)*100)+'%"></i></div><small>Здоровье: '+Math.ceil(d.secretHp)+' / '+d.secretMaxHp+' · высокая опасность</small>'+renderButton('dungeon-attack','Атаковать тайного хранителя',false)+'</article>'+renderButton('dungeon-leave','Отступить',false,true);\n    else if(d.cleared.length===5)html+='<article class="ex-card"><b>🏆 Цитадель очищена!</b><small>Ты победил всех хранителей. Награды и найденные реликвии сохранены.</small>'+renderButton('dungeon-reset','Начать новую экспедицию',false)+'</article>';
     else if(!d.active&&d.cleared.includes(d.room))html+='<article class="ex-card"><b>Комната '+d.room+' очищена</b><small>Награда получена. Можно идти дальше.</small>'+renderButton('dungeon-next','Следующая комната',d.room>=5)+'</article>';
     else if(!d.active)html+='<article class="ex-card"><b>'+room.name+'</b><small>Противник: '+room.enemy+' · здоровье '+(d.enemyHp>0?Math.ceil(d.enemyHp):room.hp)+'.</small><small>'+(d.entryPaid?'Вход уже оплачен · прогресс комнаты сохранён.':'Вход: 5 кристаллов, 10 железа и 50 золота. Исследование автоматики I.')+'</small>'+renderButton('dungeon-enter',d.entryPaid?'Продолжить экспедицию':'Войти в цитадель',state.research<1||(!d.entryPaid&&!canAfford({Кристалл:5,Железо:10},50)))+'</article>';
     else {
@@ -190,9 +209,10 @@
     return html;
   }
   function renderRelics() {
-    const active=equippedRelic();
-    let html='<div class="ex-card"><b>✨ Реликвии и редкое снаряжение</b><small>Реликвии выпадают из хранителей цитадели и древних мировых событий. Они дают настоящие бонусы к урону и защите персонажа.</small><small>Надето: '+(active?active.name:'ничего')+'</small></div>';
-    if(!state.relics.length)return html+'<p class="ex-muted">Пока нет реликвий. Пройди комнаты затерянной цитадели или отбей древнее пробуждение.</p>';
+    const active=equippedRelic(),b=bridge(),weapon=b?.getWeaponName?.()||'',armor=b?.getArmorName?.()||'',weaponGear=weapon?state.gear[weapon]:null,armorGear=armor?state.gear[armor]:null;
+    let html='<div class="ex-card"><b>⚒️ Кузница редкости</b><small>Перековывай надетое оружие и броню. Качество влияет на реальные характеристики и сохраняется в мире.</small><small>Оружие: '+(weapon||'не выбрано')+' · '+(weaponGear?.rarity||'без редкости')+' · урон +'+Math.round((weaponGear?.power||0)*100)+'%</small>'+renderButton('forge:weapon','Перековать оружие · 12 железа, 6 меди, 2 кристалла, 90 золота',!weapon||!canAfford({Железо:12,Медь:6,Кристалл:2},90))+'<small>Броня: '+(armor||'не надета')+' · '+(armorGear?.rarity||'без редкости')+' · защита +'+Math.round((armorGear?.defense||0)*100)+'%</small>'+renderButton('forge:armor','Перековать броню · 14 железа, 8 кожи, 2 кристалла, 110 золота',!armor||!canAfford({Железо:14,Кожа:8,Кристалл:2},110))+'</div>';
+    html+='<div class="ex-card"><b>✨ Реликвии</b><small>Реликвии дают дополнительные бонусы к урону и защите. Надето: '+(active?active.name:'ничего')+'</small></div>';
+    if(!state.relics.length)return html+'<p class="ex-muted">Пока нет реликвий. Пройди затерянную цитадель или отбей древнее пробуждение.</p>';
     return html+'<div class="ex-list">'+state.relics.map(r=>'<article class="ex-card"><div class="ex-card-head"><b>'+r.name+'</b><span style="color:'+rarityColor(r.rarity)+'">'+r.rarity+'</span></div><small>Урон +'+Math.round(r.power*100)+'% · защита +'+Math.round(r.defense*100)+'%</small>'+renderButton('equip:'+r.id,state.equippedRelic===r.id?'Надето':'Надеть',state.equippedRelic===r.id)+'</article>').join('')+'</div>';
   }
   function rarityColor(name){return RARITIES.find(v=>v.name===name)?.color||'#c3cbd5';}
@@ -229,8 +249,11 @@
       if(action.startsWith('tab:')){activeTab=action.slice(4);render();return;}
       if(action.startsWith('build:')){build(action.slice(6));return;}
       if(action==='research'){research();return;}
+      if(action==='forge:weapon'){reforgeGear('weapon');return;}
+      if(action==='forge:armor'){reforgeGear('armor');return;}
+      if(action==='dungeon-secret'){startSecretDungeon();return;}
       if(action==='event-attack'){attackEvent();return;}
-      if(action==='dungeon-enter'){enterDungeon();return;}
+      if(action==='dungeon-enter'){startDungeon();return;}
       if(action==='dungeon-attack'){attackDungeon();return;}
       if(action==='dungeon-leave'){leaveDungeon();return;}
       if(action==='dungeon-next'){nextDungeonRoom();return;}
@@ -248,7 +271,7 @@
   }
   function build(id) {
     const item=BUILDINGS[id];if(!item)return false;
-    const key={generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id];
+    const key={generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps',guard:'guards'}[id];
     if(bridge()?.isCoopWorld?.()){notify('Технологические постройки пока доступны только в одиночных мирах.');return false;}
     if(state.grid[key]>=item.limit){notify('Достигнут предел постройки: '+item.title+'.');return false;}
     if(item.research&&state.research<item.research){notify('Сначала исследуй автоматику.');return false;}
@@ -333,6 +356,10 @@
       if(e.kind==='ancient')e.hp=Math.max(0,e.hp-state.grid.turrets*24);
       else bridge()?.damageEventEnemy?.(e.id,state.grid.turrets*42);
     }
+    if(e.kind==='invasion'&&state.grid.guards>0){
+      state.guardClock+=dt;
+      if(state.guardClock>=3){state.guardClock=0;bridge()?.damageEventEnemy?.(e.id,state.grid.guards*18);}
+    }
     if(e.kind==='ancient'&&e.hp<=0){finishEvent(true);return;}
     if(e.kind==='invasion'&&e.remaining<=0){finishEvent(true);return;}
     if(e.timer<=0)finishEvent(false);
@@ -377,11 +404,26 @@
     if(e.remaining<=0)finishEvent(true);else{save();render();}
     return true;
   }
+  function activeGear(slot) {
+    const b=bridge(),name=slot==='armor'?b?.getArmorName?.():b?.getWeaponName?.();
+    return name?state.gear[String(name)]||null:null;
+  }
+  function reforgeGear(slot) {
+    if(!['weapon','armor'].includes(slot))return false;
+    const b=bridge(),name=slot==='armor'?b?.getArmorName?.():b?.getWeaponName?.();
+    if(!name){notify(slot==='armor'?'Сначала надень броню.':'Сначала возьми оружие.');return false;}
+    const cost=slot==='weapon'?{Железо:12,Медь:6,Кристалл:2}:{Железо:14,Кожа:8,Кристалл:2},gold=slot==='weapon'?90:110;
+    if(!spend(cost,gold)){notify('Для перековки не хватает материалов или золота.');return false;}
+    let roll=Math.random()*100,rarity=RARITIES[RARITIES.length-1];
+    for(const tier of RARITIES){if(roll<tier.weight){rarity=tier;break;}roll-=tier.weight;}
+    state.gear[String(name)]={rarity:rarity.name,power:slot==='weapon'?rarity.power:0,defense:slot==='armor'?rarity.defense:0};
+    save();notify('Перековка завершена: '+name+' · '+rarity.name+'.');render();return true;
+  }
   function damageMultiplier() {
-    const relic=equippedRelic();return 1+(relic?.power||0);
+    const relic=equippedRelic(),gear=activeGear('weapon');return 1+(relic?.power||0)+(gear?.power||0);
   }
   function defenseBonus() {
-    const relic=equippedRelic();return relic?.defense||0;
+    const relic=equippedRelic(),gear=activeGear('armor');return (relic?.defense||0)+(gear?.defense||0);
   }
   function createRelic(forceRare=false) {
     let roll=Math.random()*100,chosen=RARITIES[RARITIES.length-1];
@@ -408,44 +450,71 @@
     if(!state.relics.some(v=>v.id===id))return false;
     state.equippedRelic=id;save();notify('Реликвия экипирована: '+equippedRelic().name+'.');render();return true;
   }
+  function ensureDungeonLayout() {
+    const d=state.dungeon;if(d.layout.length===5&&d.seed)return d.layout;
+    d.seed=d.seed||Math.floor(Math.random()*2147483646)+1;
+    let seed=d.seed>>>0;const next=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+    const route=[[0,0],[1,0],[1,1],[2,1],[3,1]],yOffsets=route.map(()=>Math.floor(next()*3)-1);
+    d.trapRooms=route.slice(1,4).map((_,i)=>[2,3,4][i]).filter(()=>next()<.62);
+    if(!d.trapRooms.length)d.trapRooms=[2+Math.floor(next()*3)];
+    d.layout=route.map((p,i)=>({id:i+1,x:p[0],y:p[1]+yOffsets[i],trap:d.trapRooms.includes(i+1)}));
+    return d.layout;
+  }
   function startDungeon() {
-    const d=state.dungeon;
-    if(d.cleared.length===5){notify('Цитадель уже очищена. Начни новую экспедицию.');return false;}
+    const d=state.dungeon;ensureDungeonLayout();
+    if(d.cleared.length===5&&(!d.keys||d.secretCleared)){notify('Цитадель уже очищена. Начни новую экспедицию.');return false;}
     if(state.research<1){notify('Для поиска цитадели требуется исследование автоматики I.');return false;}
     if(!d.entryPaid){
       if(!spend({Кристалл:5,Железо:10},50)){notify('Для входа нужно 5 кристаллов, 10 железа и 50 золота.');return false;}
       d.entryPaid=true;
     }
+    if(d.secretActive){d.active=true;save();notify('Ты вернулся в тайную комнату. Хранитель ждёт тебя.');render();return true;}
     const room=d.room||1,def=DUNGEON_ROOMS[room-1],max=Math.round(def.hp*difficultyScale());
     d.active=true;
     if(!(d.enemyHp>0&&d.enemyMaxHp>0)){d.enemyMaxHp=max;d.enemyHp=max;d.attacks=0;}
     save();notify('Ты вошёл в цитадель: '+def.name+'. Прогресс комнаты сохранён.');render();return true;
   }
   function attackDungeon() {
-    const d=state.dungeon;if(!d.active||d.cleared.includes(d.room))return false;
-    const stats=bridge()?.getStats?.()||{};
-    d.attacks++;
-    d.enemyHp=Math.max(0,d.enemyHp-Math.max(1,Number(stats.weaponDamage)||30)*damageMultiplier());
+    const d=state.dungeon;if(!d.active)return false;
+    const stats=bridge()?.getStats?.()||{},damage=Math.max(1,Number(stats.weaponDamage)||30)*damageMultiplier();
+    if(d.secretActive){
+      d.secretHp=Math.max(0,d.secretHp-damage);
+      if(d.secretHp<=0){
+        d.secretActive=false;d.secretCleared=true;d.active=false;
+        bridge()?.addItem?.('Артефакт скрытого зала',1,'Награда за тайного хранителя затерянной цитадели');
+        bridge()?.addGold?.(7500);dropRelic(true);
+        notify('СЕКРЕТНЫЙ ЗАЛ ОЧИЩЕН! Получен артефакт и редкая реликвия.');
+      }else bridge()?.damagePlayer?.(24*difficultyScale()*(1-defenseBonus()));
+      save();render();return true;
+    }
+    if(d.cleared.includes(d.room))return false;
+    d.attacks++;d.enemyHp=Math.max(0,d.enemyHp-damage);
     if(d.enemyHp<=0){
       d.active=false;d.cleared.push(d.room);
       bridge()?.addItem?.(DUNGEON_ROOMS[d.room-1].loot,1,'Награда за комнату '+d.room+' затерянной цитадели');
+      if(d.room===2&&!d.keys&&!d.secretCleared){d.keys=1;notify('В тайнике комнаты найден древний ключ. Он открывает боковую секретную залу.');}
       if(d.room===5){
         state.stats.dungeonsCleared++;
         bridge()?.addGold?.(20000);
         bridge()?.addItem?.('Ключ великой сокровищницы',1,'Главная награда затерянной цитадели');
         dropRelic(true);
         notify('ЦИТАДЕЛЬ ПРОЙДЕНА! Архонт побеждён, легендарная экспедиционная награда получена.');
-      }else{
+      }else if(d.room!==2||d.keys===0){
         if(Math.random()<.25)dropRelic(false);
         notify('Комната очищена: '+DUNGEON_ROOMS[d.room-1].name+'. Награды добавлены.');
       }
     }else{
-      const def=DUNGEON_ROOMS[d.room-1];
-      let damage=def.damage*difficultyScale()*(1-defenseBonus());
-      if([2,4].includes(d.room)&&d.attacks%3===0)damage+=12;
-      bridge()?.damagePlayer?.(damage);
+      const def=DUNGEON_ROOMS[d.room-1],trap=d.trapRooms.includes(d.room)&&d.attacks%3===0;
+      const hit=def.damage*difficultyScale()*(1-defenseBonus())+(trap?18*difficultyScale():0);
+      bridge()?.damagePlayer?.(hit);
+      if(trap)notify('ЛОВУШКА! Сработали древние шипы: −'+Math.round(hit)+' здоровья.');
     }
     save();render();return true;
+  }
+  function startSecretDungeon() {
+    const d=state.dungeon;if(d.active||d.secretCleared||d.keys<1||d.cleared.length<2)return false;
+    d.keys--;d.secretActive=true;d.active=true;d.secretMaxHp=Math.round(720*difficultyScale());d.secretHp=d.secretMaxHp;
+    save();notify('Открыта тайная боковая зала. Внутри скрывается древний хранитель!');render();return true;
   }
   function leaveDungeon() {
     if(!state.dungeon.active)return false;
@@ -463,9 +532,8 @@
     if(b?.isCoopWorld?.()||!Number.isFinite(minutes)||!b?.isNightTime?.()||state.event)return;
     const day=Math.floor(minutes/1440),minute=minutes%1440,nightKey=minute<360?day-1:day;
     if(nightKey<2||state.lastSiegeNight>=nightKey||state.lastSiegeNight>=0&&nightKey-state.lastSiegeNight<3)return;
-    if((nightKey+1)%7===0&&state.research>=1)startEvent('ancient',nightKey);
-    else startEvent('invasion',nightKey);
-    state.lastSiegeNight=nightKey;save();
+    const started=(nightKey+1)%7===0&&state.research>=1?startEvent('ancient',nightKey):startEvent('invasion',nightKey);
+    if(started){state.lastSiegeNight=nightKey;save();}
   }
   function drawWorldEvent(ctx,camX,camY,time,screenWidth,screenHeight) {
     const e=state.event;if(!e||!ctx||!Number.isFinite(e.x)||!Number.isFinite(e.y))return;
@@ -539,6 +607,8 @@
     attackEvent,
     startDungeon,
     attackDungeon,
+    startSecretDungeon,
+    reforgeGear,
     nextDungeonRoom,
     leaveDungeon,
     equipRelic,
