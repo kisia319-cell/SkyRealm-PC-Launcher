@@ -44,10 +44,16 @@ let snapshot={worldId:'expansion-test-world',difficulty:'medium',paused:false,da
 let gameMinuteTotal=3*1440+12*60;
 let night=false;
 let playerPosition={x:100,y:100};
+let activeEventEnemies=0;
 const bridge={
   getWorldId:()=>snapshot.worldId,
+  isCoopWorld:()=>false,
   getPlayerPosition:()=>({...playerPosition}),
   getWorldEventSpawnPoint:()=>({x:100,y:100}),
+  spawnEventEnemies:(eventId,x,y,count)=>{activeEventEnemies=count;return count;},
+  getEventEnemyCount:()=>activeEventEnemies,
+  damageEventEnemy:(eventId,damage)=>{if(activeEventEnemies>0){activeEventEnemies--;window.SkyRealmExpansionSystems?.onMonsterDefeated?.(eventId);return true;}return false;},
+  clearEventEnemies:()=>{activeEventEnemies=0;},
   getChallengeSnapshot:()=>({...snapshot,items:{...inventory},level:20,hp:100}),
   getGameMinuteTotal:()=>gameMinuteTotal,
   getDifficulty:()=>snapshot.difficulty,
@@ -108,9 +114,13 @@ const beforeEventGold=rewards.gold;
 playerPosition={x:900,y:900};
 assert.equal(api.attackEvent(),false,'Player cannot attack a world event from across the map');
 playerPosition={x:100,y:100};
-assert.equal(api.interactWorldEvent(),true,'Player can attack the beacon using the world interaction key');
-for(let i=0;i<10&&api.getState().event;i++)api.attackEvent();
-assert.equal(api.getState().event,null,'Manual defence must be able to defeat a siege');
+assert.equal(activeEventEnemies,6,'Night siege must spawn actual enemy units');
+const remainingBeforeEngage=api.getState().event.remaining;
+assert.equal(api.interactWorldEvent(),true,'Player can activate the beacon using the world interaction key');
+assert.equal(api.getState().event.remaining,remainingBeforeEngage,'Activating the beacon must not instantly kill enemies');
+const firstEventId=api.getState().event.id;
+for(let i=0;i<6&&api.getState().event;i++){activeEventEnemies--;api.onMonsterDefeated(firstEventId);}
+assert.equal(api.getState().event,null,'Defeating all real siege monsters must complete the event');
 assert.equal(api.getState().stats.eventsWon,1);
 assert.ok(rewards.gold>beforeEventGold,'Successful defence must award gold');
 assert.ok(inventory['Древний осколок']>=1,'Successful defence must grant a real inventory item');
