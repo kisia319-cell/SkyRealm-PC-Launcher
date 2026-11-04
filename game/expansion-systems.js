@@ -332,7 +332,7 @@
   }
   function createRelic(forceRare=false) {
     let roll=Math.random()*100,chosen=RARITIES[RARITIES.length-1];
-    if(forceRare)roll=Math.max(0,roll-95);
+    if(forceRare)roll=93+Math.random()*7;
     for(const r of RARITIES){if(roll<r.weight){chosen=r;break;}roll-=r.weight;}
     const base=RELIC_NAMES[Math.floor(Math.random()*RELIC_NAMES.length)];
     const item={
