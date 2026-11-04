@@ -6,7 +6,7 @@ const game=fs.readFileSync('game/game.js','utf8');
 const gameVersion=fs.readFileSync('game/version.txt','utf8').trim();
 const versionParts=gameVersion.split('.').map(Number);
 assert.ok(versionParts.length>=4 && versionParts[0]===0 && versionParts[1]===20 && versionParts[2]===50 && versionParts[3]>=35,'Sea world visual fixes must ship in a bumped game version so existing launchers install them');
-assert.match(sea,/w\/\(W\*TILE\*\.15\)/,'Sea camera scale must show the expanded map');
+assert.match(sea,/w\/\(W\*TILE\*\.22\)/,'Sea camera scale must show the expanded map');
 assert.match(sea,/if\(!state\.sharks\.length\)/,'Old sea saves must repopulate missing sharks');
 assert.match(sea,/const W = 360, H = 260/,'Sea map must be substantially larger');
 assert.match(sea,/length:2/,'Sharks must be rare by default');
