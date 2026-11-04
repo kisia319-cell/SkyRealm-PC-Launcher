@@ -4,7 +4,7 @@
   const KEY = () => 'skyrealm_sea_v1_' + (window.SkyRealmSeaBridge?.getWorldId?.() || 'default');
   const $ = (id) => document.getElementById(id);
   const state = {
-    version: VERSION, x: 8, y: 82, boatHp: 100, weather: 'calm', weatherLeft: 150,
+    version: VERSION, x: 13, y: 82, boatHp: 100, weather: 'calm', weatherLeft: 150,
     wave: 0, time: 0, mapOpen: false, underwater: false, air: 60,
     helmetLevel: 0, sharks: [], monsters: [], treasures: [], opened: [],
     vaultUnlocked: false, vaultRoom: 0, vaultPath: 0, vaultBosses: { tide:false, abyss:false },
@@ -28,18 +28,21 @@
       const d=bridge()?.getSeaData?.()||JSON.parse(localStorage.getItem(KEY())||'null');
       if(!d || d.version!==VERSION){Object.assign(state,JSON.parse(JSON.stringify(DEFAULT_STATE)));return;}
       Object.assign(state,d);
-      state.x=clamp(Number(state.x)||8,3,W-3); state.y=clamp(Number(state.y)||82,3,H-3);
+      state.x=clamp(Number(state.x)||13,11,W-3); state.y=clamp(Number(state.y)||82,3,H-3); if(state.x<10)state.x=13;
       state.sharks=Array.isArray(d.sharks)?d.sharks:[]; state.monsters=Array.isArray(d.monsters)?d.monsters:[];
       state.treasures=Array.isArray(d.treasures)?d.treasures:[]; state.opened=Array.isArray(d.opened)?d.opened:[];
       state.relics=Array.isArray(d.relics)?d.relics:[];
     } catch(e){ console.warn('Sea save load failed',e); }
   }
   function ensureWorld(){
-    if(state.treasures.length) return;
-    for(let i=0;i<18;i++) state.treasures.push({id:'chest-'+i,x:rand(18,W-12),y:rand(8,H-8),kind:i%6===0?'wreck':'chest'});
-    state.sharks=Array.from({length:9},(_,i)=>({id:'shark-'+i,x:rand(10,W-10),y:rand(8,H-8),hp:55,angle:rand(0,6.28),speed:rand(12,22),cool:rand(0,2)}));
-    state.monsters=Array.from({length:8},(_,i)=>({id:'sea-monster-'+i,x:rand(20,W-10),y:rand(8,H-8),hp:75,angle:rand(0,6.28),speed:rand(8,15),cool:rand(0,2)}));
-    state.discovered=[];
+    // Repair each population independently: older saves could contain chests but no fauna.
+    if(!Array.isArray(state.treasures))state.treasures=[];
+    if(!Array.isArray(state.sharks))state.sharks=[];
+    if(!Array.isArray(state.monsters))state.monsters=[];
+    if(!state.treasures.length)for(let i=0;i<22;i++)state.treasures.push({id:'chest-'+i,x:rand(18,W-12),y:rand(8,H-8),kind:i%5===0?'wreck':'chest'});
+    if(!state.sharks.length)state.sharks=Array.from({length:12},(_,i)=>({id:'shark-'+i,x:rand(24,W-10),y:rand(8,H-8),hp:65,angle:rand(0,6.28),speed:rand(12,22),cool:rand(0,2)}));
+    if(!state.monsters.length)state.monsters=Array.from({length:10},(_,i)=>({id:'sea-monster-'+i,x:rand(24,W-10),y:rand(8,H-8),hp:85,angle:rand(0,6.28),speed:rand(8,15),cool:rand(0,2)}));
+    if(!Array.isArray(state.discovered))state.discovered=[];
   }
   function build(){
     if(root)return;
@@ -188,21 +191,49 @@
     $('sea-dive-btn').textContent=state.underwater?'↑ Всплыть · E':'↓ Нырнуть · E';
   }
   function draw(){
-    const w=canvas.clientWidth,h=canvas.clientHeight;const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,'#246b91');g.addColorStop(.55,'#0e496f');g.addColorStop(1,'#082a48');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
-    const horizon=h*.17;ctx.fillStyle='#8ed8e9';ctx.fillRect(0,horizon,w,3);ctx.fillStyle='#c2f1ff';ctx.globalAlpha=.18;ctx.fillRect(0,horizon-36,w,36);ctx.globalAlpha=1;
-    const scale=Math.min(w/(W*.7),h/(H*.7)),ox=w/2-state.x*scale,oy=h/2-state.y*scale;
+    const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
+    const sea=ctx.createLinearGradient(0,0,0,h);sea.addColorStop(0,'#6fc5d7');sea.addColorStop(.16,'#2386a8');sea.addColorStop(.52,'#0b557d');sea.addColorStop(1,'#062b50');ctx.fillStyle=sea;ctx.fillRect(0,0,w,h);
+    // Distant horizon, sky glow and moving cloud bands.
+    const horizon=h*.16;const sky=ctx.createLinearGradient(0,0,0,horizon+24);sky.addColorStop(0,'#9bd9e8');sky.addColorStop(1,'#d5f0e9');ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon+24);
+    ctx.fillStyle='rgba(255,244,196,.34)';ctx.beginPath();ctx.arc(w*.78,h*.09,Math.max(22,h*.045),0,Math.PI*2);ctx.fill();
+    for(let i=0;i<5;i++){const cx=((i*241+state.time*5)%(w+300))-150,cy=24+(i%3)*22;ctx.fillStyle='rgba(255,255,255,.20)';ctx.beginPath();ctx.ellipse(cx,cy,65,12,0,0,Math.PI*2);ctx.ellipse(cx+34,cy-5,38,13,0,0,Math.PI*2);ctx.fill();}
+    const scale=Math.min(w/(W*TILE*.76),h/(H*TILE*.76)),ox=w/2-state.x*TILE*scale,oy=h/2-state.y*TILE*scale;
+    const left=state.x-w/(2*TILE*scale)-2,right=state.x+w/(2*TILE*scale)+2,top=state.y-h/(2*TILE*scale)-2,bottom=state.y+h/(2*TILE*scale)+2;
     ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);
-    ctx.fillStyle='#bca36b';ctx.fillRect(0,0,8*32,H*32);ctx.fillStyle='#d9c58d';ctx.fillRect(6*32,0,2*32,H*32);
-    for(let x=Math.floor(state.x-w/scale/2)-2;x<state.x+w/scale/2+2;x+=1){for(let y=Math.floor(state.y-h/scale/2)-2;y<state.y+h/scale/2+2;y+=1){const wave=Math.sin(x*.47+state.wave)*.12+Math.cos(y*.38-state.wave*.7)*.08;ctx.fillStyle=state.weather==='storm'?'rgba(205,232,244,'+(0.04+Math.abs(wave)) +')':'rgba(150,226,245,'+(0.035+Math.abs(wave))+')';ctx.fillRect(x*32,y*32,32,32);}}
-    for(const t of state.treasures){if(state.opened.includes(t.id))continue;ctx.fillStyle=t.kind==='wreck'?'#b88c54':'#e5c46b';ctx.fillRect(t.x*32-9,t.y*32-7,18,14);ctx.fillStyle='#563d2b';ctx.fillRect(t.x*32-9,t.y*32-1,18,3);ctx.fillStyle='#fff0a5';ctx.fillRect(t.x*32-2,t.y*32-7,4,4);}
-    for(const s of state.sharks){ctx.fillStyle='#6e9fb4';ctx.beginPath();ctx.moveTo(s.x*32+12,s.y*32);ctx.lineTo(s.x*32-10,s.y*32-7);ctx.lineTo(s.x*32-5,s.y*32);ctx.lineTo(s.x*32-10,s.y*32+7);ctx.closePath();ctx.fill();}
-    for(const m of state.monsters){ctx.fillStyle='#9b6dbb';ctx.beginPath();ctx.arc(m.x*32,m.y*32,10,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f3d5ff';ctx.fillRect(m.x*32-4,m.y*32-2,3,3);ctx.fillRect(m.x*32+2,m.y*32-2,3,3);}
-    if(state.underwater){ctx.fillStyle='rgba(0,15,50,.38)';ctx.fillRect(state.x*32-70,state.y*32-70,140,140);}
-    else{ctx.save();ctx.translate(state.x*32,state.y*32);ctx.rotate(Math.sin(state.wave)*.035);ctx.fillStyle='#593e29';ctx.beginPath();ctx.moveTo(-23,-10);ctx.lineTo(23,-10);ctx.lineTo(17,17);ctx.lineTo(-17,17);ctx.closePath();ctx.fill();ctx.fillStyle='#d2a66c';ctx.fillRect(-3,-8,6,22);ctx.fillStyle='#fff0cb';ctx.beginPath();ctx.moveTo(2,-7);ctx.lineTo(2,-38);ctx.lineTo(24,-10);ctx.closePath();ctx.fill();ctx.restore();}
-    if(state.weather==='storm'){ctx.strokeStyle='rgba(220,240,255,.38)';ctx.lineWidth=1.3;for(let i=0;i<60;i++){const x=(i*79+state.time*260)%(W*32),y=(i*43+state.time*430)%(H*32);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-8,y+19);ctx.stroke();}}
+    // Pale shallows, deep-water floor and sand gradients.
+    const floor=ctx.createLinearGradient(0,0,0,H*TILE);floor.addColorStop(0,'#d5c18a');floor.addColorStop(.13,'#9a9d72');floor.addColorStop(.2,'#286f79');floor.addColorStop(1,'#073b62');ctx.fillStyle=floor;ctx.fillRect(0,0,W*TILE,H*TILE);
+    // Beach and foam shoreline.
+    ctx.fillStyle='#e9d49a';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(8*TILE,0);for(let y=0;y<=H*TILE;y+=20)ctx.lineTo((7.2+Math.sin(y*.012)*.45+Math.sin(y*.037)*.18)*TILE,y);ctx.lineTo(0,H*TILE);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(255,255,224,.9)';ctx.lineWidth=5;ctx.beginPath();for(let y=0;y<=H*TILE;y+=12){const x=(7.15+Math.sin(y*.012)*.45+Math.sin(y*.037)*.18)*TILE;if(y===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();
+    // Sandy bars, reefs, rocks and kelp beds are deterministic, so they persist visually.
+    for(let i=0;i<42;i++){const x=(17+i*47%198)*TILE,y=(9+i*83%146)*TILE;if(x/TILE<left-3||x/TILE>right+3||y/TILE<top-3||y/TILE>bottom+3)continue;const n=Math.sin(i*91.7)*.5+.5;ctx.fillStyle=n>.55?'rgba(31,118,112,.34)':'rgba(219,196,129,.20)';ctx.beginPath();ctx.ellipse(x,y,18+n*28,8+n*13,Math.sin(i)*.6,0,Math.PI*2);ctx.fill();if(i%3===0){ctx.fillStyle='#527e69';ctx.beginPath();ctx.ellipse(x+5,y-3,7,12,.4,0,Math.PI*2);ctx.fill();}}
+    for(let i=0;i<34;i++){const x=(21+i*61%192)*TILE,y=(12+i*37%142)*TILE;if(x/TILE<left-2||x/TILE>right+2||y/TILE<top-2||y/TILE>bottom+2)continue;ctx.fillStyle=i%2?'#e47d6a':'#e7b66e';ctx.beginPath();ctx.arc(x,y,3+(i%4)*1.4,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(38,119,110,.9)';ctx.lineWidth=2;for(let k=0;k<3;k++){ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x-8+k*7,y-9,x-7+k*7,y-19-(i%3)*3);ctx.stroke();}}
+    // Layered animated wave crests across the visible ocean.
+    for(let layer=0;layer<5;layer++){ctx.beginPath();for(let x=Math.floor(left*32/8)*8;x<right*32;x+=8){const y=(top*32)+layer*47+Math.sin(x*.018+state.wave*(.55+layer*.13))*7+Math.sin(x*.043-state.wave*.8)*3;if(x===Math.floor(left*32/8)*8)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.strokeStyle=['rgba(211,250,255,.26)','rgba(146,231,244,.22)','rgba(255,255,255,.12)','rgba(94,197,225,.22)','rgba(220,249,255,.16)'][layer];ctx.lineWidth=layer===0?4:2;ctx.stroke();}
+    // Floating foam flecks and bubbles.
+    for(let i=0;i<95;i++){const x=((i*97+state.time*(12+i%5)*8)%(W*TILE)),y=(i*53+Math.sin(state.time+i)*14)%(H*TILE);if(x/TILE<left||x/TILE>right||y/TILE<top||y/TILE>bottom)continue;ctx.fillStyle='rgba(226,252,255,'+(.12+(i%4)*.07)+')';ctx.beginPath();ctx.ellipse(x,y,2+i%3,1.2,Math.sin(state.time+i),0,Math.PI*2);ctx.fill();}
+    // Small distant islands and jagged rocks.
+    for(let i=0;i<7;i++){const x=(31+i*29)*TILE,y=(17+(i*41)%130)*TILE;if(x/TILE<left-8||x/TILE>right+8||y/TILE<top-8||y/TILE>bottom+8)continue;ctx.fillStyle='#344d45';ctx.beginPath();ctx.ellipse(x,y,28,17,.15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b4a36e';ctx.beginPath();ctx.ellipse(x-4,y-5,25,13,.1,0,Math.PI*2);ctx.fill();ctx.fillStyle='#3f8660';ctx.beginPath();ctx.arc(x,y-13,10,0,Math.PI*2);ctx.fill();ctx.fillRect(x-2,y-26,4,17);}
+    // Treasure chests and shipwrecks.
+    for(const t of state.treasures){if(state.opened.includes(t.id))continue;const x=t.x*TILE,y=t.y*TILE;if(t.kind==='wreck'){ctx.save();ctx.translate(x,y);ctx.rotate(-.18);ctx.fillStyle='#513c2b';ctx.fillRect(-29,-7,58,15);ctx.fillStyle='#986b43';ctx.fillRect(-23,-14,46,8);ctx.strokeStyle='#d0a16a';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-17,-12);ctx.lineTo(-8,-28);ctx.moveTo(8,-12);ctx.lineTo(21,-22);ctx.stroke();ctx.restore();}else{ctx.fillStyle='#62452e';ctx.fillRect(x-10,y-8,20,16);ctx.fillStyle='#d8a94f';ctx.fillRect(x-10,y-8,20,5);ctx.fillStyle='#fff0a5';ctx.fillRect(x-2,y-7,4,6);}}
+    // Sharks: animated bodies, tail, dorsal and pectoral fins.
+    for(const s of state.sharks){const x=s.x*TILE,y=s.y*TILE,swim=Math.sin(state.time*5+(s.angle||0))*3;ctx.save();ctx.translate(x,y);ctx.rotate((s.angle||0)+(Math.atan2(state.y-s.y,state.x-s.x)*.12));ctx.fillStyle='rgba(0,18,35,.24)';ctx.beginPath();ctx.ellipse(0,9,22,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#719db0';ctx.beginPath();ctx.moveTo(25,0);ctx.quadraticCurveTo(5,-14,-18,-4);ctx.quadraticCurveTo(-26,0,-18,5);ctx.quadraticCurveTo(5,14,25,0);ctx.fill();ctx.fillStyle='#456f86';ctx.beginPath();ctx.moveTo(-17,0);ctx.lineTo(-34,-12+swim);ctx.lineTo(-29,0);ctx.lineTo(-34,12+swim);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(-2,-5);ctx.lineTo(4,-18);ctx.lineTo(11,-4);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(1,5);ctx.lineTo(10,14);ctx.lineTo(13,5);ctx.closePath();ctx.fill();ctx.fillStyle='#e8f5f8';ctx.fillRect(12,-3,3,3);ctx.fillStyle='#10283a';ctx.fillRect(13,-3,2,2);ctx.restore();}
+    // Underwater guardians and schools of fish.
+    for(const m of state.monsters){const x=m.x*TILE,y=m.y*TILE,pulse=Math.sin(state.time*4+x)*2;ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(8,19,48,.3)';ctx.beginPath();ctx.ellipse(0,9,17,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9368b4';ctx.beginPath();ctx.ellipse(0,0,12,10+pulse,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d5b5f3';ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-18,-8);ctx.lineTo(-16,8);ctx.closePath();ctx.fill();ctx.fillStyle='#f6eaff';ctx.fillRect(-5,-3,3,3);ctx.fillRect(3,-3,3,3);ctx.restore();}
+    for(let shoal=0;shoal<8;shoal++){const bx=(25+shoal*23)*TILE,by=(12+(shoal*31)%139)*TILE;if(bx/TILE<left-5||bx/TILE>right+5||by/TILE<top-5||by/TILE>bottom+5)continue;for(let f=0;f<5;f++){const fx=bx+Math.sin(state.time*1.5+f+shoal)*18+f*8,fy=by+Math.cos(state.time*1.7+f)*9;ctx.fillStyle='#d5eef0';ctx.beginPath();ctx.ellipse(fx,fy,5,2.5,.15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7cc8cf';ctx.beginPath();ctx.moveTo(fx-4,fy);ctx.lineTo(fx-9,fy-4);ctx.lineTo(fx-9,fy+4);ctx.fill();}}
+    if(state.underwater){const glow=ctx.createRadialGradient(state.x*TILE,state.y*TILE,10,state.x*TILE,state.y*TILE,260);glow.addColorStop(0,'rgba(111,222,255,.3)');glow.addColorStop(1,'rgba(0,15,50,.72)');ctx.fillStyle=glow;ctx.fillRect(left*TILE,top*TILE,(right-left)*TILE,(bottom-top)*TILE);}
+    else{
+      // Player's ship: hull, deck, mast, animated sails, rigging, lantern and wake.
+      const x=state.x*TILE,y=state.y*TILE,rock=Math.sin(state.wave*.55)*.06;ctx.save();ctx.translate(x,y+Math.sin(state.wave)*2);ctx.rotate(rock);ctx.fillStyle='rgba(0,12,27,.38)';ctx.beginPath();ctx.ellipse(0,17,39,13,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#543622';ctx.beginPath();ctx.moveTo(-38,-10);ctx.lineTo(38,-10);ctx.lineTo(27,19);ctx.lineTo(-26,19);ctx.closePath();ctx.fill();ctx.fillStyle='#a66e3d';ctx.fillRect(-30,-9,60,8);ctx.fillStyle='#d5b17a';ctx.fillRect(-21,-2,42,13);ctx.fillStyle='#5a402d';ctx.fillRect(-3,-43,6,43);ctx.strokeStyle='#e5d2aa';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-38);ctx.lineTo(-25,-29);ctx.moveTo(0,-38);ctx.lineTo(27,-26);ctx.stroke();ctx.fillStyle='#fff0c9';ctx.beginPath();ctx.moveTo(-1,-39);ctx.lineTo(-1,-9);ctx.lineTo(-27,-9);ctx.closePath();ctx.fill();ctx.fillStyle='#bfeaf0';ctx.beginPath();ctx.moveTo(2,-36);ctx.lineTo(2,-10);ctx.lineTo(24,-10);ctx.closePath();ctx.fill();ctx.fillStyle='#ffdc8a';ctx.beginPath();ctx.arc(14,4,3,0,Math.PI*2);ctx.fill();
+      // A clearly visible sailor avatar standing on deck.
+      const walk=Math.sin(state.time*7)*1.5;ctx.fillStyle='#e0b48a';ctx.beginPath();ctx.arc(0,-9+walk,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#31506c';ctx.fillRect(-6,-4+walk,12,12);ctx.strokeStyle='#f1d7b1';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-5,0+walk);ctx.lineTo(-10,7+walk);ctx.moveTo(5,0+walk);ctx.lineTo(10,7+walk);ctx.stroke();ctx.fillStyle='#273b4e';ctx.fillRect(-5,8+walk,4,6);ctx.fillRect(1,8+walk,4,6);ctx.fillStyle='#d7c59b';ctx.fillRect(-7,-17+walk,14,3);ctx.restore();
+    }
+    if(state.weather==='rain'||state.weather==='storm'){ctx.strokeStyle=state.weather==='storm'?'rgba(225,245,255,.5)':'rgba(225,245,255,.28)';ctx.lineWidth=1.4;for(let i=0;i<(state.weather==='storm'?100:55);i++){const x=(i*79+state.time*260)%(w+50),y=(i*43+state.time*430)%(h+30);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-5,y+15);ctx.stroke();}}
     ctx.restore();
-    if(!state.underwater){ctx.fillStyle='rgba(3,18,33,.7)';ctx.fillRect(12,12,220,32);ctx.fillStyle='#e7f6ff';ctx.font='bold 13px Segoe UI';ctx.fillText('ГОРИЗОНТ · МОРСКАЯ ЭКСПЕДИЦИЯ',22,33);}
-    else{ctx.fillStyle='rgba(2,12,35,.7)';ctx.fillRect(12,12,250,32);ctx.fillStyle='#d8f4ff';ctx.font='bold 13px Segoe UI';ctx.fillText('ПОД ВОДОЙ · '+(state.air===Infinity?'ВОЗДУХ ∞':Math.ceil(state.air)+' С'),22,33);}
+    // Wave highlights remain in screen space so the ocean visibly moves at every zoom.
+    ctx.save();for(let layer=0;layer<6;layer++){ctx.beginPath();for(let x=0;x<w;x+=12){const y=h*.23+layer*h*.12+Math.sin(x*.012+state.wave*(.8+layer*.13))*5+Math.sin(x*.027-state.wave)*2;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.strokeStyle='rgba(207,247,255,'+(.12+layer*.018)+')';ctx.lineWidth=layer===0?3:1.5;ctx.stroke();}ctx.restore();
+    ctx.fillStyle='rgba(3,18,33,.68)';ctx.fillRect(12,12,260,34);ctx.fillStyle='#e7f6ff';ctx.font='bold 13px Segoe UI';ctx.fillText(state.underwater?'ПОД ВОДОЙ · '+(state.air===Infinity?'ВОЗДУХ ∞':Math.ceil(state.air)+' С'):'ГОРИЗОНТ · МОРСКАЯ ЭКСПЕДИЦИЯ',22,34);
+    if(state.weather==='storm'){ctx.fillStyle='rgba(8,22,43,.58)';ctx.fillRect(w-168,12,156,30);ctx.fillStyle='#d7edff';ctx.font='bold 12px Segoe UI';ctx.fillText('⚡ ШТОРМ',w-151,32);}
   }
   function drawMap(){
     const c=$('sea-map-canvas');if(!c)return;const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.fillStyle='#0b4567';x.fillRect(0,0,w,h);x.strokeStyle='rgba(190,235,255,.12)';for(let i=0;i<=22;i++){x.beginPath();x.moveTo(i*w/22,0);x.lineTo(i*w/22,h);x.stroke();}for(let i=0;i<=16;i++){x.beginPath();x.moveTo(0,i*h/16);x.lineTo(w,i*h/16);x.stroke();}x.fillStyle='#e9f5ff';for(const cell of state.discovered){const [a,b]=cell.split(',').map(Number);x.fillRect(a/220*w,b/164*h,2,2);}x.fillStyle='#ffe17c';for(const m of state.mapMarks)x.fillRect(m.x/220*w-4,m.y/164*h-4,8,8);x.fillStyle='#ff756a';x.beginPath();x.arc(state.x/220*w,state.y/164*h,5,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.font='12px Segoe UI';x.fillText('Ты',state.x/220*w+8,state.y/164*h-8);
