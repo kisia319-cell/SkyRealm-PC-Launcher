@@ -137,7 +137,7 @@ night=true;gameMinuteTotal=3*1440+21*60;shieldState.grid.turrets=1;shieldState.p
 assert.ok(api.getState().event,'An automatic night siege should start after the second night');
 const automaticEventId=api.getState().event.id;
 const automaticRemaining=api.getState().event.remaining;
-api.update(3);
+for(let i=0;i<3;i++)api.update(1);
 assert.ok(api.getState().event.remaining<automaticRemaining,'Powered turrets must damage real siege monsters');
 while(api.getState().event){activeEventEnemies--;api.onMonsterDefeated(automaticEventId);}
 night=false;
