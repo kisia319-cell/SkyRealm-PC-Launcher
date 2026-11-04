@@ -13,8 +13,10 @@ assert.ok(game.includes('window.SkyRealmExpansionSystems?.importState?.(d?.expan
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.update?.(dt)'),'Expansion systems must update with the game world');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.damageMultiplier?.()||1'),'Equipped relics must affect player weapon damage');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.defenseBonus?.()||0'),'Equipped relics must affect player defense');
-assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall'"),'Technology structures must load from world saves');
+assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall','tech-guard'"),'Technology structures must load from world saves');
 assert.ok(game.includes("s.type==='tech-generator'"),'Placed technology buildings must be drawn in the world');
+assert.ok(game.includes("s.type==='tech-guard'"),'Guard posts must have a world rendering');
+assert.ok(game.includes('getArmorName:()=>equipment.armor'),'Equipment forging must read the actual equipped armour');
 assert.ok(game.includes('placeExpansionStructure:type=>'),'Technology placement API must be connected to the game world');
 assert.ok(game.includes('function notifyExpansionEnemyDefeated(mob)'),'Siege enemy deaths must notify the event system exactly once');
 assert.ok(game.includes('spawnEventEnemies:(eventId,x,y,count=6)'),'Night sieges must spawn real world monsters');
@@ -39,8 +41,9 @@ const document={
   addEventListener(){}
 };
 const inventory={
-  'Древесина':500,'Камень':500,'Железо':500,'Медь':500,'Кристалл':100,'Уголь':100,'Мифрил':50,'Серебро':100
+  'Древесина':500,'Камень':500,'Железо':500,'Медь':500,'Кристалл':100,'Уголь':100,'Мифрил':50,'Серебро':100,'Кость':500,'Мясо':500
 };
+let failSpendOn=null,failGoldSpend=false;
 const rewards={gold:100000,items:{},damage:0,saves:0,toasts:[]};
 const worldStructures=[];
 let allowPlacement=true;
@@ -63,11 +66,13 @@ const bridge={
   getDifficulty:()=>snapshot.difficulty,
   isNightTime:()=>night,
   getStats:()=>({level:20,hp:100,weaponDamage:2500,gold:Math.floor(rewards.gold/100),difficulty:snapshot.difficulty}),
+  getWeaponName:()=> 'Железный меч',
+  getArmorName:()=> 'Кожаная броня',
   getItemCount:name=>inventory[name]||0,
   placeExpansionStructure:type=>{if(!allowPlacement)return false;worldStructures.push(type);return true;},
-  spendItem:(name,count)=>{if((inventory[name]||0)<count)return false;inventory[name]-=count;return true;},
+  spendItem:(name,count)=>{if(name===failSpendOn||(inventory[name]||0)<count)return false;inventory[name]-=count;return true;},
   getGold:()=>Math.floor(rewards.gold/100),
-  spendGold:amount=>{const cost=amount*100;if(rewards.gold<cost)return false;rewards.gold-=cost;return true;},
+  spendGold:amount=>{const cost=amount*100;if(failGoldSpend||rewards.gold<cost)return false;rewards.gold-=cost;return true;},
   addGold:amount=>{rewards.gold+=amount;},
   addItem:(name,count=1)=>{rewards.items[name]=(rewards.items[name]||0)+count;inventory[name]=(inventory[name]||0)+count;return inventory[name];},
   damagePlayer:amount=>{rewards.damage+=amount;return Math.max(0,100-rewards.damage);},
@@ -96,6 +101,8 @@ assert.equal(api.research(),true,'First technology research should unlock automa
 assert.equal(api.build('battery'),true,'Battery can be built');
 assert.equal(api.build('turret'),true,'Research I unlocks the defensive turret');
 assert.equal(api.build('wall'),true,'Settlement wall can be built');
+assert.equal(api.build('guard'),true,'Research I unlocks a real guard post for settlement defence');
+assert.equal(api.getState().grid.guards,1,'Guard post count must be persisted');
 assert.ok(api.getState().grid.walls===1);
 assert.equal(api.research(),true,'Second technology research unlocks industrial mining');
 assert.equal(api.build('drill'),true,'Research II unlocks the automatic mining drill');
@@ -152,6 +159,15 @@ for(let room=1;room<=5;room++){
   assert.equal(api.getState().dungeon.active,true,'Room '+room+' must become active');
   assert.equal(api.attackDungeon(),true,'Player can attack room '+room);
   assert.ok(api.getState().dungeon.cleared.includes(room),'Room '+room+' must be marked cleared');
+  if(room===2){
+    assert.equal(api.getState().dungeon.keys,1,'Second room must award a real secret-room key');
+    assert.equal(api.startSecretDungeon(),true,'The key must open an optional hidden boss room');
+    assert.equal(api.leaveDungeon(),true,'The player can retreat from the secret room');
+    assert.equal(api.startDungeon(),true,'The secret room must resume after leaving');
+    assert.equal(api.attackDungeon(),true,'The secret guardian can be defeated using real weapon damage');
+    assert.equal(api.getState().dungeon.secretCleared,true,'Secret-room completion must be saved');
+    assert.equal(inventory['Артефакт скрытого зала'],1,'Secret boss must award a real inventory artifact');
+  }
   if(room<5)assert.equal(api.nextDungeonRoom(),true,'The next room must open without paying the entry fee again');
 }
 assert.equal(api.getState().stats.dungeonsCleared,1,'Final boss defeat must record one completed citadel');
@@ -161,6 +177,20 @@ assert.ok(['Эпическая','Легендарная'].includes(relic.rarity)
 assert.equal(api.equipRelic(relic.id),true);
 assert.ok(api.damageMultiplier()>1,'Equipped relic must increase attack damage');
 assert.ok(api.defenseBonus()>0,'Equipped relic must increase defense');
+const swordIronBefore=inventory['Железо'],swordCopperBefore=inventory['Медь'];
+failSpendOn='Медь';
+assert.equal(api.reforgeGear('weapon'),false,'A partial resource-spend failure must abort a weapon reforge');
+assert.equal(inventory['Железо'],swordIronBefore,'A failed weapon reforge must refund previously spent iron');
+assert.equal(inventory['Медь'],swordCopperBefore,'A failed weapon reforge must not consume copper');
+failSpendOn=null;failGoldSpend=true;
+const armorIronBefore=inventory['Железо'];
+assert.equal(api.reforgeGear('armor'),false,'A gold-charge failure must abort armour reforge');
+assert.equal(inventory['Железо'],armorIronBefore,'A failed armour reforge must refund all resources');
+failGoldSpend=false;
+assert.equal(api.reforgeGear('weapon'),true,'The player can reforge equipped weapons with real resources');
+assert.equal(api.reforgeGear('armor'),true,'The player can reforge equipped armour with real resources');
+assert.ok(api.getState().gear['Железный меч'],'Weapon rarity and stats must be stored');
+assert.ok(api.getState().gear['Кожаная броня'],'Armour rarity and stats must be stored');
 
 const saved=api.exportState();
 api.importState(null);
@@ -168,6 +198,12 @@ assert.equal(api.getState().grid.generators,0,'A new world without expansion sav
 api.importState(saved);
 assert.equal(api.getState().stats.dungeonsCleared,1,'Expansion progress must survive save/load');
 assert.equal(api.getState().equippedRelic,relic.id,'Equipped relic must survive save/load');
+assert.ok(api.getState().dungeon.layout.length===5,'Seeded dungeon layout must persist across saves');
+assert.ok(api.getState().dungeon.secretCleared,'Secret-room progress must persist across saves');
+assert.ok(api.getState().gear['Железный меч']&&api.getState().gear['Кожаная броня'],'Forged equipment must persist across saves');
+const legacy=api.exportState();legacy.version=1;api.importState(legacy);
+assert.equal(api.getState().grid.generators,1,'Version-1 saves must migrate without losing power buildings');
+assert.equal(api.getState().dungeon.secretCleared,true,'Version-1-compatible migration must retain new dungeon progress');
 
 const beforePaused=api.getState().power;
 snapshot.paused=true;
