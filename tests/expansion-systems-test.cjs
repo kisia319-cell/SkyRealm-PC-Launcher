@@ -43,8 +43,11 @@ let allowPlacement=true;
 let snapshot={worldId:'expansion-test-world',difficulty:'medium',paused:false,day:4};
 let gameMinuteTotal=3*1440+12*60;
 let night=false;
+let playerPosition={x:100,y:100};
 const bridge={
   getWorldId:()=>snapshot.worldId,
+  getPlayerPosition:()=>({...playerPosition}),
+  getWorldEventSpawnPoint:()=>({x:100,y:100}),
   getChallengeSnapshot:()=>({...snapshot,items:{...inventory},level:20,hp:100}),
   getGameMinuteTotal:()=>gameMinuteTotal,
   getDifficulty:()=>snapshot.difficulty,
@@ -96,7 +99,16 @@ for(let i=0;i<30;i++)api.update(1);
 assert.ok(inventory['Камень']>stoneBeforeDrill,'Powered mining drill must add real stone to inventory');
 
 assert.equal(api.startEvent('invasion',3),true,'A night siege event can start');
+assert.equal(api.getState().event.x,100,'World event must store a physical location');
+assert.equal(api.getState().event.y,100,'World event must store a physical location');
+assert.equal(typeof api.drawWorldEvent,'function','World event must expose a canvas renderer');
+const fakeContext={save(){},restore(){},translate(){},rotate(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},fill(){},stroke(){},arc(){},ellipse(){},fillRect(){},fillText(){}};
+api.drawWorldEvent(fakeContext,0,0,1,800,600);
 const beforeEventGold=rewards.gold;
+playerPosition={x:900,y:900};
+assert.equal(api.attackEvent(),false,'Player cannot attack a world event from across the map');
+playerPosition={x:100,y:100};
+assert.equal(api.interactWorldEvent(),true,'Player can attack the beacon using the world interaction key');
 for(let i=0;i<10&&api.getState().event;i++)api.attackEvent();
 assert.equal(api.getState().event,null,'Manual defence must be able to defeat a siege');
 assert.equal(api.getState().stats.eventsWon,1);
