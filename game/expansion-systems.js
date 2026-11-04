@@ -172,6 +172,7 @@
     let html='<div class="ex-dungeon-banner"><span>🏛️ ЗАТЕРЯННАЯ ЦИТАДЕЛЬ</span><b>Комната '+d.room+' / 5</b></div>';
     html+='<div class="ex-room-map">'+DUNGEON_ROOMS.map((r,i)=>'<div class="ex-room '+(d.cleared.includes(i+1)?'cleared':d.room===i+1&&d.active?'active':'')+'"><b>'+(d.cleared.includes(i+1)?'✓':i+1)+'</b><small>'+r.name+'</small></div>').join('')+'</div>';
     if(d.cleared.length===5)html+='<article class="ex-card"><b>🏆 Цитадель очищена!</b><small>Ты победил всех хранителей. Награды и найденные реликвии сохранены.</small>'+renderButton('dungeon-reset','Начать новую экспедицию',false)+'</article>';
+    else if(!d.active&&d.cleared.includes(d.room))html+='<article class="ex-card"><b>Комната '+d.room+' очищена</b><small>Награда получена. Можно идти дальше.</small>'+renderButton('dungeon-next','Следующая комната',d.room>=5)+'</article>';
     else if(!d.active)html+='<article class="ex-card"><b>'+room.name+'</b><small>Противник: '+room.enemy+' · ожидаемое здоровье '+room.hp+'.</small><small>Вход: 5 кристаллов, 10 железа и 50 золота. Исследование автоматики I.</small>'+renderButton('dungeon-enter','Войти в цитадель',state.research<1||!canAfford({Кристалл:5,Железо:10},50))+'</article>';
     else {
       html+='<article class="ex-card ex-enemy"><b>⚔️ '+room.enemy+'</b><div class="ex-meter"><i style="width:'+Math.round(d.enemyHp/Math.max(1,d.enemyMaxHp)*100)+'%"></i></div><small>Здоровье: '+Math.ceil(d.enemyHp)+' / '+d.enemyMaxHp+' · удар: '+room.damage+'</small>'+renderButton('dungeon-attack','Атаковать',false)+'</article>';
@@ -331,7 +332,7 @@
   }
   function createRelic(forceRare=false) {
     let roll=Math.random()*100,chosen=RARITIES[RARITIES.length-1];
-    if(forceRare)roll=Math.min(roll,5);
+    if(forceRare)roll=Math.max(0,roll-95);
     for(const r of RARITIES){if(roll<r.weight){chosen=r;break;}roll-=r.weight;}
     const base=RELIC_NAMES[Math.floor(Math.random()*RELIC_NAMES.length)];
     const item={
@@ -391,10 +392,10 @@
   }
   function nextDungeonRoom() {
     const d=state.dungeon;
-    if(d.active||!d.cleared.includes(d.room))return false;
-    if(d.room>=5)return false;
-    d.room++;d.enemyHp=0;d.enemyMaxHp=0;d.attacks=0;
-    return startDungeon();
+    if(d.active||!d.cleared.includes(d.room)||d.room>=5)return false;
+    d.room++;const def=DUNGEON_ROOMS[d.room-1],max=Math.round(def.hp*difficultyScale());
+    d.active=true;d.enemyMaxHp=max;d.enemyHp=max;d.attacks=0;
+    save();notify('Следующая комната: '+def.name+'.');render();return true;
   }
   function maybeStartNightEvent() {
     const b=bridge(),minutes=Number(b?.getGameMinuteTotal?.());
