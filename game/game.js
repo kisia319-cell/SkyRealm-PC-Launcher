@@ -90,18 +90,33 @@
     else if(skill==='summon'){m.action='cast';for(let i=0;i<2;i++)spawnBossRealmCreature(['shadow_hunter','cursed_skull','rift_wolf'][Math.floor(Math.random()*3)],m.x+(i?70:-70),m.y+60);toast('Генерал бездны призывает прислужников!');}
   }
   function updateBossRealmEnemies(dt){
-    bossRealmState.elapsed+=dt;bossRealmState.spawnTimer-=dt;bossRealmState.eventTimer-=dt;bossRealmState.eventRemaining=Math.max(0,bossRealmState.eventRemaining-dt);
+    const step=Number.isFinite(dt)?Math.max(0,Math.min(.1,dt)):0;
+    bossRealmState.elapsed+=step;bossRealmState.spawnTimer-=step;bossRealmState.eventTimer-=step;bossRealmState.eventRemaining=Math.max(0,bossRealmState.eventRemaining-step);
     if(bossRealmState.eventRemaining<=0){bossRealmState.eventName='';bossRealmState.eventId='';}
     if(bossRealmState.eventTimer<=0){startBossRealmEvent();bossRealmState.eventTimer=110+Math.random()*50;}if(bossRealmState.eventId==='meteor'&&Math.random()<dt*.3){const mx=player.x+(Math.random()-.5)*520,my=player.y+(Math.random()-.5)*360;spawnVisualBurst(mx,my,18,'spark','#ff9b55');if(Math.hypot(player.x-mx,player.y-my)<55)bossRealmHurtPlayer(28,'Падающий метеорит','#ff9b55');}
     if(bossRealmState.kills>=8&&!monsters.some(m=>m.bossRealmCreature&&['boss','god'].includes(BOSS_REALM_CREATURES[m.realmType]?.tier))){const available=['abyss_king','rift_dragon','ancient_devourer','end_knight'].filter(id=>!bossRealmState.defeatedBosses.includes(id));if(available.length)spawnBossRealmCreature(available[Math.floor(Math.random()*available.length)]);else if(bossRealmState.kills>=22&&bossRealmState.defeatedBosses.length>=4){const gods=['astral_god','chronos_god'].filter(id=>!bossRealmState.defeatedGods.includes(id));if(gods.length)spawnBossRealmCreature(gods[Math.floor(Math.random()*gods.length)]);}}
     if(bossRealmState.spawnTimer<=0&&bossRealmCreatureCount()<12){const pool=['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit'];spawnBossRealmCreature(pool[Math.floor(Math.random()*pool.length)]);if(bossRealmState.kills>=5&&Math.random()<.3)spawnBossRealmCreature(['abyss_general','blood_berserker','rift_warden','soul_devourer'][Math.floor(Math.random()*4)]);bossRealmState.spawnTimer=10+Math.random()*5;}
-    for(const m of monsters){if(!m.bossRealmCreature)continue;const d=BOSS_REALM_CREATURES[m.realmType];if(!d)continue;m.flash=Math.max(0,m.flash-dt);m.attackCooldown=Math.max(0,m.attackCooldown-dt);m.specialCooldown=Math.max(0,m.specialCooldown-dt);m.actionTimer=Math.max(0,m.actionTimer-dt);m.rage=Math.max(0,m.rage-dt);m.animation+=dt*8;
+    for(const m of monsters){if(!m.bossRealmCreature)continue;const d=BOSS_REALM_CREATURES[m.realmType];if(!d)continue;
+      // Repair incomplete/legacy enemy records before any combat calculations.
+      const baseHp=Math.max(1,Number(d.hp)||100);
+      if(!Number.isFinite(m.maxHp)||m.maxHp<1)m.maxHp=Math.round(baseHp*difficultyConfig().monsterHp);
+      if(!Number.isFinite(m.hp))m.hp=m.maxHp;
+      m.hp=Math.max(0,Math.min(m.maxHp,m.hp));
+      if(!Number.isFinite(m.speed)||m.speed<=0)m.speed=d.speed||40;
+      if(!Number.isFinite(m.damageScale)||m.damageScale<=0)m.damageScale=difficultyConfig().monsterDamage||1;
+      if(!Number.isFinite(m.attackCooldown))m.attackCooldown=.25;
+      if(!Number.isFinite(m.specialCooldown))m.specialCooldown=1;
+      if(!Number.isFinite(m.actionTimer))m.actionTimer=0;
+      if(!Number.isFinite(m.rage))m.rage=0;
+      m.flash=Math.max(0,(Number(m.flash)||0)-step);m.attackCooldown=Math.max(0,m.attackCooldown-step);m.specialCooldown=Math.max(0,m.specialCooldown-step);m.actionTimer=Math.max(0,m.actionTimer-step);m.rage=Math.max(0,m.rage-step);m.animation=(Number(m.animation)||0)+step*8;
+      if(m.hp<=0)continue;
       const dist=Math.hypot(player.x-m.x,player.y-m.y)||1,ratio=m.hp/m.maxHp;
       if(['boss','god'].includes(d.tier)&&ratio<.66&&m.phaseStage<2){m.phaseStage=2;m.speed*=1.15;spawnVisualBurst(m.x,m.y,30,'spark',d.eyes);toast(d.name+' переходит во вторую фазу!');}
       if(['boss','god'].includes(d.tier)&&ratio<.32&&m.phaseStage<3){m.phaseStage=3;m.speed*=1.2;m.rage=12;spawnVisualBurst(m.x,m.y,42,'spark',d.eyes);toast(d.name+' впадает в ярость!');}
-      if(bossRealmInvisibleTimer<=0||d.tier==='god'){if(dist>48&&m.actionTimer<=0){let sp=m.speed*(m.rage>0?1.25:1);if(['ranged','volley','chronos'].includes(d.skill)&&dist<200)sp*=.3;const dx=(player.x-m.x)/dist,dy=(player.y-m.y)/dist,nx=m.x+dx*sp*dt,ny=m.y+dy*sp*dt;if(!blocked(nx,m.y))m.x=nx;if(!blocked(m.x,ny))m.y=ny;}}
-      if(dist<54&&m.attackCooldown<=0&&bossRealmInvisibleTimer<=0){m.attackCooldown=d.tier==='god'?1:d.tier==='boss'?1.2:1.5;if(m.shield>0){m.shield--;toast(d.name+' блокирует удар!');}else bossRealmHurtPlayer(d.damage,d.name+' · атака',d.eyes);}
-      if(m.specialCooldown<=0&&(bossRealmInvisibleTimer<=0||d.tier==='god')){m.specialCooldown=d.tier==='god'?5.5:d.tier==='boss'?6.5:d.tier==='elite'?7.5:9;bossRealmSpecial(m,d,dist);}
+      if(bossRealmInvisibleTimer<=0||d.tier==='god'){if(dist>48&&m.actionTimer<=0){let sp=m.speed*(m.rage>0?1.25:1);if(['ranged','volley','chronos'].includes(d.skill)&&dist<200)sp*=.3;const dx=(player.x-m.x)/dist,dy=(player.y-m.y)/dist,nx=Math.max(TILE,Math.min(COLS*TILE-TILE,m.x+dx*sp*step)),ny=Math.max(TILE,Math.min(ROWS*TILE-TILE,m.y+dy*sp*step));m.x=nx;m.y=ny;}}
+      const attackDistance=Math.hypot(player.x-m.x,player.y-m.y);
+      if(attackDistance<58&&m.attackCooldown<=0&&bossRealmInvisibleTimer<=0){m.attackCooldown=d.tier==='god'?1:d.tier==='boss'?1.2:1.5;if(m.shield>0){m.shield--;toast(d.name+' блокирует удар!');}else bossRealmHurtPlayer((Number(d.damage)||8)*(Number(m.damageScale)||1),d.name+' · атака',d.eyes);}
+      if(m.specialCooldown<=0&&(bossRealmInvisibleTimer<=0||d.tier==='god')){m.specialCooldown=d.tier==='god'?5.5:d.tier==='boss'?6.5:d.tier==='elite'?7.5:9;bossRealmSpecial(m,d,attackDistance);}
     }
     if(bossRealmState.kills>=5)bossRealmState.wave=Math.max(2,Math.floor(bossRealmState.kills/5)+1);
   }
@@ -2198,8 +2213,9 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     spawnVisualBurst(wolfBossX,wolfBossY,34,'spark','#b6d6ff');playWolfSound('howl');toast('ОБОРОТЕН ПОБЕЖДЁН! Награда появилась в общей добыче леса.');awardXP(180,'победа над Оборотнем');saveGame();
   }
   function updateMonsters(dt){
-    if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode){return;}
+    // Boss Realm owns its combat simulation and must run before surface-world mode guards.
     if(bossRealmMode){updateBossRealmEnemies(dt);return;}
+    if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode){return;}
     const coopNetwork=window.SkyRealmCoopClient,coopRoom=coopNetwork?.getRoomState?.();
     if(isCoopWorldActive()&&coopRoom&&!coopNetwork?.isRoomOwner){
       damageToastTimer=Math.max(0,damageToastTimer-dt);
