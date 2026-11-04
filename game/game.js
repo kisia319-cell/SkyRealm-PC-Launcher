@@ -3833,8 +3833,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     closeRenameWorld();renderWorldList();
   }
   function syncAdminMenu(){
-    const admin=currentStaffRole==='admin'||gameSettings.adminMode===true;
-    const moderator=admin||currentStaffRole==='moderator'||gameSettings.moderatorMode===true;
+    const admin=currentStaffRole==='admin';
+    const moderator=admin||currentStaffRole==='moderator';
     document.getElementById('menu-admin').hidden=!admin;
     document.getElementById('pause-admin-tools').hidden=!admin;
     document.getElementById('menu-moderator').hidden=!moderator;
@@ -4086,9 +4086,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(entries.some(([name])=>name===previous))select.value=previous;
     if(suggestions){suggestions.replaceChildren();entries.forEach(([name])=>{const option=document.createElement('option');option.value=name;suggestions.appendChild(option);});}
   }
-  function openAdminPanel(){
-    const serverAdmin=currentStaffRole==='admin',localAdmin=gameSettings.adminMode===true&&!isCoopWorldActive();
-    if(!serverAdmin&&!localAdmin){toast('Нет подтверждённых прав администратора.');return;}
+  function openAdminPanel(){if(currentStaffRole!=='admin'){toast('Нет подтверждённых прав администратора.');return;}
+    const serverAdmin=true;
     renderWorldList();setPanelOpen('admin-panel-shade',true);
     document.getElementById('admin-world-count').textContent=String(readWorlds().length);
     populateStaffItemCatalog('admin');refreshAdminStats();renderBanList('admin-ban-list');
@@ -4098,8 +4097,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   async function openModeratorPanel(){
     const role=await refreshStaffRole(true);
-    const localModerator=gameSettings.moderatorMode===true&&!isCoopWorldActive();
-    if(role!=='admin'&&role!=='moderator'&&!localModerator){
+    if(role!=='admin'&&role!=='moderator'){
       toast('Нет подтверждённых прав модератора.');
       if(panelReturnToPause){panelReturnToPause=false;setPaused(true);}
       return;

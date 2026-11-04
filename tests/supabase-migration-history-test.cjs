@@ -42,7 +42,9 @@ const expected = [
   '20261101140643_skyrealm_cloud_saves.sql',
   '20261101140737_skyrealm_cloud_saves_deny_policy.sql',
   '20261101172558_social_presence_status.sql',
-  '20261103043128_skyrealm_staff_roles.sql'
+  '20261103043128_skyrealm_staff_roles.sql',
+  '20261103144757_staff_role_expiry_and_public_bootstrap.sql',
+  '20261103150208_staff_admin_bootstrap_claim_code.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
@@ -97,6 +99,9 @@ assert.ok(read(expected[37]).includes('create table if not exists public.skyreal
 assert.ok(read(expected[37]).includes('force row level security'));
 assert.ok(read(expected[37]).includes('grant select, insert, update, delete on table public.skyrealm_staff_roles to service_role'));
 assert.ok(read(expected[37]).includes("lower(username) = 'kisia'"));
+assert.ok(read(expected[38]).includes('expires_at'));
+assert.ok(read(expected[38]).includes('public_grants_enabled'));
+assert.ok(read(expected[39]).includes('bootstrap_code_hash'));
 
 console.log('SkyRealm Supabase migration history tests passed.');
 
