@@ -37,7 +37,7 @@ jobs:
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "config.js", "realm.jpg", "icon.png",
             "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt", "game/bugfix_counter.txt",
-            "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css"
+            "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css", "game/expansion-systems.js"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
           if ($missing.Count -gt 0) {
@@ -56,6 +56,8 @@ jobs:
           node --check launcher-enhancements.js
           node --check game/cloud-save-ui.js
           node --check game/custom-mods-runtime.js
+          node --check game/expansion-systems.js
+          node --check tests/expansion-systems-test.cjs
           node --check tests/auth-smoke.mjs
           node --check tests/game-smoke-test.cjs
           node --check tests/farm-economy-test.cjs
@@ -86,6 +88,7 @@ jobs:
           node tests/gameplay-regression-test.cjs
           node tests/sea-world-regression-test.cjs
           node tests/challenge-staff-regression-test.cjs
+          node tests/expansion-systems-test.cjs
 
       - name: Install build tools
         run: python -m pip install --upgrade pip pywebview pyinstaller psutil
@@ -127,7 +130,7 @@ jobs:
             version = $version
             download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip"
             sha256 = $hash
-            notes = "SkyRealm Launcher $version + Game $($gameVersion): verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; sea expedition with animated ocean waves, detailed ship and sailor, visible sharks and underwater creatures, reefs, islands and shipwrecks; repairs missing marine populations in existing sea saves; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); existing accounts and local worlds remain compatible."
+            notes = "SkyRealm Launcher $version + Game $($gameVersion): verified account session UI; friends, private chat and co-op room invitations; update center with rollback and repair; custom game install folder; FPS cap, separate music and effects volume, remappable keyboard controls and accessibility settings; F12 screenshots with in-launcher gallery; local game calendar and support center with diagnostics report; multi-service status and local performance monitor; cloud world backups; in-app notifications; 35 built-in mods with gameplay effects; local JavaScript and Python mod editor in an isolated sandbox. World favorites and saved mod profiles; progress statistics for playtime, worlds, level and achievements; VSync low-latency Canvas option; sea expedition with animated ocean waves, detailed ship and sailor, visible sharks and underwater creatures, reefs, islands and shipwrecks; repairs missing marine populations in existing sea saves; robust WASD, arrows and remapped movement across focus changes; account buttons hidden after server-verified login; friend presence (online, away, do not disturb, in-game); new technology progression with fuel-powered generators, batteries, automated mining drills, powered shields, turrets and settlement walls; scheduled night sieges and ancient guardian awakenings; five-room Lost Citadel expedition with persistent room progress and rarity-based relic equipment that boosts player damage and defense; expansion progress is stored in each world save; existing accounts and local worlds remain compatible."
             game_version = $gameVersion
             game_download_url = "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip"
             game_sha256 = $gameHash
@@ -154,7 +157,7 @@ jobs:
           if ($tag -eq "main" -or $tag -eq "") { $tag = "v" + (Get-Content launcher_version.txt -Raw).Trim() }
           $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
           $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
-          $notes = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. Includes profile sync, friend requests, private chat, online/away/do-not-disturb/in-game presence, co-op room invitations, saved mod profiles, player statistics, VSync low-latency option, robust keyboard movement, verified login UI, SHA-256 diagnostics and world backup/restore, achievements and cosmetic rewards, searchable world library, and adventure history. Existing accounts, worlds and single-player saves remain compatible."
+          $notes = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. Includes profile sync, friend requests, private chat, online/away/do-not-disturb/in-game presence, co-op room invitations, saved mod profiles, player statistics, VSync low-latency option, robust keyboard movement, verified login UI, SHA-256 diagnostics and world backup/restore, achievements and cosmetic rewards, searchable world library, and adventure history. Adds fuel generators, batteries, automatic mining drills, powered shields, turrets, stronger settlement walls, scheduled night sieges, ancient guardian events, a five-room Lost Citadel, rare relic equipment with combat bonuses, and world-save-compatible technology progression. Existing accounts, worlds and single-player saves remain compatible."
           $assets = @(
             "dist/SkyRealm.exe",
             "update_release/SkyRealm_Windows.zip",
