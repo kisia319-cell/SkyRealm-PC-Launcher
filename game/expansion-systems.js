@@ -156,8 +156,18 @@
   }
   function spend(cost,gold=0) {
     const b=bridge();if(!canAfford(cost,gold))return false;
-    for(const [name,count] of Object.entries(cost||{}))if(!b.spendItem?.(name,count))return false;
-    if(gold>0&&!b.spendGold?.(gold))return false;
+    const paid=[];
+    for(const [name,count] of Object.entries(cost||{})){
+      if(!b.spendItem?.(name,count)){
+        for(const [refundName,refundCount] of paid)b.addItem?.(refundName,refundCount,'Возврат ресурсов после неудачной оплаты');
+        return false;
+      }
+      paid.push([name,count]);
+    }
+    if(gold>0&&!b.spendGold?.(gold)){
+      for(const [refundName,refundCount] of paid)b.addItem?.(refundName,refundCount,'Возврат ресурсов после неудачной оплаты');
+      return false;
+    }
     return true;
   }
   function renderButton(action,label,disabled=false,secondary=false) {
@@ -199,7 +209,8 @@
     let html='<div class="ex-dungeon-banner"><span>🏛️ ЗАТЕРЯННАЯ ЦИТАДЕЛЬ</span><b>Комната '+d.room+' / 5</b></div>';
     html+='<div class="ex-room-map">'+DUNGEON_ROOMS.map((r,i)=>{const node=d.layout[i]||{};return '<div class="ex-room '+(d.cleared.includes(i+1)?'cleared':d.room===i+1&&d.active&&!d.secretActive?'active':'')+'"><b>'+(d.cleared.includes(i+1)?'✓':i+1)+'</b><small>'+r.name+'</small><small>'+(node.trap?'⚠ Ловушка':'Маршрут '+(node.x+1)+':'+(node.y+1))+'</small></div>';}).join('')+'</div>';
     if(d.keys&&!d.secretCleared)html+='<article class="ex-card"><b>🗝️ Найден древний ключ</b><small>Открывает скрытый боковой зал с сильным хранителем и редкой наградой.</small>'+renderButton('dungeon-secret','Открыть секретный зал',d.active||d.keys<1)+'</article>';
-    if(d.secretActive&&d.active)html+='<article class="ex-card ex-enemy"><b>🗝️ Тайный хранитель</b><div class="ex-meter"><i style="width:'+Math.round(d.secretHp/Math.max(1,d.secretMaxHp)*100)+'%"></i></div><small>Здоровье: '+Math.ceil(d.secretHp)+' / '+d.secretMaxHp+' · высокая опасность</small>'+renderButton('dungeon-attack','Атаковать тайного хранителя',false)+'</article>'+renderButton('dungeon-leave','Отступить',false,true);\n    else if(d.cleared.length===5)html+='<article class="ex-card"><b>🏆 Цитадель очищена!</b><small>Ты победил всех хранителей. Награды и найденные реликвии сохранены.</small>'+renderButton('dungeon-reset','Начать новую экспедицию',false)+'</article>';
+    if(d.secretActive&&!d.active)html+='<article class="ex-card"><b>🗝️ Секретный зал</b><small>Тайный хранитель всё ещё ждёт. Здоровье: '+Math.ceil(d.secretHp)+' / '+d.secretMaxHp+'.</small>'+renderButton('dungeon-enter','Продолжить секретную комнату',false)+'</article>';
+    else if(d.secretActive&&d.active)html+='<article class="ex-card ex-enemy"><b>🗝️ Тайный хранитель</b><div class="ex-meter"><i style="width:'+Math.round(d.secretHp/Math.max(1,d.secretMaxHp)*100)+'%"></i></div><small>Здоровье: '+Math.ceil(d.secretHp)+' / '+d.secretMaxHp+' · высокая опасность</small>'+renderButton('dungeon-attack','Атаковать тайного хранителя',false)+'</article>'+renderButton('dungeon-leave','Отступить',false,true);\n    else if(d.cleared.length===5)html+='<article class="ex-card"><b>🏆 Цитадель очищена!</b><small>Ты победил всех хранителей. Награды и найденные реликвии сохранены.</small>'+renderButton('dungeon-reset','Начать новую экспедицию',false)+'</article>';
     else if(!d.active&&d.cleared.includes(d.room))html+='<article class="ex-card"><b>Комната '+d.room+' очищена</b><small>Награда получена. Можно идти дальше.</small>'+renderButton('dungeon-next','Следующая комната',d.room>=5)+'</article>';
     else if(!d.active)html+='<article class="ex-card"><b>'+room.name+'</b><small>Противник: '+room.enemy+' · здоровье '+(d.enemyHp>0?Math.ceil(d.enemyHp):room.hp)+'.</small><small>'+(d.entryPaid?'Вход уже оплачен · прогресс комнаты сохранён.':'Вход: 5 кристаллов, 10 железа и 50 золота. Исследование автоматики I.')+'</small>'+renderButton('dungeon-enter',d.entryPaid?'Продолжить экспедицию':'Войти в цитадель',state.research<1||(!d.entryPaid&&!canAfford({Кристалл:5,Железо:10},50)))+'</article>';
     else {
@@ -210,7 +221,7 @@
   }
   function renderRelics() {
     const active=equippedRelic(),b=bridge(),weapon=b?.getWeaponName?.()||'',armor=b?.getArmorName?.()||'',weaponGear=weapon?state.gear[weapon]:null,armorGear=armor?state.gear[armor]:null;
-    let html='<div class="ex-card"><b>⚒️ Кузница редкости</b><small>Перековывай надетое оружие и броню. Качество влияет на реальные характеристики и сохраняется в мире.</small><small>Оружие: '+(weapon||'не выбрано')+' · '+(weaponGear?.rarity||'без редкости')+' · урон +'+Math.round((weaponGear?.power||0)*100)+'%</small>'+renderButton('forge:weapon','Перековать оружие · 12 железа, 6 меди, 2 кристалла, 90 золота',!weapon||!canAfford({Железо:12,Медь:6,Кристалл:2},90))+'<small>Броня: '+(armor||'не надета')+' · '+(armorGear?.rarity||'без редкости')+' · защита +'+Math.round((armorGear?.defense||0)*100)+'%</small>'+renderButton('forge:armor','Перековать броню · 14 железа, 8 кожи, 2 кристалла, 110 золота',!armor||!canAfford({Железо:14,Кожа:8,Кристалл:2},110))+'</div>';
+    let html='<div class="ex-card"><b>⚒️ Кузница редкости</b><small>Перековывай надетое оружие и броню. Качество влияет на реальные характеристики и сохраняется в мире.</small><small>Оружие: '+(weapon||'не выбрано')+' · '+(weaponGear?.rarity||'без редкости')+' · урон +'+Math.round((weaponGear?.power||0)*100)+'%</small>'+renderButton('forge:weapon','Перековать оружие · 12 железа, 6 меди, 2 кристалла, 90 золота',!weapon||!canAfford({Железо:12,Медь:6,Кристалл:2},90))+'<small>Броня: '+(armor||'не надета')+' · '+(armorGear?.rarity||'без редкости')+' · защита +'+Math.round((armorGear?.defense||0)*100)+'%</small>'+renderButton('forge:armor','Перековать броню · 14 железа, 8 костей, 2 кристалла, 110 золота',!armor||!canAfford({Железо:14,Кость:8,Кристалл:2},110))+'</div>';
     html+='<div class="ex-card"><b>✨ Реликвии</b><small>Реликвии дают дополнительные бонусы к урону и защите. Надето: '+(active?active.name:'ничего')+'</small></div>';
     if(!state.relics.length)return html+'<p class="ex-muted">Пока нет реликвий. Пройди затерянную цитадель или отбей древнее пробуждение.</p>';
     return html+'<div class="ex-list">'+state.relics.map(r=>'<article class="ex-card"><div class="ex-card-head"><b>'+r.name+'</b><span style="color:'+rarityColor(r.rarity)+'">'+r.rarity+'</span></div><small>Урон +'+Math.round(r.power*100)+'% · защита +'+Math.round(r.defense*100)+'%</small>'+renderButton('equip:'+r.id,state.equippedRelic===r.id?'Надето':'Надеть',state.equippedRelic===r.id)+'</article>').join('')+'</div>';
@@ -257,7 +268,7 @@
       if(action==='dungeon-attack'){attackDungeon();return;}
       if(action==='dungeon-leave'){leaveDungeon();return;}
       if(action==='dungeon-next'){nextDungeonRoom();return;}
-      if(action==='dungeon-reset'){state.dungeon={room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0};save();render();return;}
+      if(action==='dungeon-reset'){state.dungeon=emptyState().dungeon;save();render();return;}
       if(action.startsWith('equip:')){equipRelic(action.slice(6));return;}
     });
   }
@@ -412,7 +423,7 @@
     if(!['weapon','armor'].includes(slot))return false;
     const b=bridge(),name=slot==='armor'?b?.getArmorName?.():b?.getWeaponName?.();
     if(!name){notify(slot==='armor'?'Сначала надень броню.':'Сначала возьми оружие.');return false;}
-    const cost=slot==='weapon'?{Железо:12,Медь:6,Кристалл:2}:{Железо:14,Кожа:8,Кристалл:2},gold=slot==='weapon'?90:110;
+    const cost=slot==='weapon'?{Железо:12,Медь:6,Кристалл:2}:{Железо:14,Кость:8,Кристалл:2},gold=slot==='weapon'?90:110;
     if(!spend(cost,gold)){notify('Для перековки не хватает материалов или золота.');return false;}
     let roll=Math.random()*100,rarity=RARITIES[RARITIES.length-1];
     for(const tier of RARITIES){if(roll<tier.weight){rarity=tier;break;}roll-=tier.weight;}
@@ -462,7 +473,7 @@
   }
   function startDungeon() {
     const d=state.dungeon;ensureDungeonLayout();
-    if(d.cleared.length===5&&(!d.keys||d.secretCleared)){notify('Цитадель уже очищена. Начни новую экспедицию.');return false;}
+    if(d.cleared.length===5&&!d.secretActive&&(!d.keys||d.secretCleared)){notify('Цитадель уже очищена. Начни новую экспедицию.');return false;}
     if(state.research<1){notify('Для поиска цитадели требуется исследование автоматики I.');return false;}
     if(!d.entryPaid){
       if(!spend({Кристалл:5,Железо:10},50)){notify('Для входа нужно 5 кристаллов, 10 железа и 50 золота.');return false;}
