@@ -40,7 +40,7 @@
     if(!Array.isArray(state.sharks))state.sharks=[];
     if(!Array.isArray(state.monsters))state.monsters=[];
     if(!state.treasures.length)for(let i=0;i<22;i++)state.treasures.push({id:'chest-'+i,x:rand(18,W-12),y:rand(8,H-8),kind:i%5===0?'wreck':'chest'});
-    if(!state.sharks.length)state.sharks=Array.from({length:2},(_,i)=>({id:'shark-'+i,x:rand(42,W-18),y:rand(12,H-12),hp:65,angle:rand(0,6.28),speed:rand(10,16),cool:rand(0,2)}));
+    if(!state.sharks.length)state.sharks=Array.from({length:2},(_,i)=>({id:'shark-'+i,x:rand(42,W-18),y:rand(12,H-12),hp:65,angle:rand(0,6.28),speed:rand(10,16),cool:rand(0,2)}));else state.sharks=state.sharks.filter(Boolean).slice(0,3);
     if(!state.monsters.length)state.monsters=Array.from({length:10},(_,i)=>({id:'sea-monster-'+i,x:rand(24,W-10),y:rand(8,H-8),hp:85,angle:rand(0,6.28),speed:rand(8,15),cool:rand(0,2)}));
     if(!Array.isArray(state.discovered))state.discovered=[];
   }
@@ -163,7 +163,7 @@
     }else{$('vault-log').textContent='Оба бога повержены, главная сокровищница уже разграблена.';}
     save();b?.save?.();
   }
-  function spawnShark(){if(state.sharks.length<18)state.sharks.push({id:'shark-'+Date.now(),x:clamp(state.x+rand(-18,18),3,W-3),y:clamp(state.y+rand(-18,18),3,H-3),hp:55,angle:rand(0,6.28),speed:rand(12,24),cool:1});}
+  function spawnShark(){if(!Array.isArray(state.sharks))state.sharks=[];if(state.sharks.length>=3)return false;const shark={id:'shark-'+Date.now()+'-'+Math.floor(Math.random()*1e6),x:clamp(state.x+rand(-28,28),3,W-3),y:clamp(state.y+rand(-28,28),3,H-3),hp:55,angle:rand(0,6.28),speed:rand(12,20),cool:rand(.5,2)};state.sharks.push(shark);return true;}
   function frame(now){
     if(!active)return;const dt=Math.min(.04,(now-last)/1000);last=now;state.time+=dt;state.wave+=dt*2;
     update(dt);draw();if(state.messageLeft>0){state.messageLeft-=dt;if(state.messageLeft<=0)$('sea-message').textContent='';}
