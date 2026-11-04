@@ -43,7 +43,7 @@ const document={
 const inventory={
   'Древесина':500,'Камень':500,'Железо':500,'Медь':500,'Кристалл':100,'Уголь':100,'Мифрил':50,'Серебро':100,'Кость':500,'Мясо':500
 };
-let failSpendOn=null,failGoldSpend=false;
+let failSpendOn=null,failGoldSpend=false,doorAvailable=false,doorToggles=0;
 const rewards={gold:100000,items:{},damage:0,saves:0,toasts:[]};
 const worldStructures=[];
 let allowPlacement=true;
@@ -70,6 +70,7 @@ const bridge={
   getArmorName:()=> 'Кожаная броня',
   getItemCount:name=>inventory[name]||0,
   placeExpansionStructure:type=>{if(!allowPlacement)return false;worldStructures.push(type);return true;},
+  toggleExpansionDoor:()=>{if(!doorAvailable)return false;doorToggles++;return true;},
   spendItem:(name,count)=>{if(name===failSpendOn||(inventory[name]||0)<count)return false;inventory[name]-=count;return true;},
   getGold:()=>Math.floor(rewards.gold/100),
   spendGold:amount=>{const cost=amount*100;if(failGoldSpend||rewards.gold<cost)return false;rewards.gold-=cost;return true;},
@@ -103,9 +104,22 @@ assert.equal(api.build('turret'),true,'Research I unlocks the defensive turret')
 assert.equal(api.build('wall'),true,'Settlement wall can be built');
 assert.equal(api.build('guard'),true,'Research I unlocks a real guard post for settlement defence');
 assert.equal(api.getState().grid.guards,1,'Guard post count must be persisted');
+for(const [id,key] of [['wire','wires'],['door','doors'],['trap','traps'],['tower','towers']]){
+  assert.equal(api.build(id),true,'Research I allows building '+id);
+  assert.equal(api.getState().grid[key],1,id+' count must be persisted');
+}
+const toastCountBeforeDoor= rewards.toasts.length;
+assert.equal(api.interactWorldEvent(),false,'E interaction is not consumed when there is no event or nearby door');
+assert.equal(rewards.toasts.length,toastCountBeforeDoor,'Missing door must not spam a toast on every E press');
+doorAvailable=true;
+assert.equal(api.interactWorldEvent(),true,'E interaction must toggle the nearest electric door');
+assert.equal(doorToggles,1,'Door toggle must call the actual world door bridge');
+doorAvailable=false;
 assert.ok(api.getState().grid.walls===1);
 assert.equal(api.research(),true,'Second technology research unlocks industrial mining');
 assert.equal(api.build('drill'),true,'Research II unlocks the automatic mining drill');
+assert.equal(api.build('cannon'),true,'Research II unlocks the energy cannon');
+assert.equal(api.getState().grid.cannons,1,'Energy cannon count must be saved');
 assert.equal(api.research(),true,'Third technology research unlocks energy shields');
 assert.equal(api.build('shield'),true,'Research III unlocks the settlement power shield');
 api.update(30);
@@ -147,6 +161,16 @@ const automaticRemaining=api.getState().event.remaining;
 for(let i=0;i<3;i++)api.update(1);
 assert.ok(api.getState().event.remaining<automaticRemaining,'Powered turrets must damage real siege monsters');
 while(api.getState().event){activeEventEnemies--;api.onMonsterDefeated(automaticEventId);}
+night=false;
+
+const bloodmoonState=api.exportState();bloodmoonState.grid.guards=0;bloodmoonState.grid.turrets=0;bloodmoonState.grid.traps=1;bloodmoonState.grid.cannons=1;bloodmoonState.power=100;api.importState(bloodmoonState);
+assert.equal(api.startEvent('bloodmoon',8),true,'The blood moon event must start as a stronger enemy raid');
+assert.equal(api.getState().event.kind,'bloodmoon','Blood moon must be stored as its own event type');
+const bloodmoonId=api.getState().event.id,bloodmoonRemaining=api.getState().event.remaining;
+api.update(1);api.update(1.4);api.update(1.7);
+assert.ok(api.getState().event.remaining<bloodmoonRemaining,'Powered traps and cannons must damage actual blood moon enemies');
+while(api.getState().event){activeEventEnemies--;api.onMonsterDefeated(bloodmoonId);}
+assert.equal(inventory['Осколок кровавой луны'],2,'Winning a blood moon must award real inventory fragments');
 night=false;
 
 assert.equal(api.startDungeon(),true,'Automation research unlocks the citadel expedition');
@@ -199,6 +223,11 @@ api.importState(saved);
 assert.equal(api.getState().stats.dungeonsCleared,1,'Expansion progress must survive save/load');
 assert.equal(api.getState().equippedRelic,relic.id,'Equipped relic must survive save/load');
 assert.ok(api.getState().dungeon.layout.length===5,'Seeded dungeon layout must persist across saves');
+assert.equal(api.getState().grid.wires,1,'Cable count must survive save/load');
+assert.equal(api.getState().grid.doors,1,'Door count must survive save/load');
+assert.equal(api.getState().grid.cannons,1,'Cannon count must survive save/load');
+assert.equal(api.getState().grid.traps,1,'Trap count must survive save/load');
+assert.equal(api.getState().grid.towers,1,'Tower count must survive save/load');
 assert.ok(api.getState().dungeon.secretCleared,'Secret-room progress must persist across saves');
 assert.ok(api.getState().gear['Железный меч']&&api.getState().gear['Кожаная броня'],'Forged equipment must persist across saves');
 const legacy=api.exportState();legacy.version=1;api.importState(legacy);
