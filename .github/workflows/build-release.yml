@@ -51,6 +51,7 @@ jobs:
           node --check game/sea-system.js
           node --check game/challenge-mode.js
           node --check tests/sea-world-regression-test.cjs
+          node --check tests/sea-gameplay-test.cjs
           node --check tests/challenge-staff-regression-test.cjs
           node --check app.js
           node --check launcher-enhancements.js
@@ -87,6 +88,7 @@ jobs:
           node tests/time-mechanics-test.cjs
           node tests/gameplay-regression-test.cjs
           node tests/sea-world-regression-test.cjs
+          node tests/sea-gameplay-test.cjs
           node tests/challenge-staff-regression-test.cjs
           node tests/expansion-systems-test.cjs
 
