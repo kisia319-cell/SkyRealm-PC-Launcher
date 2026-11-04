@@ -223,3 +223,18 @@ linear-gradient(180deg,#173c69 0%,#477eaa 30%,#9ab5c0 55%,#e6c6a1 78%,#7d6c65 10
 #skyrealm-intro.hell-scene .sr-round-control{background:linear-gradient(145deg,#481923e8,#190b14ed);border-color:#ff9b8a77;color:#ffe9dd}
 #skyrealm-intro.hell-scene .sr-settings-control:hover{border-color:#ffd0a4}
 @media(max-width:650px){.sr-start-actions{top:12px;right:12px;gap:7px}.sr-round-control{width:35px;height:35px;font-size:18px}.sr-exit-control{font-size:23px}.sr-intro-exit-hint{top:56px;right:12px}}
+
+
+/* Fully dismiss every intro-only control when entering the game.
+   These controls sit outside .sr-cinematic-scene and .sr-intro-content. */
+#skyrealm-intro.intro-exit .sr-intro-tools,
+#skyrealm-intro.intro-exit .sr-start-actions,
+#skyrealm-intro.intro-exit .sr-intro-exit-hint,
+#skyrealm-intro.intro-exit .sr-enter-button,
+#skyrealm-intro.intro-exit .sr-loading {
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  transition:opacity .35s ease,visibility 0s linear .35s!important;
+}
+#skyrealm-intro.intro-exit { pointer-events:none!important; }
