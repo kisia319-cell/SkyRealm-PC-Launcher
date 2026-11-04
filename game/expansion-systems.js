@@ -315,7 +315,7 @@
       const requested=6+Math.round((difficultyScale()-1)*3);
       const spawned=Math.max(0,Number(b?.spawnEventEnemies?.(id,location.x,location.y,requested))||0);
       if(!spawned){notify('Не удалось открыть разлом: сейчас нет безопасного места для осады.');return false;}
-      state.event={id,kind:'invasion',remaining:spawned,hp:0,maxHp:0,timer:150,actions:0,day,engaged:false,...location};
+      state.event={id,kind:'invasion',remaining:spawned,hp:0,maxHp:0,timer:110,actions:0,day,engaged:false,...location};
     }
     notify(kind==='ancient'?'ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА! Ищи светящийся маяк в мире.':'НОЧНАЯ ОСАДА! Монстры вышли из красного разлома. Найди его и защити долину.');
     save();render();return true;
