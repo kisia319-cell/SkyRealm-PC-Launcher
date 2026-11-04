@@ -16,6 +16,10 @@ assert.ok(game.includes('window.SkyRealmExpansionSystems?.defenseBonus?.()||0'),
 assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall'"),'Technology structures must load from world saves');
 assert.ok(game.includes("s.type==='tech-generator'"),'Placed technology buildings must be drawn in the world');
 assert.ok(game.includes('placeExpansionStructure:type=>'),'Technology placement API must be connected to the game world');
+assert.ok(game.includes('function notifyExpansionEnemyDefeated(mob)'),'Siege enemy deaths must notify the event system exactly once');
+assert.ok(game.includes('spawnEventEnemies:(eventId,x,y,count=6)'),'Night sieges must spawn real world monsters');
+assert.ok(game.includes('mob.expansionEventId=String(eventId)'),'Siege monsters must be tracked to their event');
+assert.ok(game.includes('notifyExpansionEnemyDefeated(target)'),'Normal attacks must count defeated siege monsters');
 
 class FakeElement {
   constructor(){this.hidden=false;this.listeners={};this.children=[];this.dataset={};this.style={};this._html='';this.textContent='';this.id='';}
