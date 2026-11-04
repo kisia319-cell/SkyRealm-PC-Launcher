@@ -356,7 +356,7 @@
   function drawMap(){
     const c=$('sea-map-canvas');if(!c)return;const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.fillStyle='#0b4567';x.fillRect(0,0,w,h);x.strokeStyle='rgba(190,235,255,.12)';for(let i=0;i<=22;i++){x.beginPath();x.moveTo(i*w/22,0);x.lineTo(i*w/22,h);x.stroke();}for(let i=0;i<=16;i++){x.beginPath();x.moveTo(0,i*h/16);x.lineTo(w,i*h/16);x.stroke();}x.fillStyle='#e9f5ff';for(const cell of state.discovered){const [a,b]=cell.split(',').map(Number);x.fillRect(a/360*w,b/260*h,2,2);}x.fillStyle='#ffe17c';for(const m of state.mapMarks)x.fillRect(m.x/360*w-4,m.y/260*h-4,8,8);if(state.city.discovered){x.fillStyle='#d7a7ff';x.fillRect(state.city.x/360*w-5,state.city.y/260*h-5,10,10);}for(const cave of state.caves)if(cave.active||cave.cleared){x.fillStyle=cave.cleared?'#88e0b1':'#bba1ff';x.beginPath();x.arc(cave.x/360*w,cave.y/260*h,4,0,Math.PI*2);x.fill();}x.fillStyle='#ff756a';x.beginPath();x.arc(state.x/360*w,state.y/260*h,5,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.font='12px Segoe UI';x.fillText('Ты',state.x/360*w+8,state.y/260*h-8);
   }
-  function api(){return {open:enter,isOpen:()=>active,save,getState:()=>JSON.parse(JSON.stringify(state)),upgradeShip,fireHarpoon,boatMaxHp};}
+  function api(){return {open:enter,isOpen:()=>active,save,load,ensureWorld,getState:()=>JSON.parse(JSON.stringify(state)),upgradeShip,fireHarpoon,boatMaxHp};}
   window.SkyRealmSea=api();
   function installExpeditionButton(){
     if($('open-sea-expedition'))return;
