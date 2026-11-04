@@ -246,10 +246,18 @@
     const key={generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id];
     if(state.grid[key]>=item.limit){notify('Достигнут предел постройки: '+item.title+'.');return false;}
     if(item.research&&state.research<item.research){notify('Сначала исследуй автоматику.');return false;}
+    const b=bridge();
+    if(typeof b?.placeExpansionStructure!=='function'){notify('Не удалось подключить строительство к игровому миру.');return false;}
     if(!spend(item.cost,item.gold)){notify('Не хватает материалов или золота.');return false;}
+    if(b.placeExpansionStructure(id)!==true){
+      for(const [name,count] of Object.entries(item.cost||{}))b.addItem?.(name,count,'Возврат ресурсов: место для постройки не найдено');
+      if(item.gold)b.addGold?.(item.gold*100);
+      notify('Постройка не размещена. Все потраченные материалы возвращены.');
+      return false;
+    }
     state.grid[key]++;
     if(id==='battery')state.power=Math.min(capacityFor(),state.power+30);
-    save();notify('Построено: '+item.title+'.');render();return true;
+    save();notify('Построено на карте: '+item.title+'.');render();return true;
   }
   function research() {
     if(state.research>=3)return false;
