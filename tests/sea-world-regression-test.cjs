@@ -11,6 +11,10 @@ assert.match(sea,/if\(!state\.sharks\.length\)/,'Old sea saves must repopulate m
 assert.match(sea,/const W = 360, H = 260/,'Sea map must be substantially larger');
 assert.match(sea,/length:2/,'Sharks must be rare by default');
 assert.match(sea,/state\.sharkSpawnTimer/,'Sharks must spawn only on a rare timer');
+assert.match(sea,/data-sea-direction=/,'Sea must provide on-screen directional controls for ship navigation');
+assert.match(sea,/function keyToken\(e\)/,'Keyboard steering must use physical key codes and work across keyboard layouts');
+assert.match(sea,/pointerdown/,'Ship directional controls must support press-and-hold pointer input');
+assert.match(sea,/visibilitychange/,'Sea movement must not remain stuck after the app loses focus');
 assert.match(sea,/state\.sharks\.length>=3/,'All shark spawn paths must enforce a hard three-shark cap');
 assert.match(sea,/slice\(0,3\)/,'Legacy saves must be normalized to the shark cap');
 assert.match(sea,/ctx\.scale\(1\.7,1\.7\)/,'Sailor avatar must be larger and have a visible face');
