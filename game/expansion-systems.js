@@ -17,7 +17,7 @@
     turretClock:0,
     lastSiegeNight:-1,
     event:null,
-    dungeon:{room:1,active:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0},
+    dungeon:{room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0},
     relics:[],
     equippedRelic:null,
     stats:{eventsWon:0,dungeonsCleared:0}
@@ -81,6 +81,7 @@
     base.dungeon = {
       room:clamp(Math.floor(Number(dungeon.room)||1),1,5),
       active:dungeon.active===true,
+      entryPaid:dungeon.entryPaid===true,
       cleared:Array.isArray(dungeon.cleared)?Array.from(new Set(dungeon.cleared.filter(n=>Number.isInteger(n)&&n>=1&&n<=5))).slice(0,5):[],
       enemyHp:clamp(Number(dungeon.enemyHp)||0,0,1000000),
       enemyMaxHp:clamp(Number(dungeon.enemyMaxHp)||0,0,1000000),
@@ -173,7 +174,7 @@
     html+='<div class="ex-room-map">'+DUNGEON_ROOMS.map((r,i)=>'<div class="ex-room '+(d.cleared.includes(i+1)?'cleared':d.room===i+1&&d.active?'active':'')+'"><b>'+(d.cleared.includes(i+1)?'✓':i+1)+'</b><small>'+r.name+'</small></div>').join('')+'</div>';
     if(d.cleared.length===5)html+='<article class="ex-card"><b>🏆 Цитадель очищена!</b><small>Ты победил всех хранителей. Награды и найденные реликвии сохранены.</small>'+renderButton('dungeon-reset','Начать новую экспедицию',false)+'</article>';
     else if(!d.active&&d.cleared.includes(d.room))html+='<article class="ex-card"><b>Комната '+d.room+' очищена</b><small>Награда получена. Можно идти дальше.</small>'+renderButton('dungeon-next','Следующая комната',d.room>=5)+'</article>';
-    else if(!d.active)html+='<article class="ex-card"><b>'+room.name+'</b><small>Противник: '+room.enemy+' · ожидаемое здоровье '+room.hp+'.</small><small>Вход: 5 кристаллов, 10 железа и 50 золота. Исследование автоматики I.</small>'+renderButton('dungeon-enter','Войти в цитадель',state.research<1||!canAfford({Кристалл:5,Железо:10},50))+'</article>';
+    else if(!d.active)html+='<article class="ex-card"><b>'+room.name+'</b><small>Противник: '+room.enemy+' · здоровье '+(d.enemyHp>0?Math.ceil(d.enemyHp):room.hp)+'.</small><small>'+(d.entryPaid?'Вход уже оплачен · прогресс комнаты сохранён.':'Вход: 5 кристаллов, 10 железа и 50 золота. Исследование автоматики I.')+'</small>'+renderButton('dungeon-enter',d.entryPaid?'Продолжить экспедицию':'Войти в цитадель',state.research<1||(!d.entryPaid&&!canAfford({Кристалл:5,Железо:10},50)))+'</article>';
     else {
       html+='<article class="ex-card ex-enemy"><b>⚔️ '+room.enemy+'</b><div class="ex-meter"><i style="width:'+Math.round(d.enemyHp/Math.max(1,d.enemyMaxHp)*100)+'%"></i></div><small>Здоровье: '+Math.ceil(d.enemyHp)+' / '+d.enemyMaxHp+' · удар: '+room.damage+'</small>'+renderButton('dungeon-attack','Атаковать',false)+'</article>';
       html+='<small class="ex-muted">Каждый удар наносит ответный урон. В комнатах 2 и 4 периодически срабатывают ловушки. Можно выйти и продолжить позже.</small>'+renderButton('dungeon-leave','Отступить',false,true);
@@ -224,7 +225,7 @@
       if(action==='dungeon-attack'){attackDungeon();return;}
       if(action==='dungeon-leave'){state.dungeon.active=false;save();render();return;}
       if(action==='dungeon-next'){nextDungeonRoom();return;}
-      if(action==='dungeon-reset'){state.dungeon={room:1,active:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0};save();render();return;}
+      if(action==='dungeon-reset'){state.dungeon={room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0};save();render();return;}
       if(action.startsWith('equip:')){equipRelic(action.slice(6));return;}
     });
   }
@@ -356,13 +357,17 @@
     state.equippedRelic=id;save();notify('Реликвия экипирована: '+equippedRelic().name+'.');render();return true;
   }
   function startDungeon() {
-    if(state.dungeon.cleared.length===5){notify('Цитадель уже очищена. Начни новую экспедицию.');return false;}
-    const cost={Кристалл:5,Железо:10};
+    const d=state.dungeon;
+    if(d.cleared.length===5){notify('Цитадель уже очищена. Начни новую экспедицию.');return false;}
     if(state.research<1){notify('Для поиска цитадели требуется исследование автоматики I.');return false;}
-    if(!spend(cost,50)){notify('Для входа нужно 5 кристаллов, 10 железа и 50 золота.');return false;}
-    const room=state.dungeon.room||1,def=DUNGEON_ROOMS[room-1],max=Math.round(def.hp*difficultyScale());
-    state.dungeon.active=true;state.dungeon.enemyMaxHp=max;state.dungeon.enemyHp=max;state.dungeon.attacks=0;
-    save();notify('Ты вошёл в цитадель: '+def.name+'.');render();return true;
+    if(!d.entryPaid){
+      if(!spend({Кристалл:5,Железо:10},50)){notify('Для входа нужно 5 кристаллов, 10 железа и 50 золота.');return false;}
+      d.entryPaid=true;
+    }
+    const room=d.room||1,def=DUNGEON_ROOMS[room-1],max=Math.round(def.hp*difficultyScale());
+    d.active=true;
+    if(!(d.enemyHp>0&&d.enemyMaxHp>0)){d.enemyMaxHp=max;d.enemyHp=max;d.attacks=0;}
+    save();notify('Ты вошёл в цитадель: '+def.name+'. Прогресс комнаты сохранён.');render();return true;
   }
   function attackDungeon() {
     const d=state.dungeon;if(!d.active||d.cleared.includes(d.room))return false;
