@@ -89,6 +89,11 @@ for(let i=0;i<10&&api.getState().event;i++)api.attackEvent();
 night=false;
 
 assert.equal(api.startDungeon(),true,'Automation research unlocks the citadel expedition');
+const goldAfterEntry=rewards.gold,ironAfterEntry=inventory['Железо'];
+assert.equal(api.leaveDungeon(),true,'Player can retreat without losing room progress');
+assert.equal(api.startDungeon(),true,'Player can resume an already-paid expedition');
+assert.equal(rewards.gold,goldAfterEntry,'Resuming must not charge the entry fee again');
+assert.equal(inventory['Железо'],ironAfterEntry,'Resuming must not consume entry materials again');
 for(let room=1;room<=5;room++){
   assert.equal(api.getState().dungeon.active,true,'Room '+room+' must become active');
   assert.equal(api.attackDungeon(),true,'Player can attack room '+room);
