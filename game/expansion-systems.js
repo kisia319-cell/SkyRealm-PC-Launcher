@@ -352,15 +352,15 @@
     if(b?.isCoopWorld?.()){notify('Глобальные осады пока отключены в совместных мирах.');return false;}
     const point=b?.getWorldEventSpawnPoint?.()||b?.getPlayerPosition?.()||{x:0,y:0};
     const location={x:Math.max(0,Number(point.x)||0),y:Math.max(0,Number(point.y)||0)};
-    const id='expedition-'+String(worldId()||'world')+'-'+String(day)+'-'+Date.now().toString(36)+'-'+Math.floor(Math.random()*1e6);
+    const id='expedition-'+String(worldId()||'world')+'-'+String(kind)+'-'+String(day)+'-'+Date.now().toString(36)+'-'+Math.floor(Math.random()*1e6);
     if(kind==='ancient')state.event={id,kind:'ancient',remaining:0,hp:1500*difficultyScale(),maxHp:1500*difficultyScale(),timer:180,actions:0,day,engaged:false,...location};
     else{
-      const requested=6+Math.round((difficultyScale()-1)*3);
+      const mobEvent=kind==='bloodmoon',requested=Math.min(8,6+Math.round((difficultyScale()-1)*3)+(mobEvent?2:0));
       const spawned=Math.max(0,Number(b?.spawnEventEnemies?.(id,location.x,location.y,requested))||0);
       if(!spawned){notify('Не удалось открыть разлом: сейчас нет безопасного места для осады.');return false;}
-      state.event={id,kind:'invasion',remaining:spawned,hp:0,maxHp:0,timer:110,actions:0,day,engaged:false,...location};
+      state.event={id,kind:mobEvent?'bloodmoon':'invasion',remaining:spawned,hp:0,maxHp:0,timer:(mobEvent?155:110)+state.grid.towers*8,actions:0,day,engaged:false,...location};
     }
-    notify(kind==='ancient'?'ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА! Ищи светящийся маяк в мире.':'НОЧНАЯ ОСАДА! Монстры вышли из красного разлома. Найди его и защити долину.');
+    notify(kind==='ancient'?'ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА! Ищи светящийся маяк в мире.':kind==='bloodmoon'?'КРОВАВАЯ ЛУНА! Усиленная орда вышла из разлома. Подготовь ловушки и пушки.':'НОЧНАЯ ОСАДА! Монстры вышли из красного разлома. Найди его и защити долину.');
     save();render();return true;
   }
   function difficultyScale() {
@@ -376,28 +376,31 @@
       if(e.kind==='ancient')e.hp=Math.max(0,e.hp-state.grid.turrets*24);
       else bridge()?.damageEventEnemy?.(e.id,state.grid.turrets*42);
     }
-    if(e.kind==='invasion'&&state.grid.guards>0){
+    const mobEvent=eKindIsMobEvent(e.kind);
+    if(mobEvent&&state.grid.guards>0){
       state.guardClock+=dt;
       if(state.guardClock>=3){state.guardClock=0;bridge()?.damageEventEnemy?.(e.id,state.grid.guards*18);}
     }
     if(e.kind==='ancient'&&e.hp<=0){finishEvent(true);return;}
-    if(e.kind==='invasion'&&e.remaining<=0){finishEvent(true);return;}
+    if(mobEvent&&state.grid.traps>0){state.trapClock+=dt;if(state.trapClock>=2.2&&state.power>=state.grid.traps*.22){state.trapClock=0;state.power=Math.max(0,state.power-state.grid.traps*.22);bridge()?.damageEventEnemy?.(e.id,state.grid.traps*24);}}
+    if(mobEvent&&state.grid.cannons>0){state.cannonClock+=dt;if(state.cannonClock>=4&&state.power>=state.grid.cannons*1.5){state.cannonClock=0;state.power=Math.max(0,state.power-state.grid.cannons*1.5);bridge()?.damageEventEnemy?.(e.id,state.grid.cannons*80);}}
+    if(mobEvent&&e.remaining<=0){finishEvent(true);return;}
     if(e.timer<=0)finishEvent(false);
   }
   function finishEvent(won) {
     const e=state.event;if(!e)return;
     state.event=null;
-    if(!won&&e.kind==='invasion')bridge()?.clearEventEnemies?.(e.id);
+    if(!won&&eKindIsMobEvent(e.kind))bridge()?.clearEventEnemies?.(e.id);
     if(won){
       state.stats.eventsWon++;
-      bridge()?.addGold?.(e.kind==='ancient'?12000:4500);
-      bridge()?.addItem?.(e.kind==='ancient'?'Сердце архонта':'Древний осколок',e.kind==='ancient'?2:1,'Награда за глобальное событие');
-      if(e.kind==='ancient')dropRelic(true);
-      notify(e.kind==='ancient'?'ДРЕВНИЙ СТРАЖ ПОВЕРЖЕН! Получена реликвия и редкие материалы.':'ОСАДА ОТБИТА! Награда добавлена в инвентарь.');
+      bridge()?.addGold?.(e.kind==='ancient'?12000:e.kind==='bloodmoon'?8500:4500);
+      bridge()?.addItem?.(e.kind==='ancient'?'Сердце архонта':e.kind==='bloodmoon'?'Осколок кровавой луны':'Древний осколок',e.kind==='ancient'?2:e.kind==='bloodmoon'?2:1,'Награда за глобальное событие');
+      if(e.kind==='ancient'||e.kind==='bloodmoon')dropRelic(true);
+      notify(e.kind==='ancient'?'ДРЕВНИЙ СТРАЖ ПОВЕРЖЕН! Получена реликвия и редкие материалы.':e.kind==='bloodmoon'?'КРОВАВАЯ ЛУНА ПЕРЕЖИТА! Получены осколки и редкая реликвия.':'ОСАДА ОТБИТА! Награда добавлена в инвентарь.');
     }else{
       const shielded=state.grid.shields>0&&state.power>=20;
       if(shielded)state.power-=20;
-      const damage=(e.kind==='ancient'?38:12+e.remaining*4)*(1-Math.min(.6,state.grid.walls*.025))*(shielded?.2:1);
+      const damage=(e.kind==='ancient'?38:e.kind==='bloodmoon'?28+e.remaining*5:12+e.remaining*4)*(1-Math.min(.6,state.grid.walls*.025))*(shielded?.2:1);
       bridge()?.damagePlayer?.(damage);
       notify('Оборона прорвана. Стены смягчили удар, но поселение потеряло ресурсы.');
     }
@@ -405,13 +408,13 @@
   }
   function eventInReach() {
     const e=state.event,p=bridge()?.getPlayerPosition?.();
-    return !!e&&!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Math.hypot(p.x-e.x,p.y-e.y)<=150;
+    return !!e&&!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Math.hypot(p.x-e.x,p.y-e.y)<=150+(state.grid.towers||0)*25;
   }
   function attackEvent() {
     const e=state.event;if(!e)return false;
     if(!eventInReach()){notify('Подойди к светящемуся маяку события ближе, чтобы атаковать.');return false;}
     e.actions++;e.engaged=true;
-    if(e.kind==='invasion'){notify('Разлом активирован! Победи всех монстров осады — '+e.remaining+' осталось.');save();render();return true;}
+    if(e.kind==='invasion'||e.kind==='bloodmoon'){notify(e.kind==='bloodmoon'?'Кровавая луна активирована! Победи усиленную орду — '+e.remaining+' осталось.':'Разлом активирован! Победи всех монстров осады — '+e.remaining+' осталось.');save();render();return true;}
     const stats=bridge()?.getStats?.()||{};
     e.hp=Math.max(0,e.hp-Math.max(1,Number(stats.weaponDamage)||30)*damageMultiplier());
     if(e.actions%3===0)bridge()?.damagePlayer?.(Math.max(3,12*(1-Math.min(.5,state.grid.walls*.01))));
@@ -419,7 +422,7 @@
     return true;
   }
   function onMonsterDefeated(eventId) {
-    const e=state.event;if(!e||e.kind!=='invasion'||String(e.id)!==String(eventId))return false;
+    const e=state.event;if(!e||!eKindIsMobEvent(e.kind)||String(e.id)!==String(eventId))return false;
     e.remaining=Math.max(0,e.remaining-1);e.actions++;
     if(e.remaining<=0)finishEvent(true);else{save();render();}
     return true;
@@ -552,7 +555,8 @@
     if(b?.isCoopWorld?.()||!Number.isFinite(minutes)||!b?.isNightTime?.()||state.event)return;
     const day=Math.floor(minutes/1440),minute=minutes%1440,nightKey=minute<360?day-1:day;
     if(nightKey<2||state.lastSiegeNight>=nightKey||state.lastSiegeNight>=0&&nightKey-state.lastSiegeNight<3)return;
-    const started=(nightKey+1)%7===0&&state.research>=1?startEvent('ancient',nightKey):startEvent('invasion',nightKey);
+    const kind=(nightKey+1)%7===0&&state.research>=1?'ancient':(nightKey+1)%5===0&&state.research>=1?'bloodmoon':'invasion';
+    const started=startEvent(kind,nightKey);
     if(started){state.lastSiegeNight=nightKey;save();}
   }
   function drawWorldEvent(ctx,camX,camY,time,screenWidth,screenHeight) {
@@ -580,17 +584,18 @@
     }
     ctx.restore();
   }
+  const eKindIsMobEvent=kind=>kind==='invasion'||kind==='bloodmoon';
   function update(dt) {
     if(!Number.isFinite(dt)||dt<=0)return;
     const snap=currentSnapshot();if(!snap?.worldId||snap.paused||bridge()?.isCoopWorld?.())return;
     if(worldId()!==lastWorldId){lastWorldId=worldId();state.event=null;state.fuelSeconds=0;}
     if(state.event&&state.event.x===0&&state.event.y===0){const point=bridge()?.getWorldEventSpawnPoint?.()||bridge()?.getPlayerPosition?.();if(point&&Number.isFinite(point.x)&&Number.isFinite(point.y)){state.event.x=Math.max(0,point.x);state.event.y=Math.max(0,point.y);save();}}
-    if(state.event?.kind==='invasion'&&Number(bridge()?.getEventEnemyCount?.(state.event.id))===0&&state.event.remaining>0){const spawned=Number(bridge()?.spawnEventEnemies?.(state.event.id,state.event.x,state.event.y,state.event.remaining))||0;if(spawned>0)state.event.remaining=spawned;else finishEvent(false);}
+    if(eKindIsMobEvent(state.event?.kind)&&Number(bridge()?.getEventEnemyCount?.(state.event.id))===0&&state.event.remaining>0){const spawned=Number(bridge()?.spawnEventEnemies?.(state.event.id,state.event.x,state.event.y,state.event.remaining))||0;if(spawned>0)state.event.remaining=spawned;else finishEvent(false);}
     refillGenerator(Math.min(1,dt));
     runDrills(Math.min(1,dt));
     maybeStartNightEvent();
     updateEvent(Math.min(1,dt));
-    if(state.grid.batteries===0)state.power=Math.min(state.power,60);
+    if(state.grid.batteries===0)state.power=Math.min(state.power,60+Math.floor(state.grid.wires/5)*15);
   }
   function reset() {
     const fresh=emptyState();
