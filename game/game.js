@@ -4119,7 +4119,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const requested=(custom||document.getElementById(selectId)?.value||'').trim().slice(0,64);
     const amount=Math.max(1,Math.min(9999999,Math.floor(Number(document.getElementById(amountId)?.value)||1)));
     if(!requested){toast('Выбери предмет или введи его название.');return;}
-    if(['Монеты','Золотые монеты','Золото'].includes(requested)){walletCents=Math.min(999999999,walletCents+amount*100);updateWalletHud();saveGame();toast('Выдано золото: '+amount+'.');return;}
+    if(['Монеты','Золотые монеты'].includes(requested)){walletCents=Math.min(999999999,walletCents+amount*100);updateWalletHud();saveGame();toast('Выдано золото: '+amount+'.');return;}
     // Only grant registered game items. Creating an arbitrary display-only entry made
     // objects appear in the bag without connecting them to the actual item mechanics.
     const item=inventoryItems.find(x=>String(x.name).toLocaleLowerCase()===requested.toLocaleLowerCase());
