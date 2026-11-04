@@ -4116,13 +4116,18 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const selectId=prefix==='mod'?'mod-resource-select':'admin-resource-select';
     const amountId=prefix==='mod'?'mod-resource-amount':'admin-resource-amount';
     const custom=document.getElementById(customId)?.value.trim();
-    const name=(custom||document.getElementById(selectId)?.value||'').trim().slice(0,64);
+    const requested=(custom||document.getElementById(selectId)?.value||'').trim().slice(0,64);
     const amount=Math.max(1,Math.min(9999999,Math.floor(Number(document.getElementById(amountId)?.value)||1)));
-    if(!name){toast('Выбери предмет или введи его название.');return;}
-    if(['Монеты','Золотые монеты'].includes(name)){walletCents+=amount*100;updateWalletHud();saveGame();toast('Выдано золото: '+amount+'.');return;}
-    let item=inventoryItems.find(x=>String(x.name).toLocaleLowerCase()===name.toLocaleLowerCase());
-    if(!item){item={name,icon:'✨',count:0,description:'Предмет, выданный администратором.'};inventoryItems.push(item);}
-    item.count=Math.min(9999999,(Number(item.count)||0)+amount);renderInventory();saveGame();toast('Выдан предмет: '+name+' × '+amount);
+    if(!requested){toast('Выбери предмет или введи его название.');return;}
+    if(['Монеты','Золотые монеты'].includes(requested)){walletCents=Math.min(999999999,walletCents+amount*100);updateWalletHud();saveGame();toast('Выдано золото: '+amount+'.');return;}
+    // Only grant registered game items. Creating an arbitrary display-only entry made
+    // objects appear in the bag without connecting them to the actual item mechanics.
+    const item=inventoryItems.find(x=>String(x.name).toLocaleLowerCase()===requested.toLocaleLowerCase());
+    if(!item){toast('Такого предмета нет в игровом каталоге. Выбери настоящий предмет из списка.');return;}
+    const granted=Math.min(amount,9999999-Math.max(0,Number(item.count)||0));
+    if(granted<=0){toast('Достигнут максимум количества этого предмета.');return;}
+    if(!changeItem(item.name,granted)){toast('Не удалось добавить предмет в инвентарь.');return;}
+    renderInventory();saveGame();toast('Предмет добавлен в игровой инвентарь: '+item.name+' × '+granted+'.');
   }
   function healPlayer(){if(!requireWorld())return;player.hp=100;player.stamina=100;updateVitals();saveGame();toast('Здоровье и выносливость восстановлены.');}
   function toggleImmortal(buttonId){immortal=!immortal;['admin-immortal','mod-immortal'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='◇ Бессмертие: '+(immortal?'вкл.':'выкл.');b.classList.toggle('active',immortal);}});toast(immortal?'Бессмертие включено.':'Бессмертие выключено.');}
