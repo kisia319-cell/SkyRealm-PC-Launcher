@@ -73,6 +73,8 @@
     if (raw.event && ['invasion','ancient'].includes(raw.event.kind)) {
       base.event = {
         kind:raw.event.kind,
+        id:typeof raw.event.id==='string'?raw.event.id.slice(0,100):'legacy-event-'+String(raw.event.kind)+'-'+String(raw.event.day||0),
+        engaged:raw.event.engaged===true,
         remaining:clamp(Math.floor(Number(raw.event.remaining)||0),0,30),
         hp:clamp(Number(raw.event.hp)||0,0,1000000),
         maxHp:clamp(Number(raw.event.maxHp)||0,0,1000000),
@@ -237,7 +239,7 @@
     });
   }
   function openPanel() {
-    const snap=currentSnapshot();if(!snap?.worldId)return;
+    const snap=currentSnapshot();if(!snap?.worldId)return;if(bridge()?.isCoopWorld?.()){notify('Технологическая система пока доступна только в одиночном мире.');return;}
     ensureUI();opened=true;root.hidden=false;launchButton.hidden=true;bridge()?.pause?.();render();
   }
   function closePanel() {
@@ -247,6 +249,7 @@
   function build(id) {
     const item=BUILDINGS[id];if(!item)return false;
     const key={generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id];
+    if(bridge()?.isCoopWorld?.()){notify('Технологические постройки пока доступны только в одиночных мирах.');return false;}
     if(state.grid[key]>=item.limit){notify('Достигнут предел постройки: '+item.title+'.');return false;}
     if(item.research&&state.research<item.research){notify('Сначала исследуй автоматику.');return false;}
     const b=bridge();
@@ -302,12 +305,19 @@
     save();
   }
   function startEvent(kind,day=0) {
-    if(state.event)return false;
-    const point=bridge()?.getWorldEventSpawnPoint?.()||bridge()?.getPlayerPosition?.()||{x:0,y:0};
+    const b=bridge();if(state.event)return false;
+    if(b?.isCoopWorld?.()){notify('Глобальные осады пока отключены в совместных мирах.');return false;}
+    const point=b?.getWorldEventSpawnPoint?.()||b?.getPlayerPosition?.()||{x:0,y:0};
     const location={x:Math.max(0,Number(point.x)||0),y:Math.max(0,Number(point.y)||0)};
-    if(kind==='ancient')state.event={kind:'ancient',remaining:0,hp:1500*(difficultyScale()),maxHp:1500*(difficultyScale()),timer:180,actions:0,day,...location};
-    else state.event={kind:'invasion',remaining:6+Math.round((difficultyScale()-1)*3),hp:0,maxHp:0,timer:110,actions:0,day,...location};
-    notify(kind==='ancient'?'ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА! Ищи светящийся маяк в мире.':'НОЧНАЯ ОСАДА! Найди красный разлом и защити долину.');
+    const id='expedition-'+String(worldId()||'world')+'-'+String(day)+'-'+Date.now().toString(36)+'-'+Math.floor(Math.random()*1e6);
+    if(kind==='ancient')state.event={id,kind:'ancient',remaining:0,hp:1500*difficultyScale(),maxHp:1500*difficultyScale(),timer:180,actions:0,day,engaged:false,...location};
+    else{
+      const requested=6+Math.round((difficultyScale()-1)*3);
+      const spawned=Math.max(0,Number(b?.spawnEventEnemies?.(id,location.x,location.y,requested))||0);
+      if(!spawned){notify('Не удалось открыть разлом: сейчас нет безопасного места для осады.');return false;}
+      state.event={id,kind:'invasion',remaining:spawned,hp:0,maxHp:0,timer:110,actions:0,day,engaged:false,...location};
+    }
+    notify(kind==='ancient'?'ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА! Ищи светящийся маяк в мире.':'НОЧНАЯ ОСАДА! Монстры вышли из красного разлома. Найди его и защити долину.');
     save();render();return true;
   }
   function difficultyScale() {
@@ -321,7 +331,7 @@
     if(state.grid.turrets>0&&state.power>=state.grid.turrets*.5&&state.turretClock>=2.5){
       state.turretClock=0;state.power=Math.max(0,state.power-state.grid.turrets*.5);
       if(e.kind==='ancient')e.hp=Math.max(0,e.hp-state.grid.turrets*24);
-      else e.remaining=Math.max(0,e.remaining-1);
+      else bridge()?.damageEventEnemy?.(e.id,state.grid.turrets*42);
     }
     if(e.kind==='ancient'&&e.hp<=0){finishEvent(true);return;}
     if(e.kind==='invasion'&&e.remaining<=0){finishEvent(true);return;}
@@ -330,6 +340,7 @@
   function finishEvent(won) {
     const e=state.event;if(!e)return;
     state.event=null;
+    if(!won&&e.kind==='invasion')bridge()?.clearEventEnemies?.(e.id);
     if(won){
       state.stats.eventsWon++;
       bridge()?.addGold?.(e.kind==='ancient'?12000:4500);
@@ -352,14 +363,18 @@
   function attackEvent() {
     const e=state.event;if(!e)return false;
     if(!eventInReach()){notify('Подойди к светящемуся маяку события ближе, чтобы атаковать.');return false;}
+    e.actions++;e.engaged=true;
+    if(e.kind==='invasion'){notify('Разлом активирован! Победи всех монстров осады — '+e.remaining+' осталось.');save();render();return true;}
     const stats=bridge()?.getStats?.()||{};
-    e.actions++;
-    if(e.kind==='ancient'){
-      e.hp=Math.max(0,e.hp-Math.max(1,Number(stats.weaponDamage)||30)*damageMultiplier());
-      if(e.actions%3===0)bridge()?.damagePlayer?.(Math.max(3,12*(1-Math.min(.5,state.grid.walls*.01))));
-    }else e.remaining=Math.max(0,e.remaining-1);
-    if((e.kind==='ancient'&&e.hp<=0)||(e.kind==='invasion'&&e.remaining<=0))finishEvent(true);
-    else{save();render();}
+    e.hp=Math.max(0,e.hp-Math.max(1,Number(stats.weaponDamage)||30)*damageMultiplier());
+    if(e.actions%3===0)bridge()?.damagePlayer?.(Math.max(3,12*(1-Math.min(.5,state.grid.walls*.01))));
+    if(e.hp<=0)finishEvent(true);else{save();render();}
+    return true;
+  }
+  function onMonsterDefeated(eventId) {
+    const e=state.event;if(!e||e.kind!=='invasion'||String(e.id)!==String(eventId))return false;
+    e.remaining=Math.max(0,e.remaining-1);e.actions++;
+    if(e.remaining<=0)finishEvent(true);else{save();render();}
     return true;
   }
   function damageMultiplier() {
@@ -445,7 +460,7 @@
   }
   function maybeStartNightEvent() {
     const b=bridge(),minutes=Number(b?.getGameMinuteTotal?.());
-    if(!Number.isFinite(minutes)||!b?.isNightTime?.()||state.event)return;
+    if(b?.isCoopWorld?.()||!Number.isFinite(minutes)||!b?.isNightTime?.()||state.event)return;
     const day=Math.floor(minutes/1440),minute=minutes%1440,nightKey=minute<360?day-1:day;
     if(nightKey<2||state.lastSiegeNight>=nightKey||state.lastSiegeNight>=0&&nightKey-state.lastSiegeNight<3)return;
     if((nightKey+1)%7===0&&state.research>=1)startEvent('ancient',nightKey);
@@ -479,9 +494,10 @@
   }
   function update(dt) {
     if(!Number.isFinite(dt)||dt<=0)return;
-    const snap=currentSnapshot();if(!snap?.worldId||snap.paused)return;
+    const snap=currentSnapshot();if(!snap?.worldId||snap.paused||bridge()?.isCoopWorld?.())return;
     if(worldId()!==lastWorldId){lastWorldId=worldId();state.event=null;state.fuelSeconds=0;}
     if(state.event&&state.event.x===0&&state.event.y===0){const point=bridge()?.getWorldEventSpawnPoint?.()||bridge()?.getPlayerPosition?.();if(point&&Number.isFinite(point.x)&&Number.isFinite(point.y)){state.event.x=Math.max(0,point.x);state.event.y=Math.max(0,point.y);save();}}
+    if(state.event?.kind==='invasion'&&Number(bridge()?.getEventEnemyCount?.(state.event.id))===0&&state.event.remaining>0){const spawned=Number(bridge()?.spawnEventEnemies?.(state.event.id,state.event.x,state.event.y,state.event.remaining))||0;if(spawned>0)state.event.remaining=spawned;else finishEvent(false);}
     refillGenerator(Math.min(1,dt));
     runDrills(Math.min(1,dt));
     maybeStartNightEvent();
@@ -504,7 +520,7 @@
     ensureUI();
     const updateButton=()=>{
       const snap=currentSnapshot();
-      if(launchButton)launchButton.hidden=!snap?.worldId||snap.paused||opened;
+      if(launchButton)launchButton.hidden=!snap?.worldId||snap.paused||opened||bridge()?.isCoopWorld?.();
     };
     updateButton();window.setInterval(updateButton,500);
   }
@@ -528,6 +544,7 @@
     equipRelic,
     getState:()=>clone(state),
     drawWorldEvent,
+    onMonsterDefeated,
     interactWorldEvent:()=>eventInReach()?attackEvent():false,
     open:openPanel,
     close:closePanel

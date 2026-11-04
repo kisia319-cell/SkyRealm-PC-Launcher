@@ -16,6 +16,10 @@ assert.ok(game.includes('window.SkyRealmExpansionSystems?.defenseBonus?.()||0'),
 assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall'"),'Technology structures must load from world saves');
 assert.ok(game.includes("s.type==='tech-generator'"),'Placed technology buildings must be drawn in the world');
 assert.ok(game.includes('placeExpansionStructure:type=>'),'Technology placement API must be connected to the game world');
+assert.ok(game.includes('function notifyExpansionEnemyDefeated(mob)'),'Siege enemy deaths must notify the event system exactly once');
+assert.ok(game.includes('spawnEventEnemies:(eventId,x,y,count=6)'),'Night sieges must spawn real world monsters');
+assert.ok(game.includes('mob.expansionEventId=String(eventId)'),'Siege monsters must be tracked to their event');
+assert.ok(game.includes('notifyExpansionEnemyDefeated(target)'),'Normal attacks must count defeated siege monsters');
 
 class FakeElement {
   constructor(){this.hidden=false;this.listeners={};this.children=[];this.dataset={};this.style={};this._html='';this.textContent='';this.id='';}
@@ -44,10 +48,16 @@ let snapshot={worldId:'expansion-test-world',difficulty:'medium',paused:false,da
 let gameMinuteTotal=3*1440+12*60;
 let night=false;
 let playerPosition={x:100,y:100};
+let activeEventEnemies=0;
 const bridge={
   getWorldId:()=>snapshot.worldId,
+  isCoopWorld:()=>false,
   getPlayerPosition:()=>({...playerPosition}),
   getWorldEventSpawnPoint:()=>({x:100,y:100}),
+  spawnEventEnemies:(eventId,x,y,count)=>{activeEventEnemies=count;return count;},
+  getEventEnemyCount:()=>activeEventEnemies,
+  damageEventEnemy:(eventId,damage)=>{if(activeEventEnemies>0){activeEventEnemies--;window.SkyRealmExpansionSystems?.onMonsterDefeated?.(eventId);return true;}return false;},
+  clearEventEnemies:()=>{activeEventEnemies=0;},
   getChallengeSnapshot:()=>({...snapshot,items:{...inventory},level:20,hp:100}),
   getGameMinuteTotal:()=>gameMinuteTotal,
   getDifficulty:()=>snapshot.difficulty,
@@ -108,9 +118,13 @@ const beforeEventGold=rewards.gold;
 playerPosition={x:900,y:900};
 assert.equal(api.attackEvent(),false,'Player cannot attack a world event from across the map');
 playerPosition={x:100,y:100};
-assert.equal(api.interactWorldEvent(),true,'Player can attack the beacon using the world interaction key');
-for(let i=0;i<10&&api.getState().event;i++)api.attackEvent();
-assert.equal(api.getState().event,null,'Manual defence must be able to defeat a siege');
+assert.equal(activeEventEnemies,6,'Night siege must spawn actual enemy units');
+const remainingBeforeEngage=api.getState().event.remaining;
+assert.equal(api.interactWorldEvent(),true,'Player can activate the beacon using the world interaction key');
+assert.equal(api.getState().event.remaining,remainingBeforeEngage,'Activating the beacon must not instantly kill enemies');
+const firstEventId=api.getState().event.id;
+for(let i=0;i<6&&api.getState().event;i++){activeEventEnemies--;api.onMonsterDefeated(firstEventId);}
+assert.equal(api.getState().event,null,'Defeating all real siege monsters must complete the event');
 assert.equal(api.getState().stats.eventsWon,1);
 assert.ok(rewards.gold>beforeEventGold,'Successful defence must award gold');
 assert.ok(inventory['Древний осколок']>=1,'Successful defence must grant a real inventory item');
@@ -119,9 +133,13 @@ api.startEvent('invasion',4);const damageBeforeShield=rewards.damage;
 for(let i=0;i<120&&api.getState().event;i++)api.update(1);
 assert.equal(api.getState().event,null,'An unattended siege must resolve when its timer expires');
 assert.ok(rewards.damage-damageBeforeShield<15,'Powered shield and walls must reduce failure damage');
-night=true;gameMinuteTotal=3*1440+21*60;api.update(1);
+night=true;gameMinuteTotal=3*1440+21*60;shieldState.grid.turrets=1;shieldState.power=100;api.importState(shieldState);api.update(1);
 assert.ok(api.getState().event,'An automatic night siege should start after the second night');
-for(let i=0;i<10&&api.getState().event;i++)api.attackEvent();
+const automaticEventId=api.getState().event.id;
+const automaticRemaining=api.getState().event.remaining;
+for(let i=0;i<3;i++)api.update(1);
+assert.ok(api.getState().event.remaining<automaticRemaining,'Powered turrets must damage real siege monsters');
+while(api.getState().event){activeEventEnemies--;api.onMonsterDefeated(automaticEventId);}
 night=false;
 
 assert.equal(api.startDungeon(),true,'Automation research unlocks the citadel expedition');
