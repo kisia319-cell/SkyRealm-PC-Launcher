@@ -129,9 +129,13 @@ api.startEvent('invasion',4);const damageBeforeShield=rewards.damage;
 for(let i=0;i<120&&api.getState().event;i++)api.update(1);
 assert.equal(api.getState().event,null,'An unattended siege must resolve when its timer expires');
 assert.ok(rewards.damage-damageBeforeShield<15,'Powered shield and walls must reduce failure damage');
-night=true;gameMinuteTotal=3*1440+21*60;api.update(1);
+night=true;gameMinuteTotal=3*1440+21*60;shieldState.grid.turrets=1;shieldState.power=100;api.importState(shieldState);api.update(1);
 assert.ok(api.getState().event,'An automatic night siege should start after the second night');
-for(let i=0;i<10&&api.getState().event;i++)api.attackEvent();
+const automaticEventId=api.getState().event.id;
+const automaticRemaining=api.getState().event.remaining;
+api.update(3);
+assert.ok(api.getState().event.remaining<automaticRemaining,'Powered turrets must damage real siege monsters');
+while(api.getState().event){activeEventEnemies--;api.onMonsterDefeated(automaticEventId);}
 night=false;
 
 assert.equal(api.startDungeon(),true,'Automation research unlocks the citadel expedition');
