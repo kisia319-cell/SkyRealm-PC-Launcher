@@ -89,6 +89,8 @@
     if(!state.sharks.length)state.sharks=Array.from({length:2},(_,i)=>({id:'shark-'+i,x:rand(42,W-18),y:rand(12,H-12),hp:65,angle:rand(0,6.28),speed:rand(10,16),cool:rand(0,2)}));else state.sharks=state.sharks.filter(Boolean).slice(0,3);
     if(!state.monsters.length)state.monsters=Array.from({length:10},(_,i)=>({id:'sea-monster-'+i,x:rand(24,W-10),y:rand(8,H-8),hp:85,angle:rand(0,6.28),speed:rand(8,15),cool:rand(0,2)}));
     if(!Array.isArray(state.discovered))state.discovered=[];
+    normalizeUpgrades();
+    state.monsters.forEach((m,i)=>{if(!m.kind)m.kind=i%11===0?'angler':i%5===0?'ray':'jelly';});
   }
   function build(){
     if(root)return;
@@ -157,10 +159,47 @@
     state.underwater=true;const oxygenMultiplier=1+(state.upgrades.oxygen||0)*.4;state.air=state.helmetLevel>=4?Infinity:Math.round((state.helmetLevel===3?480:(state.helmetLevel===2?240:60))*oxygenMultiplier);state.airEndsAt=state.air===Infinity?Infinity:Date.now()+state.air*1000;
     msg(state.helmetLevel>=4?'Шлем четвёртого уровня: запас воздуха больше не ограничен.':'Погружение! Запас воздуха: '+state.air+' секунд. Улучшения кислорода: '+(state.upgrades.oxygen||0)+'/3.');save();
   }
+  function fireHarpoon(){
+    if((state.upgrades.harpoon||0)<1){msg('Нужен установленный гарпун. Улучши его на верфи у причала.');return false;}
+    if(state.harpoonCooldown>0)return false;
+    const power=80+(state.upgrades.harpoon||0)*48,player={x:state.x,y:state.y};let target=null,kind='';
+    if(state.underwater){
+      if(!state.city.cleared&&Math.hypot(state.city.x-player.x,state.city.y-player.y)<18){target=state.city;kind='city';}
+      if(!target){const cave=state.caves.filter(v=>!v.cleared&&Math.hypot(v.x-player.x,v.y-player.y)<13).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];if(cave){cave.active=true;target=cave;kind='cave';}}
+      if(!target){target=state.monsters.filter(v=>Math.hypot(v.x-player.x,v.y-player.y)<15).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0]||null;kind='monster';}
+    }else{
+      target=state.sharks.filter(v=>Math.hypot(v.x-player.x,v.y-player.y)<18).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0]||null;kind='shark';
+    }
+    if(!target){msg('Нет цели в радиусе гарпуна. Подойди ближе.');return false;}
+    state.harpoonCooldown=Math.max(.55,1.55-(state.upgrades.harpoon||0)*.22);
+    state.harpoonTrace={x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.22};
+    target.hp=Math.max(0,(Number(target.hp)||Number(target.guardianHp)||0)-power);
+    if(kind==='city'){
+      state.city.guardianHp=target.hp;
+      if(target.hp<=0){state.city.cleared=true;msg('СТРАЖ ЗАТОНУВШЕГО ГОРОДА ПОВЕРЖЕН! Найди главный храм и нажми E.');}
+      else{bridge()?.damagePlayer?.(22);msg('Городской страж: '+Math.ceil(target.hp)+' HP. Он отвечает древней волной!');}
+    }else if(kind==='cave'){
+      if(target.hp<=0){target.cleared=true;target.active=false;bridge()?.addItem?.('Кристалл',3,'Награда за подводную пещеру');bridge()?.addItem?.('Серебро',2,'Руда из подводной пещеры');bridge()?.addItem?.('Глубинная жемчужина',1,'Редкая находка из пещерного логова');msg('ПЕЩЕРА ОЧИЩЕНА! Получены кристаллы, серебро и глубинная жемчужина.');}
+      else{bridge()?.damagePlayer?.(14);msg('Пещерный страж: '+Math.ceil(target.hp)+' HP. Ударил в ответ!');}
+    }else if(kind==='monster'){
+      if(target.hp<=0){const i=state.monsters.indexOf(target);if(i>=0)state.monsters.splice(i,1);const loot=target.kind==='kraken'?'Сердце кракена':target.kind==='angler'?'Светящийся усик':target.kind==='ray'?'Перо штормового ската':'Глубинная жемчужина';bridge()?.addItem?.(loot,1,'Добыча с морского существа');if(target.kind==='kraken')bridge()?.addItem?.('Кристалл',4,'Трофей редкого кракена');msg('Морское существо побеждено! Получено: '+loot+'.');}
+      else msg('Попадание гарпуном! Осталось '+Math.ceil(target.hp)+' HP.');
+    }else if(kind==='shark'){
+      if(target.hp<=0){const i=state.sharks.indexOf(target);if(i>=0)state.sharks.splice(i,1);bridge()?.addItem?.('Акулья чешуя',2,'Трофей морской охоты');bridge()?.addItem?.('Мясо',1,'Добыча после морской охоты');msg('Акула побеждена! Получена акулья чешуя и мясо.');}
+      else msg('Акула ранена! Осталось '+Math.ceil(target.hp)+' HP.');
+    }
+    save();return true;
+  }
   function interact(){
-    if(state.underwater){const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет.');return;}
+    if(state.underwater){
+      const treasure=nearestTreasure();if(treasure){openTreasure(treasure);return;}
+      const cave=state.caves.find(v=>!v.cleared&&Math.hypot(v.x-state.x,v.y-state.y)<8);
+      if(cave){if(!cave.active){cave.active=true;msg('Ты нашёл подводную пещеру! В глубине проснулся древний страж. Используй F и гарпун.');save();}else msg('Пещерный страж рядом. Атакуй гарпуном клавишей F.');return;}
+      if(Math.hypot(state.city.x-state.x,state.city.y-state.y)<18){state.city.discovered=true;if(!state.city.cleared){msg('НАЙДЕН ЗАТОНУВШИЙ ГОРОД! Главный храм защищает древний страж.');}else if(!state.city.rewardClaimed){state.city.rewardClaimed=true;bridge()?.addItem?.('Корона двух морей',1,'Реликвия из главного храма затонувшего города');bridge()?.addItem?.('Реликвия древних глубин',1,'Сокровище затонувшего города');bridge()?.addGold?.(50000);msg('ГЛАВНЫЙ ХРАМ ОТКРЫТ! Получены две реликвии и 500 золота.');}else msg('Затонувший город уже исследован.');save();return;}
+      msg('Осмотри дно рядом: здесь пока ничего нет. Нажми M, чтобы проверить карту.');return;
+    }
     const t=nearestTreasure();if(t){openTreasure(t);return;}
-    const b=bridge();if(state.x<=12&&state.boatHp<100){if((b?.getItemCount?.('Древесина')||0)<8||(b?.getItemCount?.('Железо')||0)<2){msg('Для ремонта у берега нужно 8 древесины и 2 железа.');return;}b.changeItem('Древесина',-8);b.changeItem('Железо',-2);state.boatHp=Math.min(100,state.boatHp+45);msg('Корабль отремонтирован у берега. Прочность '+state.boatHp+'%.');save();b.save?.();return;} if(state.boatHp<=0){msg('Корабль разрушен. Вернись на берег и отремонтируй его.');return;}
+    const b=bridge();if(state.x<=20&&state.boatHp<boatMaxHp()){if((b?.getItemCount?.('Древесина')||0)<8||(b?.getItemCount?.('Железо')||0)<2){msg('Для ремонта у берега нужно 8 древесины и 2 железа.');return;}b.changeItem('Древесина',-8);b.changeItem('Железо',-2);state.boatHp=Math.min(boatMaxHp(),state.boatHp+45);msg('Корабль отремонтирован у берега. Прочность '+Math.round(state.boatHp/boatMaxHp()*100)+'%.');save();b.save?.();return;} if(state.boatHp<=0){msg('Корабль разрушен. Вернись на берег и отремонтируй его.');return;}
     msg('Волны несут корабль вперёд. Ищи обломки, метки на карте и вход в сокровищницу.'); 
   }
   function nearestTreasure(){return state.treasures.find(t=>!state.opened.includes(t.id)&&Math.hypot(t.x-state.x,t.y-state.y)<4.5);}
@@ -241,8 +280,15 @@
     state.diveCooldown=Math.max(0,state.diveCooldown-dt);
     if(state.underwater&&state.air!==Infinity){state.air=Math.max(0,((Number(state.airEndsAt)||Date.now())-Date.now())/1000);if(state.air<=0){state.underwater=false;msg('Воздух закончился! Тебя вынесло на поверхность.');}}
     if(state.weather==='storm'&&!state.underwater&&Math.random()<dt*(.06/(1+(state.upgrades.hull||0)*.45))){state.boatHp=Math.max(0,state.boatHp-1);if(state.boatHp<=0)msg('Шторм разбил корабль! Вернись на берег.');}
+    state.harpoonCooldown=Math.max(0,(state.harpoonCooldown||0)-dt);if(state.harpoonTrace){state.harpoonTrace.life-=dt;if(state.harpoonTrace.life<=0)state.harpoonTrace=null;}
+    if(state.underwater){
+      if(Math.hypot(state.city.x-state.x,state.city.y-state.y)<28&&!state.city.discovered){state.city.discovered=true;msg('На глубине показались башни затонувшего города. Найди главный храм!');save();}
+      for(const cave of state.caves){if(!cave.cleared&&!cave.active&&Math.hypot(cave.x-state.x,cave.y-state.y)<9){cave.active=true;msg('Ты приблизился к подводной пещере. Страж пробудился! Гарпун — F.');save();}}
+      state.krakenSpawnTimer=Math.max(0,(Number(state.krakenSpawnTimer)||170)-dt);
+      if(state.krakenSpawnTimer<=0){if(!state.monsters.some(m=>m.kind==='kraken')&&Math.random()<.24){const angle=Math.random()*Math.PI*2;state.monsters.push({id:'kraken-'+Date.now(),kind:'kraken',x:clamp(state.x+Math.cos(angle)*rand(20,34),5,W-5),y:clamp(state.y+Math.sin(angle)*rand(20,34),5,H-5),hp:980,maxHp:980,angle:rand(0,6.28),speed:5,cool:2});msg('КРАКЕН! Редкое древнее чудовище заметило тебя в глубине!');}state.krakenSpawnTimer=rand(150,260);}
+    }
     for(const s of state.sharks){const vx=state.x-s.x,vy=state.y-s.y,d=Math.hypot(vx,vy)||1;if(d<24){s.x+=vx/d*s.speed*dt;s.y+=vy/d*s.speed*dt;s.cool-=dt;if(s.cool<=0){s.cool=2.2;state.boatHp=Math.max(0,state.boatHp-Math.max(2,5-(state.upgrades.hull||0)));msg('Акула укусила корабль! Прочность '+Math.round(state.boatHp/boatMaxHp()*100)+'%.');}}else{s.angle+=rand(-.6,.6)*dt;s.x+=Math.cos(s.angle)*s.speed*.25*dt;s.y+=Math.sin(s.angle)*s.speed*.25*dt;}s.x=clamp(s.x,2,W-2);s.y=clamp(s.y,2,H-2);}
-    if(state.underwater){for(const m of state.monsters){const vx=state.x-m.x,vy=state.y-m.y,d=Math.hypot(vx,vy)||1;if(d<20){m.x+=vx/d*m.speed*dt;m.y+=vy/d*m.speed*dt;if(Math.random()<dt*.08){drainAir(3);msg('Подводный страж атакует!');}}}}
+    if(state.underwater){for(const m of state.monsters){const vx=state.x-m.x,vy=state.y-m.y,d=Math.hypot(vx,vy)||1;if(d<20){m.x+=vx/d*m.speed*dt;m.y+=vy/d*m.speed*dt;if(Math.random()<dt*(m.kind==='kraken'?.18:.08)){drainAir(m.kind==='kraken'?7:3);bridge()?.damagePlayer?.(m.kind==='kraken'?8:2);msg(m.kind==='kraken'?'Кракен обвил тебя щупальцами!':'Подводный страж атакует!');}}}}
     if(!state.underwater){state.sharkSpawnTimer=(state.sharkSpawnTimer||rand(85,145))-dt;if(state.sharkSpawnTimer<=0){if(state.sharks.length<3&&Math.random()<.32)spawnShark();state.sharkSpawnTimer=rand(85,165);}}
     $('sea-weather').textContent='Погода: '+({calm:'штиль',rain:'дождь',storm:'ШТОРМ'}[state.weather]);
     $('sea-boat-hp').textContent='Корабль: '+Math.round(state.boatHp/boatMaxHp()*100)+'%';$('sea-air').textContent=state.underwater?'Воздух: '+(state.air===Infinity?'∞':Math.ceil(state.air)+' с'):'Воздух: —';
@@ -273,13 +319,24 @@
     for(let i=0;i<475;i++){const x=((i*97+state.time*(12+i%5)*8)%(W*TILE)),y=(i*53+Math.sin(state.time+i)*14)%(H*TILE);if(x/TILE<left||x/TILE>right||y/TILE<top||y/TILE>bottom)continue;ctx.fillStyle='rgba(226,252,255,'+(.12+(i%4)*.07)+')';ctx.beginPath();ctx.ellipse(x,y,2+i%3,1.2,Math.sin(state.time+i),0,Math.PI*2);ctx.fill();}
     // Small distant islands and jagged rocks.
     for(let i=0;i<28;i++){const x=(31+i*29%338)*TILE,y=(17+(i*41)%242)*TILE;if(x/TILE<left-8||x/TILE>right+8||y/TILE<top-8||y/TILE>bottom+8)continue;ctx.fillStyle='#344d45';ctx.beginPath();ctx.ellipse(x,y,28,17,.15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b4a36e';ctx.beginPath();ctx.ellipse(x-4,y-5,25,13,.1,0,Math.PI*2);ctx.fill();ctx.fillStyle='#3f8660';ctx.beginPath();ctx.arc(x,y-13,10,0,Math.PI*2);ctx.fill();ctx.fillRect(x-2,y-26,4,17);}
+    // Hidden reef caves and the ruins of the sunken city are visible from underwater.
+    if(state.underwater){
+      for(const cave of state.caves){const x=cave.x*TILE,y=cave.y*TILE;ctx.save();ctx.translate(x,y);ctx.fillStyle='#132e45';ctx.beginPath();ctx.ellipse(0,8,42,27,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#536f79';for(let k=0;k<7;k++){const px=-34+k*11,ph=18+(k%3)*8;ctx.beginPath();ctx.moveTo(px-6,-4);ctx.lineTo(px,-ph);ctx.lineTo(px+7,-4);ctx.closePath();ctx.fill();}ctx.fillStyle='#020c21';ctx.beginPath();ctx.ellipse(0,2,22,19,0,Math.PI,Math.PI*2);ctx.fill();if(cave.active&&!cave.cleared){ctx.strokeStyle='#9e78df';ctx.lineWidth=3;ctx.shadowColor='#a77be8';ctx.shadowBlur=17;ctx.beginPath();ctx.ellipse(0,3,26,22,0,Math.PI,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;}ctx.fillStyle='#e1e4c4';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText(cave.cleared?'ОЧИЩЕНО':'ПЕЩЕРА',0,43);ctx.restore();}
+      const city=state.city,x=city.x*TILE,y=city.y*TILE;ctx.save();ctx.translate(x,y);ctx.globalAlpha=city.discovered?.96:.42;ctx.fillStyle='#395f70';for(let k=0;k<5;k++){const bx=-66+k*31,bh=42+(k%3)*15;ctx.fillRect(bx,-bh,22,bh+24);ctx.fillStyle='#6b9ba2';ctx.fillRect(bx+4,-bh+8,14,5);ctx.fillStyle='#395f70';}ctx.fillStyle='#627f91';ctx.fillRect(-16,-65,32,68);ctx.fillRect(-57,-34,19,36);ctx.fillRect(38,-38,19,40);ctx.beginPath();ctx.moveTo(-24,-64);ctx.lineTo(0,-91);ctx.lineTo(24,-64);ctx.closePath();ctx.fill();ctx.fillStyle='#b8e7e8';for(const px of [-9,3])ctx.fillRect(px,-49,6,8);ctx.fillStyle='#e9d39a';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText(city.discovered?'ЗАТОНУВШИЙ ГОРОД':'ДРЕВНИЕ РУИНЫ',0,37);if(city.discovered&&!city.cleared){ctx.strokeStyle='#e2a8ff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,-34,36+Math.sin(state.time*3)*3,0,Math.PI*2);ctx.stroke();}ctx.restore();
+    }
     // Treasure chests and shipwrecks.
     for(const t of state.treasures){if(state.opened.includes(t.id))continue;const x=t.x*TILE,y=t.y*TILE;if(t.kind==='wreck'){ctx.save();ctx.translate(x,y);ctx.rotate(-.18);ctx.fillStyle='#513c2b';ctx.fillRect(-29,-7,58,15);ctx.fillStyle='#986b43';ctx.fillRect(-23,-14,46,8);ctx.strokeStyle='#d0a16a';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-17,-12);ctx.lineTo(-8,-28);ctx.moveTo(8,-12);ctx.lineTo(21,-22);ctx.stroke();ctx.restore();}else{ctx.fillStyle='#62452e';ctx.fillRect(x-10,y-8,20,16);ctx.fillStyle='#d8a94f';ctx.fillRect(x-10,y-8,20,5);ctx.fillStyle='#fff0a5';ctx.fillRect(x-2,y-7,4,6);}}
     // Sharks: animated bodies, tail, dorsal and pectoral fins.
     for(const s of state.sharks){const x=s.x*TILE,y=s.y*TILE,swim=Math.sin(state.time*5+(s.angle||0))*3;ctx.save();ctx.translate(x,y);ctx.scale(1.55,1.55);ctx.rotate((s.angle||0)+(Math.atan2(state.y-s.y,state.x-s.x)*.12));ctx.fillStyle='rgba(0,18,35,.24)';ctx.beginPath();ctx.ellipse(0,9,22,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#719db0';ctx.beginPath();ctx.moveTo(25,0);ctx.quadraticCurveTo(5,-14,-18,-4);ctx.quadraticCurveTo(-26,0,-18,5);ctx.quadraticCurveTo(5,14,25,0);ctx.fill();ctx.fillStyle='#456f86';ctx.beginPath();ctx.moveTo(-17,0);ctx.lineTo(-34,-12+swim);ctx.lineTo(-29,0);ctx.lineTo(-34,12+swim);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(-2,-5);ctx.lineTo(4,-18);ctx.lineTo(11,-4);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(1,5);ctx.lineTo(10,14);ctx.lineTo(13,5);ctx.closePath();ctx.fill();ctx.fillStyle='#e8f5f8';ctx.fillRect(12,-3,3,3);ctx.fillStyle='#10283a';ctx.fillRect(13,-3,2,2);ctx.restore();}
     // Underwater guardians and schools of fish.
-    for(const m of state.monsters){const x=m.x*TILE,y=m.y*TILE,pulse=Math.sin(state.time*4+x)*2;ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(8,19,48,.3)';ctx.beginPath();ctx.ellipse(0,9,17,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9368b4';ctx.beginPath();ctx.ellipse(0,0,12,10+pulse,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d5b5f3';ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-18,-8);ctx.lineTo(-16,8);ctx.closePath();ctx.fill();ctx.fillStyle='#f6eaff';ctx.fillRect(-5,-3,3,3);ctx.fillRect(3,-3,3,3);ctx.restore();}
+    for(const m of state.monsters){const x=m.x*TILE,y=m.y*TILE,pulse=Math.sin(state.time*4+x)*2;ctx.save();ctx.translate(x,y);
+      if(m.kind==='kraken'){ctx.fillStyle='rgba(6,14,35,.36)';ctx.beginPath();ctx.ellipse(0,14,35,11,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#7950a1';ctx.lineWidth=8;for(let a=0;a<8;a++){const angle=a*Math.PI/4+Math.sin(state.time*2+a)*.18;ctx.beginPath();ctx.moveTo(Math.cos(angle)*12,Math.sin(angle)*8+3);ctx.quadraticCurveTo(Math.cos(angle)*30,Math.sin(angle)*24,Math.cos(angle)*38,Math.sin(angle)*16+Math.sin(state.time*5+a)*5);ctx.stroke();}ctx.fillStyle='#643e91';ctx.beginPath();ctx.ellipse(0,0,21,18+pulse,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f4d7ff';ctx.beginPath();ctx.arc(-7,-4,5,0,Math.PI*2);ctx.arc(7,-4,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff516c';ctx.fillRect(-8,-5,3,4);ctx.fillRect(6,-5,3,4);ctx.fillStyle='#e3b4f5';ctx.fillRect(-5,7,10,3);}
+      else if(m.kind==='ray'){ctx.fillStyle='#4c9b9d';ctx.beginPath();ctx.moveTo(0,-12);ctx.quadraticCurveTo(13,-6,22,7);ctx.lineTo(2,3);ctx.lineTo(0,18);ctx.lineTo(-2,3);ctx.lineTo(-22,7);ctx.quadraticCurveTo(-13,-6,0,-12);ctx.fill();ctx.fillStyle='#ddfbf1';ctx.fillRect(-5,-4,3,3);ctx.fillRect(2,-4,3,3);ctx.strokeStyle='#88d5cf';ctx.beginPath();ctx.moveTo(0,15);ctx.lineTo(0,26);ctx.stroke();}
+      else if(m.kind==='angler'){ctx.fillStyle='#5a536d';ctx.beginPath();ctx.ellipse(0,0,17,12,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#c7bddb';ctx.beginPath();ctx.arc(13,-4,6,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#9b91aa';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(9,-9);ctx.quadraticCurveTo(14,-21,5,-22);ctx.stroke();ctx.fillStyle='#ffe88b';ctx.beginPath();ctx.arc(5,-22,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff516c';ctx.fillRect(-5,-4,3,3);ctx.fillRect(3,-4,3,3);}
+      else{ctx.fillStyle='rgba(8,19,48,.3)';ctx.beginPath();ctx.ellipse(0,9,17,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9368b4';ctx.beginPath();ctx.ellipse(0,0,12,10+pulse,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d5b5f3';ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-18,-8);ctx.lineTo(-16,8);ctx.closePath();ctx.fill();ctx.fillStyle='#f6eaff';ctx.fillRect(-5,-3,3,3);ctx.fillRect(3,-3,3,3);}
+      if(Number(m.maxHp)>0&&m.kind==='kraken'){ctx.fillStyle='#230e36';ctx.fillRect(-30,-34,60,5);ctx.fillStyle='#de91ff';ctx.fillRect(-30,-34,60*clamp(m.hp/m.maxHp,0,1),5);}ctx.restore();}
     for(let shoal=0;shoal<24;shoal++){const bx=(25+shoal*23%338)*TILE,by=(12+(shoal*31)%242)*TILE;if(bx/TILE<left-5||bx/TILE>right+5||by/TILE<top-5||by/TILE>bottom+5)continue;for(let f=0;f<5;f++){const fx=bx+Math.sin(state.time*1.5+f+shoal)*18+f*8,fy=by+Math.cos(state.time*1.7+f)*9;ctx.fillStyle='#d5eef0';ctx.beginPath();ctx.ellipse(fx,fy,5,2.5,.15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7cc8cf';ctx.beginPath();ctx.moveTo(fx-4,fy);ctx.lineTo(fx-9,fy-4);ctx.lineTo(fx-9,fy+4);ctx.fill();}}
+    if(state.harpoonTrace){ctx.save();ctx.globalAlpha=Math.min(1,state.harpoonTrace.life/.22);ctx.strokeStyle='#d6f7ff';ctx.lineWidth=3;ctx.shadowColor='#75d9ff';ctx.shadowBlur=12;ctx.beginPath();ctx.moveTo(state.harpoonTrace.x1*TILE,state.harpoonTrace.y1*TILE);ctx.lineTo(state.harpoonTrace.x2*TILE,state.harpoonTrace.y2*TILE);ctx.stroke();ctx.restore();}
     if(state.underwater){const glow=ctx.createRadialGradient(state.x*TILE,state.y*TILE,10,state.x*TILE,state.y*TILE,260);glow.addColorStop(0,'rgba(111,222,255,.3)');glow.addColorStop(1,'rgba(0,15,50,.72)');ctx.fillStyle=glow;ctx.fillRect(left*TILE,top*TILE,(right-left)*TILE,(bottom-top)*TILE);}
     else{
       // Player's ship: hull, deck, mast, animated sails, rigging, lantern and wake.
@@ -295,7 +352,7 @@
     if(state.weather==='storm'){ctx.fillStyle='rgba(8,22,43,.58)';ctx.fillRect(w-168,12,156,30);ctx.fillStyle='#d7edff';ctx.font='bold 12px Segoe UI';ctx.fillText('⚡ ШТОРМ',w-151,32);}
   }
   function drawMap(){
-    const c=$('sea-map-canvas');if(!c)return;const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.fillStyle='#0b4567';x.fillRect(0,0,w,h);x.strokeStyle='rgba(190,235,255,.12)';for(let i=0;i<=22;i++){x.beginPath();x.moveTo(i*w/22,0);x.lineTo(i*w/22,h);x.stroke();}for(let i=0;i<=16;i++){x.beginPath();x.moveTo(0,i*h/16);x.lineTo(w,i*h/16);x.stroke();}x.fillStyle='#e9f5ff';for(const cell of state.discovered){const [a,b]=cell.split(',').map(Number);x.fillRect(a/360*w,b/260*h,2,2);}x.fillStyle='#ffe17c';for(const m of state.mapMarks)x.fillRect(m.x/360*w-4,m.y/260*h-4,8,8);x.fillStyle='#ff756a';x.beginPath();x.arc(state.x/360*w,state.y/260*h,5,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.font='12px Segoe UI';x.fillText('Ты',state.x/360*w+8,state.y/260*h-8);
+    const c=$('sea-map-canvas');if(!c)return;const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.fillStyle='#0b4567';x.fillRect(0,0,w,h);x.strokeStyle='rgba(190,235,255,.12)';for(let i=0;i<=22;i++){x.beginPath();x.moveTo(i*w/22,0);x.lineTo(i*w/22,h);x.stroke();}for(let i=0;i<=16;i++){x.beginPath();x.moveTo(0,i*h/16);x.lineTo(w,i*h/16);x.stroke();}x.fillStyle='#e9f5ff';for(const cell of state.discovered){const [a,b]=cell.split(',').map(Number);x.fillRect(a/360*w,b/260*h,2,2);}x.fillStyle='#ffe17c';for(const m of state.mapMarks)x.fillRect(m.x/360*w-4,m.y/260*h-4,8,8);if(state.city.discovered){x.fillStyle='#d7a7ff';x.fillRect(state.city.x/360*w-5,state.city.y/260*h-5,10,10);}for(const cave of state.caves)if(cave.active||cave.cleared){x.fillStyle=cave.cleared?'#88e0b1':'#bba1ff';x.beginPath();x.arc(cave.x/360*w,cave.y/260*h,4,0,Math.PI*2);x.fill();}x.fillStyle='#ff756a';x.beginPath();x.arc(state.x/360*w,state.y/260*h,5,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.font='12px Segoe UI';x.fillText('Ты',state.x/360*w+8,state.y/260*h-8);
   }
   function api(){return {open:enter,isOpen:()=>active,save,getState:()=>JSON.parse(JSON.stringify(state)),upgradeShip,fireHarpoon,boatMaxHp};}
   window.SkyRealmSea=api();
