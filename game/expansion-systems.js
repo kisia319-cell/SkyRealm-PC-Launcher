@@ -9,7 +9,7 @@
   const emptyState = () => ({
     version:VERSION,
     research:0,
-    grid:{generators:0,batteries:0,turrets:0,walls:0,lamps:0,drills:0,shields:0,guards:0},
+    grid:{generators:0,batteries:0,turrets:0,walls:0,lamps:0,drills:0,shields:0,guards:0,wires:0,doors:0,traps:0,cannons:0,towers:0},
     drillClock:0,
     power:0,
     fuelSeconds:0,
@@ -17,6 +17,8 @@
     generatorClock:0,
     turretClock:0,
     guardClock:0,
+    trapClock:0,
+    cannonClock:0,
     lastSiegeNight:-1,
     event:null,
     dungeon:{room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0,seed:0,layout:[],trapRooms:[],keys:0,secretActive:false,secretHp:0,secretMaxHp:0,secretCleared:false},
@@ -43,7 +45,12 @@
     turret:{title:'Автоматическая турель',icon:'🎯',cost:{Железо:12,Медь:5,Древесина:8,Кристалл:2},gold:25,limit:8,research:1},
     drill:{title:'Автоматический бур',icon:'⛏️',cost:{Железо:18,Медь:12,Кристалл:3,Мифрил:1},gold:60,limit:3,research:2},
     shield:{title:'Силовой защитный купол',icon:'🛡️',cost:{Железо:20,Медь:15,Кристалл:8,Мифрил:3},gold:100,limit:1,research:3},
-    wall:{title:'Укреплённая стена',icon:'🧱',cost:{Камень:16,Древесина:8,Железо:2},gold:5,limit:30}
+    wall:{title:'Укреплённая стена',icon:'🧱',cost:{Камень:16,Древесина:8,Железо:2},gold:5,limit:30},
+    wire:{title:'Силовой кабель',icon:'〰️',cost:{Медь:2,Древесина:3},gold:1,limit:60,research:1},
+    door:{title:'Электрическая дверь',icon:'🚪',cost:{Железо:12,Медь:8,Кристалл:1},gold:12,limit:8,research:1},
+    trap:{title:'Автоматическая ловушка',icon:'⛓️',cost:{Железо:6,Древесина:10,Кость:2},gold:5,limit:12,research:1},
+    cannon:{title:'Энергетическая пушка',icon:'💥',cost:{Железо:24,Медь:12,Кристалл:5},gold:50,limit:4,research:2},
+    tower:{title:'Наблюдательная башня',icon:'🗼',cost:{Древесина:25,Камень:30,Железо:6},gold:18,limit:5,research:1}
   };
   const DUNGEON_ROOMS = [
     {name:'Затопленный вход',enemy:'Страж-пиявка',hp:180,damage:8,loot:'Кристалл'},
@@ -64,7 +71,7 @@
     if (!raw || typeof raw !== 'object' || ![1,VERSION].includes(Number(raw.version))) return base;
     base.research = clamp(Math.floor(Number(raw.research)||0),0,3);
     for (const key of Object.keys(base.grid)) {
-      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='batteries'?12:key==='drills'?3:key==='shields'?1:key==='guards'?5:4);
+      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='batteries'?12:key==='drills'?3:key==='shields'?1:key==='guards'?5:key==='wires'?60:key==='doors'?8:key==='traps'?12:key==='cannons'?4:key==='towers'?5:4);
     }
     base.power = clamp(Number(raw.power)||0,0,capacityFor(base));
     base.fuelSeconds = clamp(Number(raw.fuelSeconds)||0,0,3600);
@@ -73,8 +80,10 @@
     base.drillClock = clamp(Number(raw.drillClock)||0,0,120);
     base.turretClock = clamp(Number(raw.turretClock)||0,0,60);
     base.guardClock = clamp(Number(raw.guardClock)||0,0,60);
+    base.trapClock = clamp(Number(raw.trapClock)||0,0,60);
+    base.cannonClock = clamp(Number(raw.cannonClock)||0,0,60);
     base.lastSiegeNight = Number.isInteger(raw.lastSiegeNight)?raw.lastSiegeNight:-1;
-    if (raw.event && ['invasion','ancient'].includes(raw.event.kind)) {
+    if (raw.event && ['invasion','ancient','bloodmoon'].includes(raw.event.kind)) {
       base.event = {
         kind:raw.event.kind,
         id:typeof raw.event.id==='string'?raw.event.id.slice(0,100):'legacy-event-'+String(raw.event.kind)+'-'+String(raw.event.day||0),
@@ -128,7 +137,7 @@
   }
 
   function capacityFor(s=state) {
-    return 60 + s.grid.batteries*120 + s.research*50;
+    return 60 + s.grid.batteries*120 + s.research*50 + Math.floor((s.grid.wires||0)/5)*15;
   }
   function equippedRelic() {
     return state.relics.find(v=>v.id===state.equippedRelic)||null;
@@ -180,7 +189,7 @@
     html+='<p class="ex-muted">Генератор сжигает уголь или древесину. Аккумуляторы хранят заряд. Турели используют энергию только во время тревоги.</p>';
     html+='<div class="ex-list">';
     for(const [id,item] of Object.entries(BUILDINGS)){
-      const count=g[{generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps',guard:'guards'}[id]];
+      const count=g[{generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps',guard:'guards',wire:'wires',door:'doors',trap:'traps',cannon:'cannons',tower:'towers'}[id]];
       const locked=item.research&&state.research<item.research;
       const full=count>=item.limit;
       const affordable=canAfford(item.cost,item.gold);
@@ -282,7 +291,7 @@
   }
   function build(id) {
     const item=BUILDINGS[id];if(!item)return false;
-    const key={generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps',guard:'guards'}[id];
+    const key={generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps',guard:'guards',wire:'wires',door:'doors',trap:'traps',cannon:'cannons',tower:'towers'}[id];
     if(bridge()?.isCoopWorld?.()){notify('Технологические постройки пока доступны только в одиночных мирах.');return false;}
     if(state.grid[key]>=item.limit){notify('Достигнут предел постройки: '+item.title+'.');return false;}
     if(item.research&&state.research<item.research){notify('Сначала исследуй автоматику.');return false;}
@@ -321,7 +330,7 @@
         state.fuelSeconds=0;state.fuelKind='';return;
       }
     }
-    const output=(state.fuelKind==='Уголь'?1.1:.55)*state.grid.generators*(1+state.research*.15);
+    const output=(state.fuelKind==='Уголь'?1.1:.55)*state.grid.generators*(1+state.research*.15)*(1+Math.min(.25,(state.grid.wires||0)*.005));
     state.power=clamp(state.power+output*dt,0,capacityFor());
     if(state.grid.lamps>0)state.power=Math.max(0,state.power-state.grid.lamps*.035*dt);
   }
