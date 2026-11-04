@@ -481,6 +481,7 @@
     if(!Number.isFinite(dt)||dt<=0)return;
     const snap=currentSnapshot();if(!snap?.worldId||snap.paused)return;
     if(worldId()!==lastWorldId){lastWorldId=worldId();state.event=null;state.fuelSeconds=0;}
+    if(state.event&&state.event.x===0&&state.event.y===0){const point=bridge()?.getWorldEventSpawnPoint?.()||bridge()?.getPlayerPosition?.();if(point&&Number.isFinite(point.x)&&Number.isFinite(point.y)){state.event.x=Math.max(0,point.x);state.event.y=Math.max(0,point.y);save();}}
     refillGenerator(Math.min(1,dt));
     runDrills(Math.min(1,dt));
     maybeStartNightEvent();
