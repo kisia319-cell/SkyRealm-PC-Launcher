@@ -197,7 +197,7 @@
     const horizon=h*.16;const sky=ctx.createLinearGradient(0,0,0,horizon+24);sky.addColorStop(0,'#9bd9e8');sky.addColorStop(1,'#d5f0e9');ctx.fillStyle=sky;ctx.fillRect(0,0,w,horizon+24);
     ctx.fillStyle='rgba(255,244,196,.34)';ctx.beginPath();ctx.arc(w*.78,h*.09,Math.max(22,h*.045),0,Math.PI*2);ctx.fill();
     for(let i=0;i<5;i++){const cx=((i*241+state.time*5)%(w+300))-150,cy=24+(i%3)*22;ctx.fillStyle='rgba(255,255,255,.20)';ctx.beginPath();ctx.ellipse(cx,cy,65,12,0,0,Math.PI*2);ctx.ellipse(cx+34,cy-5,38,13,0,0,Math.PI*2);ctx.fill();}
-    const scale=Math.min(w/(W*TILE*.76),h/(H*TILE*.76)),ox=w/2-state.x*TILE*scale,oy=h/2-state.y*TILE*scale;
+    const scale=Math.min(w/(W*TILE*.15),h/(H*TILE*.15)),ox=w/2-state.x*TILE*scale,oy=h/2-state.y*TILE*scale;
     const left=state.x-w/(2*TILE*scale)-2,right=state.x+w/(2*TILE*scale)+2,top=state.y-h/(2*TILE*scale)-2,bottom=state.y+h/(2*TILE*scale)+2;
     ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);
     // Pale shallows, deep-water floor and sand gradients.
