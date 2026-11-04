@@ -97,7 +97,7 @@ for(let room=1;room<=5;room++){
 }
 assert.equal(api.getState().stats.dungeonsCleared,1,'Final boss defeat must record one completed citadel');
 assert.ok(api.getState().relics.length>=1,'Final citadel boss must drop a guaranteed rare relic');
-const relic=api.getState().relics[0];
+const relic=api.getState().relics.at(-1);
 assert.ok(['Эпическая','Легендарная'].includes(relic.rarity),'Final guaranteed relic must be epic or legendary');
 assert.equal(api.equipRelic(relic.id),true);
 assert.ok(api.damageMultiplier()>1,'Equipped relic must increase attack damage');
