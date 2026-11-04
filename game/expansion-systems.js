@@ -1,0 +1,461 @@
+(() => {
+  'use strict';
+
+  const VERSION = 1;
+  const $ = id => document.getElementById(id);
+  const clamp = (n,min,max) => Math.max(min,Math.min(max,n));
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const bridge = () => window.SkyRealmSeaBridge;
+  const emptyState = () => ({
+    version:VERSION,
+    research:0,
+    grid:{generators:0,batteries:0,turrets:0,walls:0,lamps:0},
+    power:0,
+    fuelSeconds:0,
+    fuelKind:'',
+    generatorClock:0,
+    turretClock:0,
+    lastSiegeNight:-1,
+    event:null,
+    dungeon:{room:1,active:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0},
+    relics:[],
+    equippedRelic:null,
+    stats:{eventsWon:0,dungeonsCleared:0}
+  });
+
+  const state = emptyState();
+  const RARITIES = [
+    {name:'Обычная',weight:52,power:.035,defense:.012,color:'#c3cbd5'},
+    {name:'Необычная',weight:27,power:.06,defense:.025,color:'#58c98b'},
+    {name:'Редкая',weight:14,power:.095,defense:.04,color:'#58aaff'},
+    {name:'Эпическая',weight:6,power:.15,defense:.065,color:'#b58aff'},
+    {name:'Легендарная',weight:1,power:.24,defense:.11,color:'#f4ba56'}
+  ];
+  const RELIC_NAMES = ['Сердце титана','Линза древних','Печать стража','Осколок бурь','Звезда кузни','Кристалл глубин'];
+  const BUILDINGS = {
+    generator:{title:'Топливный генератор',icon:'⚡',cost:{Древесина:30,Камень:20,Железо:8,Медь:4},gold:15,limit:4},
+    battery:{title:'Аккумулятор',icon:'🔋',cost:{Железо:8,Медь:6,Кристалл:1},gold:10,limit:12},
+    lamp:{title:'Электрический фонарь',icon:'💡',cost:{Медь:3,Древесина:4},gold:2,limit:20},
+    turret:{title:'Автоматическая турель',icon:'🎯',cost:{Железо:12,Медь:5,Древесина:8,Кристалл:2},gold:25,limit:8,research:1},
+    wall:{title:'Укреплённая стена',icon:'🧱',cost:{Камень:16,Древесина:8,Железо:2},gold:5,limit:30}
+  };
+  const DUNGEON_ROOMS = [
+    {name:'Затопленный вход',enemy:'Страж-пиявка',hp:180,damage:8,loot:'Кристалл'},
+    {name:'Зал механизмов',enemy:'Медный голем',hp:260,damage:11,loot:'Медь'},
+    {name:'Галерея шипов',enemy:'Клинковый страж',hp:340,damage:14,loot:'Железо'},
+    {name:'Архив забытых',enemy:'Хранитель печатей',hp:460,damage:18,loot:'Древний осколок'},
+    {name:'Тронный зал',enemy:'Древний архонт',hp:900,damage:25,loot:'Сердце архонта'}
+  ];
+
+  let root = null;
+  let launchButton = null;
+  let activeTab = 'power';
+  let lastWorldId = '';
+  let opened = false;
+
+  function normalizeState(raw) {
+    const base = emptyState();
+    if (!raw || typeof raw !== 'object' || raw.version !== VERSION) return base;
+    base.research = clamp(Math.floor(Number(raw.research)||0),0,3);
+    for (const key of Object.keys(base.grid)) {
+      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='batteries'?12:4);
+    }
+    base.power = clamp(Number(raw.power)||0,0,capacityFor(base));
+    base.fuelSeconds = clamp(Number(raw.fuelSeconds)||0,0,3600);
+    base.fuelKind = ['Уголь','Древесина'].includes(raw.fuelKind)?raw.fuelKind:'';
+    base.generatorClock = clamp(Number(raw.generatorClock)||0,0,60);
+    base.turretClock = clamp(Number(raw.turretClock)||0,0,60);
+    base.lastSiegeNight = Number.isInteger(raw.lastSiegeNight)?raw.lastSiegeNight:-1;
+    if (raw.event && ['invasion','ancient'].includes(raw.event.kind)) {
+      base.event = {
+        kind:raw.event.kind,
+        remaining:clamp(Math.floor(Number(raw.event.remaining)||0),0,30),
+        hp:clamp(Number(raw.event.hp)||0,0,1000000),
+        maxHp:clamp(Number(raw.event.maxHp)||0,0,1000000),
+        timer:clamp(Number(raw.event.timer)||0,0,600),
+        actions:clamp(Math.floor(Number(raw.event.actions)||0),0,10000),
+        day:Math.max(0,Math.floor(Number(raw.event.day)||0))
+      };
+    }
+    const dungeon = raw.dungeon && typeof raw.dungeon==='object'?raw.dungeon:{};
+    base.dungeon = {
+      room:clamp(Math.floor(Number(dungeon.room)||1),1,5),
+      active:dungeon.active===true,
+      cleared:Array.isArray(dungeon.cleared)?Array.from(new Set(dungeon.cleared.filter(n=>Number.isInteger(n)&&n>=1&&n<=5))).slice(0,5):[],
+      enemyHp:clamp(Number(dungeon.enemyHp)||0,0,1000000),
+      enemyMaxHp:clamp(Number(dungeon.enemyMaxHp)||0,0,1000000),
+      attacks:clamp(Math.floor(Number(dungeon.attacks)||0),0,100000)
+    };
+    base.relics=Array.isArray(raw.relics)?raw.relics.slice(-30).filter(v=>v&&typeof v.id==='string'&&typeof v.name==='string').map(v=>({
+      id:String(v.id).slice(0,80),
+      name:String(v.name).slice(0,100),
+      rarity:String(v.rarity||'Обычная').slice(0,24),
+      power:clamp(Number(v.power)||0,0,.3),
+      defense:clamp(Number(v.defense)||0,0,.15)
+    })):[];
+    base.equippedRelic=base.relics.some(v=>v.id===raw.equippedRelic)?raw.equippedRelic:null;
+    base.stats={
+      eventsWon:clamp(Math.floor(Number(raw.stats?.eventsWon)||0),0,100000),
+      dungeonsCleared:clamp(Math.floor(Number(raw.stats?.dungeonsCleared)||0),0,100000)
+    };
+    return base;
+  }
+
+  function capacityFor(s=state) {
+    return 60 + s.grid.batteries*120 + s.research*50;
+  }
+  function equippedRelic() {
+    return state.relics.find(v=>v.id===state.equippedRelic)||null;
+  }
+  function currentSnapshot() {
+    try { return bridge()?.getChallengeSnapshot?.()||null; } catch (_) { return null; }
+  }
+  function worldId() {
+    return String(bridge()?.getWorldId?.()||currentSnapshot()?.worldId||'');
+  }
+  function notify(message) {
+    bridge()?.toast?.(String(message));
+  }
+  function save() {
+    try { bridge()?.save?.(); } catch (error) { console.warn('[SkyRealm expansion save]',error); }
+  }
+  function costText(cost,gold=0) {
+    const resources=Object.entries(cost||{}).map(([name,count])=>name+' ×'+count).join(', ');
+    return (resources||'Без материалов')+(gold?' · '+gold+' зол.':'');
+  }
+  function canAfford(cost,gold=0) {
+    const b=bridge();if(!b)return false;
+    if(gold>0&&Number(b.getGold?.()||0)<gold)return false;
+    return Object.entries(cost||{}).every(([name,count])=>Number(b.getItemCount?.(name)||0)>=count);
+  }
+  function spend(cost,gold=0) {
+    const b=bridge();if(!canAfford(cost,gold))return false;
+    for(const [name,count] of Object.entries(cost||{}))if(!b.spendItem?.(name,count))return false;
+    if(gold>0&&!b.spendGold?.(gold))return false;
+    return true;
+  }
+  function renderButton(action,label,disabled=false,secondary=false) {
+    return '<button type="button" data-expansion-action="'+action+'" '+(disabled?'disabled':'')+' class="'+(secondary?'secondary':'')+'">'+label+'</button>';
+  }
+  function renderPower() {
+    const g=state.grid,cap=capacityFor();
+    let html='<div class="ex-grid-stats"><div><b>⚡ '+state.power.toFixed(0)+' / '+cap+'</b><small>Энергия в сети</small></div><div><b>'+g.generators+'</b><small>Генераторы</small></div><div><b>'+g.batteries+'</b><small>Аккумуляторы</small></div></div>';
+    html+='<div class="ex-meter"><i style="width:'+Math.round(state.power/Math.max(1,cap)*100)+'%"></i></div>';
+    html+='<p class="ex-muted">Генератор сжигает уголь или древесину. Аккумуляторы хранят заряд. Турели используют энергию только во время тревоги.</p>';
+    html+='<div class="ex-list">';
+    for(const [id,item] of Object.entries(BUILDINGS)){
+      const count=g[id==='generator'?'generators':id==='battery'?'batteries':id==='turret'?'turrets':id==='wall'?'walls':'lamps'];
+      const locked=item.research&&state.research<item.research;
+      const full=count>=item.limit;
+      const affordable=canAfford(item.cost,item.gold);
+      html+='<article class="ex-card"><div class="ex-card-head"><b>'+item.icon+' '+item.title+'</b><span>× '+count+'/'+item.limit+'</span></div><small>'+costText(item.cost,item.gold)+'</small>';
+      if(locked)html+='<small class="ex-lock">Нужно исследование · уровень '+item.research+'</small>';
+      html+=renderButton('build:'+id,'Построить',locked||full||!affordable);
+      html+='</article>';
+    }
+    html+='</div>';
+    const researchCost={Железо:8+state.research*6,Медь:5+state.research*3,Кристалл:2+state.research};
+    html+='<article class="ex-card ex-research"><div class="ex-card-head"><b>🧠 Исследование автоматики</b><span>'+state.research+'/3</span></div><small>Новые турели, батареи и более эффективная генерация.</small><small>'+costText(researchCost,10+state.research*10)+'</small>'+renderButton('research','Исследовать',state.research>=3||!canAfford(researchCost,10+state.research*10))+'</article>';
+    return html;
+  }
+  function renderDefense() {
+    const g=state.grid,protection=Math.min(.6,g.walls*.025);
+    let html='<div class="ex-grid-stats"><div><b>'+g.walls+'</b><small>Укрепления</small></div><div><b>'+g.turrets+'</b><small>Турели</small></div><div><b>'+Math.round(protection*100)+'%</b><small>Защита базы</small></div></div>';
+    html+='<p class="ex-muted">Укреплённые стены уменьшают последствия проигранной осады. Электрические турели автоматически помогают во время мировых событий.</p>';
+    html+='<div class="ex-card"><b>🏰 Схема обороны</b><small>Каждая стена повышает защиту. Максимум 30 стен и 60% снижения урона от неудачной обороны.</small></div>';
+    html+='<div class="ex-card"><b>🔦 Освещение</b><small>Электрические фонари поддерживают сеть и показывают, сколько энергии вырабатывает генератор.</small><small>Фонарей: '+g.lamps+' · расход: '+(g.lamps*.04).toFixed(2)+' энергии/сек.</small></div>';
+    html+=renderButton('tab-power','Перейти к строительству',false,true);
+    return html;
+  }
+  function renderDungeon() {
+    const d=state.dungeon,room=DUNGEON_ROOMS[d.room-1];
+    let html='<div class="ex-dungeon-banner"><span>🏛️ ЗАТЕРЯННАЯ ЦИТАДЕЛЬ</span><b>Комната '+d.room+' / 5</b></div>';
+    html+='<div class="ex-room-map">'+DUNGEON_ROOMS.map((r,i)=>'<div class="ex-room '+(d.cleared.includes(i+1)?'cleared':d.room===i+1&&d.active?'active':'')+'"><b>'+(d.cleared.includes(i+1)?'✓':i+1)+'</b><small>'+r.name+'</small></div>').join('')+'</div>';
+    if(d.cleared.length===5)html+='<article class="ex-card"><b>🏆 Цитадель очищена!</b><small>Ты победил всех хранителей. Награды и найденные реликвии сохранены.</small>'+renderButton('dungeon-reset','Начать новую экспедицию',false)+'</article>';
+    else if(!d.active)html+='<article class="ex-card"><b>'+room.name+'</b><small>Противник: '+room.enemy+' · ожидаемое здоровье '+room.hp+'.</small><small>Вход: 5 кристаллов, 10 железа и 50 золота. Исследование автоматики I.</small>'+renderButton('dungeon-enter','Войти в цитадель',state.research<1||!canAfford({Кристалл:5,Железо:10},50))+'</article>';
+    else {
+      html+='<article class="ex-card ex-enemy"><b>⚔️ '+room.enemy+'</b><div class="ex-meter"><i style="width:'+Math.round(d.enemyHp/Math.max(1,d.enemyMaxHp)*100)+'%"></i></div><small>Здоровье: '+Math.ceil(d.enemyHp)+' / '+d.enemyMaxHp+' · удар: '+room.damage+'</small>'+renderButton('dungeon-attack','Атаковать',false)+'</article>';
+      html+='<small class="ex-muted">Каждый удар наносит ответный урон. В комнатах 2 и 4 периодически срабатывают ловушки. Можно выйти и продолжить позже.</small>'+renderButton('dungeon-leave','Отступить',false,true);
+    }
+    return html;
+  }
+  function renderRelics() {
+    const active=equippedRelic();
+    let html='<div class="ex-card"><b>✨ Реликвии и редкое снаряжение</b><small>Реликвии выпадают из хранителей цитадели и древних мировых событий. Они дают настоящие бонусы к урону и защите персонажа.</small><small>Надето: '+(active?active.name:'ничего')+'</small></div>';
+    if(!state.relics.length)return html+'<p class="ex-muted">Пока нет реликвий. Пройди комнаты затерянной цитадели или отбей древнее пробуждение.</p>';
+    return html+'<div class="ex-list">'+state.relics.map(r=>'<article class="ex-card"><div class="ex-card-head"><b>'+r.name+'</b><span style="color:'+rarityColor(r.rarity)+'">'+r.rarity+'</span></div><small>Урон +'+Math.round(r.power*100)+'% · защита +'+Math.round(r.defense*100)+'%</small>'+renderButton('equip:'+r.id,state.equippedRelic===r.id?'Надето':'Надеть',state.equippedRelic===r.id)+'</article>').join('')+'</div>';
+  }
+  function rarityColor(name){return RARITIES.find(v=>v.name===name)?.color||'#c3cbd5';}
+  function renderEvent() {
+    const e=state.event;
+    if(!e)return '<article class="ex-card"><b>🌙 Глобальные события долины</b><small>После второй ночи каждые три ночи может начаться осада. Каждую седьмую ночь при исследованной автоматике пробуждается древний механизм.</small><small>Готовь генератор, стены и турели заранее.</small></article>';
+    if(e.kind==='ancient')return '<article class="ex-card ex-event"><b>👁️ ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА</b><small>Осталось времени: '+Math.ceil(e.timer)+' сек. · действия: '+e.actions+'</small><div class="ex-meter"><i style="width:'+Math.round(e.hp/Math.max(1,e.maxHp)*100)+'%"></i></div><small>Здоровье босса: '+Math.ceil(e.hp)+' / '+e.maxHp+'</small>'+renderButton('event-attack','Атаковать стража',false)+'</article>';
+    return '<article class="ex-card ex-event"><b>🚨 НОЧНАЯ ОСАДА</b><small>Осталось времени: '+Math.ceil(e.timer)+' сек. · осталось врагов: '+e.remaining+'</small><div class="ex-meter"><i style="width:'+Math.round(e.remaining/Math.max(1,e.remaining+e.actions)*100)+'%"></i></div>'+renderButton('event-attack','Отразить атаку',false)+'</article>';
+  }
+  function render() {
+    if(!root)return;
+    const b=bridge(),snap=currentSnapshot();
+    const labels={power:'⚡ Энергия',defense:'🏰 Оборона',dungeon:'🏛️ Цитадель',relics:'✨ Реликвии',events:'🌙 События'};
+    let content='';
+    if(activeTab==='power')content=renderPower();
+    else if(activeTab==='defense')content=renderDefense();
+    else if(activeTab==='dungeon')content=renderDungeon();
+    else if(activeTab==='relics')content=renderRelics();
+    else content=renderEvent();
+    root.innerHTML='<div class="ex-panel"><header class="ex-header"><div><small>SKYREALM · ТЕХНОЛОГИИ И ЭКСПЕДИЦИИ</small><h2>Мастерская прогресса</h2><p>Мир '+(snap?.day??0)+' · '+(snap?.difficulty||'обычная')+' · уровень '+(b?.getStats?.().level||1)+'</p></div><button type="button" data-expansion-action="close" aria-label="Закрыть">✕</button></header><nav class="ex-tabs">'+Object.entries(labels).map(([id,label])=>'<button type="button" data-expansion-action="tab:'+id+'" class="'+(activeTab===id?'active':'')+'">'+label+'</button>').join('')+'</nav><div class="ex-content">'+content+'</div><footer>Сохранение привязано к выбранному миру · версия системы '+VERSION+'</footer></div>';
+  }
+  function ensureUI() {
+    if(root)return;
+    const style=document.createElement('style');
+    style.textContent='#expansion-launch{position:fixed;right:18px;top:218px;z-index:35;border:1px solid #78b8d4;border-radius:11px;padding:10px 13px;background:linear-gradient(135deg,#173f54,#17273f);color:#e8f8ff;font:800 12px Segoe UI;cursor:pointer;box-shadow:0 8px 25px #0007}#expansion-launch[hidden],#skyrealm-expansion[hidden]{display:none!important}#skyrealm-expansion{position:fixed;inset:0;z-index:99980;display:flex;align-items:center;justify-content:center;padding:18px;background:#020914b8;color:#edf5ff;font:13px Segoe UI,Arial}#skyrealm-expansion .ex-panel{width:min(760px,100%);max-height:min(88vh,900px);overflow:auto;border:1px solid #436783;border-radius:18px;background:linear-gradient(150deg,#132a40,#091522 75%);box-shadow:0 25px 90px #000c;padding:18px}#skyrealm-expansion .ex-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}#skyrealm-expansion .ex-header small{color:#8ed2ef;letter-spacing:1px;font-weight:800}#skyrealm-expansion h2{font-size:22px;margin:5px 0;color:#e6f5ff}#skyrealm-expansion p{margin:5px 0 12px;color:#9eb6cc}#skyrealm-expansion button{border:1px solid #4f7691;border-radius:8px;background:#1b4662;color:#effaff;padding:8px 11px;font-weight:800;cursor:pointer}#skyrealm-expansion button:disabled{opacity:.35;cursor:not-allowed}#skyrealm-expansion button.secondary{background:#17283b}#skyrealm-expansion .ex-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}#skyrealm-expansion .ex-tabs button{background:#10233a;font-size:11px}#skyrealm-expansion .ex-tabs button.active{border-color:#95dfff;background:#20516a}#skyrealm-expansion .ex-content{max-height:60vh;overflow:auto;padding-right:3px}#skyrealm-expansion .ex-card{border:1px solid #2f4d68;border-radius:11px;padding:12px;margin:9px 0;background:#0d1c2c}#skyrealm-expansion .ex-card b{display:block;color:#edf5ff;margin-bottom:5px}#skyrealm-expansion .ex-card small{display:block;color:#a8bfd3;line-height:1.55;margin:4px 0}#skyrealm-expansion .ex-card-head{display:flex;justify-content:space-between;gap:8px;align-items:center}#skyrealm-expansion .ex-card-head span{font-size:11px;color:#95b2ca}#skyrealm-expansion .ex-card button{margin-top:8px}#skyrealm-expansion .ex-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}#skyrealm-expansion .ex-grid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}#skyrealm-expansion .ex-grid-stats>div{padding:11px;border:1px solid #31506a;border-radius:10px;background:#0c1c2d}#skyrealm-expansion .ex-grid-stats b{display:block;font-size:19px;color:#a9e8ff}#skyrealm-expansion .ex-grid-stats small{display:block;color:#9ab1c8;margin-top:4px}#skyrealm-expansion .ex-meter{height:8px;background:#263c51;border-radius:8px;overflow:hidden;margin:9px 0}#skyrealm-expansion .ex-meter i{display:block;height:100%;background:linear-gradient(90deg,#47a9ce,#9de5b1)}#skyrealm-expansion .ex-muted{display:block;color:#9ab0c7;line-height:1.55;margin:10px 0}#skyrealm-expansion .ex-lock{color:#f0bd74!important}#skyrealm-expansion .ex-room-map{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:12px 0}#skyrealm-expansion .ex-room{padding:8px 5px;text-align:center;border:1px solid #39536a;border-radius:8px;background:#0b1929}#skyrealm-expansion .ex-room b{display:block;color:#9ddfff}#skyrealm-expansion .ex-room small{display:block;font-size:9px;color:#a5b9cd;line-height:1.25}#skyrealm-expansion .ex-room.cleared{border-color:#62b98b;background:#123425}#skyrealm-expansion .ex-room.active{border-color:#d0ad66;background:#44371c}#skyrealm-expansion .ex-dungeon-banner{display:flex;justify-content:space-between;padding:12px;border:1px solid #4b4a6e;border-radius:10px;background:linear-gradient(90deg,#211e3d,#11283d);color:#d6c5ff;font-weight:900}#skyrealm-expansion footer{margin-top:14px;padding-top:10px;border-top:1px solid #2b455c;color:#7995ae;font-size:10px}@media(max-width:620px){#expansion-launch{top:205px;right:8px;padding:8px 10px}#skyrealm-expansion{padding:8px}#skyrealm-expansion .ex-panel{padding:12px;max-height:94vh}#skyrealm-expansion .ex-content{max-height:65vh}#skyrealm-expansion .ex-room-map{grid-template-columns:repeat(5,1fr)}#skyrealm-expansion .ex-room small{font-size:8px}}';
+    document.head.appendChild(style);
+    launchButton=document.createElement('button');launchButton.id='expansion-launch';launchButton.type='button';launchButton.textContent='⚡ Технологии';launchButton.hidden=true;launchButton.addEventListener('click',openPanel);document.body.appendChild(launchButton);
+    root=document.createElement('section');root.id='skyrealm-expansion';root.hidden=true;document.body.appendChild(root);
+    root.addEventListener('click',event=>{
+      const target=event.target?.closest?.('[data-expansion-action]');if(!target)return;
+      const action=target.dataset.expansionAction||'';
+      if(action==='close'){closePanel();return;}
+      if(action.startsWith('tab:')){activeTab=action.slice(4);render();return;}
+      if(action.startsWith('build:')){build(action.slice(6));return;}
+      if(action==='research'){research();return;}
+      if(action==='event-attack'){attackEvent();return;}
+      if(action==='dungeon-enter'){enterDungeon();return;}
+      if(action==='dungeon-attack'){attackDungeon();return;}
+      if(action==='dungeon-leave'){state.dungeon.active=false;save();render();return;}
+      if(action==='dungeon-next'){nextDungeonRoom();return;}
+      if(action==='dungeon-reset'){state.dungeon={room:1,active:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0};save();render();return;}
+      if(action.startsWith('equip:')){equipRelic(action.slice(6));return;}
+    });
+  }
+  function openPanel() {
+    const snap=currentSnapshot();if(!snap?.worldId)return;
+    ensureUI();opened=true;root.hidden=false;launchButton.hidden=true;bridge()?.pause?.();render();
+  }
+  function closePanel() {
+    if(!opened)return;opened=false;if(root)root.hidden=true;
+    bridge()?.resume?.();if(launchButton)launchButton.hidden=!worldId();
+  }
+  function build(id) {
+    const item=BUILDINGS[id];if(!item)return false;
+    const key=id==='generator'?'generators':id==='battery'?'batteries':id==='turret'?'turrets':id==='wall'?'walls':'lamps';
+    if(state.grid[key]>=item.limit){notify('Достигнут предел постройки: '+item.title+'.');return false;}
+    if(item.research&&state.research<item.research){notify('Сначала исследуй автоматику.');return false;}
+    if(!spend(item.cost,item.gold)){notify('Не хватает материалов или золота.');return false;}
+    state.grid[key]++;
+    if(id==='battery')state.power=Math.min(capacityFor(),state.power+30);
+    save();notify('Построено: '+item.title+'.');render();return true;
+  }
+  function research() {
+    if(state.research>=3)return false;
+    const cost={Железо:8+state.research*6,Медь:5+state.research*3,Кристалл:2+state.research};
+    const gold=10+state.research*10;
+    if(!spend(cost,gold)){notify('Не хватает ресурсов для исследования.');return false;}
+    state.research++;state.power=Math.min(capacityFor(),state.power+15);
+    save();notify('Автоматика исследована: уровень '+state.research+'/3.');render();return true;
+  }
+  function refillGenerator(dt) {
+    if(state.grid.generators<=0)return;
+    state.fuelSeconds-=dt;
+    state.generatorClock+=dt;
+    if(state.fuelSeconds<=0){
+      const b=bridge();
+      if(Number(b?.getItemCount?.('Уголь')||0)>0&&b?.spendItem?.('Уголь',1)){
+        state.fuelKind='Уголь';state.fuelSeconds=45;
+      }else if(Number(b?.getItemCount?.('Древесина')||0)>=2&&b?.spendItem?.('Древесина',2)){
+        state.fuelKind='Древесина';state.fuelSeconds=20;
+      }else{
+        state.fuelSeconds=0;state.fuelKind='';return;
+      }
+    }
+    const output=(state.fuelKind==='Уголь'?1.1:.55)*state.grid.generators*(1+state.research*.15);
+    state.power=clamp(state.power+output*dt,0,capacityFor());
+    if(state.grid.lamps>0)state.power=Math.max(0,state.power-state.grid.lamps*.035*dt);
+  }
+  function startEvent(kind,day=0) {
+    if(state.event)return false;
+    if(kind==='ancient')state.event={kind:'ancient',remaining:0,hp:1500*(difficultyScale()),maxHp:1500*(difficultyScale()),timer:180,actions:0,day};
+    else state.event={kind:'invasion',remaining:6+Math.round((difficultyScale()-1)*3),hp:0,maxHp:0,timer:110,actions:0,day};
+    notify(kind==='ancient'?'ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА! Защити долину.':'НОЧНАЯ ОСАДА! Турели и стены помогут отбить врагов.');
+    save();render();return true;
+  }
+  function difficultyScale() {
+    const d=bridge()?.getDifficulty?.()||'medium';
+    return ({easy:.8,medium:1,hard:1.25,hell:1.55,impossible:1.9,challenge:2.1}[d]||1);
+  }
+  function updateEvent(dt) {
+    const e=state.event;if(!e)return;
+    e.timer=Math.max(0,e.timer-dt);
+    state.turretClock+=dt;
+    if(state.grid.turrets>0&&state.power>=state.grid.turrets*.5&&state.turretClock>=2.5){
+      state.turretClock=0;state.power=Math.max(0,state.power-state.grid.turrets*.5);
+      if(e.kind==='ancient')e.hp=Math.max(0,e.hp-state.grid.turrets*24);
+      else e.remaining=Math.max(0,e.remaining-1);
+    }
+    if(e.kind==='ancient'&&e.hp<=0){finishEvent(true);return;}
+    if(e.kind==='invasion'&&e.remaining<=0){finishEvent(true);return;}
+    if(e.timer<=0)finishEvent(false);
+  }
+  function finishEvent(won) {
+    const e=state.event;if(!e)return;
+    state.event=null;
+    if(won){
+      state.stats.eventsWon++;
+      bridge()?.addGold?.(e.kind==='ancient'?12000:4500);
+      bridge()?.addItem?.(e.kind==='ancient'?'Сердце архонта':'Древний осколок',e.kind==='ancient'?2:1,'Награда за глобальное событие');
+      if(e.kind==='ancient')dropRelic(true);
+      notify(e.kind==='ancient'?'ДРЕВНИЙ СТРАЖ ПОВЕРЖЕН! Получена реликвия и редкие материалы.':'ОСАДА ОТБИТА! Награда добавлена в инвентарь.');
+    }else{
+      const damage=(e.kind==='ancient'?38:12+e.remaining*4)*(1-Math.min(.6,state.grid.walls*.025));
+      bridge()?.damagePlayer?.(damage);
+      notify('Оборона прорвана. Стены смягчили удар, но поселение потеряло ресурсы.');
+    }
+    save();render();
+  }
+  function attackEvent() {
+    const e=state.event;if(!e)return false;
+    const stats=bridge()?.getStats?.()||{};
+    e.actions++;
+    if(e.kind==='ancient'){
+      e.hp=Math.max(0,e.hp-Math.max(1,Number(stats.weaponDamage)||30)*damageMultiplier());
+      if(e.actions%3===0)bridge()?.damagePlayer?.(Math.max(3,12*(1-Math.min(.5,state.grid.walls*.01))));
+    }else e.remaining=Math.max(0,e.remaining-1);
+    if((e.kind==='ancient'&&e.hp<=0)||(e.kind==='invasion'&&e.remaining<=0))finishEvent(true);
+    else{save();render();}
+    return true;
+  }
+  function damageMultiplier() {
+    const relic=equippedRelic();return 1+(relic?.power||0);
+  }
+  function defenseBonus() {
+    const relic=equippedRelic();return relic?.defense||0;
+  }
+  function createRelic(forceRare=false) {
+    let roll=Math.random()*100,chosen=RARITIES[RARITIES.length-1];
+    if(forceRare)roll=Math.min(roll,5);
+    for(const r of RARITIES){if(roll<r.weight){chosen=r;break;}roll-=r.weight;}
+    const base=RELIC_NAMES[Math.floor(Math.random()*RELIC_NAMES.length)];
+    const item={
+      id:'relic-'+Date.now().toString(36)+'-'+Math.floor(Math.random()*1e8).toString(36),
+      name:base+' · '+chosen.name.toLowerCase(),
+      rarity:chosen.name,
+      power:chosen.power,
+      defense:chosen.defense
+    };
+    state.relics.push(item);state.relics=state.relics.slice(-30);
+    bridge()?.addItem?.(item.name,1,'Реликвия редкости '+item.rarity+' · урон +'+Math.round(item.power*100)+'% · защита +'+Math.round(item.defense*100)+'%');
+    notify('НАЙДЕНА РЕЛИКВИЯ: '+item.name+'!');
+    return item;
+  }
+  function dropRelic(forceRare=false) {
+    const item=createRelic(forceRare);if(!state.equippedRelic||item.power> (equippedRelic()?.power||0))state.equippedRelic=item.id;
+    return item;
+  }
+  function equipRelic(id) {
+    if(!state.relics.some(v=>v.id===id))return false;
+    state.equippedRelic=id;save();notify('Реликвия экипирована: '+equippedRelic().name+'.');render();return true;
+  }
+  function startDungeon() {
+    if(state.dungeon.cleared.length===5){notify('Цитадель уже очищена. Начни новую экспедицию.');return false;}
+    const cost={Кристалл:5,Железо:10};
+    if(state.research<1){notify('Для поиска цитадели требуется исследование автоматики I.');return false;}
+    if(!spend(cost,50)){notify('Для входа нужно 5 кристаллов, 10 железа и 50 золота.');return false;}
+    const room=state.dungeon.room||1,def=DUNGEON_ROOMS[room-1],max=Math.round(def.hp*difficultyScale());
+    state.dungeon.active=true;state.dungeon.enemyMaxHp=max;state.dungeon.enemyHp=max;state.dungeon.attacks=0;
+    save();notify('Ты вошёл в цитадель: '+def.name+'.');render();return true;
+  }
+  function attackDungeon() {
+    const d=state.dungeon;if(!d.active||d.cleared.includes(d.room))return false;
+    const stats=bridge()?.getStats?.()||{};
+    d.attacks++;
+    d.enemyHp=Math.max(0,d.enemyHp-Math.max(1,Number(stats.weaponDamage)||30)*damageMultiplier());
+    if(d.enemyHp<=0){
+      d.active=false;d.cleared.push(d.room);
+      bridge()?.addItem?.(DUNGEON_ROOMS[d.room-1].loot,1,'Награда за комнату '+d.room+' затерянной цитадели');
+      if(d.room===5){
+        state.stats.dungeonsCleared++;
+        bridge()?.addGold?.(20000);
+        bridge()?.addItem?.('Ключ великой сокровищницы',1,'Главная награда затерянной цитадели');
+        dropRelic(true);
+        notify('ЦИТАДЕЛЬ ПРОЙДЕНА! Архонт побеждён, легендарная экспедиционная награда получена.');
+      }else{
+        if(Math.random()<.25)dropRelic(false);
+        notify('Комната очищена: '+DUNGEON_ROOMS[d.room-1].name+'. Награды добавлены.');
+      }
+    }else{
+      const def=DUNGEON_ROOMS[d.room-1];
+      let damage=def.damage*difficultyScale()*(1-defenseBonus());
+      if([2,4].includes(d.room)&&d.attacks%3===0)damage+=12;
+      bridge()?.damagePlayer?.(damage);
+    }
+    save();render();return true;
+  }
+  function nextDungeonRoom() {
+    const d=state.dungeon;
+    if(d.active||!d.cleared.includes(d.room))return false;
+    if(d.room>=5)return false;
+    d.room++;d.enemyHp=0;d.enemyMaxHp=0;d.attacks=0;
+    return startDungeon();
+  }
+  function maybeStartNightEvent() {
+    const b=bridge(),minutes=Number(b?.getGameMinuteTotal?.());
+    if(!Number.isFinite(minutes)||!b?.isNightTime?.()||state.event)return;
+    const day=Math.floor(minutes/1440),minute=minutes%1440,nightKey=minute<360?day-1:day;
+    if(nightKey<2||state.lastSiegeNight>=nightKey||state.lastSiegeNight>=0&&nightKey-state.lastSiegeNight<3)return;
+    if((nightKey+1)%7===0&&state.research>=1)startEvent('ancient',nightKey);
+    else startEvent('invasion',nightKey);
+    state.lastSiegeNight=nightKey;save();
+  }
+  function update(dt) {
+    if(!Number.isFinite(dt)||dt<=0)return;
+    const snap=currentSnapshot();if(!snap?.worldId||snap.paused)return;
+    if(worldId()!==lastWorldId){lastWorldId=worldId();state.event=null;state.fuelSeconds=0;}
+    refillGenerator(Math.min(1,dt));
+    maybeStartNightEvent();
+    updateEvent(Math.min(1,dt));
+    if(state.grid.batteries===0)state.power=Math.min(state.power,60);
+  }
+  function reset() {
+    const fresh=emptyState();
+    for(const key of Object.keys(state))delete state[key];
+    Object.assign(state,fresh);lastWorldId=worldId();save();
+  }
+  function exportState() { return clone(state); }
+  function importState(raw) {
+    const fresh=normalizeState(raw);
+    for(const key of Object.keys(state))delete state[key];
+    Object.assign(state,fresh);lastWorldId=worldId();
+  }
+
+  function boot() {
+    ensureUI();
+    const updateButton=()=>{
+      const snap=currentSnapshot();
+      if(launchButton)launchButton.hidden=!snap?.worldId||snap.paused||opened;
+    };
+    updateButton();window.setInterval(updateButton,500);
+  }
+
+  window.SkyRealmExpansionSystems = {
+    VERSION,
+    update,
+    reset,
+    exportState,
+    importState,
+    damageMultiplier,
+    defenseBonus,
+    build,
+    research,
+    startEvent,
+    attackEvent,
+    startDungeon,
+    attackDungeon,
+    nextDungeonRoom,
+    equipRelic,
+    getState:()=>clone(state),
+    open:openPanel,
+    close:closePanel
+  };
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+  else boot();
+})();
