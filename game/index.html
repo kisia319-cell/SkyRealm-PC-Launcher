@@ -589,11 +589,14 @@
   }
   let neptuneTimer=window.setTimeout(()=>{if(!leaving)intro.classList.add('neptune-visible');},2200);
   const showEnter=()=>window.setTimeout(()=>{if(!leaving&&intro.isConnected)intro.classList.add('intro-ready');},1500);
-  const leave=()=>{if(leaving)return;leaving=true;window.clearTimeout(neptuneTimer);enter.disabled=true;intro.classList.remove('intro-ready');intro.classList.add('intro-exit');window.setTimeout(()=>intro.remove(),1100);};
+  const leave=()=>{if(leaving)return;leaving=true;window.clearTimeout(neptuneTimer);enter.disabled=true;intro.classList.remove('intro-ready');intro.classList.add('intro-exit','intro-out');intro.setAttribute('aria-hidden','true');intro.style.pointerEvents='none';window.setTimeout(()=>{intro.remove();},750);};
   enter.addEventListener('click',leave,{once:true});
   if(settingsButton)settingsButton.addEventListener('click',()=>{
     if(leaving)return;
     leaving=true;window.clearTimeout(neptuneTimer);
+    intro.classList.add('intro-exit','intro-out');
+    intro.setAttribute('aria-hidden','true');
+    intro.style.pointerEvents='none';
     intro.remove();
     const pauseShade=document.getElementById('pause-shade');
     const mainView=document.getElementById('pause-main-view');
