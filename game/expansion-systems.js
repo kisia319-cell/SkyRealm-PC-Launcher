@@ -9,7 +9,8 @@
   const emptyState = () => ({
     version:VERSION,
     research:0,
-    grid:{generators:0,batteries:0,turrets:0,walls:0,lamps:0},
+    grid:{generators:0,batteries:0,turrets:0,walls:0,lamps:0,drills:0,shields:0},
+    drillClock:0,
     power:0,
     fuelSeconds:0,
     fuelKind:'',
@@ -37,6 +38,8 @@
     battery:{title:'Аккумулятор',icon:'🔋',cost:{Железо:8,Медь:6,Кристалл:1},gold:10,limit:12},
     lamp:{title:'Электрический фонарь',icon:'💡',cost:{Медь:3,Древесина:4},gold:2,limit:20},
     turret:{title:'Автоматическая турель',icon:'🎯',cost:{Железо:12,Медь:5,Древесина:8,Кристалл:2},gold:25,limit:8,research:1},
+    drill:{title:'Автоматический бур',icon:'⛏️',cost:{Железо:18,Медь:12,Кристалл:3,Мифрил:1},gold:60,limit:3,research:2},
+    shield:{title:'Силовой защитный купол',icon:'🛡️',cost:{Железо:20,Медь:15,Кристалл:8,Мифрил:3},gold:100,limit:1,research:3},
     wall:{title:'Укреплённая стена',icon:'🧱',cost:{Камень:16,Древесина:8,Железо:2},gold:5,limit:30}
   };
   const DUNGEON_ROOMS = [
@@ -58,12 +61,13 @@
     if (!raw || typeof raw !== 'object' || raw.version !== VERSION) return base;
     base.research = clamp(Math.floor(Number(raw.research)||0),0,3);
     for (const key of Object.keys(base.grid)) {
-      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='batteries'?12:4);
+      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='batteries'?12:key==='drills'?3:key==='shields'?1:4);
     }
     base.power = clamp(Number(raw.power)||0,0,capacityFor(base));
     base.fuelSeconds = clamp(Number(raw.fuelSeconds)||0,0,3600);
     base.fuelKind = ['Уголь','Древесина'].includes(raw.fuelKind)?raw.fuelKind:'';
     base.generatorClock = clamp(Number(raw.generatorClock)||0,0,60);
+    base.drillClock = clamp(Number(raw.drillClock)||0,0,120);
     base.turretClock = clamp(Number(raw.turretClock)||0,0,60);
     base.lastSiegeNight = Number.isInteger(raw.lastSiegeNight)?raw.lastSiegeNight:-1;
     if (raw.event && ['invasion','ancient'].includes(raw.event.kind)) {
@@ -145,7 +149,7 @@
     html+='<p class="ex-muted">Генератор сжигает уголь или древесину. Аккумуляторы хранят заряд. Турели используют энергию только во время тревоги.</p>';
     html+='<div class="ex-list">';
     for(const [id,item] of Object.entries(BUILDINGS)){
-      const count=g[id==='generator'?'generators':id==='battery'?'batteries':id==='turret'?'turrets':id==='wall'?'walls':'lamps'];
+      const count=g[{generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id]];
       const locked=item.research&&state.research<item.research;
       const full=count>=item.limit;
       const affordable=canAfford(item.cost,item.gold);
@@ -161,10 +165,10 @@
   }
   function renderDefense() {
     const g=state.grid,protection=Math.min(.6,g.walls*.025);
-    let html='<div class="ex-grid-stats"><div><b>'+g.walls+'</b><small>Укрепления</small></div><div><b>'+g.turrets+'</b><small>Турели</small></div><div><b>'+Math.round(protection*100)+'%</b><small>Защита базы</small></div></div>';
+    let html='<div class="ex-grid-stats"><div><b>'+g.walls+'</b><small>Укрепления</small></div><div><b>'+g.turrets+'</b><small>Турели</small></div><div><b>'+g.shields+'</b><small>Силовые купола</small></div></div>';
     html+='<p class="ex-muted">Укреплённые стены уменьшают последствия проигранной осады. Электрические турели автоматически помогают во время мировых событий.</p>';
     html+='<div class="ex-card"><b>🏰 Схема обороны</b><small>Каждая стена повышает защиту. Максимум 30 стен и 60% снижения урона от неудачной обороны.</small></div>';
-    html+='<div class="ex-card"><b>🔦 Освещение</b><small>Электрические фонари поддерживают сеть и показывают, сколько энергии вырабатывает генератор.</small><small>Фонарей: '+g.lamps+' · расход: '+(g.lamps*.04).toFixed(2)+' энергии/сек.</small></div>';
+    html+='<div class="ex-card"><b>🔦 Освещение</b><small>Электрические фонари поддерживают сеть и показывают, сколько энергии вырабатывает генератор.</small><small>Фонарей: '+g.lamps+' · расход: '+(g.lamps*.035).toFixed(2)+' энергии/сек. Буров: '+g.drills+'.</small></div>';
     html+=renderButton('tab-power','Перейти к строительству',false,true);
     return html;
   }
@@ -239,7 +243,7 @@
   }
   function build(id) {
     const item=BUILDINGS[id];if(!item)return false;
-    const key=id==='generator'?'generators':id==='battery'?'batteries':id==='turret'?'turrets':id==='wall'?'walls':'lamps';
+    const key={generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id];
     if(state.grid[key]>=item.limit){notify('Достигнут предел постройки: '+item.title+'.');return false;}
     if(item.research&&state.research<item.research){notify('Сначала исследуй автоматику.');return false;}
     if(!spend(item.cost,item.gold)){notify('Не хватает материалов или золота.');return false;}
@@ -272,6 +276,19 @@
     const output=(state.fuelKind==='Уголь'?1.1:.55)*state.grid.generators*(1+state.research*.15);
     state.power=clamp(state.power+output*dt,0,capacityFor());
     if(state.grid.lamps>0)state.power=Math.max(0,state.power-state.grid.lamps*.035*dt);
+  }
+  function runDrills(dt) {
+    if(state.grid.drills<=0)return;
+    state.drillClock+=dt;
+    if(state.drillClock<25||state.power<5)return;
+    state.drillClock=0;state.power=Math.max(0,state.power-5);
+    const b=bridge();
+    b?.addItem?.('Камень',3*state.grid.drills,'Автоматический бур');
+    const ores=['Железо','Медь','Уголь','Кристалл','Серебро'];
+    const ore=ores[Math.floor(Math.random()*ores.length)];
+    b?.addItem?.(ore,1,'Автоматический бур');
+    notify('Бур добыл: Камень ×'+(3*state.grid.drills)+' и '+ore+' ×1.');
+    save();
   }
   function startEvent(kind,day=0) {
     if(state.event)return false;
@@ -307,7 +324,9 @@
       if(e.kind==='ancient')dropRelic(true);
       notify(e.kind==='ancient'?'ДРЕВНИЙ СТРАЖ ПОВЕРЖЕН! Получена реликвия и редкие материалы.':'ОСАДА ОТБИТА! Награда добавлена в инвентарь.');
     }else{
-      const damage=(e.kind==='ancient'?38:12+e.remaining*4)*(1-Math.min(.6,state.grid.walls*.025));
+      const shielded=state.grid.shields>0&&state.power>=20;
+      if(shielded)state.power-=20;
+      const damage=(e.kind==='ancient'?38:12+e.remaining*4)*(1-Math.min(.6,state.grid.walls*.025))*(shielded?.2:1);
       bridge()?.damagePlayer?.(damage);
       notify('Оборона прорвана. Стены смягчили удар, но поселение потеряло ресурсы.');
     }
@@ -420,6 +439,7 @@
     const snap=currentSnapshot();if(!snap?.worldId||snap.paused)return;
     if(worldId()!==lastWorldId){lastWorldId=worldId();state.event=null;state.fuelSeconds=0;}
     refillGenerator(Math.min(1,dt));
+    runDrills(Math.min(1,dt));
     maybeStartNightEvent();
     updateEvent(Math.min(1,dt));
     if(state.grid.batteries===0)state.power=Math.min(state.power,60);
