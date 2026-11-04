@@ -696,7 +696,6 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   function xpForNextLevel(level=playerLevel){return 100+Math.max(0,level-1)*75;}
   function skillBonus(key){return Math.max(0,Math.min(10,Number(skills[key])||0));}
   function communityModBonus(key){return (communityMods||[]).filter(m=>installedCommunityMods.has(m.id)&&m.effect_key===key).reduce((sum,m)=>sum+Math.max(1,Math.min(10,Number(m.effect_strength)||1)),0);}
-  function communityModBonus(key){return (communityMods||[]).filter(m=>installedCommunityMods.has(m.id)&&m.effect_key===key).reduce((sum,m)=>sum+Math.max(1,Math.min(10,Number(m.effect_strength)||1)),0);}
   function awardXP(amount,reason=''){
     const bountyBonus=isModInstalled('bounty_hunter')&&/монстр|побед/i.test(String(reason))?1.2:1;
     const gained=Math.max(0,Math.floor((Number(amount)||0)*(1+skills.crafter*.04+(classHas('ordinary')?0.05:0))*bountyBonus*(isModInstalled('scholar')?1.12:1)));if(!gained)return;playerXP+=gained;let leveled=false;
