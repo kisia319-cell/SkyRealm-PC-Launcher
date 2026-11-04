@@ -13,6 +13,9 @@ assert.ok(game.includes('window.SkyRealmExpansionSystems?.importState?.(d?.expan
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.update?.(dt)'),'Expansion systems must update with the game world');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.damageMultiplier?.()||1'),'Equipped relics must affect player weapon damage');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.defenseBonus?.()||0'),'Equipped relics must affect player defense');
+assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall'"),'Technology structures must load from world saves');
+assert.ok(game.includes("s.type==='tech-generator'"),'Placed technology buildings must be drawn in the world');
+assert.ok(game.includes('placeExpansionStructure:type=>'),'Technology placement API must be connected to the game world');
 
 class FakeElement {
   constructor(){this.hidden=false;this.listeners={};this.children=[];this.dataset={};this.style={};this._html='';this.textContent='';this.id='';}
@@ -35,6 +38,8 @@ const inventory={
   'Древесина':500,'Камень':500,'Железо':500,'Медь':500,'Кристалл':100,'Уголь':100,'Мифрил':50,'Серебро':100
 };
 const rewards={gold:100000,items:{},damage:0,saves:0,toasts:[]};
+const worldStructures=[];
+let allowPlacement=true;
 let snapshot={worldId:'expansion-test-world',difficulty:'medium',paused:false,day:4};
 let gameMinuteTotal=3*1440+12*60;
 let night=false;
@@ -46,6 +51,7 @@ const bridge={
   isNightTime:()=>night,
   getStats:()=>({level:20,hp:100,weaponDamage:2500,gold:Math.floor(rewards.gold/100),difficulty:snapshot.difficulty}),
   getItemCount:name=>inventory[name]||0,
+  placeExpansionStructure:type=>{if(!allowPlacement)return false;worldStructures.push(type);return true;},
   spendItem:(name,count)=>{if((inventory[name]||0)<count)return false;inventory[name]-=count;return true;},
   getGold:()=>Math.floor(rewards.gold/100),
   spendGold:amount=>{const cost=amount*100;if(rewards.gold<cost)return false;rewards.gold-=cost;return true;},
@@ -64,8 +70,14 @@ assert.ok(api,'Expansion API should boot');
 assert.ok(elements['expansion-launch'],'Technology button should be created');
 assert.ok(elements['skyrealm-expansion'],'Expansion panel should be created');
 
-assert.equal(api.build('generator'),true,'Generator can be built from real resources');
+assert.equal(api.build('generator'),true,'Generator can be built from real resources and placed in the world');
 assert.equal(api.getState().grid.generators,1);
+assert.deepEqual(worldStructures,['generator'],'Technology building must create a real world structure');
+const oreBeforeFailedPlacement=inventory['Медь'];allowPlacement=false;
+assert.equal(api.build('lamp'),false,'No-space placement must fail safely');
+assert.equal(inventory['Медь'],oreBeforeFailedPlacement,'Failed placement must refund all spent resources');
+assert.equal(api.getState().grid.lamps,0,'Failed placement must not increase the building count');
+allowPlacement=true;
 assert.equal(api.build('turret'),false,'Turret must remain locked until research I');
 assert.equal(api.research(),true,'First technology research should unlock automation');
 assert.equal(api.build('battery'),true,'Battery can be built');
