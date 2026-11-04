@@ -36,13 +36,14 @@ const inventory={
 };
 const rewards={gold:100000,items:{},damage:0,saves:0,toasts:[]};
 let snapshot={worldId:'expansion-test-world',difficulty:'medium',paused:false,day:4};
-let gameMinuteTotal=3*1440+21*60;
+let gameMinuteTotal=3*1440+12*60;
+let night=false;
 const bridge={
   getWorldId:()=>snapshot.worldId,
   getChallengeSnapshot:()=>({...snapshot,items:{...inventory},level:20,hp:100}),
   getGameMinuteTotal:()=>gameMinuteTotal,
   getDifficulty:()=>snapshot.difficulty,
-  isNightTime:()=>true,
+  isNightTime:()=>night,
   getStats:()=>({level:20,hp:100,weaponDamage:2500,gold:Math.floor(rewards.gold/100),difficulty:snapshot.difficulty}),
   getItemCount:name=>inventory[name]||0,
   spendItem:(name,count)=>{if((inventory[name]||0)<count)return false;inventory[name]-=count;return true;},
@@ -82,6 +83,10 @@ assert.equal(api.getState().event,null,'Manual defence must be able to defeat a 
 assert.equal(api.getState().stats.eventsWon,1);
 assert.ok(rewards.gold>beforeEventGold,'Successful defence must award gold');
 assert.ok(inventory['Древний осколок']>=1,'Successful defence must grant a real inventory item');
+night=true;gameMinuteTotal=3*1440+21*60;api.update(1);
+assert.ok(api.getState().event,'An automatic night siege should start after the second night');
+for(let i=0;i<10&&api.getState().event;i++)api.attackEvent();
+night=false;
 
 assert.equal(api.startDungeon(),true,'Automation research unlocks the citadel expedition');
 for(let room=1;room<=5;room++){
