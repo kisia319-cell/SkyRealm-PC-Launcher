@@ -223,7 +223,7 @@
       if(action==='event-attack'){attackEvent();return;}
       if(action==='dungeon-enter'){enterDungeon();return;}
       if(action==='dungeon-attack'){attackDungeon();return;}
-      if(action==='dungeon-leave'){state.dungeon.active=false;save();render();return;}
+      if(action==='dungeon-leave'){leaveDungeon();return;}
       if(action==='dungeon-next'){nextDungeonRoom();return;}
       if(action==='dungeon-reset'){state.dungeon={room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0};save();render();return;}
       if(action.startsWith('equip:')){equipRelic(action.slice(6));return;}
@@ -395,6 +395,10 @@
     }
     save();render();return true;
   }
+  function leaveDungeon() {
+    if(!state.dungeon.active)return false;
+    state.dungeon.active=false;save();notify('Ты отступил из цитадели. Здоровье стража и оплата входа сохранены.');render();return true;
+  }
   function nextDungeonRoom() {
     const d=state.dungeon;
     if(d.active||!d.cleared.includes(d.room)||d.room>=5)return false;
@@ -456,6 +460,7 @@
     startDungeon,
     attackDungeon,
     nextDungeonRoom,
+    leaveDungeon,
     equipRelic,
     getState:()=>clone(state),
     open:openPanel,
