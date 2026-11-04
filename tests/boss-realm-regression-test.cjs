@@ -20,4 +20,16 @@ for (const required of ['function updateBossRealmEnemies(dt)','function drawBoss
 assert.ok(source.includes("if(k==='v'") && source.includes('useBossRealmInvisibility'));
 assert.ok(source.includes("if(k==='b'") && source.includes('useBossRealmDamageBoost'));
 assert.ok(source.includes('m.phaseStage=2') && source.includes('m.phaseStage=3'));
+const mobUpdateStart=source.indexOf('function updateMonsters(dt){');
+const bossDispatch=source.indexOf('if(bossRealmMode){updateBossRealmEnemies(dt);return;}',mobUpdateStart);
+const surfaceGuard=source.indexOf('if(tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode){return;}',mobUpdateStart);
+assert.ok(mobUpdateStart>=0&&bossDispatch>mobUpdateStart&&surfaceGuard>bossDispatch,'Boss Realm combat must update before surface-world mode guards');
+const bossUpdateStart=source.indexOf('function updateBossRealmEnemies(dt){');
+const bossUpdateEnd=source.indexOf('function drawBossRealmCreature',bossUpdateStart);
+const bossUpdate=source.slice(bossUpdateStart,bossUpdateEnd);
+assert.ok(bossUpdate.includes('if(!Number.isFinite(m.maxHp)||m.maxHp<1)'), 'Repair missing boss mob max HP');
+assert.ok(bossUpdate.includes('if(!Number.isFinite(m.hp))m.hp=m.maxHp'), 'Repair missing boss mob HP');
+assert.ok(bossUpdate.includes('if(attackDistance<58&&m.attackCooldown<=0'), 'Boss Realm mobs must have a working melee attack');
+assert.ok(bossUpdate.includes('bossRealmSpecial(m,d,attackDistance)'), 'Boss Realm mobs must use their special attacks');
+assert.ok(bossUpdate.includes('m.x=nx;m.y=ny'), 'Boss Realm mobs must be able to move toward the player in the arena');
 console.log('SkyRealm Boss Realm roster, events, abilities, visuals and onboarding tests passed.');
