@@ -58,7 +58,7 @@
       #sea-message{position:absolute;top:14px;left:50%;transform:translateX(-50%);padding:10px 16px;border-radius:10px;background:#09263beF;border:1px solid #69b8dc;font-weight:800;max-width:90%;text-align:center}
       #sea-map{position:absolute;inset:7% 12%;background:#061321f5;border:1px solid #9bdfff;border-radius:14px;padding:18px;display:none;overflow:auto}
       #sea-map.open{display:block}#sea-map canvas{width:100%;height:calc(100% - 50px);min-height:220px}
-      #sea-vault{position:absolute;inset:8% 10%;display:none;background:#10182bf5;border:1px solid #aa9cce;border-radius:14px;padding:18px;overflow:auto}
+      #skyrealm-sea .sea-control-pad{position:absolute;right:14px;bottom:14px;z-index:5;display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px;border:1px solid #8bd3ef88;border-radius:14px;background:#061321c9;backdrop-filter:blur(5px);touch-action:none;user-select:none}#skyrealm-sea .sea-control-row{display:flex;gap:5px}#skyrealm-sea .sea-control-pad button{width:42px;height:40px;padding:0;font-size:18px;border-color:#84cce8;background:#174a66;touch-action:none;user-select:none}#skyrealm-sea .sea-control-pad button:active{background:#317e9d;transform:scale(.96)}#sea-vault{position:absolute;inset:8% 10%;display:none;background:#10182bf5;border:1px solid #aa9cce;border-radius:14px;padding:18px;overflow:auto}
       #sea-vault.open{display:block}#sea-vault h2{margin:0 0 8px;color:#e5d6ff}#sea-vault .vault-paths{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
       #sea-vault .vault-paths button{flex:1;min-width:140px}#sea-vault .vault-log{padding:12px;background:#080f1e;border-radius:8px;min-height:90px;line-height:1.7}
       @media(max-width:700px){#skyrealm-sea .sea-help{font-size:10px;max-width:90%}#skyrealm-sea .sea-top{gap:6px;padding:7px}#skyrealm-sea .sea-stat{font-size:10px}}
@@ -66,6 +66,7 @@
       <div class="sea-top"><span class="sea-title">🌊 SKYREALM · МОРЕ</span><span class="sea-stat" id="sea-weather">Погода: штиль</span><span class="sea-stat" id="sea-boat-hp">Корабль: 100%</span><span class="sea-stat" id="sea-air">Воздух: —</span><span class="sea-stat" id="sea-coords">Координаты: 13 / 82</span><button id="sea-map-btn">🗺 Карта</button><button id="sea-dive-btn">↓ Нырнуть · E</button><button id="sea-vault-btn">🏛 Сокровищница</button><button id="sea-exit">Вернуться на берег</button></div>
       <div class="sea-stage"><canvas id="sea-canvas"></canvas><div id="sea-message">Море ждёт тебя. Найди карту сокровищ!</div>
       <div class="sea-help">WASD / стрелки — управлять кораблём · E — взаимодействовать / нырять · M — карта · Space — ускорение<br>В шторм волны повреждают корабль. Акулы преследуют лодку. Для долгого погружения нужен водяной шлем.</div>
+      <div class="sea-control-pad" aria-label="Управление кораблём"><button type="button" data-sea-direction="w" aria-label="Вперёд">▲</button><div class="sea-control-row"><button type="button" data-sea-direction="a" aria-label="Влево">◀</button><button type="button" data-sea-direction="s" aria-label="Назад">▼</button><button type="button" data-sea-direction="d" aria-label="Вправо">▶</button></div></div>
       <div id="sea-map"><h2>🗺 Морская карта · 360 × 260</h2><p>Туман скрывает неизведанные воды. Найди обломки кораблей и карты сокровищ.</p><canvas id="sea-map-canvas"></canvas><button id="sea-map-close">Закрыть карту</button></div>
       <div id="sea-vault"><h2>🏛 Великая сокровищница глубин</h2><p>Подводный лабиринт с несколькими путями. Внутри находятся ровно два бога моря.</p><div class="vault-paths"><button data-path="0">Путь затонувших стражей</button><button data-path="1">Коралловые катакомбы</button><button data-path="2">Бездна древних</button></div><div class="vault-log" id="vault-log">Перед входом подготовь водяной шлем. В каждом пути есть монстры и ловушки.</div><div class="vault-paths"><button id="vault-enter">Войти в выбранный путь</button><button id="vault-fight" disabled>Сразиться с боссом</button><button id="vault-exit">Выйти из сокровищницы</button></div></div>
       </div>`;
@@ -75,12 +76,23 @@
     $('vault-exit').onclick=()=> $('sea-vault').classList.remove('open');
     $('vault-enter').onclick=enterVault; $('vault-fight').onclick=fightVaultBoss;
     root.querySelectorAll('[data-path]').forEach(b=>b.onclick=()=>{state.vaultPath=Number(b.dataset.path);$('vault-log').textContent=['Путь затонувших стражей: тяжёлые рыцари охраняют проход.','Коралловые катакомбы: ядовитые медузы и ловушки.','Бездна древних: сильнейшие монстры и два алтаря богов.'][state.vaultPath];});
-    window.addEventListener('keydown',onKey,true); window.addEventListener('keyup',onUp,true); window.addEventListener('blur',()=>keys.clear());
+    root.querySelectorAll('[data-sea-direction]').forEach(button=>{
+      const direction=button.dataset.seaDirection;
+      const press=event=>{if(!active)return;event.preventDefault();keys.add(direction);try{button.setPointerCapture?.(event.pointerId);}catch(_){}};
+      const release=()=>keys.delete(direction);
+      button.addEventListener('pointerdown',press);
+      button.addEventListener('pointerup',release);
+      button.addEventListener('pointercancel',release);
+      button.addEventListener('lostpointercapture',release);
+      button.addEventListener('contextmenu',event=>event.preventDefault());
+    });
+    window.addEventListener('keydown',onKey,true); window.addEventListener('keyup',onUp,true); window.addEventListener('blur',()=>keys.clear()); window.addEventListener('visibilitychange',()=>{if(document.hidden)keys.clear();});
     window.addEventListener('resize',resize); resize();
   }
   function resize(){if(!canvas)return;const r=canvas.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.max(1,Math.floor(r.width*d));canvas.height=Math.max(1,Math.floor(r.height*d));ctx.setTransform(d,0,0,d,0,0);}
-  function onKey(e){if(!active)return;const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','m','e','escape'].includes(k)){e.preventDefault();e.stopPropagation();}keys.add(k);if(k==='m')toggleMap();if(k==='e'){if(state.underwater)toggleDive();else interact();}if(k==='escape'){if($('sea-vault').classList.contains('open'))$('sea-vault').classList.remove('open');else if(state.mapOpen)toggleMap();else leave();}}
-  function onUp(e){keys.delete(e.key.toLowerCase());}
+  function keyToken(e){const code=String(e.code||'');if(code.startsWith('Key')&&code.length===4)return code.slice(3).toLowerCase();if(code==='Space')return ' ';return String(e.key||'').toLowerCase();}
+  function onKey(e){if(!active)return;const k=keyToken(e);if(!['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','m','e','escape'].includes(k))return;e.preventDefault();e.stopPropagation();const firstPress=!keys.has(k);keys.add(k);if(!firstPress)return;if(k==='m')toggleMap();if(k==='e'){if(state.underwater)toggleDive();else interact();}if(k==='escape'){if($('sea-vault').classList.contains('open'))$('sea-vault').classList.remove('open');else if(state.mapOpen)toggleMap();else leave();}}
+  function onUp(e){keys.delete(keyToken(e));}
   function enter(){
     const b=bridge(); if(!b?.getWorldId?.()){msg('Сначала загрузи игровой мир.');return;}
     if(!b.hasItem('Корабль')){msg('Сначала создай корабль на второй странице верстака.');return;}
