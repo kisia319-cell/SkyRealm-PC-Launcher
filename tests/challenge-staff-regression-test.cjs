@@ -53,6 +53,8 @@ class FakeElement {
 const elements={};
 for(const id of ['challenge-launch','challenge-panel','challenge-content','challenge-close'])elements[id]=new FakeElement(id);
 const storage=new Map();
+let fakeNow=1000000;
+const FakeDate=class extends Date{static now(){return fakeNow;}};
 let snapshot={worldId:'challenge-test',difficulty:'challenge',paused:false,gameMinuteTotal:0,items:{},level:1,hp:100,exploredCells:0,totalCells:100,survivedNights:0,biomeBosses:{},caveBossDefeated:false,dungeonClearedRooms:[],dungeonChestOpened:false};
 const rewards={gold:0,items:{},toasts:[],saves:0};
 let updateCallback=null;
@@ -78,7 +80,7 @@ const localStorage={
   getItem:key=>storage.has(key)?storage.get(key):null,
   setItem:(key,value)=>storage.set(key,String(value))
 };
-vm.runInNewContext(challenge,{window,document,localStorage,console,Date,Math,JSON,Object,Number,String,Array,Map,Set,Promise});
+vm.runInNewContext(challenge,{window,document,localStorage,console,Date:FakeDate,Math,JSON,Object,Number,String,Array,Map,Set,Promise});
 assert.equal(typeof updateCallback,'function');
 assert.equal(elements['challenge-launch'].hidden,false);
 elements['challenge-launch'].click();
@@ -90,8 +92,7 @@ assert.ok(window.SkyRealmChallengeHooks,'Gather hook registered');
 window.SkyRealmChallengeHooks.onItemGained('Древесина',7);
 window.SkyRealmChallengeHooks.onItemGained('Древесина',7);
 window.SkyRealmChallengeHooks.onItemGained('Древесина',7);
-let now=Date.now();
-Date.now=()=>now+1000;
+fakeNow+=1000;
 updateCallback();
 assert.equal(rewards.gold,120000,'Wood challenge reward is paid when collected count reaches 20');
 assert.equal(rewards.items['Малое зелье'],1);
@@ -100,12 +101,15 @@ assert.ok(rewards.toasts.some(x=>x.includes('Испытание выполнен
 elements['challenge-launch'].click();
 buttons=elements['challenge-content'].querySelectorAll('[data-challenge-start]');
 buttons.find(b=>b.dataset.challengeStart==='iron').listeners.click();
-now+=74000;
-Date.now=()=>now;
+snapshot.paused=true;
+fakeNow+=120000;
+updateCallback();
+assert.equal(rewards.toasts.some(x=>x.includes('Время испытания истекло')),false,'Paused time must not count toward a challenge');
+snapshot.paused=false;
+fakeNow+=74000;
 updateCallback();
 assert.equal(rewards.toasts.some(x=>x.includes('Время испытания истекло')),false,'74 seconds must not expire a 75-second challenge');
-now+=1000;
-Date.now=()=>now;
+fakeNow+=1000;
 updateCallback();
 assert.ok(rewards.toasts.some(x=>x.includes('Время испытания истекло')),'75 real/game minutes should expire the 75-second challenge');
 console.log('SkyRealm challenge progress events, 1:1 timer, short deadlines and staff privilege UI checks passed.');
