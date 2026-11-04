@@ -34,6 +34,7 @@ jobs:
       - run: node tests/profile-social-api-smoke.mjs
       - run: node --check app.js
       - run: node tests/singleplayer-village-test.cjs
+      - run: node tests/expansion-systems-test.cjs
       - run: node tests/game-smoke-test.cjs
       - run: node tests/achievement-system-test.cjs
       - run: node tests/world-library-test.cjs
@@ -46,7 +47,6 @@ jobs:
       - run: node --check game/game.js
       - run: node --check game/sea-system.js
       - run: node --check game/expansion-systems.js
-      - run: node tests/expansion-systems-test.cjs
       - run: python -m py_compile launcher.py
       - name: Smoke-test deployed co-op API
         run: |
@@ -97,32 +97,37 @@ jobs:
             result: { consumed_item: 'Семена пшеницы' }
           });
           await assertProtected('/api/coop/actions/enqueue', 'POST', {
-            room_id: '123e4567-e89b-12d3-a456-426614174098',
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174098',
             action_type: 'mine_rock',
             payload: { rock_index: 3, tool: 'Кирка' }
           });
           await assertProtected('/api/coop/actions/commit-mine', 'POST', {
-            room_id: '123e4567-e89b-12d3-a456-426614174098',
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174098',
             expected_version: 0,
             payload: { mineRocks: [] },
             result: {}
           });
           await assertProtected('/api/coop/actions/enqueue', 'POST', {
-            room_id: '123e4567-e89b-12d3-a456-426614174097',
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174097',
             action_type: 'chop_tree',
             payload: { x: 144, y: 177, tool: 'Топор' }
           });
           await assertProtected('/api/coop/actions/commit-tree', 'POST', {
-            room_id: '123e4567-e89b-12d3-a456-426614174097',
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174097',
             expected_version: 0,
             payload: { adventureQuestProgress: { treeChops: [], felledTrees: [] } },
             result: {}
           });
           await assertProtected('/api/coop/actions/commit-enemy', 'POST', {
-            room_id: '123e4567-e89b-12d3-a456-426614174096',
+            room_id: '123e4567-e89b-12d3-a456-426614174000',
+            action_id: '123e4567-e89b-42d3-a456-426614174096',
             expected_version: 0,
             payload: { adventureQuestProgress: { coopMonsters: [] }, lootDrops: [] },
             result: {}
           });
-          console.log('Co-op health is OK; protected routes reject missing sessions.');
+          console.log('Co-op health is OK; current, snapshot, world-claim, farm, mining and tree routes reject missing sessions.');
           NODE
