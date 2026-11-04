@@ -239,9 +239,9 @@
   function renderEvent() {
     const e=state.event;
     if(!e)return '<article class="ex-card"><b>🌙 Глобальные события долины</b><small>После второй ночи каждые три ночи может начаться осада. Каждую седьмую ночь при исследованной автоматике пробуждается древний механизм.</small><small>Готовь генератор, стены и турели заранее.</small></article>';
-    const p=bridge()?.getPlayerPosition?.()||{x:0,y:0},distance=Math.hypot((Number(p.x)||0)-e.x,(Number(p.y)||0)-e.y),location=distance<=150?'Ты рядом с маяком события. Нажми E в игровом мире или используй кнопку ниже.':'Метка события находится в '+Math.round(distance)+' пикселях. Следуй за указателем и подойди ближе.';
+    const p=bridge()?.getPlayerPosition?.()||{x:0,y:0},distance=Math.hypot((Number(p.x)||0)-e.x,(Number(p.y)||0)-e.y),reach=150+(state.grid.towers||0)*25,location=distance<=reach?'Ты рядом с маяком события. Нажми E в игровом мире или используй кнопку ниже.':'Метка события находится в '+Math.round(distance)+' пикселях. Следуй за указателем и подойди ближе.';
     if(e.kind==='ancient')return '<article class="ex-card ex-event"><b>👁️ ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА</b><small>Осталось времени: '+Math.ceil(e.timer)+' сек. · действия: '+e.actions+'</small><div class="ex-meter"><i style="width:'+Math.round(e.hp/Math.max(1,e.maxHp)*100)+'%"></i></div><small>Здоровье босса: '+Math.ceil(e.hp)+' / '+e.maxHp+'</small><small>'+location+'</small>'+renderButton('event-attack','Атаковать стража',false)+'</article>';
-    return '<article class="ex-card ex-event"><b>🚨 НОЧНАЯ ОСАДА</b><small>Осталось времени: '+Math.ceil(e.timer)+' сек. · осталось врагов: '+e.remaining+'</small><div class="ex-meter"><i style="width:'+Math.round(e.remaining/Math.max(1,e.remaining+e.actions)*100)+'%"></i></div><small>'+location+'</small>'+renderButton('event-attack','Отразить атаку',false)+'</article>';
+    return '<article class="ex-card ex-event"><b>'+(e.kind==='bloodmoon'?'🌑 КРОВАВАЯ ЛУНА':'🚨 НОЧНАЯ ОСАДА')+'</b><small>Осталось времени: '+Math.ceil(e.timer)+' сек. · осталось врагов: '+e.remaining+'</small><div class="ex-meter"><i style="width:'+Math.round(e.remaining/Math.max(1,e.remaining+e.actions)*100)+'%"></i></div><small>'+location+'</small>'+renderButton('event-attack',e.kind==='bloodmoon'?'Отразить усиленную орду':'Отразить атаку',false)+'</article>';
   }
   function render() {
     if(!root)return;
@@ -407,8 +407,8 @@
     }
     save();render();
   }
-  function toggleDoorNearby(){const ok=bridge()?.toggleExpansionDoor?.()===true;if(ok){notify('Электрическая дверь переключена.');save();}else notify('Рядом нет электрической двери.');return ok;}
-  function interactWorldEvent(){if(toggleDoorNearby())return true;if(state.event&&eventInReach()){attackEvent();return true;}return false;}
+  function toggleDoorNearby(silent=false){const ok=bridge()?.toggleExpansionDoor?.()===true;if(ok){notify('Электрическая дверь переключена.');save();}else if(!silent)notify('Рядом нет электрической двери.');return ok;}
+  function interactWorldEvent(){if(toggleDoorNearby(true))return true;if(state.event&&eventInReach()){attackEvent();return true;}return false;}
   function eventInReach() {
     const e=state.event,p=bridge()?.getPlayerPosition?.();
     return !!e&&!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Math.hypot(p.x-e.x,p.y-e.y)<=150+(state.grid.towers||0)*25;
@@ -568,19 +568,21 @@
     const x=clamp(sx,36,screenWidth-36),y=clamp(sy,45,screenHeight-40);
     ctx.save();ctx.translate(x,y);
     if(!onScreen){
-      const angle=Math.atan2(sy-y,sx-x);ctx.rotate(angle);ctx.fillStyle=e.kind==='ancient'?'#e3acff':'#ff8c76';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=13;
+      const angle=Math.atan2(sy-y,sx-x);ctx.rotate(angle);ctx.fillStyle=e.kind==='ancient'?'#e3acff':e.kind==='bloodmoon'?'#df6f9b':'#ff8c76';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=13;
       ctx.beginPath();ctx.moveTo(17,0);ctx.lineTo(-10,-10);ctx.lineTo(-5,0);ctx.lineTo(-10,10);ctx.closePath();ctx.fill();ctx.rotate(-angle);
-      ctx.fillStyle='#fff4dc';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText(e.kind==='ancient'?'ДРЕВНИЙ СТРАЖ':'ОСАДА',0,24);ctx.restore();return;
+      ctx.fillStyle='#fff4dc';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText(e.kind==='ancient'?'ДРЕВНИЙ СТРАЖ':e.kind==='bloodmoon'?'КРОВАВАЯ ЛУНА':'ОСАДА',0,24);ctx.restore();return;
     }
     const pulse=1+Math.sin(time/180)*.08;
-    ctx.globalAlpha=.24;ctx.fillStyle=e.kind==='ancient'?'#bd82ff':'#ff735e';ctx.beginPath();ctx.arc(0,0,47*pulse,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    ctx.globalAlpha=.24;ctx.fillStyle=e.kind==='ancient'?'#bd82ff':e.kind==='bloodmoon'?'#bb3f73':'#ff735e';ctx.beginPath();ctx.arc(0,0,47*pulse,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     ctx.fillStyle='#101827bb';ctx.beginPath();ctx.ellipse(0,18,31,12,0,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle=e.kind==='ancient'?'#dfb5ff':'#ff9475';ctx.lineWidth=4;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=16;ctx.beginPath();ctx.ellipse(0,-4,25*pulse,35*pulse,0,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+    ctx.strokeStyle=e.kind==='ancient'?'#dfb5ff':e.kind==='bloodmoon'?'#ed70a0':'#ff9475';ctx.lineWidth=4;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=16;ctx.beginPath();ctx.ellipse(0,-4,25*pulse,35*pulse,0,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
     if(e.kind==='ancient'){
       ctx.fillStyle='#4c366f';ctx.beginPath();ctx.moveTo(-19,10);ctx.lineTo(-17,-15);ctx.lineTo(-9,-29);ctx.lineTo(-2,-17);ctx.lineTo(4,-37);ctx.lineTo(12,-17);ctx.lineTo(20,-28);ctx.lineTo(23,10);ctx.closePath();ctx.fill();
       ctx.fillStyle='#d4a5ff';ctx.fillRect(-12,-11,6,4);ctx.fillRect(7,-11,6,4);ctx.fillStyle='#f4d7ff';ctx.fillRect(-5,1,10,3);
       ctx.fillStyle='#f2e5ff';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ДРЕВНИЙ СТРАЖ',0,-52);
       ctx.fillStyle='#241b35';ctx.fillRect(-30,-45,60,5);ctx.fillStyle='#d7a4ff';ctx.fillRect(-30,-45,60*clamp(e.hp/Math.max(1,e.maxHp),0,1),5);
+    }else if(e.kind==='bloodmoon'){
+      ctx.fillStyle='#401d3b';ctx.beginPath();ctx.arc(0,-8,24,0,Math.PI*2);ctx.fill();ctx.fillStyle='#eb7a9f';ctx.beginPath();ctx.arc(0,-8,17,0,Math.PI*2);ctx.fill();ctx.fillStyle='#3b1631';ctx.beginPath();ctx.arc(-7,-12,4,0,Math.PI*2);ctx.arc(7,-12,4,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#f5a5bd';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-24,18);ctx.lineTo(-35,30);ctx.moveTo(24,18);ctx.lineTo(35,30);ctx.stroke();ctx.fillStyle='#ffe5ec';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('КРОВАВАЯ ЛУНА',0,-52);
     }else{
       for(let i=0;i<3;i++){const ox=Math.cos(i*Math.PI*2/3)*29,oy=Math.sin(i*Math.PI*2/3)*17;ctx.fillStyle='#512c35';ctx.beginPath();ctx.arc(ox,oy,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffb09b';ctx.fillRect(ox-3,oy-2,6,3);}
       ctx.fillStyle='#ffdfc7';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('РАЗЛОМ ОСАДЫ',0,-52);
