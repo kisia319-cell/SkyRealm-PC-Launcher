@@ -49,6 +49,7 @@ jobs:
           node --check game/multiplayer-client.js
           node --check game/multiplayer-ui.js
           node --check game/sea-system.js
+          node --check tests/sea-world-regression-test.cjs
           node --check app.js
           node --check launcher-enhancements.js
           node --check game/cloud-save-ui.js
@@ -81,6 +82,7 @@ jobs:
           node tests/supabase-migration-history-test.cjs
           node tests/time-mechanics-test.cjs
           node tests/gameplay-regression-test.cjs
+          node tests/sea-world-regression-test.cjs
 
       - name: Install build tools
         run: python -m pip install --upgrade pip pywebview pyinstaller psutil
