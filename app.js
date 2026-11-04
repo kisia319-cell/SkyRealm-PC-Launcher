@@ -123,7 +123,7 @@
     $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === name));
     $('#crumb-label').textContent = pageNames[name] || pageNames.home;
     $('.main').scrollTop = 0;
-    if (name === 'settings') loadSettings();
+    if (name === 'settings') { loadSettings(); loadStaffAdminPanel(); }
     if (name === 'community' && currentToken()) { loadSocialFriends(); refreshSocialInvites(); requestSocial('/api/social/active-room').then(x=>socialActiveRoom=x.room).catch(()=>{}); }
   }
   $$('[data-page]').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
@@ -359,6 +359,123 @@
     try { const u = new URL(API_BASE); u.pathname = u.pathname.replace('skyrealm-auth', 'skyrealm-social'); return u.toString(); }
     catch (_) { return ''; }
   })();
+  const STAFF_URL = (() => {
+    try { const u = new URL(API_BASE); u.pathname = u.pathname.replace('skyrealm-auth', 'skyrealm-staff'); return u.toString(); }
+    catch (_) { return ''; }
+  })();
+  async function requestStaff(route, {method='GET', body=null} = {}) {
+    const token = await getValidToken();
+    if (!token || !STAFF_URL) throw new Error('Войди в подтверждённый аккаунт SkyRealm.');
+    const endpoint = new URL(STAFF_URL);
+    endpoint.searchParams.set('route', route);
+    const response = await fetch(endpoint.toString(), {
+      method,
+      headers: {'apikey':API_KEY,'Authorization':'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},
+      body: body ? JSON.stringify(body) : undefined,
+      cache:'no-store'
+    });
+    let data={}; try { data=await response.json(); } catch (_) {}
+    if (!response.ok) {
+      const error = new Error(data.error?.message || data.message || 'Ошибка сервиса привилегий ('+response.status+').');
+      error.code=data.error?.code||''; error.status=response.status; throw error;
+    }
+    return data;
+  }
+  function setStaffAdminStatus(message, isError=false) {
+    const el=$('#staff-admin-status'); if(!el)return;
+    el.textContent=message||'';
+    el.classList.toggle('error',!!isError);
+    el.classList.toggle('success',!!message&&!isError);
+  }
+  function renderStaffPlayers(players, currentUserId) {
+    const select=$('#staff-player-select'), list=$('#staff-player-list');
+    if(!select||!list)return;
+    select.replaceChildren();
+    const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Выбери игрока';select.appendChild(placeholder);
+    list.replaceChildren();
+    for(const player of players||[]) {
+      const username=String(player.username||'');
+      const display=String(player.display_name||username||'Игрок');
+      const option=document.createElement('option');option.value=username;
+      option.textContent=display+' (@'+username+') — '+(player.role==='admin'?'Администратор':player.role==='moderator'?'Модератор':'Игрок');
+      select.appendChild(option);
+      const row=document.createElement('div');row.className='staff-player-row';
+      const info=document.createElement('div');
+      const name=document.createElement('b');name.textContent=display+(player.user_id===currentUserId?' · это ты':'');
+      const login=document.createElement('small');login.textContent='@'+username;
+      info.append(name,login);
+      const role=document.createElement('span');role.className='staff-player-role';role.textContent=player.role==='admin'?'АДМИН':player.role==='moderator'?'МОДЕРАТОР':'ИГРОК';
+      row.append(info,role);list.appendChild(row);
+    }
+    if(!players?.length){const empty=document.createElement('p');empty.textContent='Игроки пока не найдены.';list.appendChild(empty);}
+  }
+  async function loadStaffAdminPanel() {
+    const panel=$('#staff-admin-panel'), heading=$('#staff-admin-heading');
+    if(!panel||!heading)return;
+    panel.hidden=true;heading.hidden=true;
+    if(!currentToken())return;
+    try {
+      const me=await requestStaff('/api/staff/me');
+      if(me.role!=='admin')return;
+      const [playersData,settingsData]=await Promise.all([
+        requestStaff('/api/staff/players'),
+        requestStaff('/api/staff/settings')
+      ]);
+      const players=playersData.players||[];
+      const own=players.find(p=>p.user_id===me.user_id);
+      panel.hidden=false;heading.hidden=false;
+      $('#staff-admin-account').textContent=(own?.display_name||own?.username||'Kisia')+' · серверная роль подтверждена';
+      $('#staff-admin-role').textContent='АДМИНИСТРАТОР';
+      $('#staff-public-grants-toggle').checked=settingsData.public_grants_enabled===true;
+      renderStaffPlayers(players,me.user_id);
+      setStaffAdminStatus('Доступ подтверждён сервером. Загружено игроков: '+players.length+'.');
+    } catch(error) {
+      panel.hidden=true;heading.hidden=true;
+      if(error.status!==401&&error.status!==403)console.warn('[SkyRealm staff panel]',error);
+    }
+  }
+  async function refreshStaffAdminPanel() {
+    const button=$('#staff-refresh-players');if(button)setBusy(button,true,'Обновляем…');
+    try { await loadStaffAdminPanel(); }
+    finally { if(button)setBusy(button,false); }
+  }
+  const staffGrantButton=$('#staff-grant-role');
+  if(staffGrantButton)staffGrantButton.addEventListener('click',async()=>{
+    const username=$('#staff-player-select').value,role=$('#staff-role-select').value,duration=$('#staff-duration-select').value;
+    if(!username){setStaffAdminStatus('Сначала выбери игрока.',true);return;}
+    setBusy(staffGrantButton,true,'Выдаём…');
+    try {
+      const result=await requestStaff('/api/staff/grants',{method:'POST',body:{username,role,duration}});
+      setStaffAdminStatus('Выдана роль «'+(result.role==='admin'?'Администратор':'Модератор')+'» игроку @'+result.username+'.');
+      await loadStaffAdminPanel();
+    } catch(error){setStaffAdminStatus(error.message,true);}
+    finally{setBusy(staffGrantButton,false);}
+  });
+  const staffRevokeButton=$('#staff-revoke-role');
+  if(staffRevokeButton)staffRevokeButton.addEventListener('click',async()=>{
+    const username=$('#staff-player-select').value,role=$('#staff-role-select').value;
+    if(!username){setStaffAdminStatus('Сначала выбери игрока.',true);return;}
+    if(!confirm('Снять выбранную привилегию у игрока @'+username+'?'))return;
+    setBusy(staffRevokeButton,true,'Снимаем…');
+    try {
+      const result=await requestStaff('/api/staff/grants',{method:'POST',body:{username,role,action:'revoke'}});
+      setStaffAdminStatus('Привилегия снята у игрока @'+result.username+'.');
+      await loadStaffAdminPanel();
+    } catch(error){setStaffAdminStatus(error.message,true);}
+    finally{setBusy(staffRevokeButton,false);}
+  });
+  const staffRefreshButton=$('#staff-refresh-players');
+  if(staffRefreshButton)staffRefreshButton.addEventListener('click',refreshStaffAdminPanel);
+  const publicGrantsToggle=$('#staff-public-grants-toggle');
+  if(publicGrantsToggle)publicGrantsToggle.addEventListener('change',async()=>{
+    const desired=publicGrantsToggle.checked;publicGrantsToggle.disabled=true;
+    try {
+      const result=await requestStaff('/api/staff/settings',{method:'POST',body:{enabled:desired}});
+      publicGrantsToggle.checked=result.public_grants_enabled===true;
+      setStaffAdminStatus(result.public_grants_enabled?'Открытая выдача ролей включена.':'Открытая выдача ролей выключена.');
+    } catch(error){publicGrantsToggle.checked=!desired;setStaffAdminStatus(error.message,true);}
+    finally{publicGrantsToggle.disabled=false;}
+  });
   async function requestSocial(route, {method='GET', body=null} = {}) {
     const token = await getValidToken();
     if (!token || !SOCIAL_URL) throw new Error('Войди в аккаунт SkyRealm.');
@@ -507,6 +624,8 @@
   if(socialPresenceSelect)socialPresenceSelect.addEventListener('change',saveSocialPresence);
 
   function showAuthAfterLogout() {
+    const staffPanel=$('#staff-admin-panel'),staffHeading=$('#staff-admin-heading');
+    if(staffPanel)staffPanel.hidden=true;if(staffHeading)staffHeading.hidden=true;
     setAuthEntryState(false);
     hideVerification();
     $('#profile-view').hidden = true;
@@ -973,7 +1092,7 @@
       '#page-news .page-heading .section-kicker':'ХРОНИКИ МИРА', '#page-news .page-heading h1':'Новости <span>SkyRealm</span>', '#page-news .page-heading p':'Истории, заметки и новости разработки.', '.story-card:nth-child(1) .news-meta':'ДНЕВНИК РАЗРАБОТКИ', '.story-card:nth-child(1) h2':'Начало большого пути', '.story-card:nth-child(1) p':'SkyRealm задуман как атмосферный 2D-мир для исследования, открытий и маленьких историй. Этот лаунчер — первая часть проекта.', '.story-card:nth-child(1) .story-tag':'ДЕМО-ЗАПИСЬ', '.story-card:nth-child(2) .news-meta':'МИР ИГРЫ', '.story-card:nth-child(2) h2':'Земли за горизонтом', '.story-card:nth-child(2) p':'Впереди — таинственные леса, забытые руины и персонажи, чьи истории ещё предстоит открыть.', '.story-card:nth-child(2) .story-tag':'В РАЗРАБОТКЕ', '.faq-section h2':'Частые вопросы', '.faq-section details:nth-of-type(1) summary':'Как создать аккаунт?', '.faq-section details:nth-of-type(1) p':'На главной странице нажми «Создать аккаунт», введи имя игрока, электронную почту и пароль. Затем введи одноразовый код из письма.', '.faq-section details:nth-of-type(2) summary':'Почему нужен код из почты?', '.faq-section details:nth-of-type(2) p':'Код подтверждает, что у тебя есть доступ к указанному адресу. Никому не сообщай этот код.', '.faq-section details:nth-of-type(3) summary':'Как работает кнопка «Играть»?', '.faq-section details:nth-of-type(3) p':'При первом запуске лаунчер подготовит локальные файлы лёгкой 2D-игры и запустит её в отдельном окне.', '.faq-section details:nth-of-type(4) summary':'Не пришло письмо с кодом', '.faq-section details:nth-of-type(4) p':'Проверь папки «Спам» и «Промоакции». Доставка зависит от настроек почтового сервиса и подтверждения отправителя.', '.faq-section .section-kicker':'ПОМОЩЬ', '#page-news .news-register':'Создать аккаунт <span>→</span>',
       '#page-shop .page-heading .section-kicker':'ПОДДЕРЖИ ПРОЕКТ', '#page-shop .page-heading h1':'Магазин <span>приключений</span>', '#page-shop .page-heading p':'В будущем здесь появятся косметические предметы и наборы для игры.', '#page-shop .coming-card .section-kicker':'СКОРО ОТКРЫТИЕ', '#page-shop .coming-card h2':'Что-то особенное уже в пути', '#page-shop .coming-card p':'Магазин пока является макетом. Покупки и платежи не поддерживаются.', '#page-shop .coming-card button':'Вернуться на главную',
       '#page-community .page-heading .section-kicker':'МЫ СОЗДАЁМ ЭТО ВМЕСТЕ', '#page-community .page-heading h1':'Сообщество <span>SkyRealm</span>', '#page-community .page-heading p':'Место для искателей приключений — сообщество откроется позднее.', '.community-card:nth-child(1) h2':'Обсуждения', '.community-card:nth-child(1) p':'Делись идеями и помогай формировать мир.', '.community-card:nth-child(2) h2':'События', '.community-card:nth-child(2) p':'Следи за новостями разработки и будущими событиями.', '.community-card:nth-child(3) h2':'Игроки', '.community-card:nth-child(3) p':'Находи друзей для совместных приключений.', '.community-card .muted-tag':'СКОРО', '#page-community .news-register':'Создать аккаунт <span>→</span>',
-      '#page-settings .page-heading .section-kicker':'ПОД ТЕБЯ', '#page-settings .page-heading h1':'Настройки <span>лаунчера</span>', '#page-settings .page-heading p':'Параметры интерфейса сохраняются на этом устройстве.', '#language-title':'Язык лаунчера', '#language-subtitle':'Выбери язык интерфейса. Доступны только два языка.', '#game-display-title':'Настройки игры', '#game-display-subtitle':'Эти параметры применяются к окну игры SkyRealm.', '#resolution-label':'Разрешение экрана', '#resolution-help':'Формат и размер окна при запуске игры.', '#window-mode-label':'Режим окна', '#window-mode-help':'Выбери оконный режим или полный экран.', '#quality-label':'Качество графики', '#quality-help':'Меняет детализацию и нагрузку на компьютер.', '#launcher-interface-title':'Интерфейс лаунчера', '#launcher-interface-subtitle':'Внешний вид самого лаунчера.', '#effects-label':'Эффекты интерфейса', '#effects-help':'Анимации и свечение панелей', '#compact-label':'Компактный интерфейс', '#compact-help':'Уменьшить расстояния между элементами', '#greeting-label':'Показывать приветствие', '#greeting-help':'Сообщение на главной странице', '#admin-tools-heading':'Дополнительные возможности', '#admin-tools-subheading':'Настройка доступности инструментов администратора в игре.', '#admin-tools-label':'Режим администратора', '#admin-tools-help':'Показывать кнопку админ-панели в главном меню игры. Изменение применяется при следующем запуске.', '#moderator-tools-label':'Режим модератора', '#moderator-tools-help':'Включить инструменты модератора в игре. Локальные баны не действуют на сетевых игроков.', '#settings-note':'Настройки игры применяются при следующем запуске. В самой игре их также можно изменить через Esc → Настройки.', '#page-settings .settings-back':'Вернуться на главную <span>→</span>',
+      '#page-settings .page-heading .section-kicker':'ПОД ТЕБЯ', '#page-settings .page-heading h1':'Настройки <span>лаунчера</span>', '#page-settings .page-heading p':'Параметры интерфейса сохраняются на этом устройстве.', '#language-title':'Язык лаунчера', '#language-subtitle':'Выбери язык интерфейса. Доступны только два языка.', '#game-display-title':'Настройки игры', '#game-display-subtitle':'Эти параметры применяются к окну игры SkyRealm.', '#resolution-label':'Разрешение экрана', '#resolution-help':'Формат и размер окна при запуске игры.', '#window-mode-label':'Режим окна', '#window-mode-help':'Выбери оконный режим или полный экран.', '#quality-label':'Качество графики', '#quality-help':'Меняет детализацию и нагрузку на компьютер.', '#launcher-interface-title':'Интерфейс лаунчера', '#launcher-interface-subtitle':'Внешний вид самого лаунчера.', '#effects-label':'Эффекты интерфейса', '#effects-help':'Анимации и свечение панелей', '#compact-label':'Компактный интерфейс', '#compact-help':'Уменьшить расстояния между элементами', '#greeting-label':'Показывать приветствие', '#greeting-help':'Сообщение на главной странице', '#admin-tools-heading':'Дополнительные возможности', '#admin-tools-subheading':'Локальные инструменты для одиночного мира. Серверные права проверяются отдельно.', '#admin-tools-label':'Локальный режим администратора', '#admin-tools-help':'Только для локального тестирования одиночного мира; не выдаёт серверную роль.', '#moderator-tools-label':'Локальный режим модератора', '#moderator-tools-help':'Локальный тестовый режим. Не выдаёт серверную роль и не действует на сетевых игроков.', '#settings-note':'Настройки игры применяются при следующем запуске. В самой игре их также можно изменить через Esc → Настройки.', '#page-settings .settings-back':'Вернуться на главную <span>→</span>',
       '#install-title':'Готовим твой мир к запуску', '#install-description':'Проверяем установку и готовим файлы игры для первого запуска.', '#install-stage':'Загрузка: проверка файлов…', '#install-detail':'Подготавливаем папку игры', '#install-file-1':'✓ Проверка версии', '#install-file-2':'◌ Установка карты', '#install-file-3':'◌ Подготовка персонажа', '#install-footnote':'Первый запуск устанавливает лёгкий игровой пакет на этот компьютер. Интернет нужен только для аккаунта и будущих обновлений.', '#install-cancel':'Отмена'
     },
     en: {
@@ -985,7 +1104,7 @@
       '#page-news .page-heading .section-kicker':'WORLD CHRONICLES', '#page-news .page-heading h1':'SkyRealm <span>News</span>', '#page-news .page-heading p':'Stories, notes, and development updates.', '.story-card:nth-child(1) .news-meta':'DEVELOPER DIARY', '.story-card:nth-child(1) h2':'The beginning of a journey', '.story-card:nth-child(1) p':'SkyRealm is planned as an atmospheric 2D world for exploration, discovery, and little stories. This launcher is the first piece of the project.', '.story-card:nth-child(1) .story-tag':'DEMO ENTRY', '.story-card:nth-child(2) .news-meta':'GAME WORLD', '.story-card:nth-child(2) h2':'Lands beyond the horizon', '.story-card:nth-child(2) p':'Mysterious forests, forgotten ruins, and characters with stories yet to be discovered await.', '.story-card:nth-child(2) .story-tag':'IN DEVELOPMENT', '.faq-section h2':'Frequently asked questions', '.faq-section details:nth-of-type(1) summary':'How do I create an account?', '.faq-section details:nth-of-type(1) p':'Click “Create account” on the home page, enter a player name, email, and password, then enter the one-time code from your email.', '.faq-section details:nth-of-type(2) summary':'Why is an email code required?', '.faq-section details:nth-of-type(2) p':'The code confirms that you can access the email address. Never share this code.', '.faq-section details:nth-of-type(3) summary':'How does Play work?', '.faq-section details:nth-of-type(3) p':'On first launch, the launcher prepares the lightweight local 2D game files and opens the game in a separate window.', '.faq-section details:nth-of-type(4) summary':'I did not receive the code', '.faq-section details:nth-of-type(4) p':'Check Spam and Promotions. Delivery depends on mail-service settings and sender verification.', '.faq-section .section-kicker':'HELP', '#page-news .news-register':'Create account <span>→</span>',
       '#page-shop .page-heading .section-kicker':'SUPPORT THE PROJECT', '#page-shop .page-heading h1':'Adventure <span>Shop</span>', '#page-shop .page-heading p':'Cosmetic items and game packs may appear here in the future.', '#page-shop .coming-card .section-kicker':'COMING SOON', '#page-shop .coming-card h2':'Something special is on the way', '#page-shop .coming-card p':'The shop is currently a mock-up. Purchases and payments are not available.', '#page-shop .coming-card button':'Back to home',
       '#page-community .page-heading .section-kicker':'WE BUILD THIS TOGETHER', '#page-community .page-heading h1':'SkyRealm <span>Community</span>', '#page-community .page-heading p':'A place for adventurers — the community will open later.', '.community-card:nth-child(1) h2':'Discussions', '.community-card:nth-child(1) p':'Share ideas and help shape the world.', '.community-card:nth-child(2) h2':'Events', '.community-card:nth-child(2) p':'Follow development notes and future events.', '.community-card:nth-child(3) h2':'Players', '.community-card:nth-child(3) p':'Find friends for future adventures.', '.community-card .muted-tag':'SOON', '#page-community .news-register':'Create account <span>→</span>',
-      '#page-settings .page-heading .section-kicker':'YOUR PREFERENCES', '#page-settings .page-heading h1':'Launcher <span>Settings</span>', '#page-settings .page-heading p':'Interface preferences are saved on this device.', '#language-title':'Launcher language', '#language-subtitle':'Choose the interface language. Only two languages are available.', '#game-display-title':'Game settings', '#game-display-subtitle':'These options apply to the SkyRealm game window.', '#resolution-label':'Screen resolution', '#resolution-help':'Window size and aspect ratio when the game starts.', '#window-mode-label':'Display mode', '#window-mode-help':'Choose windowed or fullscreen mode.', '#quality-label':'Graphics quality', '#quality-help':'Changes visual detail and computer workload.', '#launcher-interface-title':'Launcher interface', '#launcher-interface-subtitle':'Appearance of the launcher itself.', '#effects-label':'Interface effects', '#effects-help':'Panel animations and glow', '#compact-label':'Compact interface', '#compact-help':'Reduce spacing between items', '#greeting-label':'Show welcome message', '#greeting-help':'Message on the home page', '#admin-tools-heading':'Additional options', '#admin-tools-subheading':'Control access to in-game administrator tools.', '#admin-tools-label':'Administrator mode', '#admin-tools-help':'Show the admin panel button in the game main menu. Applies on the next launch.', '#moderator-tools-label':'Moderator mode', '#moderator-tools-help':'Enable moderator tools in the game. Local bans do not affect online players.', '#settings-note':'Game settings apply next launch. You can also change them in-game with Esc → Settings.', '#page-settings .settings-back':'Back to home <span>→</span>',
+      '#page-settings .page-heading .section-kicker':'YOUR PREFERENCES', '#page-settings .page-heading h1':'Launcher <span>Settings</span>', '#page-settings .page-heading p':'Interface preferences are saved on this device.', '#language-title':'Launcher language', '#language-subtitle':'Choose the interface language. Only two languages are available.', '#game-display-title':'Game settings', '#game-display-subtitle':'These options apply to the SkyRealm game window.', '#resolution-label':'Screen resolution', '#resolution-help':'Window size and aspect ratio when the game starts.', '#window-mode-label':'Display mode', '#window-mode-help':'Choose windowed or fullscreen mode.', '#quality-label':'Graphics quality', '#quality-help':'Changes visual detail and computer workload.', '#launcher-interface-title':'Launcher interface', '#launcher-interface-subtitle':'Appearance of the launcher itself.', '#effects-label':'Interface effects', '#effects-help':'Panel animations and glow', '#compact-label':'Compact interface', '#compact-help':'Reduce spacing between items', '#greeting-label':'Show welcome message', '#greeting-help':'Message on the home page', '#admin-tools-heading':'Additional options', '#admin-tools-subheading':'Local single-player test tools. Server privileges are checked separately.', '#admin-tools-label':'Local administrator mode', '#admin-tools-help':'Only for local single-player testing; does not grant a server role.', '#moderator-tools-label':'Local moderator mode', '#moderator-tools-help':'Local test mode only. Does not grant a server role or affect network players.', '#settings-note':'Game settings apply next launch. You can also change them in-game with Esc → Settings.', '#page-settings .settings-back':'Back to home <span>→</span>',
       '#install-title':'Preparing your world to launch', '#install-description':'Checking installation and preparing game files for the first launch.', '#install-stage':'Loading: checking game files…', '#install-detail':'Preparing the game folder', '#install-file-1':'✓ Version check', '#install-file-2':'◌ Installing map', '#install-file-3':'◌ Preparing character', '#install-footnote':'The first launch installs a lightweight game package on this computer. Internet is only needed for accounts and future updates.', '#install-cancel':'Cancel'
     }
   };
