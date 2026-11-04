@@ -196,7 +196,7 @@
   }
   function renderDefense() {
     const g=state.grid,protection=Math.min(.6,g.walls*.025);
-    let html='<div class="ex-grid-stats"><div><b>'+g.walls+'</b><small>Укрепления</small></div><div><b>'+g.turrets+'</b><small>Турели</small></div><div><b>'+g.shields+'</b><small>Силовые купола</small></div></div>';
+    let html='<div class="ex-grid-stats"><div><b>'+g.walls+'</b><small>Укрепления</small></div><div><b>'+g.turrets+'</b><small>Турели</small></div><div><b>'+g.shields+'</b><small>Силовые купола</small></div></div><div class="ex-grid-stats"><div><b>'+g.guards+'/5</b><small>Посты стражи</small></div><div><b>'+Math.round(protection*100)+'%</b><small>Снижение урона</small></div><div><b>'+state.stats.eventsWon+'</b><small>Отбитые осады</small></div></div>';
     html+='<p class="ex-muted">Укреплённые стены уменьшают последствия проигранной осады. Электрические турели автоматически помогают во время мировых событий.</p>';
     html+='<div class="ex-card"><b>🏰 Схема обороны</b><small>Каждая стена повышает защиту. Максимум 30 стен и 60% снижения урона от неудачной обороны.</small><small>Посты деревенских стражей: '+g.guards+'/5. Во время осады стражи автоматически атакуют врагов.</small>'+renderButton('build:guard','Нанять стража и построить пост',g.guards>=5||state.research<1||!canAfford(BUILDINGS.guard.cost,BUILDINGS.guard.gold))+'</div>';
     html+='<div class="ex-card"><b>🔦 Освещение</b><small>Электрические фонари поддерживают сеть и показывают, сколько энергии вырабатывает генератор.</small><small>Фонарей: '+g.lamps+' · расход: '+(g.lamps*.035).toFixed(2)+' энергии/сек. Буров: '+g.drills+'.</small></div>';
@@ -473,7 +473,7 @@
   }
   function startDungeon() {
     const d=state.dungeon;ensureDungeonLayout();
-    if(d.cleared.length===5&&!d.secretActive&&(!d.keys||d.secretCleared)){notify('Цитадель уже очищена. Начни новую экспедицию.');return false;}
+    if(d.cleared.length===5&&!d.secretActive){notify('Основная цитадель уже очищена. Используй найденный ключ, чтобы войти в секретный зал.');return false;}
     if(state.research<1){notify('Для поиска цитадели требуется исследование автоматики I.');return false;}
     if(!d.entryPaid){
       if(!spend({Кристалл:5,Железо:10},50)){notify('Для входа нужно 5 кристаллов, 10 железа и 50 золота.');return false;}
