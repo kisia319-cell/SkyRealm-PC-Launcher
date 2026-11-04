@@ -16,6 +16,12 @@ assert.match(sea,/function keyToken\(e\)/,'Keyboard steering must use physical k
 assert.match(sea,/pointerdown/,'Ship directional controls must support press-and-hold pointer input');
 assert.match(sea,/visibilitychange/,'Sea movement must not remain stuck after the app loses focus');
 assert.match(sea,/state\.sharks\.length>=3/,'All shark spawn paths must enforce a hard three-shark cap');
+assert.match(sea,/SHIP_UPGRADES/,'The sea must contain a shipyard upgrade catalog');
+assert.match(sea,/function fireHarpoon/,'The player must be able to use a harpoon at sea');
+assert.match(sea,/function renderShipyard/,'The shipyard must render its real upgrade purchase UI');
+assert.match(sea,/state\.city\.discovered/,'The sunken city must be discoverable');
+assert.match(sea,/kind==='kraken'/,'The rare Kraken must have its own creature behavior');
+assert.match(sea,/function normalizeUpgrades/,'Existing ocean saves must gain new upgrade defaults safely');
 assert.match(sea,/slice\(0,3\)/,'Legacy saves must be normalized to the shark cap');
 assert.match(sea,/ctx\.scale\(1\.7,1\.7\)/,'Sailor avatar must be larger and have a visible face');
 assert.match(sea,/for\(let i=0;i<210;i\+\+\)/,'Sea environment detail density must be increased');
