@@ -76,6 +76,8 @@
         remaining:clamp(Math.floor(Number(raw.event.remaining)||0),0,30),
         hp:clamp(Number(raw.event.hp)||0,0,1000000),
         maxHp:clamp(Number(raw.event.maxHp)||0,0,1000000),
+        x:Number.isFinite(raw.event.x)?clamp(raw.event.x,0,10000000):0,
+        y:Number.isFinite(raw.event.y)?clamp(raw.event.y,0,10000000):0,
         timer:clamp(Number(raw.event.timer)||0,0,600),
         actions:clamp(Math.floor(Number(raw.event.actions)||0),0,10000),
         day:Math.max(0,Math.floor(Number(raw.event.day)||0))
@@ -195,8 +197,9 @@
   function renderEvent() {
     const e=state.event;
     if(!e)return '<article class="ex-card"><b>🌙 Глобальные события долины</b><small>После второй ночи каждые три ночи может начаться осада. Каждую седьмую ночь при исследованной автоматике пробуждается древний механизм.</small><small>Готовь генератор, стены и турели заранее.</small></article>';
-    if(e.kind==='ancient')return '<article class="ex-card ex-event"><b>👁️ ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА</b><small>Осталось времени: '+Math.ceil(e.timer)+' сек. · действия: '+e.actions+'</small><div class="ex-meter"><i style="width:'+Math.round(e.hp/Math.max(1,e.maxHp)*100)+'%"></i></div><small>Здоровье босса: '+Math.ceil(e.hp)+' / '+e.maxHp+'</small>'+renderButton('event-attack','Атаковать стража',false)+'</article>';
-    return '<article class="ex-card ex-event"><b>🚨 НОЧНАЯ ОСАДА</b><small>Осталось времени: '+Math.ceil(e.timer)+' сек. · осталось врагов: '+e.remaining+'</small><div class="ex-meter"><i style="width:'+Math.round(e.remaining/Math.max(1,e.remaining+e.actions)*100)+'%"></i></div>'+renderButton('event-attack','Отразить атаку',false)+'</article>';
+    const p=bridge()?.getPlayerPosition?.()||{x:0,y:0},distance=Math.hypot((Number(p.x)||0)-e.x,(Number(p.y)||0)-e.y),location=distance<=150?'Ты рядом с маяком события. Нажми E в игровом мире или используй кнопку ниже.':'Метка события находится в '+Math.round(distance)+' пикселях. Следуй за указателем и подойди ближе.';
+    if(e.kind==='ancient')return '<article class="ex-card ex-event"><b>👁️ ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА</b><small>Осталось времени: '+Math.ceil(e.timer)+' сек. · действия: '+e.actions+'</small><div class="ex-meter"><i style="width:'+Math.round(e.hp/Math.max(1,e.maxHp)*100)+'%"></i></div><small>Здоровье босса: '+Math.ceil(e.hp)+' / '+e.maxHp+'</small><small>'+location+'</small>'+renderButton('event-attack','Атаковать стража',false)+'</article>';
+    return '<article class="ex-card ex-event"><b>🚨 НОЧНАЯ ОСАДА</b><small>Осталось времени: '+Math.ceil(e.timer)+' сек. · осталось врагов: '+e.remaining+'</small><div class="ex-meter"><i style="width:'+Math.round(e.remaining/Math.max(1,e.remaining+e.actions)*100)+'%"></i></div><small>'+location+'</small>'+renderButton('event-attack','Отразить атаку',false)+'</article>';
   }
   function render() {
     if(!root)return;
@@ -300,9 +303,11 @@
   }
   function startEvent(kind,day=0) {
     if(state.event)return false;
-    if(kind==='ancient')state.event={kind:'ancient',remaining:0,hp:1500*(difficultyScale()),maxHp:1500*(difficultyScale()),timer:180,actions:0,day};
-    else state.event={kind:'invasion',remaining:6+Math.round((difficultyScale()-1)*3),hp:0,maxHp:0,timer:110,actions:0,day};
-    notify(kind==='ancient'?'ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА! Защити долину.':'НОЧНАЯ ОСАДА! Турели и стены помогут отбить врагов.');
+    const point=bridge()?.getWorldEventSpawnPoint?.()||bridge()?.getPlayerPosition?.()||{x:0,y:0};
+    const location={x:Math.max(0,Number(point.x)||0),y:Math.max(0,Number(point.y)||0)};
+    if(kind==='ancient')state.event={kind:'ancient',remaining:0,hp:1500*(difficultyScale()),maxHp:1500*(difficultyScale()),timer:180,actions:0,day,...location};
+    else state.event={kind:'invasion',remaining:6+Math.round((difficultyScale()-1)*3),hp:0,maxHp:0,timer:110,actions:0,day,...location};
+    notify(kind==='ancient'?'ПРОБУЖДЕНИЕ ДРЕВНЕГО СТРАЖА! Ищи светящийся маяк в мире.':'НОЧНАЯ ОСАДА! Найди красный разлом и защити долину.');
     save();render();return true;
   }
   function difficultyScale() {
@@ -340,8 +345,13 @@
     }
     save();render();
   }
+  function eventInReach() {
+    const e=state.event,p=bridge()?.getPlayerPosition?.();
+    return !!e&&!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Math.hypot(p.x-e.x,p.y-e.y)<=150;
+  }
   function attackEvent() {
     const e=state.event;if(!e)return false;
+    if(!eventInReach()){notify('Подойди к светящемуся маяку события ближе, чтобы атаковать.');return false;}
     const stats=bridge()?.getStats?.()||{};
     e.actions++;
     if(e.kind==='ancient'){
@@ -442,6 +452,31 @@
     else startEvent('invasion',nightKey);
     state.lastSiegeNight=nightKey;save();
   }
+  function drawWorldEvent(ctx,camX,camY,time,screenWidth,screenHeight) {
+    const e=state.event;if(!e||!ctx||!Number.isFinite(e.x)||!Number.isFinite(e.y))return;
+    const sx=e.x-camX,sy=e.y-camY,onScreen=sx>35&&sx<screenWidth-35&&sy>45&&sy<screenHeight-40;
+    const x=clamp(sx,36,screenWidth-36),y=clamp(sy,45,screenHeight-40);
+    ctx.save();ctx.translate(x,y);
+    if(!onScreen){
+      const angle=Math.atan2(sy-y,sx-x);ctx.rotate(angle);ctx.fillStyle=e.kind==='ancient'?'#e3acff':'#ff8c76';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=13;
+      ctx.beginPath();ctx.moveTo(17,0);ctx.lineTo(-10,-10);ctx.lineTo(-5,0);ctx.lineTo(-10,10);ctx.closePath();ctx.fill();ctx.rotate(-angle);
+      ctx.fillStyle='#fff4dc';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText(e.kind==='ancient'?'ДРЕВНИЙ СТРАЖ':'ОСАДА',0,24);ctx.restore();return;
+    }
+    const pulse=1+Math.sin(time/180)*.08;
+    ctx.globalAlpha=.24;ctx.fillStyle=e.kind==='ancient'?'#bd82ff':'#ff735e';ctx.beginPath();ctx.arc(0,0,47*pulse,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    ctx.fillStyle='#101827bb';ctx.beginPath();ctx.ellipse(0,18,31,12,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=e.kind==='ancient'?'#dfb5ff':'#ff9475';ctx.lineWidth=4;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=16;ctx.beginPath();ctx.ellipse(0,-4,25*pulse,35*pulse,0,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+    if(e.kind==='ancient'){
+      ctx.fillStyle='#4c366f';ctx.beginPath();ctx.moveTo(-19,10);ctx.lineTo(-17,-15);ctx.lineTo(-9,-29);ctx.lineTo(-2,-17);ctx.lineTo(4,-37);ctx.lineTo(12,-17);ctx.lineTo(20,-28);ctx.lineTo(23,10);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#d4a5ff';ctx.fillRect(-12,-11,6,4);ctx.fillRect(7,-11,6,4);ctx.fillStyle='#f4d7ff';ctx.fillRect(-5,1,10,3);
+      ctx.fillStyle='#f2e5ff';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ДРЕВНИЙ СТРАЖ',0,-52);
+      ctx.fillStyle='#241b35';ctx.fillRect(-30,-45,60,5);ctx.fillStyle='#d7a4ff';ctx.fillRect(-30,-45,60*clamp(e.hp/Math.max(1,e.maxHp),0,1),5);
+    }else{
+      for(let i=0;i<3;i++){const ox=Math.cos(i*Math.PI*2/3)*29,oy=Math.sin(i*Math.PI*2/3)*17;ctx.fillStyle='#512c35';ctx.beginPath();ctx.arc(ox,oy,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffb09b';ctx.fillRect(ox-3,oy-2,6,3);}
+      ctx.fillStyle='#ffdfc7';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('РАЗЛОМ ОСАДЫ',0,-52);
+    }
+    ctx.restore();
+  }
   function update(dt) {
     if(!Number.isFinite(dt)||dt<=0)return;
     const snap=currentSnapshot();if(!snap?.worldId||snap.paused)return;
@@ -491,6 +526,8 @@
     leaveDungeon,
     equipRelic,
     getState:()=>clone(state),
+    drawWorldEvent,
+    interactWorldEvent:()=>eventInReach()?attackEvent():false,
     open:openPanel,
     close:closePanel
   };
