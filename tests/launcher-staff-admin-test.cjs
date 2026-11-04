@@ -10,7 +10,7 @@ assert.ok(html.includes('id="staff-duration-select"'),'Role duration selector mu
 assert.ok(html.includes('id="staff-grant-role"')&&html.includes('id="staff-revoke-role"'),'Grant and revoke controls must exist');
 assert.ok(html.includes('id="staff-public-grants-toggle"'),'Public role grant control must exist');
 assert.match(app,/skyrealm-auth', 'skyrealm-staff'/,'Staff API must use its dedicated server function');
-assert.match(app,/requestStaff\('\/api\/staff\/me'/,'Launcher must ask the server for the signed-in user's role');
+assert.match(app,/requestStaff\('\/api\/staff\/me'/,'Launcher must ask the server to verify the signed-in role');
 assert.match(app,/if\(me\.role!=='admin'\)return/,'Non-admin users must not see the admin panel');
 assert.match(app,/requestStaff\('\/api\/staff\/players'/,'Player list must come from the protected staff API');
 assert.match(app,/requestStaff\('\/api\/staff\/grants'/,'Role grants must go through the protected server API');
