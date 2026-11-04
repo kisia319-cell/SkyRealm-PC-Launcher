@@ -38,11 +38,13 @@
     state.upgrades={sails:clamp(Math.floor(Number(raw.sails)||0),0,3),hull:clamp(Math.floor(Number(raw.hull)||0),0,3),oxygen:clamp(Math.floor(Number(raw.oxygen)||0),0,3),harpoon:clamp(Math.floor(Number(raw.harpoon)||0),0,3)};
     state.harpoonCooldown=Math.max(0,Number(state.harpoonCooldown)||0);
     if(!state.city||typeof state.city!=='object')state.city=JSON.parse(JSON.stringify(DEFAULT_STATE.city));
-    state.city={...DEFAULT_STATE.city,...state.city,x:clamp(Number(state.city.x)||312,0,W-2),y:clamp(Number(state.city.y)||216,0,H-2),guardianMaxHp:clamp(Number(state.city.guardianMaxHp)||1250,1,50000),guardianHp:clamp(Number(state.city.guardianHp)||1250,0,50000),discovered:state.city.discovered===true,cleared:state.city.cleared===true,rewardClaimed:state.city.rewardClaimed===true};
+    const city=state.city;
+    const cityX=Number(city.x),cityY=Number(city.y),cityMax=Number(city.guardianMaxHp),cityHp=Number(city.guardianHp);
+    state.city={...DEFAULT_STATE.city,...city,x:clamp(Number.isFinite(cityX)?cityX:312,0,W-2),y:clamp(Number.isFinite(cityY)?cityY:216,0,H-2),guardianMaxHp:clamp(Number.isFinite(cityMax)&&cityMax>0?cityMax:1250,1,50000),guardianHp:clamp(Number.isFinite(cityHp)?cityHp:1250,0,50000),discovered:city.discovered===true,cleared:city.cleared===true,rewardClaimed:city.rewardClaimed===true};
     const saved=Array.isArray(state.caves)?state.caves:[];
-    state.caves=DEFAULT_STATE.caves.map(base=>{const old=saved.find(v=>v?.id===base.id)||{};return {...base,...old,active:old.active===true,cleared:old.cleared===true,maxHp:clamp(Number(old.maxHp)||base.maxHp,1,50000),hp:clamp(Number(old.hp)||base.hp,0,50000)};});
-    state.krakenSpawnTimer=clamp(Number(state.krakenSpawnTimer)||170,0,1000);
-    state.boatHp=clamp(Number(state.boatHp)||100,0,boatMaxHp());
+    state.caves=DEFAULT_STATE.caves.map(base=>{const old=saved.find(v=>v?.id===base.id)||{},max=Number(old.maxHp),hp=Number(old.hp);return {...base,...old,active:old.active===true,cleared:old.cleared===true,maxHp:clamp(Number.isFinite(max)&&max>0?max:base.maxHp,1,50000),hp:clamp(Number.isFinite(hp)?hp:base.hp,0,50000)};});
+    const krakenTimer=Number(state.krakenSpawnTimer);state.krakenSpawnTimer=clamp(Number.isFinite(krakenTimer)?krakenTimer:170,0,1000);
+    const boatHp=Number(state.boatHp);state.boatHp=clamp(Number.isFinite(boatHp)?boatHp:100,0,boatMaxHp());
   }
   function canPayShipCost(cost,gold){const b=bridge();return !!b&&Object.entries(cost).every(([n,q])=>Number(b.getItemCount?.(n)||0)>=q)&&Number(b.getGold?.()||0)>=gold;}
   function upgradeShip(kind){
@@ -113,7 +115,7 @@
       </style>
       <div class="sea-top"><span class="sea-title">🌊 SKYREALM · МОРЕ</span><span class="sea-stat" id="sea-weather">Погода: штиль</span><span class="sea-stat" id="sea-boat-hp">Корабль: 100%</span><span class="sea-stat" id="sea-air">Воздух: —</span><span class="sea-stat" id="sea-coords">Координаты: 13 / 82</span><button id="sea-map-btn">🗺 Карта</button><button id="sea-dive-btn">↓ Нырнуть · E</button><button id="sea-vault-btn">🏛 Сокровищница</button><button id="sea-shipyard-btn">⚓ Верфь</button><button id="sea-exit">Вернуться на берег</button></div>
       <div class="sea-stage"><canvas id="sea-canvas"></canvas><div id="sea-message">Море ждёт тебя. Найди карту сокровищ!</div>
-      <div class="sea-help">WASD / стрелки — управлять кораблём · E — взаимодействовать / нырять · M — карта · Space — ускорение<br>В шторм волны повреждают корабль. Акулы преследуют лодку. Для долгого погружения нужен водяной шлем.</div>
+      <div class="sea-help">WASD / стрелки — управлять кораблём · E — взаимодействовать / нырять · M — карта · F — гарпун · Space — ускорение<br>В шторм волны повреждают корабль. Акулы преследуют лодку. Для долгого погружения нужен водяной шлем.</div>
       <div class="sea-control-pad" aria-label="Управление кораблём"><button type="button" data-sea-direction="w" aria-label="Вперёд">▲</button><div class="sea-control-row"><button type="button" data-sea-direction="a" aria-label="Влево">◀</button><button type="button" data-sea-direction="s" aria-label="Назад">▼</button><button type="button" data-sea-direction="d" aria-label="Вправо">▶</button></div></div>
       <div id="sea-shipyard"></div>
       <div id="sea-map"><h2>🗺 Морская карта · 360 × 260</h2><p>Туман скрывает неизведанные воды. Найди обломки кораблей и карты сокровищ.</p><canvas id="sea-map-canvas"></canvas><button id="sea-map-close">Закрыть карту</button></div>
