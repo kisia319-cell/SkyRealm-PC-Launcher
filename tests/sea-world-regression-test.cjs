@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const sea=fs.readFileSync('game/sea-system.js','utf8');
 const game=fs.readFileSync('game/game.js','utf8');
-assert.match(sea,/w\/\(W\*TILE\*\.76\)/,'Sea camera scale must include tile size');
+assert.match(sea,/w\/\(W\*TILE\*\.15\)/,'Sea camera scale must include tile size');
 assert.match(sea,/if\(!state\.sharks\.length\)/,'Old sea saves must repopulate missing sharks');
 assert.match(sea,/if\(!state\.monsters\.length\)/,'Old sea saves must repopulate missing sea monsters');
 assert.match(sea,/Layered animated wave crests/,'Sea must render animated layered waves');
