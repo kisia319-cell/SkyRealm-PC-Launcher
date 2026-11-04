@@ -28,9 +28,9 @@ assert.ok(game.includes("setInterval(()=>{if(!document.hidden)void refreshStaffR
 assert.ok(challenge.includes("seconds:45"));
 assert.ok(challenge.includes("seconds:75"));
 assert.ok(challenge.includes("seconds:90"));
-assert.ok(challenge.includes("lastSnapshot.gameMinuteTotal-t.startMinute"));
-assert.ok(!challenge.includes("(lastSnapshot.gameMinuteTotal-t.startMinute)/60"));
-assert.ok(!challenge.includes("(s.gameMinuteTotal-state.timed.startMinute)/60"));
+assert.ok(challenge.includes("elapsedMs:0,lastTickAt:Date.now()"));
+assert.ok(!challenge.includes("gameMinuteTotal-t.startMinute"));
+assert.ok(challenge.includes("state.timed.elapsedMs") && challenge.includes("Date.now()"));
 assert.ok(challenge.includes("state.timed.collected[name]"));
 assert.ok(challenge.includes("timedProgress(state.timed,def)"));
 
@@ -90,7 +90,8 @@ assert.ok(window.SkyRealmChallengeHooks,'Gather hook registered');
 window.SkyRealmChallengeHooks.onItemGained('Древесина',7);
 window.SkyRealmChallengeHooks.onItemGained('Древесина',7);
 window.SkyRealmChallengeHooks.onItemGained('Древесина',7);
-snapshot.gameMinuteTotal=25;
+let now=Date.now();
+Date.now=()=>now+1000;
 updateCallback();
 assert.equal(rewards.gold,120000,'Wood challenge reward is paid when collected count reaches 20');
 assert.equal(rewards.items['Малое зелье'],1);
@@ -99,10 +100,12 @@ assert.ok(rewards.toasts.some(x=>x.includes('Испытание выполнен
 elements['challenge-launch'].click();
 buttons=elements['challenge-content'].querySelectorAll('[data-challenge-start]');
 buttons.find(b=>b.dataset.challengeStart==='iron').listeners.click();
-snapshot.gameMinuteTotal=99;
+now+=74000;
+Date.now=()=>now;
 updateCallback();
 assert.equal(rewards.toasts.some(x=>x.includes('Время испытания истекло')),false,'74 seconds must not expire a 75-second challenge');
-snapshot.gameMinuteTotal=100;
+now+=1000;
+Date.now=()=>now;
 updateCallback();
 assert.ok(rewards.toasts.some(x=>x.includes('Время испытания истекло')),'75 real/game minutes should expire the 75-second challenge');
 console.log('SkyRealm challenge progress events, 1:1 timer, short deadlines and staff privilege UI checks passed.');
