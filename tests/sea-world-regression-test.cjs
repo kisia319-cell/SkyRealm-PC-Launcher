@@ -16,6 +16,7 @@ assert.match(sea,/slice\(0,3\)/,'Legacy saves must be normalized to the shark ca
 assert.match(sea,/ctx\.scale\(1\.7,1\.7\)/,'Sailor avatar must be larger and have a visible face');
 assert.match(sea,/for\(let i=0;i<210;i\+\+\)/,'Sea environment detail density must be increased');
 assert.match(sea,/if\(!state\.monsters\.length\)/,'Old sea saves must repopulate missing sea monsters');
+assert.equal((game.match(/function communityModBonus\\(key\\)/g)||[]).length,1,'Core mod bonus helper must not be duplicated');
 assert.match(sea,/Layered animated wave crests/,'Sea must render animated layered waves');
 assert.match(sea,/Player's ship: hull, deck, mast/,'Sea must render a detailed visible ship');
 assert.match(sea,/clearly visible sailor avatar/,'Sea must render the player character on deck');
