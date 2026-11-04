@@ -49,6 +49,7 @@ jobs:
           node --check game/multiplayer-client.js
           node --check game/multiplayer-ui.js
           node --check game/sea-system.js
+          node --check game/challenge-mode.js
           node --check tests/sea-world-regression-test.cjs
           node --check tests/challenge-staff-regression-test.cjs
           node --check app.js
