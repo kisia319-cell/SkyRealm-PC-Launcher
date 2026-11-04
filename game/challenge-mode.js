@@ -35,14 +35,14 @@
   function timedTarget(t){return Object.values(t.items).reduce((a,b)=>a+b,0);}
   function startTimed(id){
     const def=timedDefs.find(v=>v.id===id);if(!def||!lastSnapshot)return;
-    state.timed={id,startMinute:lastSnapshot.gameMinuteTotal,collected:Object.fromEntries(Object.keys(def.items).map(n=>[n,0]))};save();render();
+    state.timed={id,elapsedMs:0,lastTickAt:Date.now(),collected:Object.fromEntries(Object.keys(def.items).map(n=>[n,0]))};save();render();
   }
   function render(){
     const root=$('challenge-content');if(!root||!state||!lastSnapshot)return;
     const stage=Math.min(state.stage,campaign.length),mission=campaign[stage];
     const missionHtml=mission?(()=>{const done=mission.check(lastSnapshot);return '<div class="challenge-card"><b>'+esc(mission.title)+'</b><small>'+esc(mission.desc)+'</small><small>Этап '+(stage+1)+' из '+campaign.length+(done?' · выполнено!':' · в процессе')+'</small><div class="challenge-progress"><i style="width:'+(done?100:Math.min(92,Math.max(8,stage*17+12)))+'%"></i></div></div>';})():'<div class="challenge-card"><b>Миссия пройдена!</b><small>Ты завершил всю цепочку испытаний SkyRealm.</small></div>';
     const t=state.timed,def=t&&timedDefs.find(v=>v.id===t.id);
-    const timedHtml=def?(()=>{const elapsed=Math.max(0,lastSnapshot.gameMinuteTotal-t.startMinute),left=Math.max(0,def.seconds-elapsed),progress=timedProgress(t,def),done=progress>=timedTarget(def);return '<div class="challenge-card"><b>⏱ '+esc(def.title)+'</b><small>'+esc(def.desc)+'</small><small>Осталось: '+Math.ceil(left)+' сек. · '+progress+'/'+timedTarget(def)+'</small><div class="challenge-progress"><i style="width:'+Math.min(100,progress/timedTarget(def)*100)+'%"></i></div>'+(done?'<small>Испытание выполнено! Награда выдана.</small>':left<=0?'<small>Время вышло. Запусти новое испытание.</small>':'')+'</div>';})():'<div class="challenge-card"><b>Испытание на время</b><small>Выбери одно задание. Пока оно активно, другое начать нельзя.</small><div class="challenge-actions">'+timedDefs.map(v=>'<button type="button" data-challenge-start="'+v.id+'">'+esc(v.title)+' · '+v.seconds+' сек.</button>').join('')+'</div></div>';
+    const timedHtml=def?(()=>{const elapsed=Math.max(0,Number(t.elapsedMs)||0)/1000,left=Math.max(0,def.seconds-elapsed),progress=timedProgress(t,def),done=progress>=timedTarget(def);return '<div class="challenge-card"><b>⏱ '+esc(def.title)+'</b><small>'+esc(def.desc)+'</small><small>Осталось: '+Math.ceil(left)+' сек. · '+progress+'/'+timedTarget(def)+'</small><div class="challenge-progress"><i style="width:'+Math.min(100,progress/timedTarget(def)*100)+'%"></i></div>'+(done?'<small>Испытание выполнено! Награда выдана.</small>':left<=0?'<small>Время вышло. Запусти новое испытание.</small>':'')+'</div>';})():'<div class="challenge-card"><b>Испытание на время</b><small>Выбери одно задание. Пока оно активно, другое начать нельзя.</small><div class="challenge-actions">'+timedDefs.map(v=>'<button type="button" data-challenge-start="'+v.id+'">'+esc(v.title)+' · '+v.seconds+' сек.</button>').join('')+'</div></div>';
     root.innerHTML='<div class="challenge-card"><b>Большая миссия</b><small>Награды за этапы: золото, зелья и редкие припасы.</small></div>'+missionHtml+timedHtml;
     root.querySelectorAll('[data-challenge-start]').forEach(b=>b.addEventListener('click',()=>startTimed(b.dataset.challengeStart)));
   }
@@ -53,14 +53,17 @@
     ensureUI();$('challenge-launch').hidden=s.difficulty!=='challenge';
     if(s.worldId!==lastWorld){lastWorld=s.worldId;state=load(lastWorld);}
     lastSnapshot=s;
-    if(!active){if(!$('challenge-panel').hidden)render();return;}
+    if(!active){if(state?.timed)state.timed.lastTickAt=Date.now();if(!$('challenge-panel').hidden)render();return;}
     if(state.timed){
       const def=timedDefs.find(v=>v.id===state.timed.id);
       if(def){
-        const elapsed=Math.max(0,s.gameMinuteTotal-state.timed.startMinute);
+        const now=Date.now(),last=Number(state.timed.lastTickAt)||now;
+        if(!s.paused)state.timed.elapsedMs=Math.max(0,Number(state.timed.elapsedMs)||0)+Math.max(0,now-last);
+        state.timed.lastTickAt=now;
+        const elapsed=Math.max(0,Number(state.timed.elapsedMs)||0)/1000;
         if(timedProgress(state.timed,def)>=timedTarget(def)){
           reward(def.gold,Object.keys(def.reward)[0],Object.values(def.reward)[0]);state.timed=null;save();bridge()?.toast?.('Испытание выполнено! Награда получена.');
-        }else if(elapsed>=def.seconds){state.timed=null;save();bridge()?.toast?.('Время испытания истекло. Попробуй ещё раз.');}
+        }else if(elapsed>=def.seconds){state.timed=null;save();bridge()?.toast?.('Время испытания истекло. Попробуй ещё раз.');}else if(Math.floor(elapsed)!==Math.floor(elapsed-Math.min(1,Math.max(0,now-last)/1000))){save();}
       }else state.timed=null;
     }
     if(state.stage<campaign.length&&campaign[state.stage].check(s)){
