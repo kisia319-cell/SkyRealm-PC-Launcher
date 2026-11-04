@@ -208,7 +208,7 @@
     let html='<div class="ex-grid-stats"><div><b>'+g.walls+'</b><small>Укрепления</small></div><div><b>'+g.turrets+'</b><small>Турели</small></div><div><b>'+g.shields+'</b><small>Силовые купола</small></div></div><div class="ex-grid-stats"><div><b>'+g.guards+'/5</b><small>Посты стражи</small></div><div><b>'+Math.round(protection*100)+'%</b><small>Снижение урона</small></div><div><b>'+state.stats.eventsWon+'</b><small>Отбитые осады</small></div></div>';
     html+='<p class="ex-muted">Укреплённые стены уменьшают последствия проигранной осады. Электрические турели автоматически помогают во время мировых событий.</p>';
     html+='<div class="ex-card"><b>🏰 Схема обороны</b><small>Каждая стена повышает защиту. Максимум 30 стен и 60% снижения урона от неудачной обороны.</small><small>Посты деревенских стражей: '+g.guards+'/5. Во время осады стражи автоматически атакуют врагов.</small>'+renderButton('build:guard','Нанять стража и построить пост',g.guards>=5||state.research<1||!canAfford(BUILDINGS.guard.cost,BUILDINGS.guard.gold))+'</div>';
-    html+='<div class="ex-card"><b>🔦 Освещение</b><small>Электрические фонари поддерживают сеть и показывают, сколько энергии вырабатывает генератор.</small><small>Фонарей: '+g.lamps+' · расход: '+(g.lamps*.035).toFixed(2)+' энергии/сек. Буров: '+g.drills+'.</small></div>';
+    html+='<div class="ex-card"><b>🔦 Освещение и подключение</b><small>Фонарей: '+g.lamps+' · расход: '+(g.lamps*.035).toFixed(2)+' энергии/сек. Буров: '+g.drills+'.</small><small>Кабели увеличивают ёмкость сети и эффективность генераторов. Электродвери переключаются клавишей E рядом с ними. Ловушки и пушки автоматически помогают во время осады.</small><small>Кабели: '+g.wires+' · двери: '+g.doors+' · ловушки: '+g.traps+' · пушки: '+g.cannons+' · башни: '+g.towers+'</small>'+renderButton('door-toggle','Переключить ближайшую электродверь',false)+'</div>';
     html+=renderButton('tab-power','Перейти к строительству',false,true);
     return html;
   }
@@ -269,6 +269,7 @@
       if(action.startsWith('tab:')){activeTab=action.slice(4);render();return;}
       if(action.startsWith('build:')){build(action.slice(6));return;}
       if(action==='research'){research();return;}
+      if(action==='door-toggle'){toggleDoorNearby();return;}
       if(action==='forge:weapon'){reforgeGear('weapon');return;}
       if(action==='forge:armor'){reforgeGear('armor');return;}
       if(action==='dungeon-secret'){startSecretDungeon();return;}
@@ -406,6 +407,8 @@
     }
     save();render();
   }
+  function toggleDoorNearby(){const ok=bridge()?.toggleExpansionDoor?.()===true;if(ok){notify('Электрическая дверь переключена.');save();}else notify('Рядом нет электрической двери.');return ok;}
+  function interactWorldEvent(){if(toggleDoorNearby())return true;if(state.event&&eventInReach()){attackEvent();return true;}return false;}
   function eventInReach() {
     const e=state.event,p=bridge()?.getPlayerPosition?.();
     return !!e&&!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Math.hypot(p.x-e.x,p.y-e.y)<=150+(state.grid.towers||0)*25;
@@ -640,7 +643,8 @@
     getState:()=>clone(state),
     drawWorldEvent,
     onMonsterDefeated,
-    interactWorldEvent:()=>eventInReach()?attackEvent():false,
+    interactWorldEvent,
+    toggleDoorNearby,
     open:openPanel,
     close:closePanel
   };
