@@ -83,7 +83,7 @@
       toggle.addEventListener('click',function(){if(!mod.enabled&&activeCount()>=MAX_ACTIVE){setStatus('Можно одновременно включить не более '+MAX_ACTIVE+' скриптовых модов.',true);return;}
         if(!mod.enabled&&mod.language==='python'&&mods.some(other=>other.enabled&&other.language==='python')){setStatus('Одновременно можно запускать только один Python-мод.',true);return;}
         mod.enabled=!mod.enabled;if(!saveMods()){mod.enabled=!mod.enabled;return;}if(!mod.enabled)cleanupRunner(mod.id);renderMods();});
-      const edit=document.createElement('button');edit.type='button';edit.className='action secondary';edit.textContent='Изменить';edit.addEventListener('click',function(){openEditor(mod);});
+      const edit=document.createElement('button');edit.type='button';edit.className='action secondary';edit.textContent='Открыть в Studio';edit.addEventListener('click',function(){window.dispatchEvent(new CustomEvent('skyrealm:open-mod-studio'));});
       const exp=document.createElement('button');exp.type='button';exp.className='action secondary';exp.textContent='Экспорт';exp.addEventListener('click',function(){exportMod(mod);});
       const remove=document.createElement('button');remove.type='button';remove.className='action secondary';remove.textContent='Удалить';remove.addEventListener('click',function(){if(!confirm('Удалить локальный мод «'+mod.name+'»?'))return;cleanupRunner(mod.id);mods=mods.filter(m=>m.id!==mod.id);saveMods();renderMods();});
       actions.append(toggle,edit,exp,remove);card.append(info,actions);root.append(card);
@@ -158,7 +158,7 @@
   function step(){const bridge=host();if(!bridge?.canRun?.()){for(const id of Array.from(runners.keys()))cleanupRunner(id);return;}
     const now=Date.now();if(now-lastTick<2200)return;lastTick=now;let context;try{context=bridge.getContext();}catch(_){return;}
     mods.filter(m=>m.enabled).forEach(function(mod){let runner=runners.get(mod.id);if(!runner)runner=createRunner(mod);if(runner.ready&&!runner.busy)sendTick(runner,context);});}
-  function init(){mods=readMods();renderMods();$('open-script-mod-creator')?.addEventListener('click',function(){openEditor();});
+  function init(){mods=readMods();renderMods();$('open-script-mod-creator')?.addEventListener('click',function(){window.dispatchEvent(new CustomEvent('skyrealm:open-mod-studio'));});
     $('script-mod-close')?.addEventListener('click',closeEditor);$('script-mod-test')?.addEventListener('click',testSource);$('script-mod-save')?.addEventListener('click',saveEditorMod);
     $('script-mod-language')?.addEventListener('change',function(){if($('script-mod-template').value==='starter')applyTemplate();});
     $('script-mod-template')?.addEventListener('change',applyTemplate);
@@ -168,7 +168,7 @@
     $('import-user-mod')?.addEventListener('click',function(){$('user-mod-import-file')?.click();});
     $('user-mod-import-file')?.addEventListener('change',function(event){const file=event.target.files?.[0];if(file)importModFile(file);event.target.value='';});
     $('script-mod-studio')?.addEventListener('click',function(event){if(event.target===$('script-mod-studio'))closeEditor();});
-    if(new URLSearchParams(location.search).get('installMod')==='__creator__')setTimeout(openEditor,450);window.setInterval(step,500);}
+    if(new URLSearchParams(location.search).get('installMod')==='__creator__')setTimeout(()=>window.dispatchEvent(new CustomEvent('skyrealm:open-mod-studio')),450);window.setInterval(step,500);}
   window.SkyRealmCustomMods={openEditor:openEditor,render:renderMods,buildSandboxDocument:frameDocument};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
