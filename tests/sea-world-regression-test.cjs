@@ -12,6 +12,11 @@ assert.match(sea,/const W = 360, H = 260/,'Sea map must be substantially larger'
 assert.match(sea,/length:2/,'Sharks must be rare by default');
 assert.match(sea,/state\.sharkSpawnTimer/,'Sharks must spawn only on a rare timer');
 assert.match(sea,/function upgradeShip\(\)/,'Players must be able to upgrade their ship');
+assert.match(game,/getGold:\(\)=>Math\.floor\(walletCents\/100\)/,'Sea upgrade bridge must expose the real gold balance');
+assert.match(game,/spendGold:amount=>/,'Sea upgrade bridge must safely spend real gold');
+assert.match(game,/spendItem:\(name,count=1\)=>/,'Sea upgrade bridge must spend actual inventory items');
+assert.match(sea,/b\.spendItem\?\.\(name,count\)/,'Ship upgrades must consume materials through the real inventory bridge');
+assert.match(sea,/b\.spendGold\?\.\(plan\.gold\)/,'Ship upgrades must consume gold through the real wallet bridge');
 assert.match(sea,/shipLevel:0/,'Ship upgrades must be saved per expedition');
 assert.match(sea,/function boatMaxHp\(\)/,'Ship upgrades must increase maximum hull health');
 assert.match(sea,/1\+state\.shipLevel\*\.12/,'Ship upgrades must increase sailing speed');
