@@ -13,10 +13,10 @@ assert.ok(game.includes('window.SkyRealmExpansionSystems?.importState?.(d?.expan
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.update?.(dt)'),'Expansion systems must update with the game world');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.damageMultiplier?.()||1'),'Equipped relics must affect player weapon damage');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.defenseBonus?.()||0'),'Equipped relics must affect player defense');
-assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall','tech-guardpost'"),'Technology structures must load from world saves');
+assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall','tech-guardpost','tech-trap'"),'Technology structures must load from world saves');
 assert.ok(game.includes("s.type==='tech-generator'"),'Placed technology buildings must be drawn in the world');
 assert.ok(game.includes('placeExpansionStructure:type=>'),'Technology placement API must be connected to the game world');
-assert.ok(game.includes("'guardpost','drill'"),'Guard barracks must be accepted as a real world structure');
+assert.ok(game.includes("'guardpost','trap','drill'"),'Guard barracks and electric traps must be accepted as real world structures');
 assert.ok(moduleSource.includes("if(action==='dungeon-enter'){startDungeon();return;}"),'Citadel entry button must call the implemented dungeon entry function');
 assert.ok(moduleSource.includes('const DUNGEON_ROUTES = {'),'Citadel must offer multiple expedition routes');
 assert.ok(moduleSource.includes("enemy:'Титан-крушитель'")&&moduleSource.includes("enemy:'Рыцарь пустоты'"),'Each route must define distinct monster types');
@@ -104,6 +104,9 @@ assert.ok(api.getState().grid.walls===1);
 assert.equal(api.build('guardpost'),true,'Guard barracks hire two settlement defenders');
 assert.equal(api.getState().grid.guardposts,1);
 assert.ok(worldStructures.includes('guardpost'),'Guard barracks must be placed as a real world structure');
+assert.equal(api.build('trap'),true,'Electric traps can be built with research I');
+assert.equal(api.getState().grid.traps,1);
+assert.ok(worldStructures.includes('trap'),'Electric traps must be placed as real world structures');
 assert.equal(api.research(),true,'Second technology research unlocks industrial mining');
 assert.equal(api.build('drill'),true,'Research II unlocks the automatic mining drill');
 assert.equal(api.research(),true,'Third technology research unlocks energy shields');
@@ -138,7 +141,10 @@ assert.equal(api.getState().event,null,'Defeating all real siege monsters must c
 assert.equal(api.getState().stats.eventsWon,1);
 assert.ok(rewards.gold>beforeEventGold,'Successful defence must award gold');
 assert.ok(inventory['Древний осколок']>=1,'Successful defence must grant a real inventory item');
-const shieldState=api.exportState();shieldState.grid.turrets=0;shieldState.power=100;shieldState.fuelSeconds=0;api.importState(shieldState);
+const trapState=api.exportState();trapState.grid.guardposts=0;trapState.grid.turrets=0;trapState.grid.traps=1;trapState.power=100;api.importState(trapState);
+api.startEvent('invasion',4);const beforeTrap=activeEventEnemies;api.update(1);api.update(1);assert.ok(activeEventEnemies<beforeTrap,'Powered electric traps must damage real invaders');
+while(api.getState().event){activeEventEnemies--;api.onMonsterDefeated(api.getState().event.id);}
+const shieldState=api.exportState();shieldState.grid.guardposts=0;shieldState.grid.traps=0;shieldState.grid.turrets=0;shieldState.power=100;shieldState.fuelSeconds=0;api.importState(shieldState);
 api.startEvent('invasion',4);const damageBeforeShield=rewards.damage;
 for(let i=0;i<120&&api.getState().event;i++)api.update(1);
 assert.equal(api.getState().event,null,'An unattended siege must resolve when its timer expires');
