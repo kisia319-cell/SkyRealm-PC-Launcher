@@ -152,6 +152,7 @@ night=false;
 
 api.open();
 const expansionPanel=elements['skyrealm-expansion'];
+expansionPanel.listeners.click({target:{closest:()=>({dataset:{expansionAction:'tab:dungeon'}})}});
 assert.match(expansionPanel.innerHTML,/data-expansion-action="dungeon-enter"/,'Citadel entry action must be shown in the panel');
 expansionPanel.listeners.click({target:{closest:()=>({dataset:{expansionAction:'dungeon-enter'}})}});
 assert.equal(api.getState().dungeon.active,true,'The citadel panel entry button must start the room instead of throwing');
