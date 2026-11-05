@@ -19,7 +19,7 @@
     guardClock:0,
     lastSiegeNight:-1,
     event:null,
-    dungeon:{room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0},
+    dungeon:{route:'flooded',room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0},
     relics:[],
     equippedRelic:null,
     stats:{eventsWon:0,dungeonsCleared:0}
@@ -44,13 +44,30 @@
     shield:{title:'Силовой защитный купол',icon:'🛡️',cost:{Железо:20,Медь:15,Кристалл:8,Мифрил:3},gold:100,limit:1,research:3},
     wall:{title:'Укреплённая стена',icon:'🧱',cost:{Камень:16,Древесина:8,Железо:2},gold:5,limit:30}
   };
-  const DUNGEON_ROOMS = [
-    {name:'Затопленный вход',enemy:'Страж-пиявка',hp:180,damage:8,loot:'Кристалл'},
-    {name:'Зал механизмов',enemy:'Медный голем',hp:260,damage:11,loot:'Медь'},
-    {name:'Галерея шипов',enemy:'Клинковый страж',hp:340,damage:14,loot:'Железо'},
-    {name:'Архив забытых',enemy:'Хранитель печатей',hp:460,damage:18,loot:'Древний осколок'},
-    {name:'Тронный зал',enemy:'Древний архонт',hp:900,damage:25,loot:'Сердце архонта'}
-  ];
+  const DUNGEON_ROUTES = {
+    flooded:{title:'Затопленные глубины',description:'Подводные руины, ядовитые ловушки и древние морские хранители.',rooms:[
+      {name:'Затопленный вход',enemy:'Страж-пиявка',hp:180,damage:8,loot:'Кристалл'},
+      {name:'Зал утопленников',enemy:'Утопший копейщик',hp:250,damage:11,loot:'Медь'},
+      {name:'Коралловая галерея',enemy:'Коралловый страж',hp:350,damage:14,loot:'Железо'},
+      {name:'Святилище прилива',enemy:'Жрец глубин',hp:480,damage:18,loot:'Древний осколок'},
+      {name:'Бездна левиафана',enemy:'Левиафан руин',hp:940,damage:26,loot:'Сердце архонта'}
+    ]},
+    forge:{title:'Кузница титанов',description:'Жаркие шахты, раскалённые механизмы и тяжёлые големы.',rooms:[
+      {name:'Шлаковый тоннель',enemy:'Шлаковый пёс',hp:210,damage:9,loot:'Уголь'},
+      {name:'Литейный зал',enemy:'Медный голем',hp:290,damage:12,loot:'Медь'},
+      {name:'Галерея кузнецов',enemy:'Железный центурион',hp:390,damage:15,loot:'Железо'},
+      {name:'Сердце плавильни',enemy:'Магмовый алхимик',hp:520,damage:20,loot:'Мифрил'},
+      {name:'Трон титана',enemy:'Титан-крушитель',hp:1020,damage:28,loot:'Сердце архонта'}
+    ]},
+    shadow:{title:'Теневой разлом',description:'Забытые коридоры, призрачные стрелки и магия пустоты.',rooms:[
+      {name:'Коридор теней',enemy:'Ползучая тень',hp:190,damage:9,loot:'Теневая эссенция'},
+      {name:'Костяной архив',enemy:'Костяной лучник',hp:280,damage:12,loot:'Кость'},
+      {name:'Зал разлома',enemy:'Ведьма разлома',hp:400,damage:16,loot:'Кристалл'},
+      {name:'Порог пустоты',enemy:'Рыцарь пустоты',hp:550,damage:21,loot:'Ядро духа'},
+      {name:'Затмённый трон',enemy:'Владыка кошмаров',hp:980,damage:29,loot:'Сердце архонта'}
+    ]}
+  };
+  function dungeonRooms(){return DUNGEON_ROUTES[state.dungeon.route]?.rooms||DUNGEON_ROUTES.flooded.rooms;}
 
   let root = null;
   let launchButton = null;
@@ -90,6 +107,7 @@
     }
     const dungeon = raw.dungeon && typeof raw.dungeon==='object'?raw.dungeon:{};
     base.dungeon = {
+      route:['flooded','forge','shadow'].includes(dungeon.route)?dungeon.route:'flooded',
       room:clamp(Math.floor(Number(dungeon.room)||1),1,5),
       active:dungeon.active===true,
       entryPaid:dungeon.entryPaid===true,
@@ -180,9 +198,10 @@
     return html;
   }
   function renderDungeon() {
-    const d=state.dungeon,room=DUNGEON_ROOMS[d.room-1];
-    let html='<div class="ex-dungeon-banner"><span>🏛️ ЗАТЕРЯННАЯ ЦИТАДЕЛЬ</span><b>Комната '+d.room+' / 5</b></div>';
-    html+='<div class="ex-room-map">'+DUNGEON_ROOMS.map((r,i)=>'<div class="ex-room '+(d.cleared.includes(i+1)?'cleared':d.room===i+1&&d.active?'active':'')+'"><b>'+(d.cleared.includes(i+1)?'✓':i+1)+'</b><small>'+r.name+'</small></div>').join('')+'</div>';
+    const d=state.dungeon,rooms=dungeonRooms(),room=rooms[d.room-1];
+    let html='<div class="ex-dungeon-banner"><span>🏛️ '+DUNGEON_ROUTES[d.route].title.toUpperCase()+'</span><b>Комната '+d.room+' / 5</b></div>';
+    html+='<div class="ex-route-list">'+Object.entries(DUNGEON_ROUTES).map(([id,route])=>'<button type="button" data-expansion-action="dungeon-route:'+id+'" '+(d.route===id?'class="active" ':'')+((d.entryPaid||d.active||d.cleared.length)?'disabled ':'')+'><b>'+route.title+'</b><small>'+route.description+'</small></button>').join('')+'</div>';
+    html+='<div class="ex-room-map">'+rooms.map((r,i)=>'<div class="ex-room '+(d.cleared.includes(i+1)?'cleared':d.room===i+1&&d.active?'active':'')+'"><b>'+(d.cleared.includes(i+1)?'✓':i+1)+'</b><small>'+r.name+'</small></div>').join('')+'</div>';
     if(d.cleared.length===5)html+='<article class="ex-card"><b>🏆 Цитадель очищена!</b><small>Ты победил всех хранителей. Награды и найденные реликвии сохранены.</small>'+renderButton('dungeon-reset','Начать новую экспедицию',false)+'</article>';
     else if(!d.active&&d.cleared.includes(d.room))html+='<article class="ex-card"><b>Комната '+d.room+' очищена</b><small>Награда получена. Можно идти дальше.</small>'+renderButton('dungeon-next','Следующая комната',d.room>=5)+'</article>';
     else if(!d.active)html+='<article class="ex-card"><b>'+room.name+'</b><small>Противник: '+room.enemy+' · здоровье '+(d.enemyHp>0?Math.ceil(d.enemyHp):room.hp)+'.</small><small>'+(d.entryPaid?'Вход уже оплачен · прогресс комнаты сохранён.':'Вход: 5 кристаллов, 10 железа и 50 золота. Исследование автоматики I.')+'</small>'+renderButton('dungeon-enter',d.entryPaid?'Продолжить экспедицию':'Войти в цитадель',state.research<1||(!d.entryPaid&&!canAfford({Кристалл:5,Железо:10},50)))+'</article>';
@@ -221,7 +240,7 @@
   function ensureUI() {
     if(root)return;
     const style=document.createElement('style');
-    style.textContent='#expansion-launch{position:fixed;right:18px;top:218px;z-index:35;border:1px solid #78b8d4;border-radius:11px;padding:10px 13px;background:linear-gradient(135deg,#173f54,#17273f);color:#e8f8ff;font:800 12px Segoe UI;cursor:pointer;box-shadow:0 8px 25px #0007}#expansion-launch[hidden],#skyrealm-expansion[hidden]{display:none!important}#skyrealm-expansion{position:fixed;inset:0;z-index:99980;display:flex;align-items:center;justify-content:center;padding:18px;background:#020914b8;color:#edf5ff;font:13px Segoe UI,Arial}#skyrealm-expansion .ex-panel{width:min(760px,100%);max-height:min(88vh,900px);overflow:auto;border:1px solid #436783;border-radius:18px;background:linear-gradient(150deg,#132a40,#091522 75%);box-shadow:0 25px 90px #000c;padding:18px}#skyrealm-expansion .ex-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}#skyrealm-expansion .ex-header small{color:#8ed2ef;letter-spacing:1px;font-weight:800}#skyrealm-expansion h2{font-size:22px;margin:5px 0;color:#e6f5ff}#skyrealm-expansion p{margin:5px 0 12px;color:#9eb6cc}#skyrealm-expansion button{border:1px solid #4f7691;border-radius:8px;background:#1b4662;color:#effaff;padding:8px 11px;font-weight:800;cursor:pointer}#skyrealm-expansion button:disabled{opacity:.35;cursor:not-allowed}#skyrealm-expansion button.secondary{background:#17283b}#skyrealm-expansion .ex-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}#skyrealm-expansion .ex-tabs button{background:#10233a;font-size:11px}#skyrealm-expansion .ex-tabs button.active{border-color:#95dfff;background:#20516a}#skyrealm-expansion .ex-content{max-height:60vh;overflow:auto;padding-right:3px}#skyrealm-expansion .ex-card{border:1px solid #2f4d68;border-radius:11px;padding:12px;margin:9px 0;background:#0d1c2c}#skyrealm-expansion .ex-card b{display:block;color:#edf5ff;margin-bottom:5px}#skyrealm-expansion .ex-card small{display:block;color:#a8bfd3;line-height:1.55;margin:4px 0}#skyrealm-expansion .ex-card-head{display:flex;justify-content:space-between;gap:8px;align-items:center}#skyrealm-expansion .ex-card-head span{font-size:11px;color:#95b2ca}#skyrealm-expansion .ex-card button{margin-top:8px}#skyrealm-expansion .ex-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}#skyrealm-expansion .ex-grid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}#skyrealm-expansion .ex-grid-stats>div{padding:11px;border:1px solid #31506a;border-radius:10px;background:#0c1c2d}#skyrealm-expansion .ex-grid-stats b{display:block;font-size:19px;color:#a9e8ff}#skyrealm-expansion .ex-grid-stats small{display:block;color:#9ab1c8;margin-top:4px}#skyrealm-expansion .ex-meter{height:8px;background:#263c51;border-radius:8px;overflow:hidden;margin:9px 0}#skyrealm-expansion .ex-meter i{display:block;height:100%;background:linear-gradient(90deg,#47a9ce,#9de5b1)}#skyrealm-expansion .ex-muted{display:block;color:#9ab0c7;line-height:1.55;margin:10px 0}#skyrealm-expansion .ex-lock{color:#f0bd74!important}#skyrealm-expansion .ex-room-map{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:12px 0}#skyrealm-expansion .ex-room{padding:8px 5px;text-align:center;border:1px solid #39536a;border-radius:8px;background:#0b1929}#skyrealm-expansion .ex-room b{display:block;color:#9ddfff}#skyrealm-expansion .ex-room small{display:block;font-size:9px;color:#a5b9cd;line-height:1.25}#skyrealm-expansion .ex-room.cleared{border-color:#62b98b;background:#123425}#skyrealm-expansion .ex-room.active{border-color:#d0ad66;background:#44371c}#skyrealm-expansion .ex-dungeon-banner{display:flex;justify-content:space-between;padding:12px;border:1px solid #4b4a6e;border-radius:10px;background:linear-gradient(90deg,#211e3d,#11283d);color:#d6c5ff;font-weight:900}#skyrealm-expansion footer{margin-top:14px;padding-top:10px;border-top:1px solid #2b455c;color:#7995ae;font-size:10px}@media(max-width:620px){#expansion-launch{top:205px;right:8px;padding:8px 10px}#skyrealm-expansion{padding:8px}#skyrealm-expansion .ex-panel{padding:12px;max-height:94vh}#skyrealm-expansion .ex-content{max-height:65vh}#skyrealm-expansion .ex-room-map{grid-template-columns:repeat(5,1fr)}#skyrealm-expansion .ex-room small{font-size:8px}}';
+    style.textContent='#expansion-launch{position:fixed;right:18px;top:218px;z-index:35;border:1px solid #78b8d4;border-radius:11px;padding:10px 13px;background:linear-gradient(135deg,#173f54,#17273f);color:#e8f8ff;font:800 12px Segoe UI;cursor:pointer;box-shadow:0 8px 25px #0007}#expansion-launch[hidden],#skyrealm-expansion[hidden]{display:none!important}#skyrealm-expansion{position:fixed;inset:0;z-index:99980;display:flex;align-items:center;justify-content:center;padding:18px;background:#020914b8;color:#edf5ff;font:13px Segoe UI,Arial}#skyrealm-expansion .ex-panel{width:min(760px,100%);max-height:min(88vh,900px);overflow:auto;border:1px solid #436783;border-radius:18px;background:linear-gradient(150deg,#132a40,#091522 75%);box-shadow:0 25px 90px #000c;padding:18px}#skyrealm-expansion .ex-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}#skyrealm-expansion .ex-header small{color:#8ed2ef;letter-spacing:1px;font-weight:800}#skyrealm-expansion h2{font-size:22px;margin:5px 0;color:#e6f5ff}#skyrealm-expansion p{margin:5px 0 12px;color:#9eb6cc}#skyrealm-expansion button{border:1px solid #4f7691;border-radius:8px;background:#1b4662;color:#effaff;padding:8px 11px;font-weight:800;cursor:pointer}#skyrealm-expansion button:disabled{opacity:.35;cursor:not-allowed}#skyrealm-expansion button.secondary{background:#17283b}#skyrealm-expansion .ex-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}#skyrealm-expansion .ex-tabs button{background:#10233a;font-size:11px}#skyrealm-expansion .ex-tabs button.active{border-color:#95dfff;background:#20516a}#skyrealm-expansion .ex-content{max-height:60vh;overflow:auto;padding-right:3px}#skyrealm-expansion .ex-card{border:1px solid #2f4d68;border-radius:11px;padding:12px;margin:9px 0;background:#0d1c2c}#skyrealm-expansion .ex-card b{display:block;color:#edf5ff;margin-bottom:5px}#skyrealm-expansion .ex-card small{display:block;color:#a8bfd3;line-height:1.55;margin:4px 0}#skyrealm-expansion .ex-card-head{display:flex;justify-content:space-between;gap:8px;align-items:center}#skyrealm-expansion .ex-card-head span{font-size:11px;color:#95b2ca}#skyrealm-expansion .ex-card button{margin-top:8px}#skyrealm-expansion .ex-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}#skyrealm-expansion .ex-grid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}#skyrealm-expansion .ex-grid-stats>div{padding:11px;border:1px solid #31506a;border-radius:10px;background:#0c1c2d}#skyrealm-expansion .ex-grid-stats b{display:block;font-size:19px;color:#a9e8ff}#skyrealm-expansion .ex-grid-stats small{display:block;color:#9ab1c8;margin-top:4px}#skyrealm-expansion .ex-meter{height:8px;background:#263c51;border-radius:8px;overflow:hidden;margin:9px 0}#skyrealm-expansion .ex-meter i{display:block;height:100%;background:linear-gradient(90deg,#47a9ce,#9de5b1)}#skyrealm-expansion .ex-muted{display:block;color:#9ab0c7;line-height:1.55;margin:10px 0}#skyrealm-expansion .ex-lock{color:#f0bd74!important} #skyrealm-expansion .ex-route-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px;margin:10px 0}#skyrealm-expansion .ex-route-list button{text-align:left;background:#0e2032}#skyrealm-expansion .ex-route-list button.active{border-color:#a7e2ff;background:#1d4157}#skyrealm-expansion .ex-route-list button b{display:block;margin-bottom:4px}#skyrealm-expansion .ex-route-list button small{display:block;color:#a9bfd0;font-size:10px;line-height:1.4}#skyrealm-expansion .ex-room-map{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:12px 0}#skyrealm-expansion .ex-room{padding:8px 5px;text-align:center;border:1px solid #39536a;border-radius:8px;background:#0b1929}#skyrealm-expansion .ex-room b{display:block;color:#9ddfff}#skyrealm-expansion .ex-room small{display:block;font-size:9px;color:#a5b9cd;line-height:1.25}#skyrealm-expansion .ex-room.cleared{border-color:#62b98b;background:#123425}#skyrealm-expansion .ex-room.active{border-color:#d0ad66;background:#44371c}#skyrealm-expansion .ex-dungeon-banner{display:flex;justify-content:space-between;padding:12px;border:1px solid #4b4a6e;border-radius:10px;background:linear-gradient(90deg,#211e3d,#11283d);color:#d6c5ff;font-weight:900}#skyrealm-expansion footer{margin-top:14px;padding-top:10px;border-top:1px solid #2b455c;color:#7995ae;font-size:10px}@media(max-width:620px){#expansion-launch{top:205px;right:8px;padding:8px 10px}#skyrealm-expansion{padding:8px}#skyrealm-expansion .ex-panel{padding:12px;max-height:94vh}#skyrealm-expansion .ex-content{max-height:65vh}#skyrealm-expansion .ex-room-map{grid-template-columns:repeat(5,1fr)}#skyrealm-expansion .ex-room small{font-size:8px}}';
     document.head.appendChild(style);
     launchButton=document.createElement('button');launchButton.id='expansion-launch';launchButton.type='button';launchButton.textContent='⚡ Технологии';launchButton.hidden=true;launchButton.addEventListener('click',openPanel);document.body.appendChild(launchButton);
     root=document.createElement('section');root.id='skyrealm-expansion';root.hidden=true;document.body.appendChild(root);
@@ -234,10 +253,11 @@
       if(action==='research'){research();return;}
       if(action==='event-attack'){attackEvent();return;}
       if(action==='dungeon-enter'){startDungeon();return;}
+      if(action.startsWith('dungeon-route:')){selectDungeonRoute(action.slice(14));return;}
       if(action==='dungeon-attack'){attackDungeon();return;}
       if(action==='dungeon-leave'){leaveDungeon();return;}
       if(action==='dungeon-next'){nextDungeonRoom();return;}
-      if(action==='dungeon-reset'){state.dungeon={room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0};save();render();return;}
+      if(action==='dungeon-reset'){state.dungeon={route:state.dungeon.route,room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0};save();render();return;}
       if(action.startsWith('equip:')){equipRelic(action.slice(6));return;}
     });
   }
@@ -418,6 +438,13 @@
     if(!state.relics.some(v=>v.id===id))return false;
     state.equippedRelic=id;save();notify('Реликвия экипирована: '+equippedRelic().name+'.');render();return true;
   }
+  function selectDungeonRoute(route) {
+    const d=state.dungeon;
+    if(!Object.prototype.hasOwnProperty.call(DUNGEON_ROUTES,route))return false;
+    if(d.active||d.entryPaid||d.cleared.length){notify('Маршрут уже выбран для этой экспедиции. Заверши или сбрось её, чтобы сменить путь.');return false;}
+    d.route=route;d.room=1;d.enemyHp=0;d.enemyMaxHp=0;d.attacks=0;
+    save();notify('Выбран маршрут: '+DUNGEON_ROUTES[route].title+'.');render();return true;
+  }
   function startDungeon() {
     const d=state.dungeon;
     if(d.cleared.length===5){notify('Цитадель уже очищена. Начни новую экспедицию.');return false;}
@@ -426,7 +453,7 @@
       if(!spend({Кристалл:5,Железо:10},50)){notify('Для входа нужно 5 кристаллов, 10 железа и 50 золота.');return false;}
       d.entryPaid=true;
     }
-    const room=d.room||1,def=DUNGEON_ROOMS[room-1],max=Math.round(def.hp*difficultyScale());
+    const room=d.room||1,def=dungeonRooms()[room-1],max=Math.round(def.hp*difficultyScale());
     d.active=true;
     if(!(d.enemyHp>0&&d.enemyMaxHp>0)){d.enemyMaxHp=max;d.enemyHp=max;d.attacks=0;}
     save();notify('Ты вошёл в цитадель: '+def.name+'. Прогресс комнаты сохранён.');render();return true;
@@ -438,7 +465,7 @@
     d.enemyHp=Math.max(0,d.enemyHp-Math.max(1,Number(stats.weaponDamage)||30)*damageMultiplier());
     if(d.enemyHp<=0){
       d.active=false;d.cleared.push(d.room);
-      bridge()?.addItem?.(DUNGEON_ROOMS[d.room-1].loot,1,'Награда за комнату '+d.room+' затерянной цитадели');
+      bridge()?.addItem?.(dungeonRooms()[d.room-1].loot,1,'Награда за комнату '+d.room+' маршрута '+DUNGEON_ROUTES[d.route].title);
       if(d.room===5){
         state.stats.dungeonsCleared++;
         bridge()?.addGold?.(20000);
@@ -447,10 +474,10 @@
         notify('ЦИТАДЕЛЬ ПРОЙДЕНА! Архонт побеждён, легендарная экспедиционная награда получена.');
       }else{
         if(Math.random()<.25)dropRelic(false);
-        notify('Комната очищена: '+DUNGEON_ROOMS[d.room-1].name+'. Награды добавлены.');
+        notify('Комната очищена: '+dungeonRooms()[d.room-1].name+'. Награды добавлены.');
       }
     }else{
-      const def=DUNGEON_ROOMS[d.room-1];
+      const def=dungeonRooms()[d.room-1];
       let damage=def.damage*difficultyScale()*(1-defenseBonus());
       if([2,4].includes(d.room)&&d.attacks%3===0)damage+=12;
       bridge()?.damagePlayer?.(damage);
@@ -464,7 +491,7 @@
   function nextDungeonRoom() {
     const d=state.dungeon;
     if(d.active||!d.cleared.includes(d.room)||d.room>=5)return false;
-    d.room++;const def=DUNGEON_ROOMS[d.room-1],max=Math.round(def.hp*difficultyScale());
+    d.room++;const def=dungeonRooms()[d.room-1],max=Math.round(def.hp*difficultyScale());
     d.active=true;d.enemyMaxHp=max;d.enemyHp=max;d.attacks=0;
     save();notify('Следующая комната: '+def.name+'.');render();return true;
   }
@@ -548,6 +575,7 @@
     startEvent,
     attackEvent,
     startDungeon,
+    selectDungeonRoute,
     attackDungeon,
     nextDungeonRoom,
     leaveDungeon,
