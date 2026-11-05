@@ -512,9 +512,8 @@
     if(b?.isCoopWorld?.()||!Number.isFinite(minutes)||!b?.isNightTime?.()||state.event)return;
     const day=Math.floor(minutes/1440),minute=minutes%1440,nightKey=minute<360?day-1:day;
     if(nightKey<2||state.lastSiegeNight>=nightKey||state.lastSiegeNight>=0&&nightKey-state.lastSiegeNight<3)return;
-    if((nightKey+1)%7===0&&state.research>=1)startEvent('ancient',nightKey);
-    else startEvent('invasion',nightKey);
-    state.lastSiegeNight=nightKey;save();
+    const started=(nightKey+1)%7===0&&state.research>=1?startEvent('ancient',nightKey):startEvent('invasion',nightKey);
+    if(started){state.lastSiegeNight=nightKey;save();}
   }
   function drawWorldEvent(ctx,camX,camY,time,screenWidth,screenHeight) {
     const e=state.event;if(!e||!ctx||!Number.isFinite(e.x)||!Number.isFinite(e.y))return;
