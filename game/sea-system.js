@@ -10,14 +10,25 @@
     vaultUnlocked: false, vaultRoom: 0, vaultPath: 0, vaultBosses: { tide:false, abyss:false },
     relics: [], discovered: [], message: '', messageLeft: 0, lastSave: 0,
     chartFound: false, bossHp: 0, bossAttack: 0, stormDamageAt: 0,
-    diveCooldown: 0, mapMarks: []
+    diveCooldown: 0, mapMarks: [], cave:{room:1,cleared:[],finished:false,enemyHp:0,enemyMaxHp:0}
   };
   const DEFAULT_STATE=JSON.parse(JSON.stringify(state));
   const W = 360, H = 260, TILE = 32;
+  const CAVE_ENTRANCE={x:309,y:214};
+  const CAVE_ROOMS=[
+    {name:'Коралловый вход',enemy:'Краб-страж',hp:240,damage:7,loot:[['Жемчуг',3],['Кристалл',2]]},
+    {name:'Зал приливов',enemy:'Глубинный охотник',hp:430,damage:12,loot:[['Сапфир',3],['Мифрил',2]]},
+    {name:'Грот морского титана',enemy:'Морской титан',hp:820,damage:18,loot:[['Око бездны',1],['Реликвия древних глубин',1]]}
+  ];
+  let caveOpen=false;
   let root, canvas, ctx, raf = 0, last = 0, keys = new Set(), active = false;
   const rand = (a,b) => a + Math.random()*(b-a);
   const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
   const bridge = () => window.SkyRealmSeaBridge;
+  function caveNear(){return Math.hypot(state.x-CAVE_ENTRANCE.x,state.y-CAVE_ENTRANCE.y)<=7;}
+  function caveRoom(){return CAVE_ROOMS[clamp(Math.floor(Number(state.cave?.room)||1),1,3)-1];}
+  function ensureCaveState(raw=state.cave){const c=raw&&typeof raw==='object'?raw:{};return {room:clamp(Math.floor(Number(c.room)||1),1,3),cleared:Array.isArray(c.cleared)?Array.from(new Set(c.cleared.filter(n=>Number.isInteger(n)&&n>=1&&n<=3))):[],finished:c.finished===true,enemyHp:Math.max(0,Number(c.enemyHp)||0),enemyMaxHp:Math.max(0,Number(c.enemyMaxHp)||0)};}
+
   function msg(s){ state.message=s; state.messageLeft=4.5; const el=$('sea-message'); if(el)el.textContent=s; else bridge()?.toast?.(s); }
   function save(){
     try { const snapshot={...state, sharks:state.sharks.slice(0,40), monsters:state.monsters.slice(0,40), discovered:state.discovered.slice(-5000)};localStorage.setItem(KEY(), JSON.stringify(snapshot));bridge()?.setSeaData?.(snapshot); }
@@ -35,6 +46,7 @@
       state.sharks=Array.isArray(d.sharks)?d.sharks:[]; state.monsters=Array.isArray(d.monsters)?d.monsters:[];
       state.treasures=Array.isArray(d.treasures)?d.treasures:[]; state.opened=Array.isArray(d.opened)?d.opened:[];
       state.relics=Array.isArray(d.relics)?d.relics:[];
+      state.cave=ensureCaveState(d.cave);
     } catch(e){ console.warn('Sea save load failed',e); }
   }
   function ensureWorld(){
@@ -46,6 +58,7 @@
     if(!state.sharks.length)state.sharks=Array.from({length:2},(_,i)=>({id:'shark-'+i,x:rand(42,W-18),y:rand(12,H-12),hp:65,angle:rand(0,6.28),speed:rand(10,16),cool:rand(0,2)}));else state.sharks=state.sharks.filter(Boolean).slice(0,3);
     if(!state.monsters.length)state.monsters=Array.from({length:10},(_,i)=>({id:'sea-monster-'+i,x:rand(24,W-10),y:rand(8,H-8),hp:85,angle:rand(0,6.28),speed:rand(8,15),cool:rand(0,2)}));
     if(!Array.isArray(state.discovered))state.discovered=[];
+    state.cave=ensureCaveState(state.cave);
   }
   function build(){
     if(root)return;
@@ -64,18 +77,21 @@
       #skyrealm-sea .sea-control-pad{position:absolute;right:14px;bottom:14px;z-index:5;display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px;border:1px solid #8bd3ef88;border-radius:14px;background:#061321c9;backdrop-filter:blur(5px);touch-action:none;user-select:none}#skyrealm-sea .sea-control-row{display:flex;gap:5px}#skyrealm-sea .sea-control-pad button{width:42px;height:40px;padding:0;font-size:18px;border-color:#84cce8;background:#174a66;touch-action:none;user-select:none}#skyrealm-sea .sea-control-pad button:active{background:#317e9d;transform:scale(.96)}#sea-vault{position:absolute;inset:8% 10%;display:none;background:#10182bf5;border:1px solid #aa9cce;border-radius:14px;padding:18px;overflow:auto}
       #sea-vault.open{display:block}#sea-vault h2{margin:0 0 8px;color:#e5d6ff}#sea-vault .vault-paths{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
       #sea-vault .vault-paths button{flex:1;min-width:140px}#sea-vault .vault-log{padding:12px;background:#080f1e;border-radius:8px;min-height:90px;line-height:1.7}
+      #sea-cave{position:absolute;inset:8% 12%;display:none;background:linear-gradient(145deg,#071b35f8,#0b2940f8);border:1px solid #73d9ef;border-radius:14px;padding:18px;overflow:auto;box-shadow:0 20px 70px #000b}
+      #sea-cave.open{display:block}#sea-cave h2{margin:0 0 8px;color:#a9f0ff}#sea-cave-content{padding:13px;background:#061626;border:1px solid #2d6880;border-radius:9px;line-height:1.7;margin:12px 0}#sea-cave .cave-actions{display:flex;gap:8px;flex-wrap:wrap}#sea-cave .cave-actions button{flex:1;min-width:130px}#sea-cave .cave-hp{height:9px;background:#233d55;border-radius:9px;overflow:hidden;margin:8px 0}#sea-cave .cave-hp i{display:block;height:100%;background:linear-gradient(90deg,#36b8ce,#a4f2e7)}
       @media(max-width:700px){#skyrealm-sea .sea-help{font-size:10px;max-width:90%}#skyrealm-sea .sea-top{gap:6px;padding:7px}#skyrealm-sea .sea-stat{font-size:10px}}
       </style>
-      <div class="sea-top"><span class="sea-title">🌊 SKYREALM · МОРЕ</span><span class="sea-stat" id="sea-weather">Погода: штиль</span><span class="sea-stat" id="sea-boat-hp">Корабль: 100%</span><span class="sea-stat" id="sea-air">Воздух: —</span><span class="sea-stat" id="sea-coords">Координаты: 13 / 82</span><button id="sea-map-btn">🗺 Карта</button><button id="sea-ship-upgrade">⚓ Улучшить корабль</button><button id="sea-dive-btn">↓ Нырнуть · E</button><button id="sea-vault-btn">🏛 Сокровищница</button><button id="sea-exit">Вернуться на берег</button></div>
+      <div class="sea-top"><span class="sea-title">🌊 SKYREALM · МОРЕ</span><span class="sea-stat" id="sea-weather">Погода: штиль</span><span class="sea-stat" id="sea-boat-hp">Корабль: 100%</span><span class="sea-stat" id="sea-air">Воздух: —</span><span class="sea-stat" id="sea-coords">Координаты: 13 / 82</span><button id="sea-map-btn">🗺 Карта</button><button id="sea-ship-upgrade">⚓ Улучшить корабль</button><button id="sea-dive-btn">↓ Нырнуть · E</button><button id="sea-vault-btn">🏛 Сокровищница</button><button id="sea-cave-btn" disabled>🪨 Подводный грот</button><button id="sea-exit">Вернуться на берег</button></div>
       <div class="sea-stage"><canvas id="sea-canvas"></canvas><div id="sea-message">Море ждёт тебя. Найди карту сокровищ!</div>
       <div class="sea-help">WASD / стрелки — управлять кораблём · E — взаимодействовать / нырять · M — карта · Space — ускорение<br>В шторм волны повреждают корабль. Акулы преследуют лодку. Для долгого погружения нужен водяной шлем.</div>
       <div class="sea-control-pad" aria-label="Управление кораблём"><button type="button" data-sea-direction="w" aria-label="Вперёд">▲</button><div class="sea-control-row"><button type="button" data-sea-direction="a" aria-label="Влево">◀</button><button type="button" data-sea-direction="s" aria-label="Назад">▼</button><button type="button" data-sea-direction="d" aria-label="Вправо">▶</button></div></div>
       <div id="sea-map"><h2>🗺 Морская карта · 360 × 260</h2><p>Туман скрывает неизведанные воды. Найди обломки кораблей и карты сокровищ.</p><canvas id="sea-map-canvas"></canvas><button id="sea-map-close">Закрыть карту</button></div>
       <div id="sea-vault"><h2>🏛 Великая сокровищница глубин</h2><p>Подводный лабиринт с несколькими путями. Внутри находятся ровно два бога моря.</p><div class="vault-paths"><button data-path="0">Путь затонувших стражей</button><button data-path="1">Коралловые катакомбы</button><button data-path="2">Бездна древних</button></div><div class="vault-log" id="vault-log">Перед входом подготовь водяной шлем. В каждом пути есть монстры и ловушки.</div><div class="vault-paths"><button id="vault-enter">Войти в выбранный путь</button><button id="vault-fight" disabled>Сразиться с боссом</button><button id="vault-exit">Выйти из сокровищницы</button></div></div>
+      <div id="sea-cave"><h2>🪨 Подводный грот · экспедиция</h2><p>Три комнаты, три защитника и сокровища древнего морского титана. Воздух продолжает расходоваться во время боя.</p><div id="sea-cave-content"></div><div class="cave-actions"><button id="sea-cave-attack">⚔ Атаковать</button><button id="sea-cave-close">Выйти из грота</button></div></div>
       </div>`;
     document.body.appendChild(root);const pauseLock=document.createElement('div');pauseLock.className='shade';pauseLock.id='sea-pause-lock';pauseLock.hidden=true;document.body.appendChild(pauseLock);canvas=$('sea-canvas');ctx=canvas.getContext('2d');
     $('sea-exit').onclick=leave; $('sea-map-btn').onclick=toggleMap; $('sea-map-close').onclick=toggleMap; $('sea-ship-upgrade').onclick=upgradeShip;
-    $('sea-dive-btn').onclick=toggleDive; $('sea-vault-btn').onclick=()=>{ $('sea-vault').classList.add('open'); $('sea-map').classList.remove('open'); };
+    $('sea-dive-btn').onclick=toggleDive; $('sea-vault-btn').onclick=()=>{ $('sea-vault').classList.add('open'); $('sea-map').classList.remove('open'); closeCave(); }; $('sea-cave-btn').onclick=enterCave; $('sea-cave-attack').onclick=attackCave; $('sea-cave-close').onclick=closeCave;
     $('vault-exit').onclick=()=> $('sea-vault').classList.remove('open');
     $('vault-enter').onclick=enterVault; $('vault-fight').onclick=fightVaultBoss;
     root.querySelectorAll('[data-path]').forEach(b=>b.onclick=()=>{state.vaultPath=Number(b.dataset.path);$('vault-log').textContent=['Путь затонувших стражей: тяжёлые рыцари охраняют проход.','Коралловые катакомбы: ядовитые медузы и ловушки.','Бездна древних: сильнейшие монстры и два алтаря богов.'][state.vaultPath];});
@@ -102,12 +118,12 @@
     build(); load(); ensureWorld(); active=true; state.underwater=false; state.helmetLevel=b.getWaterHelmetLevel?.()||0;
     root.hidden=false;const pauseLock=$('sea-pause-lock');if(pauseLock)pauseLock.hidden=false;b.pause?.(); resize(); last=performance.now(); cancelAnimationFrame(raf); raf=requestAnimationFrame(frame); msg('Ты вышел за горизонт. Исследуй море и ищи затонувшие сокровища.'); save();
   }
-  function leave(){if(!active)return;active=false;keys.clear();cancelAnimationFrame(raf);save();root.hidden=true;const pauseLock=$('sea-pause-lock');if(pauseLock)pauseLock.hidden=true;bridge()?.resume?.();}
+  function leave(){if(!active)return;active=false;keys.clear();closeCave();cancelAnimationFrame(raf);save();root.hidden=true;const pauseLock=$('sea-pause-lock');if(pauseLock)pauseLock.hidden=true;bridge()?.resume?.();}
   function toggleMap(){if(!active)return;state.mapOpen=!state.mapOpen;$('sea-map').classList.toggle('open',state.mapOpen);if(state.mapOpen)drawMap();}
   function drainAir(seconds){if(state.air===Infinity)return;state.air=Math.max(0,state.air-Math.max(0,seconds));state.airEndsAt=Date.now()+state.air*1000;}
   function toggleDive(){
     if(!active)return;
-    if(state.underwater){state.underwater=false;msg('Ты всплыл на поверхность.');save();return;}
+    if(state.underwater){state.underwater=false;closeCave();msg('Ты всплыл на поверхность.');save();return;}
     const b=bridge();state.helmetLevel=b?.getWaterHelmetLevel?.()||0;
     if(!state.helmetLevel){msg('Без водяного шлема нельзя погружаться. Создай его на верстаке.');return;}
     state.underwater=true;state.air=state.helmetLevel>=4?Infinity:(state.helmetLevel===3?480:(state.helmetLevel===2?240:60));state.airEndsAt=state.air===Infinity?Infinity:Date.now()+state.air*1000;
@@ -149,8 +165,41 @@
     button.title=state.shipLevel>=3?'Корабль полностью улучшен.':'Улучшение доступно у берега · нажми, чтобы посмотреть стоимость.';
     button.disabled=state.shipLevel>=3;
   }
+  function renderCave(){
+    const content=$('sea-cave-content');if(!content)return;
+    const cave=state.cave=ensureCaveState(state.cave);
+    if(cave.finished){content.innerHTML='<b>🏆 Грот очищен!</b><p>Морской титан побеждён. Все три комнаты пройдены, реликвия и Око бездны уже в инвентаре.</p><p>Прогресс сохранён в этом мире. Можешь возвращаться сюда в любое время.</p>';return;}
+    const def=caveRoom();
+    if(cave.enemyMaxHp<=0){cave.enemyMaxHp=def.hp;cave.enemyHp=def.hp;}
+    const hp=Math.max(0,Math.min(cave.enemyMaxHp,cave.enemyHp));
+    content.innerHTML='<b>Комната '+cave.room+' / 3 · '+def.name+'</b><p>Противник: <b>'+def.enemy+'</b></p><div class="cave-hp"><i style="width:'+Math.max(0,hp/cave.enemyMaxHp*100)+'%"></i></div><p>Здоровье противника: '+Math.ceil(hp)+' / '+cave.enemyMaxHp+' HP</p><p>Награда за победу: '+def.loot.map(([name,count])=>name+' ×'+count).join(', ')+'</p><p>Твои удары наносят '+Math.max(1,Math.floor(Number(bridge()?.getWeaponDamage?.())||20))+' урона. Каждый ответный удар врага снимает '+def.damage+' HP.</p>';
+  }
+  function enterCave(){
+    if(!active)return false;
+    if(!state.underwater){msg('Для входа нужен водяной шлем и погружение.');return false;}
+    if(!caveNear()){msg('Подводный грот находится у координат 309 / 214. Найди светящуюся арку на дне.');return false;}
+    state.cave=ensureCaveState(state.cave);caveOpen=true;
+    $('sea-map').classList.remove('open');$('sea-vault').classList.remove('open');$('sea-cave').classList.add('open');
+    renderCave();save();return true;
+  }
+  function closeCave(){caveOpen=false;const panel=$('sea-cave');if(panel)panel.classList.remove('open');}
+  function attackCave(){
+    if(!caveOpen||!state.underwater||!active){msg('Подводная экспедиция не активна.');return false;}
+    const cave=state.cave=ensureCaveState(state.cave);if(cave.finished)return false;
+    const def=caveRoom();if(cave.enemyMaxHp<=0){cave.enemyMaxHp=def.hp;cave.enemyHp=def.hp;}
+    const damage=Math.max(1,Math.floor(Number(bridge()?.getWeaponDamage?.())||20));
+    cave.enemyHp=Math.max(0,cave.enemyHp-damage);
+    if(cave.enemyHp<=0){
+      cave.cleared=Array.from(new Set(cave.cleared.concat([cave.room])));
+      for(const [name,count] of def.loot)bridge()?.addItem?.(name,count,'Награда за комнату подводного грота');
+      if(cave.room===3){cave.finished=true;bridge()?.addGold?.(12000);msg('Морской титан повержен! Ты забрал древнюю реликвию и Око бездны.');}
+      else{msg('Побеждён '+def.enemy+'! Комната '+cave.room+' очищена.');cave.room++;cave.enemyHp=0;cave.enemyMaxHp=0;}
+      bridge()?.save?.();save();renderCave();return true;
+    }
+    bridge()?.damagePlayer?.(def.damage);drainAir(4);bridge()?.save?.();save();renderCave();return true;
+  }
   function interact(){
-    if(state.underwater){const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет.');return;}
+    if(state.underwater){if(caveNear()){enterCave();return;}const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет.');return;}
     const t=nearestTreasure();if(t){openTreasure(t);return;}
     const b=bridge();if(state.x<=12&&state.boatHp<boatMaxHp()){if((b?.getItemCount?.('Древесина')||0)<8||(b?.getItemCount?.('Железо')||0)<2){msg('Для ремонта у берега нужно 8 древесины и 2 железа.');return;}b.changeItem('Древесина',-8);b.changeItem('Железо',-2);state.boatHp=Math.min(boatMaxHp(),state.boatHp+45);msg('Корабль отремонтирован у берега. Прочность '+state.boatHp+'%.');save();b.save?.();return;} if(state.boatHp<=0){msg('Корабль разрушен. Вернись на берег и отремонтируй его.');return;}
     msg('Волны несут корабль вперёд. Ищи обломки, метки на карте и вход в сокровищницу.'); 
@@ -231,11 +280,12 @@
     state.x=clamp(state.x+dx*speed*dt,2,W-2);state.y=clamp(state.y+dy*speed*dt,2,H-2);
     if(dx||dy){const cell=Math.floor(state.x)+','+Math.floor(state.y);if(!state.discovered.includes(cell)&&state.discovered.length<5000)state.discovered.push(cell);}
     state.diveCooldown=Math.max(0,state.diveCooldown-dt);
-    if(state.underwater&&state.air!==Infinity){state.air=Math.max(0,((Number(state.airEndsAt)||Date.now())-Date.now())/1000);if(state.air<=0){state.underwater=false;msg('Воздух закончился! Тебя вынесло на поверхность.');}}
+    if(state.underwater&&state.air!==Infinity){state.air=Math.max(0,((Number(state.airEndsAt)||Date.now())-Date.now())/1000);if(state.air<=0){state.underwater=false;closeCave();msg('Воздух закончился! Тебя вынесло на поверхность.');}}
     if(state.weather==='storm'&&!state.underwater&&Math.random()<dt*.06){state.boatHp=Math.max(0,state.boatHp-Math.max(.5,1-state.shipLevel*.18));if(state.boatHp<=0)msg('Шторм разбил корабль! Вернись на берег.');}
     for(const s of state.sharks){const vx=state.x-s.x,vy=state.y-s.y,d=Math.hypot(vx,vy)||1;if(d<24){s.x+=vx/d*s.speed*dt;s.y+=vy/d*s.speed*dt;s.cool-=dt;if(s.cool<=0){s.cool=2.2;state.boatHp=Math.max(0,state.boatHp-Math.max(1,5-state.shipLevel));msg('Акула укусила корабль! Прочность '+state.boatHp+'%.');}}else{s.angle+=rand(-.6,.6)*dt;s.x+=Math.cos(s.angle)*s.speed*.25*dt;s.y+=Math.sin(s.angle)*s.speed*.25*dt;}s.x=clamp(s.x,2,W-2);s.y=clamp(s.y,2,H-2);}
     if(state.underwater){for(const m of state.monsters){const vx=state.x-m.x,vy=state.y-m.y,d=Math.hypot(vx,vy)||1;if(d<20){m.x+=vx/d*m.speed*dt;m.y+=vy/d*m.speed*dt;if(Math.random()<dt*.08){drainAir(3);msg('Подводный страж атакует!');}}}}
     if(!state.underwater){state.sharkSpawnTimer=(state.sharkSpawnTimer||rand(85,145))-dt;if(state.sharkSpawnTimer<=0){if(state.sharks.length<3&&Math.random()<.32)spawnShark();state.sharkSpawnTimer=rand(85,165);}}
+    $('sea-cave-btn').disabled=!(state.underwater&&caveNear());$('sea-cave-btn').title=state.underwater?(caveNear()?'Войти в подводный грот':'Найди светящийся вход в грот у координат 309 / 214'):'Нужно погрузиться с водяным шлемом и доплыть до координат 309 / 214.';
     $('sea-weather').textContent='Погода: '+({calm:'штиль',rain:'дождь',storm:'ШТОРМ'}[state.weather]);
     $('sea-boat-hp').textContent='Корабль: '+Math.ceil(state.boatHp)+'/'+boatMaxHp();updateShipButton();$('sea-air').textContent=state.underwater?'Воздух: '+(state.air===Infinity?'∞':Math.ceil(state.air)+' с'):'Воздух: —';
     $('sea-coords').textContent='Координаты: '+Math.floor(state.x)+' / '+Math.floor(state.y);
@@ -272,7 +322,9 @@
     // Underwater guardians and schools of fish.
     for(const m of state.monsters){const x=m.x*TILE,y=m.y*TILE,pulse=Math.sin(state.time*4+x)*2;ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(8,19,48,.3)';ctx.beginPath();ctx.ellipse(0,9,17,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9368b4';ctx.beginPath();ctx.ellipse(0,0,12,10+pulse,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d5b5f3';ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-18,-8);ctx.lineTo(-16,8);ctx.closePath();ctx.fill();ctx.fillStyle='#f6eaff';ctx.fillRect(-5,-3,3,3);ctx.fillRect(3,-3,3,3);ctx.restore();}
     for(let shoal=0;shoal<24;shoal++){const bx=(25+shoal*23%338)*TILE,by=(12+(shoal*31)%242)*TILE;if(bx/TILE<left-5||bx/TILE>right+5||by/TILE<top-5||by/TILE>bottom+5)continue;for(let f=0;f<5;f++){const fx=bx+Math.sin(state.time*1.5+f+shoal)*18+f*8,fy=by+Math.cos(state.time*1.7+f)*9;ctx.fillStyle='#d5eef0';ctx.beginPath();ctx.ellipse(fx,fy,5,2.5,.15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7cc8cf';ctx.beginPath();ctx.moveTo(fx-4,fy);ctx.lineTo(fx-9,fy-4);ctx.lineTo(fx-9,fy+4);ctx.fill();}}
-    if(state.underwater){const glow=ctx.createRadialGradient(state.x*TILE,state.y*TILE,10,state.x*TILE,state.y*TILE,260);glow.addColorStop(0,'rgba(111,222,255,.3)');glow.addColorStop(1,'rgba(0,15,50,.72)');ctx.fillStyle=glow;ctx.fillRect(left*TILE,top*TILE,(right-left)*TILE,(bottom-top)*TILE);}
+    if(state.underwater){    // A glowing stone arch marks the only entrance to the three-room underwater grotto.
+    {const x=CAVE_ENTRANCE.x*TILE,y=CAVE_ENTRANCE.y*TILE,pulse=.5+.5*Math.sin(state.time*2.4);ctx.save();ctx.translate(x,y);ctx.fillStyle='#344c60';ctx.beginPath();ctx.moveTo(-35,24);ctx.lineTo(-30,-18);ctx.lineTo(-15,-37);ctx.lineTo(0,-43);ctx.lineTo(18,-34);ctx.lineTo(33,-12);ctx.lineTo(38,24);ctx.closePath();ctx.fill();ctx.fillStyle='#0a2845';ctx.beginPath();ctx.arc(0,5,22,Math.PI,0);ctx.lineTo(22,24);ctx.lineTo(-22,24);ctx.closePath();ctx.fill();ctx.strokeStyle='rgba(111,232,255,'+(.45+pulse*.5)+')';ctx.lineWidth=4;ctx.shadowColor='#62e7ff';ctx.shadowBlur=10+pulse*12;ctx.beginPath();ctx.arc(0,5,24,Math.PI,0);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#dcfbff';ctx.font='bold 12px Segoe UI';ctx.textAlign='center';ctx.fillText('ПОДВОДНЫЙ ГРОТ',0,43);ctx.restore();}
+const glow=ctx.createRadialGradient(state.x*TILE,state.y*TILE,10,state.x*TILE,state.y*TILE,260);glow.addColorStop(0,'rgba(111,222,255,.3)');glow.addColorStop(1,'rgba(0,15,50,.72)');ctx.fillStyle=glow;ctx.fillRect(left*TILE,top*TILE,(right-left)*TILE,(bottom-top)*TILE);}
     else{
       // Player's ship: hull, deck, mast, animated sails, rigging, lantern and wake.
       const x=state.x*TILE,y=state.y*TILE,rock=Math.sin(state.wave*.55)*.06;ctx.save();ctx.translate(x,y+Math.sin(state.wave)*2);ctx.rotate(rock);ctx.scale(1.28+state.shipLevel*.05,1.28+state.shipLevel*.05);ctx.fillStyle='rgba(0,12,27,.38)';ctx.beginPath();ctx.ellipse(0,17,39,13,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=['#543622','#66513a','#66737e','#4c526d'][state.shipLevel]||'#543622';ctx.beginPath();ctx.moveTo(-38,-10);ctx.lineTo(38,-10);ctx.lineTo(27,19);ctx.lineTo(-26,19);ctx.closePath();ctx.fill();ctx.fillStyle=['#a66e3d','#b27e4c','#9baeb7','#b0a0d1'][state.shipLevel]||'#a66e3d';ctx.fillRect(-30,-9,60,8);ctx.fillStyle='#d5b17a';ctx.fillRect(-21,-2,42,13);ctx.fillStyle='#5a402d';ctx.fillRect(-3,-43,6,43);ctx.strokeStyle='#e5d2aa';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-38);ctx.lineTo(-25,-29);ctx.moveTo(0,-38);ctx.lineTo(27,-26);ctx.stroke();ctx.fillStyle='#fff0c9';ctx.beginPath();ctx.moveTo(-1,-39);ctx.lineTo(-1,-9);ctx.lineTo(-27,-9);ctx.closePath();ctx.fill();ctx.fillStyle='#bfeaf0';ctx.beginPath();ctx.moveTo(2,-36);ctx.lineTo(2,-10);ctx.lineTo(24,-10);ctx.closePath();ctx.fill();ctx.fillStyle='#ffdc8a';ctx.beginPath();ctx.arc(14,4,3,0,Math.PI*2);ctx.fill();
@@ -287,9 +339,9 @@
     if(state.weather==='storm'){ctx.fillStyle='rgba(8,22,43,.58)';ctx.fillRect(w-168,12,156,30);ctx.fillStyle='#d7edff';ctx.font='bold 12px Segoe UI';ctx.fillText('⚡ ШТОРМ',w-151,32);}
   }
   function drawMap(){
-    const c=$('sea-map-canvas');if(!c)return;const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.fillStyle='#0b4567';x.fillRect(0,0,w,h);x.strokeStyle='rgba(190,235,255,.12)';for(let i=0;i<=22;i++){x.beginPath();x.moveTo(i*w/22,0);x.lineTo(i*w/22,h);x.stroke();}for(let i=0;i<=16;i++){x.beginPath();x.moveTo(0,i*h/16);x.lineTo(w,i*h/16);x.stroke();}x.fillStyle='#e9f5ff';for(const cell of state.discovered){const [a,b]=cell.split(',').map(Number);x.fillRect(a/360*w,b/260*h,2,2);}x.fillStyle='#ffe17c';for(const m of state.mapMarks)x.fillRect(m.x/360*w-4,m.y/260*h-4,8,8);x.fillStyle='#ff756a';x.beginPath();x.arc(state.x/360*w,state.y/260*h,5,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.font='12px Segoe UI';x.fillText('Ты',state.x/360*w+8,state.y/260*h-8);
+    const c=$('sea-map-canvas');if(!c)return;const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.fillStyle='#0b4567';x.fillRect(0,0,w,h);x.strokeStyle='rgba(190,235,255,.12)';for(let i=0;i<=22;i++){x.beginPath();x.moveTo(i*w/22,0);x.lineTo(i*w/22,h);x.stroke();}for(let i=0;i<=16;i++){x.beginPath();x.moveTo(0,i*h/16);x.lineTo(w,i*h/16);x.stroke();}x.fillStyle='#e9f5ff';for(const cell of state.discovered){const [a,b]=cell.split(',').map(Number);x.fillRect(a/360*w,b/260*h,2,2);}x.fillStyle='#ffe17c';for(const m of state.mapMarks)x.fillRect(m.x/360*w-4,m.y/260*h-4,8,8);x.fillStyle='#ff756a';x.beginPath();x.arc(state.x/360*w,state.y/260*h,5,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.font='12px Segoe UI';x.fillText('Ты',state.x/360*w+8,state.y/260*h-8);x.fillStyle='#7df2ff';x.beginPath();x.arc(CAVE_ENTRANCE.x/360*w,CAVE_ENTRANCE.y/260*h,6,0,Math.PI*2);x.fill();x.fillStyle='#e8fbff';x.fillText('Грот',CAVE_ENTRANCE.x/360*w+9,CAVE_ENTRANCE.y/260*h-6);
   }
-  function api(){return {open:enter,isOpen:()=>active,save,upgradeShip,getState:()=>JSON.parse(JSON.stringify(state))};}
+  function api(){return {open:enter,isOpen:()=>active,save,upgradeShip,enterCave,attackCave,closeCave,getState:()=>JSON.parse(JSON.stringify(state))};}
   window.SkyRealmSea=api();
   function installExpeditionButton(){
     if($('open-sea-expedition'))return;
