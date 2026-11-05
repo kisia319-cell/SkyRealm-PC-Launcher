@@ -47,3 +47,13 @@
 .mod-studio-editor .script-mod-status{margin-top:9px;min-height:34px}
 .mod-studio-editor .script-mod-actions{margin-top:9px}
 @media(max-width:760px){.script-mod-studio{padding:0}.script-mod-dialog{width:100vw;height:100dvh;max-height:100dvh;aspect-ratio:auto;border-radius:0}.mod-studio-workspace{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.mod-studio-sidebar{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;padding:10px 14px;border-right:0;border-bottom:1px solid #263d5b;max-height:38vh}.mod-studio-side-title,.mod-studio-project-icon,.mod-studio-side-note{display:none}.mod-studio-sidebar label{margin:5px 0}.mod-studio-wide{margin:5px 0}.mod-studio-editor{padding:12px}.mod-studio-brand small,.mod-studio-save-state{display:none}.mod-studio-editor-head h1{font-size:17px}}
+
+.studio-install-shade{z-index:1400;backdrop-filter:blur(9px);background:rgba(2,8,18,.78)}
+.studio-install-dialog{width:min(520px,calc(100vw - 32px));padding:30px 28px;border:1px solid rgba(125,180,255,.32);border-radius:22px;background:linear-gradient(145deg,rgba(17,34,59,.98),rgba(7,16,30,.99));box-shadow:0 28px 90px rgba(0,0,0,.55);text-align:center}
+.studio-install-dialog h1{margin:10px 0 12px;font-size:25px;color:#f0f6ff}
+.studio-install-dialog p{margin:0 auto;max-width:430px;color:#c0cfe7;line-height:1.65}
+.studio-install-status{min-height:22px;margin:16px 0 4px;color:#9ec5ff;font-size:13px;overflow-wrap:anywhere}
+.studio-install-status.error{color:#ff9b9b}
+.studio-install-actions{display:flex;justify-content:center;gap:12px;margin-top:18px}
+.studio-install-actions button{min-width:116px}
+.studio-install-actions button:disabled{opacity:.55;cursor:wait}
