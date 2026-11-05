@@ -13,9 +13,11 @@ assert.ok(game.includes('window.SkyRealmExpansionSystems?.importState?.(d?.expan
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.update?.(dt)'),'Expansion systems must update with the game world');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.damageMultiplier?.()||1'),'Equipped relics must affect player weapon damage');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.defenseBonus?.()||0'),'Equipped relics must affect player defense');
-assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall'"),'Technology structures must load from world saves');
+assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall','tech-guardpost'"),'Technology structures must load from world saves');
 assert.ok(game.includes("s.type==='tech-generator'"),'Placed technology buildings must be drawn in the world');
 assert.ok(game.includes('placeExpansionStructure:type=>'),'Technology placement API must be connected to the game world');
+assert.ok(game.includes("'guardpost','drill'"),'Guard barracks must be accepted as a real world structure');
+assert.ok(moduleSource.includes("if(action==='dungeon-enter'){startDungeon();return;}"),'Citadel entry button must call the implemented dungeon entry function');
 assert.ok(game.includes('function notifyExpansionEnemyDefeated(mob)'),'Siege enemy deaths must notify the event system exactly once');
 assert.ok(game.includes('spawnEventEnemies:(eventId,x,y,count=6)'),'Night sieges must spawn real world monsters');
 assert.ok(game.includes('mob.expansionEventId=String(eventId)'),'Siege monsters must be tracked to their event');
@@ -97,6 +99,9 @@ assert.equal(api.build('battery'),true,'Battery can be built');
 assert.equal(api.build('turret'),true,'Research I unlocks the defensive turret');
 assert.equal(api.build('wall'),true,'Settlement wall can be built');
 assert.ok(api.getState().grid.walls===1);
+assert.equal(api.build('guardpost'),true,'Guard barracks hire two settlement defenders');
+assert.equal(api.getState().grid.guardposts,1);
+assert.ok(worldStructures.includes('guardpost'),'Guard barracks must be placed as a real world structure');
 assert.equal(api.research(),true,'Second technology research unlocks industrial mining');
 assert.equal(api.build('drill'),true,'Research II unlocks the automatic mining drill');
 assert.equal(api.research(),true,'Third technology research unlocks energy shields');
@@ -123,6 +128,9 @@ const remainingBeforeEngage=api.getState().event.remaining;
 assert.equal(api.interactWorldEvent(),true,'Player can activate the beacon using the world interaction key');
 assert.equal(api.getState().event.remaining,remainingBeforeEngage,'Activating the beacon must not instantly kill enemies');
 const firstEventId=api.getState().event.id;
+api.update(1.8);api.update(1.8);
+assert.ok(activeEventEnemies<6,'Hired guards must attack real siege monsters');
+assert.equal(api.getState().event.remaining,activeEventEnemies,'Guard kills must update the live event counter');
 for(let i=0;i<6&&api.getState().event;i++){activeEventEnemies--;api.onMonsterDefeated(firstEventId);}
 assert.equal(api.getState().event,null,'Defeating all real siege monsters must complete the event');
 assert.equal(api.getState().stats.eventsWon,1);
@@ -142,7 +150,12 @@ assert.ok(api.getState().event.remaining<automaticRemaining,'Powered turrets mus
 while(api.getState().event){activeEventEnemies--;api.onMonsterDefeated(automaticEventId);}
 night=false;
 
-assert.equal(api.startDungeon(),true,'Automation research unlocks the citadel expedition');
+api.open();
+const expansionPanel=elements['skyrealm-expansion'];
+assert.match(expansionPanel.innerHTML,/data-expansion-action="dungeon-enter"/,'Citadel entry action must be shown in the panel');
+expansionPanel.listeners.click({target:{closest:()=>({dataset:{expansionAction:'dungeon-enter'}})}});
+assert.equal(api.getState().dungeon.active,true,'The citadel panel entry button must start the room instead of throwing');
+api.close();
 const goldAfterEntry=rewards.gold,ironAfterEntry=inventory['Железо'];
 assert.equal(api.leaveDungeon(),true,'Player can retreat without losing room progress');
 assert.equal(api.startDungeon(),true,'Player can resume an already-paid expedition');
