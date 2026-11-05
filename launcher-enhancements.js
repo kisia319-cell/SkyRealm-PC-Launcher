@@ -65,16 +65,115 @@
     try{const value=JSON.parse(localStorage.getItem(CALENDAR_STORAGE_KEY)||'[]');return Array.isArray(value)?value.filter(item=>item&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)&&typeof item.title==='string'):[];}catch(_){return [];}
   }
   function saveCalendarEvents(events){localStorage.setItem(CALENDAR_STORAGE_KEY,JSON.stringify(events.slice(-300)));}
+  const DAILY_CALENDAR_REWARDS=[
+    {amount:50,label:'Стартовый подарок',icon:'🎁'},
+    {amount:60,label:'Маленький запас',icon:'🪙'},
+    {amount:70,label:'Горсть жетонов',icon:'✨'},
+    {amount:80,label:'Награда исследователя',icon:'🧭'},
+    {amount:90,label:'Сокровище путника',icon:'💎'},
+    {amount:100,label:'Дневной бонус',icon:'🎒'},
+    {amount:180,label:'Недельный сундук',icon:'🏆'},
+    {amount:60,label:'Запас энергии',icon:'⚡'},
+    {amount:70,label:'Кристальный подарок',icon:'💠'},
+    {amount:80,label:'Награда за верность',icon:'🌟'},
+    {amount:90,label:'Золотой запас',icon:'🪙'},
+    {amount:100,label:'Сундук приключений',icon:'🧰'},
+    {amount:120,label:'Редкая находка',icon:'💜'},
+    {amount:220,label:'Большой недельный сундук',icon:'🏆'},
+    {amount:80,label:'Подарок странника',icon:'🎁'},
+    {amount:90,label:'Кристаллы',icon:'💎'},
+    {amount:100,label:'Награда исследователя',icon:'🧭'},
+    {amount:110,label:'Золотой запас',icon:'🪙'},
+    {amount:120,label:'Сундук удачи',icon:'🧰'},
+    {amount:140,label:'Редкая награда',icon:'💠'},
+    {amount:280,label:'Недельный сундук+',icon:'🏆'},
+    {amount:100,label:'Подарок SkyRealm',icon:'✨'},
+    {amount:110,label:'Запас кристаллов',icon:'💎'},
+    {amount:120,label:'Награда за вход',icon:'🎒'},
+    {amount:130,label:'Золотой подарок',icon:'🪙'},
+    {amount:150,label:'Сокровище',icon:'💜'},
+    {amount:170,label:'Большая находка',icon:'🧰'},
+    {amount:350,label:'Эпический сундук',icon:'🏆'},
+    {amount:180,label:'Предфинальный подарок',icon:'🌟'},
+    {amount:500,label:'Легендарная награда месяца',icon:'👑'}
+  ];
+  const CALENDAR_REWARD_STATE_KEY='skyrealm_calendar_reward_state_v1';
+  function calendarRewardAccountKey(){
+    const email=$('#profile-email')?.textContent?.trim().toLowerCase();
+    return email&&email!=='—'?'account:'+email:'local-device';
+  }
+  function readCalendarRewardState(){
+    try{
+      const all=JSON.parse(localStorage.getItem(CALENDAR_REWARD_STATE_KEY)||'{}');
+      const value=all&&typeof all==='object'?all[calendarRewardAccountKey()]:null;
+      return {balance:Math.max(0,Number(value?.balance)||0),streak:Math.max(0,Number(value?.streak)||0),lastClaimDate:/^\d{4}-\d{2}-\d{2}$/.test(value?.lastClaimDate||'')?value.lastClaimDate:'',claimedDates:Array.isArray(value?.claimedDates)?value.claimedDates.filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x)):[]};
+    }catch(_){return {balance:0,streak:0,lastClaimDate:'',claimedDates:[]};}
+  }
+  function saveCalendarRewardState(state){
+    try{const all=JSON.parse(localStorage.getItem(CALENDAR_REWARD_STATE_KEY)||'{}');all[calendarRewardAccountKey()]=state;localStorage.setItem(CALENDAR_REWARD_STATE_KEY,JSON.stringify(all));}catch(_){}
+  }
+  function renderDailyRewards(){
+    const grid=$('#calendar-reward-days');if(!grid)return;
+    const year=calendarMonth.getFullYear(),month=calendarMonth.getMonth(),days=new Date(year,month+1,0).getDate();
+    const today=calendarDateKey(new Date()),state=readCalendarRewardState(),claimed=new Set(state.claimedDates);
+    const todayClaimed=claimed.has(today);
+    $('#calendar-reward-month').textContent=calendarMonth.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    $('#calendar-reward-balance').textContent=state.balance.toLocaleString('ru-RU');
+    const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);const streakActive=state.lastClaimDate===today||state.lastClaimDate===calendarDateKey(yesterday);
+    $('#calendar-reward-streak').textContent=String(streakActive?state.streak:0);
+    grid.replaceChildren();
+    for(let day=1;day<=days;day++){
+      const date=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      const reward=DAILY_CALENDAR_REWARDS[(day-1)%DAILY_CALENDAR_REWARDS.length];
+      const isClaimed=claimed.has(date),isToday=date===today;
+      const cell=document.createElement('button');cell.type='button';
+      cell.className='daily-reward-day'+(isToday?' today':'')+(isClaimed?' claimed':'')+(date<today&&!isClaimed?' missed':'');
+      cell.disabled=!isToday||isClaimed;
+      const number=document.createElement('span');number.className='daily-reward-number';number.textContent=String(day);
+      const icon=document.createElement('b');icon.className='daily-reward-icon';icon.textContent=reward.icon;
+      const amount=document.createElement('strong');amount.textContent='+'+reward.amount;
+      const stateLabel=document.createElement('small');stateLabel.textContent=isClaimed?'Получено':isToday?'Доступно':date<today?'Пропущено':'Закрыто';
+      cell.append(number,icon,amount,stateLabel);grid.append(cell);
+    }
+    const claim=$('#calendar-claim-today');
+    if(claim){claim.disabled=todayClaimed;claim.textContent=todayClaimed?'✓ Награда за сегодня получена':'Забрать награду за сегодня';}
+    const status=$('#calendar-reward-status');
+    if(status)status.textContent=todayClaimed?'Сегодняшняя награда уже добавлена в твой баланс.':'Заходи каждый день и забирай жетоны. Награда доступна один раз в сутки.';
+  }
+  function claimCalendarDailyReward(){
+    const today=calendarDateKey(new Date()),state=readCalendarRewardState();
+    if(state.claimedDates.includes(today)){const status=$('#calendar-reward-status');if(status)status.textContent='Сегодня ты уже забрал награду.';return;}
+    const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+    const yesterdayKey=calendarDateKey(yesterday);
+    state.streak=state.lastClaimDate===yesterdayKey?state.streak+1:1;
+    const day=new Date().getDate(),reward=DAILY_CALENDAR_REWARDS[(day-1)%DAILY_CALENDAR_REWARDS.length];
+    const streakBonus=state.streak>0&&state.streak%7===0?50:0;
+    const total=reward.amount+streakBonus;
+    state.balance+=total;state.lastClaimDate=today;state.claimedDates.push(today);
+    state.claimedDates=state.claimedDates.slice(-400);
+    saveCalendarRewardState(state);
+    const status=$('#calendar-reward-status');
+    renderDailyRewards();
+    if(status)status.textContent='Получено: '+reward.label+' · +'+total+' жетонов'+(streakBonus?' (включая бонус за серию входов)':'')+'.';
+  }
   function ensureCalendarPage(){
     const nav=$('.nav'),main=$('.main');if(!nav||!main)return;
     if(!$('[data-page="calendar"]')){
       const button=document.createElement('button');button.type='button';button.className='nav-item';button.dataset.page='calendar';button.innerHTML='<span class="nav-ico">▦</span><span>Календарь</span>';
-      nav.insertBefore(button,$('[data-page="screenshots"]')||null);button.addEventListener('click',openCalendarPage);
+      nav.insertBefore(button,$('[data-page="screenshots"]')||null);button.dataset.bound='1';button.addEventListener('click',openCalendarPage);
     }
     if(!$('#page-calendar')){
       const page=document.createElement('section');page.className='page inner-page calendar-page';page.id='page-calendar';
       page.innerHTML=`
-        <div class="page-heading"><div><div class="section-kicker">SKYREALM · ПЛАНЫ</div><h1>Игровой <span>календарь</span></h1><p>Планируй игровые сессии, испытания и личные события. Записи сохраняются локально на этом компьютере.</p></div></div>
+        <div class="page-heading"><div><div class="section-kicker">SKYREALM · ЕЖЕДНЕВНЫЕ ПОДАРКИ</div><h1>Календарь <span>наград</span></h1><p>Заходи каждый день, забирай подарок и собирай серию входов. Награды и баланс сохраняются отдельно для каждого аккаунта на этом компьютере.</p></div></div>
+        <section class="daily-rewards-panel">
+          <div class="daily-rewards-top"><div><div class="section-kicker">ПОДАРОК КАЖДЫЙ ДЕНЬ</div><h2>Твои ежедневные награды</h2><p>Отмечай каждый день и получай жетоны лаунчера. За каждые 7 дней подряд начисляется +50 бонусных жетонов. Жетоны пока не являются игровым золотом или кристаллами.</p></div><div class="daily-rewards-stats"><div><small>Баланс жетонов</small><b id="calendar-reward-balance">0</b></div><div><small>Дней подряд</small><b id="calendar-reward-streak">0</b></div></div></div>
+          <div class="daily-reward-month-label" id="calendar-reward-month"></div>
+          <div class="daily-reward-weekdays"><span>ПН</span><span>ВТ</span><span>СР</span><span>ЧТ</span><span>ПТ</span><span>СБ</span><span>ВС</span></div>
+          <div class="daily-reward-grid" id="calendar-reward-days"></div>
+          <div class="daily-rewards-claim-row"><div><b>Подарок за сегодняшний вход</b><p class="calendar-status" id="calendar-reward-status">Награда доступна один раз в сутки.</p></div><button class="primary-btn" id="calendar-claim-today" type="button">Забрать награду за сегодня</button></div>
+        </section>
+        <div class="page-heading calendar-events-heading"><div><div class="section-kicker">ТВОИ ПЛАНЫ</div><h2>События и игровые сессии</h2><p>Планируй испытания, встречи и личные события.</p></div></div>
         <div class="calendar-layout"><section class="calendar-panel"><div class="calendar-month-head"><button class="secondary-btn" id="calendar-prev" type="button">←</button><b id="calendar-month-label"></b><button class="secondary-btn" id="calendar-next" type="button">→</button></div><div class="calendar-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class="calendar-days" id="calendar-days"></div></section>
         <section class="calendar-panel"><h2>Добавить событие</h2><label class="calendar-field">Название<input id="calendar-event-title" maxlength="70" placeholder="Например, вечер кооператива"></label><label class="calendar-field">Дата<input id="calendar-event-date" type="date"></label><label class="calendar-field">Тип<select id="calendar-event-type"><option value="session">Игровая сессия</option><option value="challenge">Испытание</option><option value="update">Обновление</option><option value="community">Событие сообщества</option></select></label><button class="primary-btn" id="calendar-event-add" type="button">Добавить в календарь</button><p class="calendar-status" id="calendar-status" aria-live="polite"></p><div class="calendar-event-list" id="calendar-event-list"></div></section></div>`;
       main.append(page);
@@ -90,6 +189,8 @@
         saveCalendarEvents(events);calendarSelectedDate=date;calendarMonth=new Date(date+'T12:00:00');$('#calendar-event-title').value='';$('#calendar-status').textContent='Событие сохранено.';renderCalendar();
       });
     }
+    if(!$('#calendar-claim-today')?.dataset.bound){$('#calendar-claim-today').dataset.bound='1';$('#calendar-claim-today').addEventListener('click',claimCalendarDailyReward);}
+    const navButton=$('[data-page="calendar"]');if(navButton&&!navButton.dataset.bound){navButton.dataset.bound='1';navButton.addEventListener('click',openCalendarPage);}
   }
   function renderCalendar(){
     const grid=$('#calendar-days');if(!grid)return;grid.replaceChildren();
@@ -113,6 +214,7 @@
       const remove=document.createElement('button');remove.type='button';remove.className='secondary-btn';remove.textContent='Удалить';remove.addEventListener('click',()=>{saveCalendarEvents(readCalendarEvents().filter(item=>item.id!==event.id));renderCalendar();});
       info.append(title,meta);row.append(info,remove);list.append(row);
     });
+    renderDailyRewards();
   }
   function openCalendarPage(){
     ensureCalendarPage();document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id==='page-calendar'));
