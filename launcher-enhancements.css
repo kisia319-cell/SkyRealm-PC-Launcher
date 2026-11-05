@@ -98,3 +98,36 @@ body.performance-saver .art-orb, body.performance-saver .live-dot, body.performa
 .support-card .secondary-btn + .secondary-btn { margin-top:4px; }
 .support-diagnostics { margin-top:12px; }
 @media(max-width:760px){.calendar-layout,.support-grid{grid-template-columns:1fr;}.calendar-day{min-height:36px;}}
+
+/* Daily reward calendar */
+.daily-rewards-panel{margin:0 0 22px;padding:20px;border:1px solid #3b5680;border-radius:17px;background:radial-gradient(circle at 88% 0,rgba(74,104,177,.2),transparent 36%),linear-gradient(145deg,#10243c,#091727);box-shadow:0 16px 40px #0003}
+.daily-rewards-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.daily-rewards-top h2{margin:5px 0;color:#edf4ff;font-size:20px}
+.daily-rewards-top p{margin:0;color:#9fb4d2;font-size:12px;line-height:1.55}
+.daily-rewards-stats{display:flex;gap:9px}
+.daily-rewards-stats>div{min-width:112px;padding:11px 14px;border:1px solid #3b5680;border-radius:12px;background:#0a192b}
+.daily-rewards-stats small{display:block;color:#93a9ca;font-size:10px}
+.daily-rewards-stats b{display:block;margin-top:4px;color:#ffe29a;font-size:21px}
+.daily-reward-month-label{margin:18px 0 8px;color:#dbe8ff;font-size:12px;font-weight:900;text-transform:capitalize}
+.daily-reward-weekdays,.daily-reward-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.daily-reward-weekdays span{text-align:center;padding:7px 0;color:#8199bc;font-size:9px;font-weight:900;letter-spacing:1px}
+.daily-reward-day{position:relative;display:flex;min-width:0;min-height:92px;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:7px 3px;border:1px solid #2b4262;border-radius:11px;background:linear-gradient(160deg,#142a45,#0b1b2d);color:#dce8fa;cursor:default;transition:transform .16s,border-color .16s,background .16s}
+.daily-reward-day .daily-reward-number{position:absolute;top:5px;left:7px;color:#93a9c9;font-size:9px}
+.daily-reward-icon{font-size:20px;line-height:1.2}
+.daily-reward-day strong{color:#ffe29a;font-size:12px}
+.daily-reward-day small{color:#8fa5c6;font-size:8px}
+.daily-reward-day.today{border:2px solid #8db4ff;background:linear-gradient(145deg,#23436b,#142b49);box-shadow:0 0 0 2px #8db4ff22,0 0 18px #6b9cff33;cursor:pointer}
+.daily-reward-day.today:hover{transform:translateY(-2px);border-color:#c2d7ff}
+.daily-reward-day.claimed{border-color:#397b69;background:linear-gradient(145deg,#153b39,#102b2b)}
+.daily-reward-day.claimed small{color:#7ce0b4}
+.daily-reward-day.missed{opacity:.48}
+.daily-reward-day:disabled{cursor:default}
+.daily-rewards-claim-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:16px;padding:14px;border:1px solid #3a5276;border-radius:13px;background:#0a192b}
+.daily-rewards-claim-row>div{min-width:0}
+.daily-rewards-claim-row b{color:#edf4ff;font-size:13px}
+.daily-rewards-claim-row p{margin:5px 0 0}
+.daily-rewards-claim-row button{width:auto;min-width:225px;margin:0}
+.daily-rewards-claim-row button:disabled{opacity:.7;cursor:default;background:linear-gradient(135deg,#286a59,#19483e)}
+.calendar-events-heading{margin-top:24px}
+@media(max-width:760px){.daily-rewards-panel{padding:13px}.daily-rewards-stats{width:100%}.daily-rewards-stats>div{flex:1}.daily-reward-weekdays,.daily-reward-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.daily-reward-day{min-height:82px}.daily-rewards-claim-row{align-items:stretch;flex-direction:column}.daily-rewards-claim-row button{width:100%;min-width:0}}
+@media(max-width:420px){.daily-reward-weekdays,.daily-reward-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.daily-rewards-top h2{font-size:17px}}
