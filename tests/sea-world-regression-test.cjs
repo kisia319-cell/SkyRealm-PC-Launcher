@@ -11,6 +11,12 @@ assert.match(sea,/if\(!state\.sharks\.length\)/,'Old sea saves must repopulate m
 assert.match(sea,/const W = 360, H = 260/,'Sea map must be substantially larger');
 assert.match(sea,/length:2/,'Sharks must be rare by default');
 assert.match(sea,/state\.sharkSpawnTimer/,'Sharks must spawn only on a rare timer');
+assert.match(sea,/function upgradeShip\(\)/,'Players must be able to upgrade their ship');
+assert.match(sea,/shipLevel:0/,'Ship upgrades must be saved per expedition');
+assert.match(sea,/function boatMaxHp\(\)/,'Ship upgrades must increase maximum hull health');
+assert.match(sea,/1\+state\.shipLevel\*\.12/,'Ship upgrades must increase sailing speed');
+assert.match(sea,/state\.boatHp<boatMaxHp\(\)/,'Repair must restore the upgraded hull maximum');
+assert.match(sea,/id="sea-ship-upgrade"/,'Sea UI must expose the ship upgrade control');
 assert.match(sea,/data-sea-direction=/,'Sea must provide on-screen directional controls for ship navigation');
 assert.match(sea,/function keyToken\(e\)/,'Keyboard steering must use physical key codes and work across keyboard layouts');
 assert.match(sea,/pointerdown/,'Ship directional controls must support press-and-hold pointer input');
