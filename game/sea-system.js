@@ -4,7 +4,7 @@
   const KEY = () => 'skyrealm_sea_v1_' + (window.SkyRealmSeaBridge?.getWorldId?.() || 'default');
   const $ = (id) => document.getElementById(id);
   const state = {
-    version: VERSION, x: 13, y: 82, boatHp: 100, weather: 'calm', weatherLeft: 150,
+    version: VERSION, x: 13, y: 82, boatHp: 100, shipLevel:0, weather: 'calm', weatherLeft: 150,
     wave: 0, time: 0, mapOpen: false, underwater: false, air: 60,
     helmetLevel: 0, sharks: [], monsters: [], treasures: [], opened: [],
     vaultUnlocked: false, vaultRoom: 0, vaultPath: 0, vaultBosses: { tide:false, abyss:false },
@@ -23,11 +23,14 @@
     try { const snapshot={...state, sharks:state.sharks.slice(0,40), monsters:state.monsters.slice(0,40), discovered:state.discovered.slice(-5000)};localStorage.setItem(KEY(), JSON.stringify(snapshot));bridge()?.setSeaData?.(snapshot); }
     catch(e){ console.warn('Sea save failed',e); }
   }
+  function boatMaxHp(){return [100,150,210,280][clamp(Math.floor(Number(state.shipLevel)||0),0,3)];}
   function load(){
     try {
       const d=bridge()?.getSeaData?.()||JSON.parse(localStorage.getItem(KEY())||'null');
       if(!d || d.version!==VERSION){Object.assign(state,JSON.parse(JSON.stringify(DEFAULT_STATE)));return;}
       Object.assign(state,d);
+      state.shipLevel=clamp(Math.floor(Number(d.shipLevel)||0),0,3);
+      const savedBoatHp=Number(d.boatHp);state.boatHp=clamp(Number.isFinite(savedBoatHp)?savedBoatHp:100,0,boatMaxHp());
       state.x=clamp(Number(state.x)||13,11,W-3); state.y=clamp(Number(state.y)||82,3,H-3); if(state.x<10)state.x=13;
       state.sharks=Array.isArray(d.sharks)?d.sharks:[]; state.monsters=Array.isArray(d.monsters)?d.monsters:[];
       state.treasures=Array.isArray(d.treasures)?d.treasures:[]; state.opened=Array.isArray(d.opened)?d.opened:[];
@@ -63,7 +66,7 @@
       #sea-vault .vault-paths button{flex:1;min-width:140px}#sea-vault .vault-log{padding:12px;background:#080f1e;border-radius:8px;min-height:90px;line-height:1.7}
       @media(max-width:700px){#skyrealm-sea .sea-help{font-size:10px;max-width:90%}#skyrealm-sea .sea-top{gap:6px;padding:7px}#skyrealm-sea .sea-stat{font-size:10px}}
       </style>
-      <div class="sea-top"><span class="sea-title">🌊 SKYREALM · МОРЕ</span><span class="sea-stat" id="sea-weather">Погода: штиль</span><span class="sea-stat" id="sea-boat-hp">Корабль: 100%</span><span class="sea-stat" id="sea-air">Воздух: —</span><span class="sea-stat" id="sea-coords">Координаты: 13 / 82</span><button id="sea-map-btn">🗺 Карта</button><button id="sea-dive-btn">↓ Нырнуть · E</button><button id="sea-vault-btn">🏛 Сокровищница</button><button id="sea-exit">Вернуться на берег</button></div>
+      <div class="sea-top"><span class="sea-title">🌊 SKYREALM · МОРЕ</span><span class="sea-stat" id="sea-weather">Погода: штиль</span><span class="sea-stat" id="sea-boat-hp">Корабль: 100%</span><span class="sea-stat" id="sea-air">Воздух: —</span><span class="sea-stat" id="sea-coords">Координаты: 13 / 82</span><button id="sea-map-btn">🗺 Карта</button><button id="sea-ship-upgrade">⚓ Улучшить корабль</button><button id="sea-dive-btn">↓ Нырнуть · E</button><button id="sea-vault-btn">🏛 Сокровищница</button><button id="sea-exit">Вернуться на берег</button></div>
       <div class="sea-stage"><canvas id="sea-canvas"></canvas><div id="sea-message">Море ждёт тебя. Найди карту сокровищ!</div>
       <div class="sea-help">WASD / стрелки — управлять кораблём · E — взаимодействовать / нырять · M — карта · Space — ускорение<br>В шторм волны повреждают корабль. Акулы преследуют лодку. Для долгого погружения нужен водяной шлем.</div>
       <div class="sea-control-pad" aria-label="Управление кораблём"><button type="button" data-sea-direction="w" aria-label="Вперёд">▲</button><div class="sea-control-row"><button type="button" data-sea-direction="a" aria-label="Влево">◀</button><button type="button" data-sea-direction="s" aria-label="Назад">▼</button><button type="button" data-sea-direction="d" aria-label="Вправо">▶</button></div></div>
@@ -71,7 +74,7 @@
       <div id="sea-vault"><h2>🏛 Великая сокровищница глубин</h2><p>Подводный лабиринт с несколькими путями. Внутри находятся ровно два бога моря.</p><div class="vault-paths"><button data-path="0">Путь затонувших стражей</button><button data-path="1">Коралловые катакомбы</button><button data-path="2">Бездна древних</button></div><div class="vault-log" id="vault-log">Перед входом подготовь водяной шлем. В каждом пути есть монстры и ловушки.</div><div class="vault-paths"><button id="vault-enter">Войти в выбранный путь</button><button id="vault-fight" disabled>Сразиться с боссом</button><button id="vault-exit">Выйти из сокровищницы</button></div></div>
       </div>`;
     document.body.appendChild(root);const pauseLock=document.createElement('div');pauseLock.className='shade';pauseLock.id='sea-pause-lock';pauseLock.hidden=true;document.body.appendChild(pauseLock);canvas=$('sea-canvas');ctx=canvas.getContext('2d');
-    $('sea-exit').onclick=leave; $('sea-map-btn').onclick=toggleMap; $('sea-map-close').onclick=toggleMap;
+    $('sea-exit').onclick=leave; $('sea-map-btn').onclick=toggleMap; $('sea-map-close').onclick=toggleMap; $('sea-ship-upgrade').onclick=upgradeShip;
     $('sea-dive-btn').onclick=toggleDive; $('sea-vault-btn').onclick=()=>{ $('sea-vault').classList.add('open'); $('sea-map').classList.remove('open'); };
     $('vault-exit').onclick=()=> $('sea-vault').classList.remove('open');
     $('vault-enter').onclick=enterVault; $('vault-fight').onclick=fightVaultBoss;
@@ -110,10 +113,46 @@
     state.underwater=true;state.air=state.helmetLevel>=4?Infinity:(state.helmetLevel===3?480:(state.helmetLevel===2?240:60));state.airEndsAt=state.air===Infinity?Infinity:Date.now()+state.air*1000;
     msg(state.helmetLevel>=4?'Шлем четвёртого уровня: запас воздуха больше не ограничен.':'Погружение! Запас воздуха: '+state.air+' секунд.');save();
   }
+  function upgradeShip(){
+    if(!active)return false;
+    if(state.x>24){msg('Улучшать корабль можно только у берега. Вернись к причалу.');return false;}
+    if(state.shipLevel>=3){msg('Корабль уже полностью улучшен: корпус и паруса максимального уровня.');return false;}
+    const plans=[
+      {items:{Древесина:20,Железо:10,Медь:3},gold:40,name:'Усиленный корпус'},
+      {items:{Древесина:35,Железо:20,Медь:8,Кристалл:2},gold:100,name:'Паруса дальнего плавания'},
+      {items:{Древесина:50,Железо:35,Медь:15,Кристалл:6,Мифрил:2},gold:250,name:'Броня морского титана'}
+    ];
+    const plan=plans[state.shipLevel],b=bridge();
+    if(!b||!Object.entries(plan.items).every(([name,count])=>(Number(b.getItemCount?.(name))||0)>=count)||Number(b.getGold?.()||0)<plan.gold){
+      msg('Не хватает ресурсов: '+Object.entries(plan.items).map(([n,c])=>n+' ×'+c).join(', ')+' и '+plan.gold+' золота.');return false;
+    }
+    const spent=[];
+    for(const [name,count] of Object.entries(plan.items)){
+      if(!b.spendItem?.(name,count)){
+        for(const [item,amount] of spent)b.addItem?.(item,amount,'Возврат ресурсов: улучшение корабля отменено');
+        msg('Не удалось списать материалы. Ресурсы возвращены.');return false;
+      }
+      spent.push([name,count]);
+    }
+    if(!b.spendGold?.(plan.gold)){
+      for(const [item,amount] of spent)b.addItem?.(item,amount,'Возврат ресурсов: улучшение корабля отменено');
+      msg('Не удалось списать золото. Материалы возвращены.');return false;
+    }
+    const oldMax=boatMaxHp();state.shipLevel++;state.boatHp=clamp(state.boatHp+(boatMaxHp()-oldMax),0,boatMaxHp());
+    msg('Корабль улучшен · уровень '+state.shipLevel+'/3 · '+plan.name+'. Прочность '+Math.ceil(state.boatHp)+'/'+boatMaxHp()+'.');
+    save();b.save?.();updateShipButton();return true;
+  }
+  function updateShipButton(){
+    const button=$('sea-ship-upgrade');if(!button)return;
+    const names=['Плот · ур. 0/3','Усиленный корпус · ур. 1/3','Дальние паруса · ур. 2/3','Морской титан · ур. 3/3'];
+    button.textContent='⚓ '+names[clamp(Math.floor(Number(state.shipLevel)||0),0,3)];
+    button.title=state.shipLevel>=3?'Корабль полностью улучшен.':'Улучшение доступно у берега · нажми, чтобы посмотреть стоимость.';
+    button.disabled=state.shipLevel>=3;
+  }
   function interact(){
     if(state.underwater){const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет.');return;}
     const t=nearestTreasure();if(t){openTreasure(t);return;}
-    const b=bridge();if(state.x<=12&&state.boatHp<100){if((b?.getItemCount?.('Древесина')||0)<8||(b?.getItemCount?.('Железо')||0)<2){msg('Для ремонта у берега нужно 8 древесины и 2 железа.');return;}b.changeItem('Древесина',-8);b.changeItem('Железо',-2);state.boatHp=Math.min(100,state.boatHp+45);msg('Корабль отремонтирован у берега. Прочность '+state.boatHp+'%.');save();b.save?.();return;} if(state.boatHp<=0){msg('Корабль разрушен. Вернись на берег и отремонтируй его.');return;}
+    const b=bridge();if(state.x<=12&&state.boatHp<boatMaxHp()){if((b?.getItemCount?.('Древесина')||0)<8||(b?.getItemCount?.('Железо')||0)<2){msg('Для ремонта у берега нужно 8 древесины и 2 железа.');return;}b.changeItem('Древесина',-8);b.changeItem('Железо',-2);state.boatHp=Math.min(boatMaxHp(),state.boatHp+45);msg('Корабль отремонтирован у берега. Прочность '+state.boatHp+'%.');save();b.save?.();return;} if(state.boatHp<=0){msg('Корабль разрушен. Вернись на берег и отремонтируй его.');return;}
     msg('Волны несут корабль вперёд. Ищи обломки, метки на карте и вход в сокровищницу.'); 
   }
   function nearestTreasure(){return state.treasures.find(t=>!state.opened.includes(t.id)&&Math.hypot(t.x-state.x,t.y-state.y)<4.5);}
@@ -188,17 +227,17 @@
     state.weatherLeft-=dt;if(state.weatherLeft<=0){state.weather=['calm','rain','storm'][Math.floor(Math.random()*3)];state.weatherLeft=rand(100,220);msg({calm:'Ветер стих. Море спокойно.',rain:'Начался дождь. Волны усиливаются.',storm:'ШТОРМ! Укройся или держи курс против волн.'}[state.weather]);}
     const dx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0);
     const dy=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);
-    const boost=keys.has(' ')?2.0:1, speed=(state.underwater?9:state.weather==='storm'?15:25)*boost;
+    const boost=keys.has(' ')?2.0:1, speed=(state.underwater?9:state.weather==='storm'?15:25)*boost*(state.underwater?1:1+state.shipLevel*.12);
     state.x=clamp(state.x+dx*speed*dt,2,W-2);state.y=clamp(state.y+dy*speed*dt,2,H-2);
     if(dx||dy){const cell=Math.floor(state.x)+','+Math.floor(state.y);if(!state.discovered.includes(cell)&&state.discovered.length<5000)state.discovered.push(cell);}
     state.diveCooldown=Math.max(0,state.diveCooldown-dt);
     if(state.underwater&&state.air!==Infinity){state.air=Math.max(0,((Number(state.airEndsAt)||Date.now())-Date.now())/1000);if(state.air<=0){state.underwater=false;msg('Воздух закончился! Тебя вынесло на поверхность.');}}
-    if(state.weather==='storm'&&!state.underwater&&Math.random()<dt*.06){state.boatHp=Math.max(0,state.boatHp-1);if(state.boatHp<=0)msg('Шторм разбил корабль! Вернись на берег.');}
-    for(const s of state.sharks){const vx=state.x-s.x,vy=state.y-s.y,d=Math.hypot(vx,vy)||1;if(d<24){s.x+=vx/d*s.speed*dt;s.y+=vy/d*s.speed*dt;s.cool-=dt;if(s.cool<=0){s.cool=2.2;state.boatHp=Math.max(0,state.boatHp-5);msg('Акула укусила корабль! Прочность '+state.boatHp+'%.');}}else{s.angle+=rand(-.6,.6)*dt;s.x+=Math.cos(s.angle)*s.speed*.25*dt;s.y+=Math.sin(s.angle)*s.speed*.25*dt;}s.x=clamp(s.x,2,W-2);s.y=clamp(s.y,2,H-2);}
+    if(state.weather==='storm'&&!state.underwater&&Math.random()<dt*.06){state.boatHp=Math.max(0,state.boatHp-Math.max(.5,1-state.shipLevel*.18));if(state.boatHp<=0)msg('Шторм разбил корабль! Вернись на берег.');}
+    for(const s of state.sharks){const vx=state.x-s.x,vy=state.y-s.y,d=Math.hypot(vx,vy)||1;if(d<24){s.x+=vx/d*s.speed*dt;s.y+=vy/d*s.speed*dt;s.cool-=dt;if(s.cool<=0){s.cool=2.2;state.boatHp=Math.max(0,state.boatHp-Math.max(1,5-state.shipLevel));msg('Акула укусила корабль! Прочность '+state.boatHp+'%.');}}else{s.angle+=rand(-.6,.6)*dt;s.x+=Math.cos(s.angle)*s.speed*.25*dt;s.y+=Math.sin(s.angle)*s.speed*.25*dt;}s.x=clamp(s.x,2,W-2);s.y=clamp(s.y,2,H-2);}
     if(state.underwater){for(const m of state.monsters){const vx=state.x-m.x,vy=state.y-m.y,d=Math.hypot(vx,vy)||1;if(d<20){m.x+=vx/d*m.speed*dt;m.y+=vy/d*m.speed*dt;if(Math.random()<dt*.08){drainAir(3);msg('Подводный страж атакует!');}}}}
     if(!state.underwater){state.sharkSpawnTimer=(state.sharkSpawnTimer||rand(85,145))-dt;if(state.sharkSpawnTimer<=0){if(state.sharks.length<3&&Math.random()<.32)spawnShark();state.sharkSpawnTimer=rand(85,165);}}
     $('sea-weather').textContent='Погода: '+({calm:'штиль',rain:'дождь',storm:'ШТОРМ'}[state.weather]);
-    $('sea-boat-hp').textContent='Корабль: '+state.boatHp+'%';$('sea-air').textContent=state.underwater?'Воздух: '+(state.air===Infinity?'∞':Math.ceil(state.air)+' с'):'Воздух: —';
+    $('sea-boat-hp').textContent='Корабль: '+Math.ceil(state.boatHp)+'/'+boatMaxHp();updateShipButton();$('sea-air').textContent=state.underwater?'Воздух: '+(state.air===Infinity?'∞':Math.ceil(state.air)+' с'):'Воздух: —';
     $('sea-coords').textContent='Координаты: '+Math.floor(state.x)+' / '+Math.floor(state.y);
     $('sea-dive-btn').textContent=state.underwater?'↑ Всплыть · E':'↓ Нырнуть · E';
   }
@@ -236,7 +275,7 @@
     if(state.underwater){const glow=ctx.createRadialGradient(state.x*TILE,state.y*TILE,10,state.x*TILE,state.y*TILE,260);glow.addColorStop(0,'rgba(111,222,255,.3)');glow.addColorStop(1,'rgba(0,15,50,.72)');ctx.fillStyle=glow;ctx.fillRect(left*TILE,top*TILE,(right-left)*TILE,(bottom-top)*TILE);}
     else{
       // Player's ship: hull, deck, mast, animated sails, rigging, lantern and wake.
-      const x=state.x*TILE,y=state.y*TILE,rock=Math.sin(state.wave*.55)*.06;ctx.save();ctx.translate(x,y+Math.sin(state.wave)*2);ctx.rotate(rock);ctx.scale(1.28,1.28);ctx.fillStyle='rgba(0,12,27,.38)';ctx.beginPath();ctx.ellipse(0,17,39,13,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#543622';ctx.beginPath();ctx.moveTo(-38,-10);ctx.lineTo(38,-10);ctx.lineTo(27,19);ctx.lineTo(-26,19);ctx.closePath();ctx.fill();ctx.fillStyle='#a66e3d';ctx.fillRect(-30,-9,60,8);ctx.fillStyle='#d5b17a';ctx.fillRect(-21,-2,42,13);ctx.fillStyle='#5a402d';ctx.fillRect(-3,-43,6,43);ctx.strokeStyle='#e5d2aa';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-38);ctx.lineTo(-25,-29);ctx.moveTo(0,-38);ctx.lineTo(27,-26);ctx.stroke();ctx.fillStyle='#fff0c9';ctx.beginPath();ctx.moveTo(-1,-39);ctx.lineTo(-1,-9);ctx.lineTo(-27,-9);ctx.closePath();ctx.fill();ctx.fillStyle='#bfeaf0';ctx.beginPath();ctx.moveTo(2,-36);ctx.lineTo(2,-10);ctx.lineTo(24,-10);ctx.closePath();ctx.fill();ctx.fillStyle='#ffdc8a';ctx.beginPath();ctx.arc(14,4,3,0,Math.PI*2);ctx.fill();
+      const x=state.x*TILE,y=state.y*TILE,rock=Math.sin(state.wave*.55)*.06;ctx.save();ctx.translate(x,y+Math.sin(state.wave)*2);ctx.rotate(rock);ctx.scale(1.28+state.shipLevel*.05,1.28+state.shipLevel*.05);ctx.fillStyle='rgba(0,12,27,.38)';ctx.beginPath();ctx.ellipse(0,17,39,13,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=['#543622','#66513a','#66737e','#4c526d'][state.shipLevel]||'#543622';ctx.beginPath();ctx.moveTo(-38,-10);ctx.lineTo(38,-10);ctx.lineTo(27,19);ctx.lineTo(-26,19);ctx.closePath();ctx.fill();ctx.fillStyle=['#a66e3d','#b27e4c','#9baeb7','#b0a0d1'][state.shipLevel]||'#a66e3d';ctx.fillRect(-30,-9,60,8);ctx.fillStyle='#d5b17a';ctx.fillRect(-21,-2,42,13);ctx.fillStyle='#5a402d';ctx.fillRect(-3,-43,6,43);ctx.strokeStyle='#e5d2aa';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-38);ctx.lineTo(-25,-29);ctx.moveTo(0,-38);ctx.lineTo(27,-26);ctx.stroke();ctx.fillStyle='#fff0c9';ctx.beginPath();ctx.moveTo(-1,-39);ctx.lineTo(-1,-9);ctx.lineTo(-27,-9);ctx.closePath();ctx.fill();ctx.fillStyle='#bfeaf0';ctx.beginPath();ctx.moveTo(2,-36);ctx.lineTo(2,-10);ctx.lineTo(24,-10);ctx.closePath();ctx.fill();ctx.fillStyle='#ffdc8a';ctx.beginPath();ctx.arc(14,4,3,0,Math.PI*2);ctx.fill();
       // A clearly visible sailor avatar standing on deck.
       const walk=Math.sin(state.time*7)*1.5;ctx.save();ctx.scale(1.7,1.7);ctx.fillStyle='#e0b48a';ctx.beginPath();ctx.arc(0,-10+walk,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f4d2ad';ctx.beginPath();ctx.arc(0,-10+walk,5.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#26364a';ctx.fillRect(-2.8,-11+walk,1.5,1.8);ctx.fillRect(1.3,-11+walk,1.5,1.8);ctx.strokeStyle='#8d4d3d';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,-8.5+walk,2.2,.15,Math.PI-.15);ctx.stroke();ctx.fillStyle='#31506c';ctx.fillRect(-7,-3+walk,14,13);ctx.fillStyle='#d9e8ed';ctx.fillRect(-5,-1+walk,10,3);ctx.strokeStyle='#f1d7b1';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-6,0+walk);ctx.lineTo(-12,8+walk);ctx.moveTo(6,0+walk);ctx.lineTo(12,8+walk);ctx.stroke();ctx.fillStyle='#273b4e';ctx.fillRect(-6,9+walk,5,7);ctx.fillRect(1,9+walk,5,7);ctx.fillStyle='#d7c59b';ctx.fillRect(-8,-19+walk,16,4);ctx.restore();ctx.restore();
     }
@@ -250,7 +289,7 @@
   function drawMap(){
     const c=$('sea-map-canvas');if(!c)return;const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.fillStyle='#0b4567';x.fillRect(0,0,w,h);x.strokeStyle='rgba(190,235,255,.12)';for(let i=0;i<=22;i++){x.beginPath();x.moveTo(i*w/22,0);x.lineTo(i*w/22,h);x.stroke();}for(let i=0;i<=16;i++){x.beginPath();x.moveTo(0,i*h/16);x.lineTo(w,i*h/16);x.stroke();}x.fillStyle='#e9f5ff';for(const cell of state.discovered){const [a,b]=cell.split(',').map(Number);x.fillRect(a/360*w,b/260*h,2,2);}x.fillStyle='#ffe17c';for(const m of state.mapMarks)x.fillRect(m.x/360*w-4,m.y/260*h-4,8,8);x.fillStyle='#ff756a';x.beginPath();x.arc(state.x/360*w,state.y/260*h,5,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.font='12px Segoe UI';x.fillText('Ты',state.x/360*w+8,state.y/260*h-8);
   }
-  function api(){return {open:enter,isOpen:()=>active,save};}
+  function api(){return {open:enter,isOpen:()=>active,save,upgradeShip,getState:()=>JSON.parse(JSON.stringify(state))};}
   window.SkyRealmSea=api();
   function installExpeditionButton(){
     if($('open-sea-expedition'))return;
