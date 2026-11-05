@@ -58,6 +58,7 @@ jobs:
           node --check game/custom-mods-runtime.js
           node --check game/expansion-systems.js
           node --check tests/expansion-systems-test.cjs
+          node --check tests/armor-set-test.cjs
           node --check tests/auth-smoke.mjs
           node --check tests/game-smoke-test.cjs
           node --check tests/farm-economy-test.cjs
@@ -89,6 +90,7 @@ jobs:
           node tests/sea-world-regression-test.cjs
           node tests/challenge-staff-regression-test.cjs
           node tests/expansion-systems-test.cjs
+          node tests/armor-set-test.cjs
 
       - name: Install build tools
         run: python -m pip install --upgrade pip pywebview pyinstaller psutil
