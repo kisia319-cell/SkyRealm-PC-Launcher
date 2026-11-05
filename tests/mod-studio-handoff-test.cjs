@@ -10,7 +10,7 @@ assert.ok(html.includes('id="studio-install-yes"')&&html.includes('id="studio-in
 assert.ok(!html.includes('id="script-mod-studio"'),'Embedded editor modal must not remain in the game.');
 assert.ok(game.includes("window.addEventListener('skyrealm:open-mod-studio',openSkyRealmStudio)"));
 assert.ok(game.includes('nativeApi.check_mod_studio')&&game.includes('nativeApi.launch_mod_studio'));
-assert.ok(game.includes('nativeApi.install_mod_studio()'));
+assert.ok(game.includes('window.pywebview.api.install_mod_studio()'));
 assert.ok(runtime.includes("new CustomEvent('skyrealm:open-mod-studio')"));
 assert.ok(launcher.includes('def check_mod_studio(self):'));
 assert.ok(launcher.includes('def launch_mod_studio(self):'));
