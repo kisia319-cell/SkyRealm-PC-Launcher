@@ -756,28 +756,55 @@ class GameApi:
 
     @staticmethod
     def _mod_studio_candidates():
-        local = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+        home = Path.home()
+        local = Path(os.environ.get("LOCALAPPDATA") or (home / "AppData" / "Local"))
         candidates = [
             local / "SkyRealm" / "ModStudio" / "SkyRealmModStudio.exe",
             local / "Programs" / "SkyRealmModStudio" / "SkyRealmModStudio.exe",
             local / "SkyRealmStudio" / "SkyRealmModStudio.exe",
             Path(os.environ.get("PROGRAMFILES") or "C:/Program Files") / "SkyRealm Mod Studio" / "SkyRealmModStudio.exe",
             Path(os.environ.get("PROGRAMFILES(X86)") or "C:/Program Files (x86)") / "SkyRealm Mod Studio" / "SkyRealmModStudio.exe",
-            Path.home() / "Downloads" / "SkyRealmModStudio.exe",
-            Path.home() / "Desktop" / "SkyRealmModStudio.exe",
         ]
         seen = set()
-        for candidate in candidates:
+
+        def is_valid_executable(candidate):
             try:
                 resolved = candidate.resolve()
                 if resolved in seen:
-                    continue
+                    return None
                 seen.add(resolved)
-                if resolved.is_file() and resolved.stat().st_size > 1024 * 1024:
-                    with resolved.open("rb") as stream:
-                        if stream.read(2) == b"MZ":
-                            return resolved
+                if not resolved.is_file() or resolved.stat().st_size <= 1024 * 1024:
+                    return None
+                with resolved.open("rb") as stream:
+                    return resolved if stream.read(2) == b"MZ" else None
             except (OSError, ValueError):
+                return None
+
+        # First check stable install locations, then every versioned copy such as
+        # "SkyRealmModStudio (3).exe" on Desktop/Downloads. The previous exact-name
+        # check silently missed those Windows duplicate-download filenames.
+        for candidate in candidates:
+            found = is_valid_executable(candidate)
+            if found:
+                return found
+
+        search_roots = [
+            (home / "Desktop", False),
+            (home / "Downloads", False),
+            (home / "Documents" / "SkyRealmModStudio", True),
+            (home / "Documents" / "SkyRealm-Mod-Studio", True),
+        ]
+        for root, recursive in search_roots:
+            if not root.is_dir():
+                continue
+            try:
+                matches = root.rglob("SkyRealmModStudio*.exe") if recursive else root.glob("SkyRealmModStudio*.exe")
+                ordered = sorted(matches, key=lambda path: path.stat().st_mtime, reverse=True)
+                for candidate in ordered:
+                    found = is_valid_executable(candidate)
+                    if found:
+                        return found
+            except (OSError, PermissionError):
                 continue
         return None
 
