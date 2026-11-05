@@ -9,13 +9,14 @@
   const emptyState = () => ({
     version:VERSION,
     research:0,
-    grid:{generators:0,batteries:0,turrets:0,walls:0,lamps:0,drills:0,shields:0},
+    grid:{generators:0,batteries:0,turrets:0,guardposts:0,walls:0,lamps:0,drills:0,shields:0},
     drillClock:0,
     power:0,
     fuelSeconds:0,
     fuelKind:'',
     generatorClock:0,
     turretClock:0,
+    guardClock:0,
     lastSiegeNight:-1,
     event:null,
     dungeon:{room:1,active:false,entryPaid:false,cleared:[],enemyHp:0,enemyMaxHp:0,attacks:0},
@@ -38,6 +39,7 @@
     battery:{title:'Аккумулятор',icon:'🔋',cost:{Железо:8,Медь:6,Кристалл:1},gold:10,limit:12},
     lamp:{title:'Электрический фонарь',icon:'💡',cost:{Медь:3,Древесина:4},gold:2,limit:20},
     turret:{title:'Автоматическая турель',icon:'🎯',cost:{Железо:12,Медь:5,Древесина:8,Кристалл:2},gold:25,limit:8,research:1},
+    guardpost:{title:'Казарма стражи · 2 наёмных защитника',icon:'🛡️',cost:{Древесина:18,Камень:12,Железо:10,Медь:3},gold:20,limit:6,research:1},
     drill:{title:'Автоматический бур',icon:'⛏️',cost:{Железо:18,Медь:12,Кристалл:3,Мифрил:1},gold:60,limit:3,research:2},
     shield:{title:'Силовой защитный купол',icon:'🛡️',cost:{Железо:20,Медь:15,Кристалл:8,Мифрил:3},gold:100,limit:1,research:3},
     wall:{title:'Укреплённая стена',icon:'🧱',cost:{Камень:16,Древесина:8,Железо:2},gold:5,limit:30}
@@ -61,7 +63,7 @@
     if (!raw || typeof raw !== 'object' || raw.version !== VERSION) return base;
     base.research = clamp(Math.floor(Number(raw.research)||0),0,3);
     for (const key of Object.keys(base.grid)) {
-      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='batteries'?12:key==='drills'?3:key==='shields'?1:4);
+      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='guardposts'?6:key==='batteries'?12:key==='drills'?3:key==='shields'?1:4);
     }
     base.power = clamp(Number(raw.power)||0,0,capacityFor(base));
     base.fuelSeconds = clamp(Number(raw.fuelSeconds)||0,0,3600);
@@ -69,6 +71,7 @@
     base.generatorClock = clamp(Number(raw.generatorClock)||0,0,60);
     base.drillClock = clamp(Number(raw.drillClock)||0,0,120);
     base.turretClock = clamp(Number(raw.turretClock)||0,0,60);
+    base.guardClock = clamp(Number(raw.guardClock)||0,0,60);
     base.lastSiegeNight = Number.isInteger(raw.lastSiegeNight)?raw.lastSiegeNight:-1;
     if (raw.event && ['invasion','ancient'].includes(raw.event.kind)) {
       base.event = {
@@ -153,7 +156,7 @@
     html+='<p class="ex-muted">Генератор сжигает уголь или древесину. Аккумуляторы хранят заряд. Турели используют энергию только во время тревоги.</p>';
     html+='<div class="ex-list">';
     for(const [id,item] of Object.entries(BUILDINGS)){
-      const count=g[{generator:'generators',battery:'batteries',turret:'turrets',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id]];
+      const count=g[{generator:'generators',battery:'batteries',turret:'turrets',guardpost:'guardposts',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id]];
       const locked=item.research&&state.research<item.research;
       const full=count>=item.limit;
       const affordable=canAfford(item.cost,item.gold);
@@ -169,8 +172,8 @@
   }
   function renderDefense() {
     const g=state.grid,protection=Math.min(.6,g.walls*.025);
-    let html='<div class="ex-grid-stats"><div><b>'+g.walls+'</b><small>Укрепления</small></div><div><b>'+g.turrets+'</b><small>Турели</small></div><div><b>'+g.shields+'</b><small>Силовые купола</small></div></div>';
-    html+='<p class="ex-muted">Укреплённые стены уменьшают последствия проигранной осады. Электрические турели автоматически помогают во время мировых событий.</p>';
+    let html='<div class="ex-grid-stats"><div><b>'+g.walls+'</b><small>Укрепления</small></div><div><b>'+g.turrets+'</b><small>Турели</small></div><div><b>'+g.guardposts+'</b><small>Казармы · стража</small></div><div><b>'+g.shields+'</b><small>Силовые купола</small></div></div>';
+    html+='<p class="ex-muted">Укреплённые стены уменьшают последствия проигранной осады. Турели обстреливают разлом, а каждая казарма нанимает двух стражников, которые защищают поселение во время осады.</p>';
     html+='<div class="ex-card"><b>🏰 Схема обороны</b><small>Каждая стена повышает защиту. Максимум 30 стен и 60% снижения урона от неудачной обороны.</small></div>';
     html+='<div class="ex-card"><b>🔦 Освещение</b><small>Электрические фонари поддерживают сеть и показывают, сколько энергии вырабатывает генератор.</small><small>Фонарей: '+g.lamps+' · расход: '+(g.lamps*.035).toFixed(2)+' энергии/сек. Буров: '+g.drills+'.</small></div>';
     html+=renderButton('tab-power','Перейти к строительству',false,true);
@@ -230,7 +233,7 @@
       if(action.startsWith('build:')){build(action.slice(6));return;}
       if(action==='research'){research();return;}
       if(action==='event-attack'){attackEvent();return;}
-      if(action==='dungeon-enter'){enterDungeon();return;}
+      if(action==='dungeon-enter'){startDungeon();return;}
       if(action==='dungeon-attack'){attackDungeon();return;}
       if(action==='dungeon-leave'){leaveDungeon();return;}
       if(action==='dungeon-next'){nextDungeonRoom();return;}
@@ -328,6 +331,12 @@
     const e=state.event;if(!e)return;
     e.timer=Math.max(0,e.timer-dt);
     state.turretClock+=dt;
+    state.guardClock+=dt;
+    if(e.kind==='invasion'&&state.grid.guardposts>0&&state.guardClock>=1.8){
+      state.guardClock=0;
+      const alive=Number(bridge()?.getEventEnemyCount?.(e.id)||0);
+      if(alive>0)bridge()?.damageEventEnemy?.(e.id,state.grid.guardposts*20);
+    }
     if(state.grid.turrets>0&&state.power>=state.grid.turrets*.5&&state.turretClock>=2.5){
       state.turretClock=0;state.power=Math.max(0,state.power-state.grid.turrets*.5);
       if(e.kind==='ancient')e.hp=Math.max(0,e.hp-state.grid.turrets*24);
@@ -350,7 +359,8 @@
     }else{
       const shielded=state.grid.shields>0&&state.power>=20;
       if(shielded)state.power-=20;
-      const damage=(e.kind==='ancient'?38:12+e.remaining*4)*(1-Math.min(.6,state.grid.walls*.025))*(shielded?.2:1);
+      const defense=Math.min(.8,state.grid.walls*.025+state.grid.guardposts*.04);
+      const damage=(e.kind==='ancient'?38:12+e.remaining*4)*(1-defense)*(shielded?.2:1);
       bridge()?.damagePlayer?.(damage);
       notify('Оборона прорвана. Стены смягчили удар, но поселение потеряло ресурсы.');
     }
