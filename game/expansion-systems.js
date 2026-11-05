@@ -163,8 +163,13 @@
   }
   function spend(cost,gold=0) {
     const b=bridge();if(!canAfford(cost,gold))return false;
-    for(const [name,count] of Object.entries(cost||{}))if(!b.spendItem?.(name,count))return false;
-    if(gold>0&&!b.spendGold?.(gold))return false;
+    const paid=[];
+    const refund=()=>{for(const [name,count] of paid)b.addItem?.(name,count,'Возврат материалов после неудачной транзакции');};
+    for(const [name,count] of Object.entries(cost||{})){
+      if(b.spendItem?.(name,count)!==true){refund();return false;}
+      paid.push([name,count]);
+    }
+    if(gold>0&&b.spendGold?.(gold)!==true){refund();return false;}
     return true;
   }
   function renderButton(action,label,disabled=false,secondary=false) {
