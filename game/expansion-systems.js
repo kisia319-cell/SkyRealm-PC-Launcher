@@ -274,7 +274,7 @@
   }
   function build(id) {
     const item=BUILDINGS[id];if(!item)return false;
-    const key={generator:'generators',battery:'batteries',turret:'turrets',guardpost:'guardposts',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id];
+    const key={generator:'generators',battery:'batteries',turret:'turrets',guardpost:'guardposts',trap:'traps',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id];
     if(bridge()?.isCoopWorld?.()){notify('Технологические постройки пока доступны только в одиночных мирах.');return false;}
     if(state.grid[key]>=item.limit){notify('Достигнут предел постройки: '+item.title+'.');return false;}
     if(item.research&&state.research<item.research){notify('Сначала исследуй автоматику.');return false;}
