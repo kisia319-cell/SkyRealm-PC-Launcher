@@ -55,12 +55,13 @@ let gameMinuteTotal=3*1440+12*60;
 let night=false;
 let playerPosition={x:100,y:100};
 let activeEventEnemies=0;
+let spawnAllowed=true;
 const bridge={
   getWorldId:()=>snapshot.worldId,
   isCoopWorld:()=>false,
   getPlayerPosition:()=>({...playerPosition}),
   getWorldEventSpawnPoint:()=>({x:100,y:100}),
-  spawnEventEnemies:(eventId,x,y,count)=>{activeEventEnemies=count;return count;},
+  spawnEventEnemies:(eventId,x,y,count)=>{if(!spawnAllowed)return 0;activeEventEnemies=count;return count;},
   getEventEnemyCount:()=>activeEventEnemies,
   damageEventEnemy:(eventId,damage)=>{if(activeEventEnemies>0){activeEventEnemies--;window.SkyRealmExpansionSystems?.onMonsterDefeated?.(eventId);return true;}return false;},
   clearEventEnemies:()=>{activeEventEnemies=0;},
@@ -163,8 +164,11 @@ api.startEvent('invasion',4);const damageBeforeShield=rewards.damage;
 for(let i=0;i<120&&api.getState().event;i++)api.update(1);
 assert.equal(api.getState().event,null,'An unattended siege must resolve when its timer expires');
 assert.ok(rewards.damage-damageBeforeShield<15,'Powered shield and walls must reduce failure damage');
-night=true;gameMinuteTotal=3*1440+21*60;shieldState.grid.turrets=1;shieldState.power=100;api.importState(shieldState);api.update(1);
-assert.ok(api.getState().event,'An automatic night siege should start after the second night');
+night=true;gameMinuteTotal=3*1440+21*60;shieldState.grid.turrets=1;shieldState.power=100;api.importState(shieldState);spawnAllowed=false;api.update(1);
+assert.equal(api.getState().event,null,'A night with no safe spawn positions must not create a phantom siege');
+assert.equal(api.getState().lastSiegeNight,-1,'A failed event spawn must not consume the scheduled siege night');
+spawnAllowed=true;api.update(1);
+assert.ok(api.getState().event,'An automatic night siege should start after the second night when a spawn point becomes available');
 const automaticEventId=api.getState().event.id;
 const automaticRemaining=api.getState().event.remaining;
 for(let i=0;i<3;i++)api.update(1);
