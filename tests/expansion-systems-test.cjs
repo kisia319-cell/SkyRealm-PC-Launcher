@@ -48,6 +48,8 @@ const inventory={
 const rewards={gold:100000,items:{},damage:0,saves:0,toasts:[]};
 const worldStructures=[];
 let allowPlacement=true;
+let failSpendName='';
+let failGold=false;
 let snapshot={worldId:'expansion-test-world',difficulty:'medium',paused:false,day:4};
 let gameMinuteTotal=3*1440+12*60;
 let night=false;
@@ -69,9 +71,9 @@ const bridge={
   getStats:()=>({level:20,hp:100,weaponDamage:2500,gold:Math.floor(rewards.gold/100),difficulty:snapshot.difficulty}),
   getItemCount:name=>inventory[name]||0,
   placeExpansionStructure:type=>{if(!allowPlacement)return false;worldStructures.push(type);return true;},
-  spendItem:(name,count)=>{if((inventory[name]||0)<count)return false;inventory[name]-=count;return true;},
+  spendItem:(name,count)=>{if(name===failSpendName||(inventory[name]||0)<count)return false;inventory[name]-=count;return true;},
   getGold:()=>Math.floor(rewards.gold/100),
-  spendGold:amount=>{const cost=amount*100;if(rewards.gold<cost)return false;rewards.gold-=cost;return true;},
+  spendGold:amount=>{const cost=amount*100;if(failGold||rewards.gold<cost)return false;rewards.gold-=cost;return true;},
   addGold:amount=>{rewards.gold+=amount;},
   addItem:(name,count=1)=>{rewards.items[name]=(rewards.items[name]||0)+count;inventory[name]=(inventory[name]||0)+count;return inventory[name];},
   damagePlayer:amount=>{rewards.damage+=amount;return Math.max(0,100-rewards.damage);},
@@ -94,6 +96,18 @@ const oreBeforeFailedPlacement=inventory['Медь'];allowPlacement=false;
 assert.equal(api.build('lamp'),false,'No-space placement must fail safely');
 assert.equal(inventory['Медь'],oreBeforeFailedPlacement,'Failed placement must refund all spent resources');
 assert.equal(api.getState().grid.lamps,0,'Failed placement must not increase the building count');
+const copperBeforePartial=inventory['Медь'],woodBeforePartial=inventory['Древесина'];
+failSpendName='Древесина';
+assert.equal(api.build('lamp'),false,'A resource spend failure midway through a purchase must abort');
+assert.equal(inventory['Медь'],copperBeforePartial,'Earlier materials must be refunded when a later material spend fails');
+assert.equal(inventory['Древесина'],woodBeforePartial,'A failed material spend must not consume the missing resource');
+failSpendName='';
+const copperBeforeGold=inventory['Медь'],woodBeforeGold=inventory['Древесина'];
+failGold=true;
+assert.equal(api.build('lamp'),false,'A failed gold transaction must abort the purchase');
+assert.equal(inventory['Медь'],copperBeforeGold,'Materials must be refunded if gold payment fails');
+assert.equal(inventory['Древесина'],woodBeforeGold,'All materials must be refunded if gold payment fails');
+failGold=false;
 allowPlacement=true;
 assert.equal(api.build('turret'),false,'Turret must remain locked until research I');
 assert.equal(api.research(),true,'First technology research should unlock automation');
