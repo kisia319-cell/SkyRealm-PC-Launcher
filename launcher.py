@@ -754,6 +754,106 @@ class GameApi:
         # process so native profile sync continues working after the first read.
         return {"token": self._session_token}
 
+    @staticmethod
+    def _mod_studio_candidates():
+        local = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+        candidates = [
+            local / "SkyRealm" / "ModStudio" / "SkyRealmModStudio.exe",
+            local / "Programs" / "SkyRealmModStudio" / "SkyRealmModStudio.exe",
+            local / "SkyRealmStudio" / "SkyRealmModStudio.exe",
+            Path(os.environ.get("PROGRAMFILES") or "C:/Program Files") / "SkyRealm Mod Studio" / "SkyRealmModStudio.exe",
+            Path(os.environ.get("PROGRAMFILES(X86)") or "C:/Program Files (x86)") / "SkyRealm Mod Studio" / "SkyRealmModStudio.exe",
+            Path.home() / "Downloads" / "SkyRealmModStudio.exe",
+            Path.home() / "Desktop" / "SkyRealmModStudio.exe",
+        ]
+        seen = set()
+        for candidate in candidates:
+            try:
+                resolved = candidate.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                if resolved.is_file() and resolved.stat().st_size > 1024 * 1024:
+                    with resolved.open("rb") as stream:
+                        if stream.read(2) == b"MZ":
+                            return resolved
+            except (OSError, ValueError):
+                continue
+        return None
+
+    def check_mod_studio(self):
+        """Find a previously installed or downloaded Windows copy of SkyRealm Mod Studio."""
+        if os.name != "nt":
+            return {"ok": False, "installed": False, "message": "SkyRealmStudio доступна в Windows-версии SkyRealm."}
+        executable = self._mod_studio_candidates()
+        return {"ok": True, "installed": executable is not None,
+                "path": str(executable) if executable else "",
+                "message": "SkyRealmStudio найдена." if executable else "SkyRealmStudio не установлена."}
+
+    def launch_mod_studio(self):
+        """Launch an already downloaded Studio without opening another installer."""
+        if os.name != "nt":
+            return {"ok": False, "message": "Запуск SkyRealmStudio поддерживается в Windows."}
+        try:
+            executable = self._mod_studio_candidates()
+            if executable is None:
+                return {"ok": False, "message": "SkyRealmStudio не найдена. Нажми «Создать мод» ещё раз и выбери «Да» для установки."}
+            subprocess.Popen([str(executable)], cwd=str(executable.parent),
+                             creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
+            return {"ok": True, "path": str(executable), "message": "SkyRealmStudio запущена."}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось запустить SkyRealmStudio: " + str(exc)}
+
+    def install_mod_studio(self):
+        """Download the official Studio release, verify its published SHA-256 and launch it."""
+        if os.name != "nt":
+            return {"ok": False, "message": "Установка SkyRealmStudio поддерживается в Windows."}
+        try:
+            existing = self._mod_studio_candidates()
+            if existing is not None:
+                return self.launch_mod_studio()
+            api_url = "https://api.github.com/repos/kisia319-cell/SkyRealm-Mod-Studio/releases/latest"
+            request = urllib.request.Request(api_url, headers={
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "SkyRealm-Launcher/1.0",
+                "X-GitHub-Api-Version": "2022-11-28",
+            })
+            with urllib.request.urlopen(request, timeout=20) as response:
+                release = json.loads(response.read(256 * 1024).decode("utf-8"))
+            assets = release.get("assets") if isinstance(release, dict) else []
+            asset = next((item for item in assets or [] if item.get("name") == "SkyRealmModStudio.exe"), None)
+            if not asset:
+                return {"ok": False, "message": "В последнем релизе SkyRealmStudio не найден файл SkyRealmModStudio.exe."}
+            download_url = asset.get("browser_download_url", "")
+            digest = str(asset.get("digest") or "")
+            size = int(asset.get("size") or 0)
+            if not download_url.startswith("https://github.com/kisia319-cell/SkyRealm-Mod-Studio/releases/download/") or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest) or size < 1_000_000 or size > 100 * 1024 * 1024:
+                return {"ok": False, "message": "GitHub не предоставил корректные данные или контрольную сумму файла студии."}
+            download_request = urllib.request.Request(download_url, headers={"User-Agent": "SkyRealm-Launcher/1.0"})
+            with urllib.request.urlopen(download_request, timeout=60) as response:
+                temporary_data = response.read(100 * 1024 * 1024 + 1)
+            if len(temporary_data) != size or len(temporary_data) > 100 * 1024 * 1024:
+                return {"ok": False, "message": "Размер скачанного файла не совпадает с официальным релизом."}
+            actual_digest = hashlib.sha256(temporary_data).hexdigest()
+            if actual_digest != digest.split(":", 1)[1]:
+                return {"ok": False, "message": "Проверка SHA-256 не пройдена. Файл не будет запускаться."}
+            if not temporary_data.startswith(b"MZ"):
+                return {"ok": False, "message": "Скачанный файл не является приложением Windows."}
+            destination_dir = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "ModStudio"
+            destination_dir.mkdir(parents=True, exist_ok=True)
+            destination = destination_dir / "SkyRealmModStudio.exe"
+            temporary = destination.with_suffix(".exe.download")
+            temporary.write_bytes(temporary_data)
+            temporary.replace(destination)
+            subprocess.Popen([str(destination)], cwd=str(destination_dir),
+                             creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
+            return {"ok": True, "path": str(destination), "version": release.get("tag_name", ""),
+                    "message": "SkyRealmStudio установлена и запущена."}
+        except urllib.error.HTTPError as exc:
+            return {"ok": False, "message": "GitHub не смог отдать установочный файл (HTTP " + str(exc.code) + ")."}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось установить SkyRealmStudio: " + str(exc)}
+
     def save_screenshot(self, data_url):
         """Save a validated PNG screenshot from the game canvas."""
         try:
