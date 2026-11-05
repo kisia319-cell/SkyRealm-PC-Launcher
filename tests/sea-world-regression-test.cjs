@@ -12,6 +12,14 @@ assert.match(sea,/const W = 360, H = 260/,'Sea map must be substantially larger'
 assert.match(sea,/length:2/,'Sharks must be rare by default');
 assert.match(sea,/state\.sharkSpawnTimer/,'Sharks must spawn only on a rare timer');
 assert.match(sea,/function upgradeShip\(\)/,'Players must be able to upgrade their ship');
+assert.match(sea,/const CAVE_ENTRANCE=\{x:309,y:214\}/,'Sea map must contain a discoverable underwater grotto');
+assert.match(sea,/const CAVE_ROOMS=\[/,'The underwater grotto must contain multiple rooms');
+assert.match(sea,/enemy:'Морской титан'/,'The final underwater grotto room must have its own boss');
+assert.match(sea,/function enterCave\(\)/,'Players must be able to enter the grotto while diving');
+assert.match(sea,/function attackCave\(\)/,'Players must be able to fight grotto enemies');
+assert.match(sea,/id="sea-cave-btn"/,'Sea UI must expose the nearby grotto entrance');
+assert.match(sea,/id="sea-cave-attack"/,'The grotto must expose its combat action');
+assert.match(sea,/state\.cave=ensureCaveState\(d\.cave\)/,'Grotto progress must migrate and persist in old sea saves');
 assert.match(game,/getGold:\(\)=>Math\.floor\(walletCents\/100\)/,'Sea upgrade bridge must expose the real gold balance');
 assert.match(game,/spendGold:amount=>/,'Sea upgrade bridge must safely spend real gold');
 assert.match(game,/spendItem:\(name,count=1\)=>/,'Sea upgrade bridge must spend actual inventory items');
