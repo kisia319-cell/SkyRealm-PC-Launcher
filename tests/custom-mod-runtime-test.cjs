@@ -6,7 +6,12 @@ const runtime=fs.readFileSync('game/custom-mods-runtime.js','utf8');
 const game=fs.readFileSync('game/game.js','utf8');
 const html=fs.readFileSync('game/index.html','utf8');
 new vm.Script(runtime,{filename:'custom-mods-runtime.js'});
-for(const id of ['script-mod-name','script-mod-language','script-mod-code','script-mod-test','script-mod-save','user-mods-list','open-script-mod-creator','import-user-mod']) assert.ok(html.includes('id="'+id+'"'),'Missing script mod UI: '+id);
+for(const id of ['user-mods-list','open-script-mod-creator','import-user-mod','studio-install-shade','studio-install-yes','studio-install-no']) assert.ok(html.includes('id="'+id+'"'),'Missing external Studio handoff UI: '+id);
+assert.ok(!html.includes('id="script-mod-studio"')&&!html.includes('id="script-mod-code"'),'The embedded code editor must be removed from the game.');
+assert.ok(html.includes('Вы нажали кнопку «Создать мод»')&&html.includes('нет приложения для создания модов SkyRealmStudio'),'The install prompt must explain why Studio is needed.');
+assert.ok(html.includes('Открыть SkyRealmStudio'),'The game button must launch the external application.');
+assert.ok(game.includes("nativeApi.check_mod_studio")&&game.includes("nativeApi.install_mod_studio()"),'The game must check and install Studio through the native launcher API.');
+assert.ok(runtime.includes("new CustomEvent('skyrealm:open-mod-studio')"),'Existing local mod editing must hand off to the external Studio.');
 assert.ok(html.includes('src="custom-mods-runtime.js"')&&html.includes('href="custom-mods.css"'));
 for(const fragment of ['sandbox','allow-scripts','worker-src blob:','onTick(context, state)','on_tick(context, state)','MAX_CODE=14000','MAX_ACTIVE=3','skyrealm-user-mod-host','event.source!==frame.contentWindow']) assert.ok(runtime.includes(fragment),'Missing runtime feature or isolation check: '+fragment);
 assert.ok(runtime.includes("PYODIDE_VERSION='0.29.5'"),'Python runtime version must be pinned.');
@@ -52,9 +57,5 @@ validateGeneratedWorker('javascript','function onTick(context,state){return {sta
 validateGeneratedWorker('python','def on_tick(context, state):\n    return {"state": state, "actions": []}\n');
 console.log('JavaScript/Python custom mod studio and generated worker syntax tests passed.');
 
-for(const id of ['script-mod-description','script-mod-template','script-mod-blank','script-mod-starter']) assert.ok(html.includes('id="'+id+'"'),'Missing Mod Studio workflow control: '+id);
-assert.ok(fs.readFileSync('game/custom-mods.css','utf8').includes('aspect-ratio:16/9'),'Mod Studio must use a 16:9 workspace on desktop.');
-assert.ok(html.includes('Начать с нуля')&&html.includes('Пустой файл — с нуля'),'A blank-from-scratch project must be available.');
-assert.ok(runtime.includes("event.key==='Tab'")&&runtime.includes("event.key==='Enter'")&&runtime.includes("event.key.toLowerCase()==='s'"),'Code editor must support indentation and keyboard shortcuts.');
-assert.ok(runtime.includes('description:safeText(m.description,140)'),'Mod descriptions must survive reload and editing.');
-assert.ok(runtime.includes('script-mod-template')&&runtime.includes('applyTemplate()'),'Language-specific starter templates must be selectable.');
+
+

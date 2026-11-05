@@ -75,6 +75,7 @@ jobs:
           node tests/adventure-history-test.cjs
           node tests/mod-workshop-test.cjs
           node tests/custom-mod-runtime-test.cjs
+          node tests/mod-studio-handoff-test.cjs
           node tests/farm-economy-test.cjs
           node tests/singleplayer-village-test.cjs
           node tests/multiplayer-core-test.cjs

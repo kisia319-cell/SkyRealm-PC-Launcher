@@ -4443,6 +4443,36 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.querySelectorAll('.main-menu-action,.action,.pause-button,.game-settings-tab').forEach(button=>button.addEventListener('click',()=>playSound('tap')));
   document.getElementById('menu-create-world').addEventListener('click',openWorldCreate);
   document.getElementById('menu-mods').addEventListener('click',openModsCatalog);
+  function setStudioInstallStatus(message,error=false){const node=document.getElementById('studio-install-status');if(node){node.textContent=message||'';node.classList.toggle('error',!!error);}}
+  function closeStudioInstallDialog(){const shade=document.getElementById('studio-install-shade');if(shade){shade.hidden=true;shade.setAttribute('aria-hidden','true');}}
+  function showStudioInstallDialog(){const shade=document.getElementById('studio-install-shade');if(!shade)return;setStudioInstallStatus('');shade.hidden=false;shade.setAttribute('aria-hidden','false');}
+  async function openSkyRealmStudio(){
+    const nativeApi=window.pywebview?.api;
+    if(!nativeApi?.check_mod_studio){showStudioInstallDialog();setStudioInstallStatus('Запусти игру через Windows-лаунчер SkyRealm, чтобы проверить приложение.',true);return;}
+    setStudioInstallStatus('Проверяем, установлена ли SkyRealmStudio…');
+    try{
+      const check=await nativeApi.check_mod_studio();
+      if(check?.installed){setStudioInstallStatus('Студия найдена. Запускаем…');const launched=await nativeApi.launch_mod_studio();if(!launched?.ok)throw new Error(launched?.message||'Не удалось запустить студию.');setStudioInstallStatus('SkyRealmStudio запущена.');return;}
+      showStudioInstallDialog();
+    }catch(error){showStudioInstallDialog();setStudioInstallStatus(error?.message||'Не удалось проверить приложение.',true);}
+  }
+  async function installSkyRealmStudio(){
+    const yes=document.getElementById('studio-install-yes'),no=document.getElementById('studio-install-no');
+    if(yes)yes.disabled=true;if(no)no.disabled=true;setStudioInstallStatus('Скачиваем SkyRealmStudio с официального GitHub-релиза. Это может занять несколько минут…');
+    try{
+      const result=await window.pywebview.api.install_mod_studio();
+      if(!result?.ok)throw new Error(result?.message||'Установка не завершилась.');
+      setStudioInstallStatus('Готово! SkyRealmStudio установлена и запущена.');
+      setTimeout(closeStudioInstallDialog,1400);
+    }catch(error){setStudioInstallStatus(error?.message||'Не удалось установить приложение. Проверь интернет и повтори попытку.',true);}
+    finally{if(yes)yes.disabled=false;if(no)no.disabled=false;}
+  }
+  document.getElementById('studio-install-yes')?.addEventListener('click',installSkyRealmStudio);
+  document.getElementById('studio-install-no')?.addEventListener('click',closeStudioInstallDialog);
+  document.getElementById('studio-install-shade')?.addEventListener('click',event=>{if(event.target===event.currentTarget)closeStudioInstallDialog();});
+  document.getElementById('open-script-mod-creator')?.addEventListener('click',openSkyRealmStudio);
+  window.addEventListener('skyrealm:open-mod-studio',openSkyRealmStudio);
+
   document.getElementById('close-mods-catalog').addEventListener('click',closeModsCatalog);
   document.getElementById('open-mod-creator')?.addEventListener('click',openModCreator);document.getElementById('close-mod-creator')?.addEventListener('click',closeModCreator);document.getElementById('community-mod-form')?.addEventListener('submit',publishCommunityMod);
    document.getElementById('world-search')?.addEventListener('input',renderWorldList);
@@ -4558,7 +4588,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     setTimeout(()=>{
       openModsCatalog();
       const requestedMod=launcherModParams.get('installMod');
-      if(requestedMod==='__creator__') { if(window.SkyRealmCustomMods?.openEditor)window.SkyRealmCustomMods.openEditor();else openModCreator(); return; }
+      if(requestedMod==='__creator__') { window.dispatchEvent(new CustomEvent('skyrealm:open-mod-studio')); return; }
       if(requestedMod&&MOD_CATALOG.some(mod=>mod.id===requestedMod)&&!isModInstalled(requestedMod))toggleMod(requestedMod);
     },350);
   }
