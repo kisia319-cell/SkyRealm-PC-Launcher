@@ -432,7 +432,7 @@
       const available=[];
       if(result.launcher_update_available)available.push('новый лаунчер');
       if(result.game_update_available)available.push('новая игра');
-      if(versions)versions.textContent=available.join(', ')||'нет';
+      if(versions)versions.textContent=result.game_version_state==='installed_newer'?'установлена более новая версия':(result.game_version_state==='unknown'?'не удалось сравнить версии':(available.join(', ')||'нет'));
       if(install)install.disabled=!result.game_update_available;
       $('#system-rollback').disabled=!result.rollback_available;
       const gameAhead=result.game_version_state==='installed_newer';
