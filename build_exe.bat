@@ -4,11 +4,11 @@ cd /d "%~dp0"
 title SkyRealm Launcher Builder
 set "VPY=%~dp0.venv\Scripts\python.exe"
 if not exist "%VPY%" (
-  echo [1/6] Creating Python 3.12 environment...
+  echo [1/5] Creating Python 3.12 environment...
   py -3.12 -m venv ".venv"
   if errorlevel 1 exit /b 1
 )
-echo [2/6] Installing launcher build dependencies...
+echo [2/5] Installing launcher build dependencies...
 "%VPY%" -m pip install --upgrade pip
 if errorlevel 1 exit /b 1
 "%VPY%" -m pip install pywebview pyinstaller
@@ -20,15 +20,15 @@ if exist "build_updater" rmdir /s /q "build_updater"
 if exist "build" rmdir /s /q "build"
 if exist "dist" rmdir /s /q "dist"
 echo [3/6] Building separate game runner...
-"%VPY%" -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealmGame --distpath "game_runner_dist" --workpath "build_game_runner\work" --specpath "build_game_runner" launcher.py
+"%VPY%" -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealmGame --distpath "game_runner_dist" --workpath "build_game_runner\work" --specpath "build_game_runner" launcher.py
 if errorlevel 1 exit /b 1
 if not exist "game_runner_dist\SkyRealmGame.exe" exit /b 1
 echo [4/6] Building standalone updater helper...
-"%VPY%" -m PyInstaller --noconfirm --clean --onefile --console --name SkyRealmUpdater --distpath "updater_dist" --workpath "build_updater\work" --specpath "build_updater" update_helper.py
+"%VPY%" -m PyInstaller --noconfirm --clean --onefile --console --noupx --name SkyRealmUpdater --distpath "updater_dist" --workpath "build_updater\work" --specpath "build_updater" update_helper.py
 if errorlevel 1 exit /b 1
 if not exist "updater_dist\SkyRealmUpdater.exe" exit /b 1
 echo [5/6] Building launcher with calendar and updater assets...
-"%VPY%" -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealm --icon "SkyRealm.ico" --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "config.js;." --add-data "launcher-enhancements.js;." --add-data "launcher-enhancements.css;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "game_runner_dist\SkyRealmGame.exe;bin" --add-data "updater_dist\SkyRealmUpdater.exe;bin" launcher.py
+"%VPY%" -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealm --icon "SkyRealm.ico" --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "config.js;." --add-data "launcher-enhancements.js;." --add-data "launcher-enhancements.css;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "game_runner_dist\SkyRealmGame.exe;bin" --add-data "updater_dist\SkyRealmUpdater.exe;bin" launcher.py
 if errorlevel 1 exit /b 1
 if not exist "dist\SkyRealm.exe" exit /b 1
 echo [6/6] Verifying bundled calendar and updater assets...
