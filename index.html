@@ -24,6 +24,7 @@
       <button class="nav-item" data-page="shop"><span class="nav-ico">◇</span><span>Магазин</span><span class="nav-soon">СКОРО</span></button>
       <button class="nav-item" data-page="mods"><span class="nav-ico">🧩</span><span>Моды</span><span class="nav-badge">8</span></button>
       <button class="nav-item" data-page="community"><span class="nav-ico">♧</span><span>Сообщество</span></button>
+      <button class="nav-item" data-page="calendar"><span class="nav-ico">▦</span><span>Календарь наград</span></button>
       <button class="nav-item" data-page="settings"><span class="nav-ico">⚙</span><span>Настройки</span></button>
     </nav>
 
@@ -33,7 +34,7 @@
       <div><b id="sidebar-status-label">Проверяем сервер</b><small>Облачная авторизация</small></div>
     </div>
     <button class="sidebar-help" type="button" data-page="news"><span>?</span> Помощь и ответы</button>
-    <div class="side-version">SKYREALM <b>v1.2.9</b> · GAME CENTER</div>
+    <div class="side-version">SKYREALM <b>v1.2.10</b> · GAME CENTER</div>
   </aside>
 
   <main class="main">
@@ -261,6 +262,22 @@
 <section class="social-chat" id="social-chat" hidden><div class="social-toolbar"><div><b id="social-chat-title">Личные сообщения</b><small>Переписка доступна только подтверждённым друзьям.</small></div><button class="secondary-btn" id="social-chat-close" type="button">Закрыть чат</button></div><div id="social-chat-messages" class="social-chat-messages" aria-live="polite"></div><form id="social-chat-form" class="social-search"><input id="social-chat-input" maxlength="1000" placeholder="Напиши сообщение…" autocomplete="off"><button class="primary-btn" type="submit">Отправить</button></form></section>
 <p class="social-footnote">Статус «в сети» обновляется по активности аккаунта. В карточке друга доступны чат и приглашение в активную комнату.</p>
 </div><div class="community-grid"><article class="community-card"><div class="community-icon">⚒</div><h2>Сообщить об ошибке</h2><p>Опиши, что случилось, и приложи журнал или скриншот.</p><a class="community-link" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/issues/new" target="_blank" rel="noreferrer">Создать обращение ↗</a></article><article class="community-card"><div class="community-icon">✧</div><h2>Предложить идею</h2><p>Расскажи, какие функции ты хочешь увидеть в игре или лаунчере.</p><a class="community-link" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/issues/new" target="_blank" rel="noreferrer">Предложить функцию ↗</a></article><article class="community-card"><div class="community-icon">↗</div><h2>Обновления проекта</h2><p>Просматривай исходный код, коммиты и опубликованные сборки.</p><a class="community-link" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases" target="_blank" rel="noreferrer">Все релизы ↗</a></article></div><a class="primary-btn news-register" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher" target="_blank" rel="noreferrer">Открыть репозиторий ↗</a></section>
+
+<section class="page inner-page calendar-page" id="page-calendar">
+  <div class="page-heading"><div><div class="section-kicker">SKYREALM · ЕЖЕДНЕВНЫЕ ПОДАРКИ</div><h1>Календарь <span>наград</span></h1><p>Заходи каждый день, забирай подарок и собирай серию входов. Календарь доступен прямо в лаунчере.</p></div></div>
+  <section class="daily-rewards-panel">
+    <div class="daily-rewards-top"><div><div class="section-kicker">ПОДАРОК КАЖДЫЙ ДЕНЬ</div><h2>Твои ежедневные награды</h2><p>Забирай жетоны лаунчера каждый день. За каждые 7 дней подряд начисляется +50 бонусных жетонов.</p></div><div class="daily-rewards-stats"><div><small>Баланс жетонов</small><b id="calendar-reward-balance">0</b></div><div><small>Дней подряд</small><b id="calendar-reward-streak">0</b></div></div></div>
+    <div class="daily-reward-month-label" id="calendar-reward-month"></div>
+    <div class="daily-reward-weekdays"><span>ПН</span><span>ВТ</span><span>СР</span><span>ЧТ</span><span>ПТ</span><span>СБ</span><span>ВС</span></div>
+    <div class="daily-reward-grid" id="calendar-reward-days"></div>
+    <div class="daily-rewards-claim-row"><div><b>Подарок за сегодняшний вход</b><p class="calendar-status" id="calendar-reward-status">Награда доступна один раз в сутки.</p></div><button class="primary-btn" id="calendar-claim-today" type="button">Забрать награду за сегодня</button></div>
+  </section>
+  <div class="page-heading calendar-events-heading"><div><div class="section-kicker">ТВОИ ПЛАНЫ</div><h2>События и игровые сессии</h2><p>Планируй испытания, встречи и личные события.</p></div></div>
+  <div class="calendar-layout">
+    <section class="calendar-panel"><div class="calendar-month-head"><button class="secondary-btn" id="calendar-prev" type="button">←</button><b id="calendar-month-label"></b><button class="secondary-btn" id="calendar-next" type="button">→</button></div><div class="calendar-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class="calendar-days" id="calendar-days"></div></section>
+    <section class="calendar-panel"><h2>Добавить событие</h2><label class="calendar-field">Название<input id="calendar-event-title" maxlength="70" placeholder="Например, вечер кооператива"></label><label class="calendar-field">Дата<input id="calendar-event-date" type="date"></label><label class="calendar-field">Тип<select id="calendar-event-type"><option value="session">Игровая сессия</option><option value="challenge">Испытание</option><option value="update">Обновление</option><option value="community">Событие сообщества</option></select></label><button class="primary-btn" id="calendar-event-add" type="button">Добавить в календарь</button><p class="calendar-status" id="calendar-status" aria-live="polite"></p><div class="calendar-event-list" id="calendar-event-list"></div></section>
+  </div>
+</section>
 
 <section class="page inner-page" id="page-settings"><div class="page-heading"><div class="section-kicker">ПОД ТЕБЯ</div><h1>Настройки <span>лаунчера</span></h1><p>Параметры интерфейса сохраняются на этом устройстве.</p></div><div class="settings-card"><div class="setting-row language-setting"><div><b id="language-title">Язык лаунчера</b><small id="language-subtitle">Выбери язык интерфейса. Доступны только два языка.</small></div><select id="language-select" aria-label="Язык лаунчера"><option value="ru">Русский</option><option value="en">English</option></select></div>
 <div class="settings-subheading"><span class="settings-subheading-icon">▣</span><div><b id="game-display-title">Настройки игры</b><small id="game-display-subtitle">Эти параметры применяются к окну игры SkyRealm.</small></div></div>
