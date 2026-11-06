@@ -9,9 +9,9 @@ const context={equipment:{weapon:'Деревянный меч',armor:'',helmet:'
 vm.runInNewContext(helper+';globalThis.resolve=armorSetBonuses;',context);
 assert.equal(context.resolve().name,'Нет полного комплекта');
 context.equipment={weapon:'Меч титана',armor:'Броня стража',helmet:'Шлем стража',boots:'Сапоги стража',amulet:'Амулет стража'};
-assert.deepEqual(JSON.parse(JSON.stringify(context.resolve())),{name:'Страж',guardian:true,mage:false,damage:1.10,defense:.10});
+assert.deepEqual(JSON.parse(JSON.stringify(context.resolve())),{name:'Страж',god:false,guardian:true,mage:false,damage:1.10,defense:.10});
 context.equipment={weapon:'Ледяной посох',armor:'Мантия мага',helmet:'Корона мага',boots:'Сапоги мага',amulet:'Амулет мага'};
-assert.deepEqual(JSON.parse(JSON.stringify(context.resolve())),{name:'Маг',guardian:false,mage:true,damage:1.20,defense:.06});
+assert.deepEqual(JSON.parse(JSON.stringify(context.resolve())),{name:'Маг',god:false,guardian:false,mage:true,damage:1.20,defense:.06});
 context.equipment.weapon='Меч дракона';
 assert.equal(context.resolve().damage,1,'Mage set bonus only applies to the ice staff');
 for(const name of ['Шлем стража','Сапоги стража','Корона мага','Сапоги мага','Амулет мага'])assert.ok(source.includes("name: '"+name+"'"),'Missing real inventory item '+name);

@@ -24,12 +24,13 @@ function body(name) {
   throw new Error('Unclosed function ' + name);
 }
 const menu = body('syncAdminMenu');
-assert.ok(menu.includes("currentStaffRole==='admin'||gameSettings.adminMode===true"));
-assert.ok(menu.includes("gameSettings.moderatorMode===true"));
+assert.ok(menu.includes("const admin=currentStaffRole==='admin'"));
+assert.ok(menu.includes("const moderator=admin||currentStaffRole==='moderator'"));
+assert.ok(menu.includes("currentStaffRole==='moderator'"));
 assert.ok(body('openAdminGate').includes('refreshStaffRole(true)'));
 assert.ok(body('openAdminGate').includes('gameSettings.adminMode===true&&!isCoopWorldActive()'));
 assert.ok(body('openAdminPanel').includes('staffSection.hidden=!serverAdmin'));
-assert.ok(body('openModeratorPanel').includes('gameSettings.moderatorMode===true&&!isCoopWorldActive()'));
+assert.ok(body('openModeratorPanel').includes("role!=='admin'&&role!=='moderator'"));
 assert.ok(body('openModeratorPanel').includes('refreshStaffRole(true)'));
 assert.ok(body('openAdminGate').includes("role!=='admin'"));
 assert.ok(body('openModeratorPanel').includes("role!=='admin'&&role!=='moderator'"));
@@ -40,7 +41,8 @@ assert.ok(game.includes('totalGameMinutesPlayed,survivedNights'));
 assert.ok(game.includes('d.totalGameMinutesPlayed'));
 assert.ok(body('giveResource').includes('admin-resource-custom'));
 assert.ok(body('giveResource').includes('9999999'));
-assert.ok(body('giveResource').includes('inventoryItems.push(item)'));
+assert.ok(body('giveResource').includes('inventoryItems.find'));
+assert.ok(body('giveResource').includes('Такого предмета нет в игровом каталоге'));
 assert.ok(html.includes('id="admin-resource-custom"'));
 assert.ok(html.includes('id="admin-item-suggestions"'));
 assert.ok(html.includes('id="admin-playtime-label"'));
