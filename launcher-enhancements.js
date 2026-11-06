@@ -435,7 +435,15 @@
       if(versions)versions.textContent=available.join(', ')||'нет';
       if(install)install.disabled=!result.game_update_available;
       $('#system-rollback').disabled=!result.rollback_available;
-      if(status)status.textContent=result.launcher_update_available?'Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.':(result.game_update_available?'Доступно обновление игры. Перед установкой закрой игру.':'Установлены последние версии.');
+      const gameAhead=result.game_version_state==='installed_newer';
+      const gameUnknown=result.game_version_state==='unknown';
+      if(status){
+        if(result.launcher_update_available)status.textContent='Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.';
+        else if(result.game_update_available)status.textContent='Доступно обновление игры. Перед установкой закрой игру.';
+        else if(gameAhead)status.textContent='У тебя установлена игра новее опубликованной версии ('+(result.game_version||'—')+' > '+(result.latest_game_version||'—')+'). Обновление и восстановление более старой версии заблокированы. Ожидается публикация свежего пакета.';
+        else if(gameUnknown)status.textContent='Не удалось корректно сравнить версии игры. Установка и восстановление заблокированы до исправления манифеста.';
+        else status.textContent='Установлены последние опубликованные версии.';
+      }
       $('#system-changelog').textContent=result.notes||'В манифесте нет описания этого релиза.';
       $('#system-release-link').href=result.release_url||'https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest';
       return result;
