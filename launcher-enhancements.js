@@ -405,14 +405,25 @@
     }catch(error){renderNotifications([],error.message||'Не удалось загрузить уведомления.');if(notificationCount)notificationCount.hidden=true;}
   }
   async function checkUpdates() {
-    const status=$('#system-update-message');if(status)status.textContent='Проверяем manifest и текущую установку…';
+    const status=$('#system-update-message');
+    const versions=$('#system-new-versions');
+    const install=$('#system-install-update');
+    if(status)status.textContent='Проверяем манифест и установленную версию…';
+    if(versions)versions.textContent='Проверка…';
+    if(install)install.disabled=true;
     try{
       let result=null;
-      if(window.pywebview?.api?.get_update_status)result=await window.pywebview.api.get_update_status();
-      else{
-        const response=await fetch(manifestUrl+'?ts='+Date.now(),{cache:'no-store'});
-        if(!response.ok)throw new Error('HTTP '+response.status);
-        const manifest=await response.json();result={ok:true,launcher_version:'предпросмотр',latest_launcher_version:manifest.version,game_version:'—',latest_game_version:manifest.game_version,launcher_update_available:false,game_update_available:false,rollback_available:false,notes:manifest.notes,release_url:'https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest'};
+      const api=window.pywebview?.api;
+      if(api?.get_update_status){
+        let timeoutId;
+        try{
+          result=await Promise.race([
+            api.get_update_status(),
+            new Promise((_,reject)=>{timeoutId=window.setTimeout(()=>reject(new Error('Локальная проверка лаунчера не ответила за 12 секунд.')),12000);})
+          ]);
+        }finally{if(timeoutId)window.clearTimeout(timeoutId);}
+      }else{
+        throw new Error('Локальный модуль проверки обновлений недоступен в этой сборке лаунчера.');
       }
       if(!result?.ok)throw new Error(result?.message||'Не удалось получить сведения об обновлении.');
       cachedUpdate=result;
@@ -421,14 +432,24 @@
       const available=[];
       if(result.launcher_update_available)available.push('новый лаунчер');
       if(result.game_update_available)available.push('новая игра');
-      $('#system-new-versions').textContent=available.join(', ')||'нет';
-      $('#system-install-update').disabled=!result.game_update_available;
+      if(versions)versions.textContent=available.join(', ')||'нет';
+      if(install)install.disabled=!result.game_update_available;
       $('#system-rollback').disabled=!result.rollback_available;
-      $('#system-update-message').textContent=result.launcher_update_available?'Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.':(result.game_update_available?'Доступно обновление игры. Перед установкой закрой игру.':'Установлены последние версии.');
+      if(status)status.textContent=result.launcher_update_available?'Доступен новый лаунчер. Он установится через встроенный механизм при следующем запуске.':(result.game_update_available?'Доступно обновление игры. Перед установкой закрой игру.':'Установлены последние версии.');
       $('#system-changelog').textContent=result.notes||'В манифесте нет описания этого релиза.';
       $('#system-release-link').href=result.release_url||'https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest';
       return result;
-    }catch(error){if(status)status.textContent=error.message||'Проверка обновлений не удалась.';return null;}
+    }catch(error){
+      const message=error?.message||'Проверка обновлений не удалась.';
+      if(versions)versions.textContent='Ошибка проверки';
+      if(status)status.textContent=message+' Нажми «Проверить обновления», чтобы повторить попытку.';
+      $('#system-launcher-version').textContent='—';
+      $('#system-game-version').textContent='—';
+      $('#system-changelog').textContent='Не удалось получить подтверждённые сведения о версиях.';
+      if(install)install.disabled=true;
+      cachedUpdate=null;
+      return null;
+    }
   }
   async function runUpdateAction(action,buttonId) {
     const button=$(buttonId),message=$('#system-update-message');
