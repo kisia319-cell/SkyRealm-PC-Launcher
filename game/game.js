@@ -45,9 +45,9 @@
   function bossRealmPortalUnlocked(){return bossRealmMode||survivedNights>=3;}
   function bossRealmPortalPosition(){return {x:28*TILE+16,y:26*TILE+16};}
 
-  let bossRealmState={kills:0,wave:1,elapsed:0,spawnTimer:0,eventTimer:65,eventName:'',eventId:'',eventRemaining:0,introSeen:false,defeatedBosses:[],defeatedGods:[]};
+  let bossRealmState={kills:0,wave:1,elapsed:0,spawnTimer:0,eventTimer:65,eventName:'',eventId:'',eventRemaining:0,introSeen:false,defeatedBosses:[],defeatedGods:[],dungeonSites:[]};
   let bossRealmInvisibleTimer=0,bossRealmInvisibilityCooldown=0,bossRealmDamageBoostTimer=0,bossRealmAbilityCooldown=0,bossRealmSprintTimer=0,bossRealmSprintCooldown=0;
-  let bossRealmHazard=null,bossRealmHazardCooldown=0,bossRealmJournalOpen=false;
+  let bossRealmHazard=null,bossRealmHazardCooldown=0,bossRealmJournalOpen=false,bossRealmWaveBannerTimer=0,bossRealmWaveBannerText='';
   const BOSS_REALM_CREATURES=Object.freeze({
     shadow_hunter:{name:'Теневой охотник',tier:'mob',hp:180,damage:13,speed:74,color:'#7652b7',eyes:'#ff5c9d',size:1.05,skill:'teleport'},
     stone_guardian:{name:'Каменный страж',tier:'mob',hp:420,damage:24,speed:28,color:'#77818c',eyes:'#f6bd64',size:1.25,skill:'slam'},
@@ -67,29 +67,37 @@
     end_knight:{name:'Рыцарь конца',tier:'boss',hp:8600,damage:72,speed:62,color:'#30394e',eyes:'#f5f2ff',size:2.2,skill:'knight'},
     astral_god:{name:'Астрал — Бог разрушения',tier:'god',hp:18500,damage:105,speed:45,color:'#6b4dcb',eyes:'#ffdf79',size:3.1,skill:'astral'},
     chronos_god:{name:'Хронос — Бог времени',tier:'god',hp:17000,damage:92,speed:52,color:'#397b9c',eyes:'#b8f4ff',size:3,skill:'chronos'}
+,
+
+    magma_behemoth:{name:"\u041f\u0435\u043f\u0435\u043b\u044c\u043d\u044b\u0439 \u0422\u0438\u0442\u0430\u043d",tier:'boss',hp:9800,damage:82,speed:32,color:'#873d26',eyes:'#ff7b35',size:2.9,skill:'slam'},
+    frost_empress:{name:"\u041b\u0435\u0434\u044f\u043d\u0430\u044f \u0418\u043c\u043f\u0435\u0440\u0430\u0442\u0440\u0438\u0446\u0430",tier:'boss',hp:10200,damage:74,speed:43,color:'#5d9fb9',eyes:'#baf8ff',size:2.75,skill:'volley'},
+    void_mirror:{name:"\u0417\u0435\u0440\u043a\u0430\u043b\u043e \u0411\u0435\u0437\u0434\u043d\u044b",tier:'boss',hp:11200,damage:88,speed:51,color:'#34234f',eyes:'#e9a7ff',size:2.8,skill:'teleport'},
+    worldbreaker_colossus:{name:"\u041a\u043e\u043b\u043e\u0441\u0441 \u0420\u0430\u0437\u0440\u0443\u0448\u0435\u043d\u043d\u043e\u0433\u043e \u041c\u0438\u0440\u0430",tier:'boss',hp:36000,damage:112,speed:24,color:'#626d80',eyes:'#ffd36d',size:4.15,skill:'roots'}
   });
-  const BOSS_REALM_EVENTS=[['meteor','Метеоритный дождь'],['horde','Нашествие бездны'],['blood_moon','Кровавая луна'],['awakening','Пробуждение древнего'],['rift','Разлом измерений'],['storm','Шторм богов']];
+  const BOSS_REALM_EVENTS=[["meteor","\u041c\u0435\u0442\u0435\u043e\u0440\u0438\u0442\u043d\u044b\u0439 \u0434\u043e\u0436\u0434\u044c"],["horde","\u0412\u0442\u043e\u0440\u0436\u0435\u043d\u0438\u0435 \u0447\u0443\u0434\u043e\u0432\u0438\u0449"],["blood_moon","\u041a\u0440\u043e\u0432\u0430\u0432\u0430\u044f \u043b\u0443\u043d\u0430"],["awakening","\u041f\u0440\u043e\u0431\u0443\u0436\u0434\u0435\u043d\u0438\u0435 \u0434\u0440\u0435\u0432\u043d\u0435\u0433\u043e"],["rift","\u0420\u0430\u0437\u043b\u043e\u043c \u0438\u0437\u043c\u0435\u0440\u0435\u043d\u0438\u0439"],["storm","\u0428\u0442\u043e\u0440\u043c \u0431\u043e\u0433\u043e\u0432"],["volcano","\u0418\u0437\u0432\u0435\u0440\u0436\u0435\u043d\u0438\u0435 \u043b\u0430\u0432\u043e\u0432\u043e\u0433\u043e \u0440\u0430\u0437\u043b\u043e\u043c\u0430"],["blizzard","\u041b\u0435\u0434\u044f\u043d\u0430\u044f \u0431\u0443\u0440\u044f"],["eclipse","\u0417\u0430\u0442\u043c\u0435\u043d\u0438\u0435 \u0431\u0435\u0437\u0434\u043d\u044b"],["time_rift","\u0420\u0430\u0437\u0440\u044b\u0432 \u0432\u0440\u0435\u043c\u0435\u043d\u0438"]];
   function bossRealmCreatureCount(){return monsters.filter(m=>m.bossRealmCreature&&m.hp>0).length;}
   function spawnBossRealmCreature(type,x,y){
     const d=BOSS_REALM_CREATURES[type];if(!bossRealmMode||!d||bossRealmCreatureCount()>=12)return false;
     if(!Number.isFinite(x)||!Number.isFinite(y)){const a=Math.random()*Math.PI*2,r=340+Math.random()*210;x=Math.max(64,Math.min(COLS*TILE-64,player.x+Math.cos(a)*r));y=Math.max(64,Math.min(ROWS*TILE-64,player.y+Math.sin(a)*r));}
     const hp=Math.round(d.hp*difficultyConfig().monsterHp);
-    monsters.push({id:newCoopEntityId(),type:'brute',realmType:type,bossRealmCreature:true,bossTitle:d.name,x,y,hp,maxHp:hp,speed:d.speed,damageScale:difficultyConfig().monsterDamage,phase:Math.random()*6.28,flash:0,attackCooldown:1,specialCooldown:3+Math.random()*3,telegraphTimer:0,telegraphActive:false,phaseStage:1,action:'idle',actionTimer:0,shield:0,rage:0,animation:Math.random()*6});
+    monsters.push({id:newCoopEntityId(),type:'brute',realmType:type,bossRealmCreature:true,bossTitle:d.name,x,y,hp,maxHp:hp,speed:d.speed,damageScale:difficultyConfig().monsterDamage,phase:Math.random()*6.28,flash:0,attackCooldown:1,specialCooldown:3+Math.random()*3,telegraphTimer:0,telegraphActive:false,phaseStage:1,action:'idle',actionTimer:0,shield:0,rage:0,animation:Math.random()*6,raidCrystalCount:type==='worldbreaker_colossus'?3:0});
     return true;
   }
   function ensureBossRealmPopulation(){if(!bossRealmMode)return;if(bossRealmCreatureCount())return;[['shadow_hunter',-190],['stone_guardian',-90],['cursed_skull',0],['rift_wolf',90],['venom_beetle',190]].forEach(([t,x])=>spawnBossRealmCreature(t,player.x+x,player.y-210));}
   function bossRealmHurtPlayer(amount,label,color){if(bossRealmInvisibleTimer>0||immortal||dodgeTimer>0)return;const eventBonus=bossRealmState.eventId==='blood_moon'?1.25:1;const n=Math.max(1,Math.round(amount*eventBonus*(1-armorReduction())));player.hp=Math.max(0,player.hp-n);spawnVisualBurst(player.x,player.y,18,'spark',color||'#ff6688');updateVitals();toast(label+' · −'+n+' HP');if(player.hp<=0)respawnPlayerAfterDefeat();}
-  function startBossRealmEvent(){const e=BOSS_REALM_EVENTS[Math.floor(Math.random()*BOSS_REALM_EVENTS.length)];bossRealmState.eventId=e[0];bossRealmState.eventName=e[1];bossRealmState.eventRemaining=32;bossRealmHazard=null;bossRealmHazardCooldown=1.2;toast('СОБЫТИЕ: '+e[1]+'!');if(['horde','rift'].includes(e[0]))['shadow_hunter','rift_wolf','ash_spirit','cursed_skull'].forEach(t=>spawnBossRealmCreature(t));if(e[0]==='awakening')spawnBossRealmCreature('ancient_devourer');if(e[0]==='storm')spawnBossRealmCreature('rift_warden');spawnVisualBurst(player.x,player.y,32,'spark','#b78cff');}
+  function startBossRealmEvent(){const e=BOSS_REALM_EVENTS[Math.floor(Math.random()*BOSS_REALM_EVENTS.length)];bossRealmState.eventId=e[0];bossRealmState.eventName=e[1];bossRealmState.eventRemaining=32;bossRealmHazard=null;bossRealmHazardCooldown=1.2;toast('СОБЫТИЕ: '+e[1]+'!');if(['horde','rift'].includes(e[0]))['shadow_hunter','rift_wolf','ash_spirit','cursed_skull'].forEach(t=>spawnBossRealmCreature(t));if(e[0]==='awakening')spawnBossRealmCreature('ancient_devourer');if(e[0]==='storm')spawnBossRealmCreature('rift_warden');if(e[0]==='volcano')spawnBossRealmCreature('magma_behemoth');if(e[0]==='blizzard')spawnBossRealmCreature('frost_empress');if(e[0]==='time_rift')spawnBossRealmCreature('void_mirror');spawnVisualBurst(player.x,player.y,32,'spark','#b78cff');}
   function recordBossRealmDefeat(m){
     if(!bossRealmMode||!m?.bossRealmCreature||m.bossRealmDefeatRecorded)return false;
     m.bossRealmDefeatRecorded=true;
     bossRealmState.kills=Math.min(100000,Math.max(0,Math.floor(Number(bossRealmState.kills)||0))+1);
     const d=BOSS_REALM_CREATURES[m.realmType];if(!d)return true;
+    handleBossRealmDungeonDefeat(m);
     const tier=d.tier;
     if(tier==='boss'&&!bossRealmState.defeatedBosses.includes(m.realmType)){bossRealmState.defeatedBosses.push(m.realmType);toast('ГЛАВАРЬ ПОБЕЖДЁН: '+d.name+'!');}
     if(tier==='god'&&!bossRealmState.defeatedGods.includes(m.realmType)){bossRealmState.defeatedGods.push(m.realmType);toast('БОГ ПОВЕРЖЕН: '+d.name+'!');}
     const coop=isCoopWorldActive(),canReward=!coop||window.SkyRealmCoopClient?.isRoomOwner;
     if(canReward){
+      const relicName=BOSS_REALM_RELIC_BY_BOSS[m.realmType];if(relicName){const relic=inventoryItems.find(item=>item.name===relicName);if(relic&&relic.count<1){changeItem(relicName,1);toast('ЛЕГЕНДАРНАЯ РЕЛИКВИЯ: '+relicName+' · пассивный эффект активирован!');}}
       const crystals=tier==='god'?6+Math.floor(Math.random()*3):tier==='boss'?3+Math.floor(Math.random()*3):tier==='elite'?1+Math.floor(Math.random()*2):Math.random()<.12?1:0;
       const gold=tier==='god'?25000:tier==='boss'?10000:tier==='elite'?2500:0;
       if(crystals>0){if(coop)spawnSharedLoot(m.x,m.y,[{name:'Кристалл',count:crystals}],'surface');else if(lootDrops.length<80)lootDrops.push({x:m.x+(Math.random()-.5)*42,y:m.y+(Math.random()-.5)*40,name:'Кристалл',count:crystals,life:240,phase:Math.random()*6.28});}
@@ -109,7 +117,7 @@
       if(tier==='god'&&equipment.armor!=='Нагрудник Бога'){equipment.armor='Нагрудник Бога';toast('Нагрудник Бога получен · защита +90%!');}
     }
     if(tier==='boss'||tier==='god')spawnVisualBurst(m.x,m.y,tier==='god'?58:42,'spark',d.eyes);
-    bossRealmState.wave=Math.max(1,Math.floor(bossRealmState.kills/5)+1);
+    const nextWave=Math.max(1,Math.min(100,Math.floor(bossRealmState.kills/5)+1));if(nextWave>bossRealmState.wave){bossRealmState.wave=nextWave;bossRealmWaveBannerTimer=3.6;bossRealmWaveBannerText='ВОЛНА '+nextWave;const pack=['shadow_hunter','rift_wolf','ash_spirit','venom_beetle'];for(let i=0;i<4;i++)spawnBossRealmCreature(pack[(i+nextWave)%pack.length]);if(nextWave%4===0)spawnBossRealmCreature(['abyss_general','blood_berserker','rift_warden','soul_devourer'][nextWave%4]);spawnVisualBurst(player.x,player.y,32,'spark','#a88aff');toast('НАЧАЛАСЬ ВОЛНА '+nextWave+' · враги стали опаснее!');}else bossRealmState.wave=nextWave;
     saveGame();return true;
   }
   function bossRealmSpecial(m,d,dist){
@@ -124,15 +132,31 @@
   }
   function updateBossRealmEnemies(dt){
     const step=Number.isFinite(dt)?Math.max(0,Math.min(.1,dt)):0;
-    bossRealmState.elapsed+=step;bossRealmState.spawnTimer-=step;bossRealmState.eventTimer-=step;bossRealmState.eventRemaining=Math.max(0,bossRealmState.eventRemaining-step);
+    for(const site of (bossRealmState.dungeonSites||[])){if(site.active&&site.remaining===0&&!monsters.some(m=>m.realmDungeonFinal&&m.realmDungeonId===site.id&&m.hp>0)){if(spawnBossRealmDungeonFinal(site,1.2+Math.min(.35,site.rematches*.08)))toast(site.name+' · хранитель вышел на арену!');}}
+    bossRealmState.elapsed+=step;bossRealmState.spawnTimer-=step;bossRealmState.eventTimer-=step;bossRealmState.eventRemaining=Math.max(0,bossRealmState.eventRemaining-step);bossRealmWaveBannerTimer=Math.max(0,bossRealmWaveBannerTimer-step);
     if(bossRealmState.eventRemaining<=0){bossRealmState.eventName='';bossRealmState.eventId='';bossRealmHazard=null;}
     if(bossRealmState.eventTimer<=0){startBossRealmEvent();bossRealmState.eventTimer=110+Math.random()*50;}
-    if(['meteor','storm'].includes(bossRealmState.eventId)){
+    if(['meteor','storm','volcano'].includes(bossRealmState.eventId)){
       bossRealmHazardCooldown=Math.max(0,bossRealmHazardCooldown-step);
       if(!bossRealmHazard&&bossRealmHazardCooldown<=0&&bossRealmState.eventRemaining>1.05){const a=Math.random()*Math.PI*2,r=120+Math.random()*170;bossRealmHazard={x:Math.max(TILE,Math.min(COLS*TILE-TILE,player.x+Math.cos(a)*r)),y:Math.max(TILE,Math.min(ROWS*TILE-TILE,player.y+Math.sin(a)*r)),timer:1.05,kind:bossRealmState.eventId};bossRealmHazardCooldown=bossRealmState.eventId==='storm'?3.8:2.6;}
       if(bossRealmHazard){bossRealmHazard.timer=Math.max(0,bossRealmHazard.timer-step);if(bossRealmHazard.timer<=0){const h=bossRealmHazard;bossRealmHazard=null;spawnVisualBurst(h.x,h.y,h.kind==='storm'?38:30,'spark',h.kind==='storm'?'#83dfff':'#ff9b55');if(Math.hypot(player.x-h.x,player.y-h.y)<72)bossRealmHurtPlayer(h.kind==='storm'?46:36,h.kind==='storm'?'Молния Шторма богов':'Падающий метеорит',h.kind==='storm'?'#83dfff':'#ff9b55');}}
     }else if(bossRealmHazard){bossRealmHazard=null;bossRealmHazardCooldown=0;}
-    if(bossRealmState.kills>=8&&!monsters.some(m=>m.bossRealmCreature&&['boss','god'].includes(BOSS_REALM_CREATURES[m.realmType]?.tier))){const available=['abyss_king','rift_dragon','ancient_devourer','end_knight'].filter(id=>!bossRealmState.defeatedBosses.includes(id));if(available.length)spawnBossRealmCreature(available[Math.floor(Math.random()*available.length)]);else if(bossRealmState.kills>=22&&bossRealmState.defeatedBosses.length>=4){const gods=['astral_god','chronos_god'].filter(id=>!bossRealmState.defeatedGods.includes(id));if(gods.length)spawnBossRealmCreature(gods[Math.floor(Math.random()*gods.length)]);}}
+    const majorBossPresent=monsters.some(m=>m.bossRealmCreature&&['boss','god'].includes(BOSS_REALM_CREATURES[m.realmType]?.tier));
+    if(bossRealmState.kills>=8&&!majorBossPresent){
+      const mainBosses=['abyss_king','rift_dragon','ancient_devourer','end_knight'];
+      const secretBosses=['magma_behemoth','frost_empress','void_mirror'];
+      const mainLeft=mainBosses.filter(id=>!bossRealmState.defeatedBosses.includes(id));
+      const secretLeft=secretBosses.filter(id=>!bossRealmState.defeatedBosses.includes(id));
+      let nextBoss=null;
+      if(mainLeft.length)nextBoss=mainLeft[Math.floor(Math.random()*mainLeft.length)];
+      else if(bossRealmState.kills>=18&&secretLeft.length)nextBoss=secretLeft[Math.floor(Math.random()*secretLeft.length)];
+      else if(bossRealmState.kills>=26&&secretLeft.length===0){
+        const gods=['astral_god','chronos_god'].filter(id=>!bossRealmState.defeatedGods.includes(id));
+        if(gods.length)nextBoss=gods[Math.floor(Math.random()*gods.length)];
+        else if(bossRealmState.kills>=42&&!bossRealmState.defeatedBosses.includes('worldbreaker_colossus'))nextBoss='worldbreaker_colossus';
+      }
+      if(nextBoss)spawnBossRealmCreature(nextBoss);
+    }
     if(bossRealmState.spawnTimer<=0&&bossRealmCreatureCount()<12){const pool=['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit'];spawnBossRealmCreature(pool[Math.floor(Math.random()*pool.length)]);if(bossRealmState.kills>=5&&Math.random()<.3)spawnBossRealmCreature(['abyss_general','blood_berserker','rift_warden','soul_devourer'][Math.floor(Math.random()*4)]);bossRealmState.spawnTimer=10+Math.random()*5;}
     for(const m of monsters){if(!m.bossRealmCreature)continue;const d=BOSS_REALM_CREATURES[m.realmType];if(!d)continue;
       // Repair incomplete/legacy enemy records before any combat calculations.
@@ -148,7 +172,7 @@
       if(!Number.isFinite(m.rage))m.rage=0;
       if(!Number.isFinite(m.phaseStage))m.phaseStage=1;
       if(!Number.isFinite(m.telegraphTimer))m.telegraphTimer=0;
-      m.telegraphActive=!!m.telegraphActive;
+      m.telegraphActive=!!m.telegraphActive;if(!Number.isFinite(m.raidCrystalCount))m.raidCrystalCount=0;
       m.flash=Math.max(0,(Number(m.flash)||0)-step);m.attackCooldown=Math.max(0,m.attackCooldown-step);m.specialCooldown=Math.max(0,m.specialCooldown-step);m.actionTimer=Math.max(0,m.actionTimer-step);m.telegraphTimer=Math.max(0,m.telegraphTimer-step);m.rage=Math.max(0,m.rage-step);m.animation=(Number(m.animation)||0)+step*8;
       if(m.hp<=0)continue;
       const dist=Math.hypot(player.x-m.x,player.y-m.y)||1,ratio=m.hp/m.maxHp;
@@ -161,6 +185,190 @@
     }
     if(bossRealmState.kills>=5)bossRealmState.wave=Math.max(2,Math.floor(bossRealmState.kills/5)+1);
   }
+
+  const BOSS_REALM_RELIC_BY_BOSS = {
+    magma_behemoth:'\u0421\u0435\u0440\u0434\u0446\u0435 \u041f\u0435\u043f\u043b\u0430', frost_empress:'\u041a\u043e\u0440\u043e\u043d\u0430 \u041c\u043e\u0440\u043e\u0437\u0430', void_mirror:'\u0417\u0435\u0440\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u041f\u0440\u0438\u0437\u043c\u0430',
+    rift_dragon:'\u0427\u0435\u0448\u0443\u044f \u0420\u0430\u0437\u043b\u043e\u043c\u043d\u043e\u0433\u043e \u0414\u0440\u0430\u043a\u043e\u043d\u0430', abyss_king:'\u041f\u0435\u0447\u0430\u0442\u044c \u0411\u0435\u0437\u0434\u043d\u044b',
+    ancient_devourer:'\u041a\u043e\u0440\u0435\u043d\u044c \u0414\u0440\u0435\u0432\u043d\u0435\u0433\u043e \u041f\u043e\u0436\u0438\u0440\u0430\u0442\u0435\u043b\u044f', end_knight:'\u0417\u043d\u0430\u043a \u0420\u044b\u0446\u0430\u0440\u044f \u041a\u043e\u043d\u0446\u0430',
+    astral_god:'\u0410\u0441\u0442\u0440\u0430\u043b\u044c\u043d\u044b\u0439 \u041e\u0440\u0435\u043e\u043b', chronos_god:'\u041f\u0435\u0441\u043e\u0447\u043d\u044b\u0435 \u0427\u0430\u0441\u044b \u0425\u0440\u043e\u043d\u043e\u0441\u0430',
+    worldbreaker_colossus:'\u042f\u0434\u0440\u043e \u0420\u0430\u0437\u0440\u0443\u0448\u0438\u0442\u0435\u043b\u044f \u041c\u0438\u0440\u043e\u0432'
+  };
+  function bossRealmRelicTotals(){
+    const count=name=>Math.max(0,Number(inventoryItems.find(item=>item.name===name)?.count)||0);
+    return {
+      damage:Math.min(.55,count('\u0421\u0435\u0440\u0434\u0446\u0435 \u041f\u0435\u043f\u043b\u0430')*.07+count('\u0417\u0435\u0440\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u041f\u0440\u0438\u0437\u043c\u0430')*.04+count('\u041f\u0435\u0447\u0430\u0442\u044c \u0411\u0435\u0437\u0434\u043d\u044b')*.06+count('\u0417\u043d\u0430\u043a \u0420\u044b\u0446\u0430\u0440\u044f \u041a\u043e\u043d\u0446\u0430')*.06+count('\u0410\u0441\u0442\u0440\u0430\u043b\u044c\u043d\u044b\u0439 \u041e\u0440\u0435\u043e\u043b')*.08+count('\u041f\u0435\u0441\u043e\u0447\u043d\u044b\u0435 \u0427\u0430\u0441\u044b \u0425\u0440\u043e\u043d\u043e\u0441\u0430')*.04+count('\u042f\u0434\u0440\u043e \u0420\u0430\u0437\u0440\u0443\u0448\u0438\u0442\u0435\u043b\u044f \u041c\u0438\u0440\u043e\u0432')*.12),
+      defense:Math.min(.22,count('\u041a\u043e\u0440\u043e\u043d\u0430 \u041c\u043e\u0440\u043e\u0437\u0430')*.04+count('\u0427\u0435\u0448\u0443\u044f \u0420\u0430\u0437\u043b\u043e\u043c\u043d\u043e\u0433\u043e \u0414\u0440\u0430\u043a\u043e\u043d\u0430')*.05+count('\u041a\u043e\u0440\u0435\u043d\u044c \u0414\u0440\u0435\u0432\u043d\u0435\u0433\u043e \u041f\u043e\u0436\u0438\u0440\u0430\u0442\u0435\u043b\u044f')*.05+count('\u041f\u0435\u0441\u043e\u0447\u043d\u044b\u0435 \u0427\u0430\u0441\u044b \u0425\u0440\u043e\u043d\u043e\u0441\u0430')*.03+count('\u042f\u0434\u0440\u043e \u0420\u0430\u0437\u0440\u0443\u0448\u0438\u0442\u0435\u043b\u044f \u041c\u0438\u0440\u043e\u0432')*.05),
+      crit:Math.min(.1,count('\u0417\u0435\u0440\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u041f\u0440\u0438\u0437\u043c\u0430')*.04)
+    };
+  }
+  function bossRealmArenaTheme(){
+    const active=monsters.find(m=>m.bossRealmCreature&&m.hp>0&&['boss','god'].includes(BOSS_REALM_CREATURES[m.realmType]?.tier));
+    const id=active?.realmType||'';
+    if(['magma_behemoth','rift_dragon','abyss_king','worldbreaker_colossus'].includes(id))return 'infernal';
+    if(id==='frost_empress')return 'glacier';
+    if(['ancient_devourer','void_mirror'].includes(id))return 'blood';
+    if(['astral_god','chronos_god'].includes(id))return 'astral';
+    return ['infernal','glacier','blood','astral'][(Math.max(1,bossRealmState.wave)-1)%4];
+  }
+  function ensureBossRealmDungeonSites(){
+    if(!bossRealmMode)return [];
+    if(!Array.isArray(bossRealmState.dungeonSites)||bossRealmState.dungeonSites.length!==2){
+      const clamp=(v,max)=>Math.max(TILE*5,Math.min(max-TILE*5,v));
+      bossRealmState.dungeonSites=[
+        {id:'forge',name:'\u041f\u0435\u043f\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u0443\u0437\u043d\u044f',bossId:'magma_behemoth',x:clamp(player.x-TILE*22,COLS*TILE),y:clamp(player.y+TILE*13,ROWS*TILE),active:false,complete:false,remaining:0,rematches:0},
+        {id:'temple',name:'\u0425\u0440\u0430\u043c \u0432\u0435\u0447\u043d\u043e\u0441\u0442\u0438',bossId:'void_mirror',x:clamp(player.x+TILE*22,COLS*TILE),y:clamp(player.y-TILE*13,ROWS*TILE),active:false,complete:false,remaining:0,rematches:0}
+      ];
+      saveGame();
+    }
+    return bossRealmState.dungeonSites;
+  }
+  function spawnBossRealmDungeonFinal(site,multiplier=1.2){
+    if(!site||!spawnBossRealmCreature(site.bossId,site.x,site.y))return false;
+    const mob=monsters[monsters.length-1];mob.realmDungeonId=site.id;mob.realmDungeonFinal=true;mob.realmDungeonMultiplier=multiplier;
+    mob.maxHp=Math.round(mob.maxHp*multiplier);mob.hp=mob.maxHp;mob.damageScale*=Math.min(1.5,1+(multiplier-1)*.35);return true;
+  }
+  function handleBossRealmDungeonDefeat(m){
+    if(!m?.realmDungeonId)return;
+    const site=ensureBossRealmDungeonSites().find(v=>v.id===m.realmDungeonId);if(!site)return;
+    if(m.realmDungeonFinal){site.active=false;site.complete=true;site.remaining=0;toast(site.name+' \u043e\u0447\u0438\u0449\u0435\u043d\u043e! \u041d\u0430\u0436\u043c\u0438 E \u0443 \u0430\u043b\u0442\u0430\u0440\u044f \u0434\u043b\u044f \u0443\u0441\u0438\u043b\u0435\u043d\u043d\u043e\u0433\u043e \u043f\u043e\u0432\u0442\u043e\u0440\u043d\u043e\u0433\u043e \u0431\u043e\u044f.');return;}
+    if(!site.active)return;
+    site.remaining=Math.max(0,(Number(site.remaining)||0)-1);
+    if(site.remaining===0){
+      if(!spawnBossRealmDungeonFinal(site,1.2+Math.min(.35,site.rematches*.08))){site.remaining=0;}
+      else toast('\u041f\u0435\u0447\u0430\u0442\u0438 \u0440\u0430\u0437\u0440\u0443\u0448\u0435\u043d\u044b. \u0412 \u0433\u043b\u0443\u0431\u0438\u043d\u0435 \u043f\u0440\u043e\u0441\u043d\u0443\u043b\u0441\u044f \u0445\u0440\u0430\u043d\u0438\u0442\u0435\u043b\u044c!');
+    }
+  }
+  function interactBossRealmDungeonSite(){
+    if(!bossRealmMode)return false;
+    const site=ensureBossRealmDungeonSites().find(v=>Math.hypot(player.x-v.x,player.y-v.y)<118);
+    if(!site)return false;
+    if(site.active){toast('\u0418\u0441\u043f\u044b\u0442\u0430\u043d\u0438\u0435 \u0443\u0436\u0435 \u0438\u0434\u0451\u0442 \u2014 \u043f\u043e\u0431\u0435\u0434\u0438 \u0432\u0441\u0435\u0445 \u0441\u0442\u0440\u0430\u0436\u0435\u0439.');return true;}
+    if(bossRealmCreatureCount()>8){toast('\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043f\u043e\u0431\u0435\u0434\u0438 \u0447\u0430\u0441\u0442\u044c \u0441\u0443\u0449\u0435\u0441\u0442\u0432 \u0440\u044f\u0434\u043e\u043c, \u0447\u0442\u043e\u0431\u044b \u043e\u0441\u0432\u043e\u0431\u043e\u0434\u0438\u0442\u044c \u043c\u0435\u0441\u0442\u043e \u0434\u043b\u044f \u0438\u0441\u043f\u044b\u0442\u0430\u043d\u0438\u044f.');return true;}
+    if(site.complete){
+      site.rematches=Math.min(50,(site.rematches||0)+1);site.active=true;
+      if(!spawnBossRealmDungeonFinal(site,Math.min(2.6,1.45+site.rematches*.18))){site.active=false;toast('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u0440\u043e\u0431\u0443\u0434\u0438\u0442\u044c \u0445\u0440\u0430\u043d\u0438\u0442\u0435\u043b\u044f. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439 \u0435\u0449\u0451 \u0440\u0430\u0437.');}
+      else toast('\u041f\u041e\u0412\u0422\u041e\u0420\u041d\u042b\u0419 \u0411\u041e\u0419 \xb7 '+site.name+' \xb7 \u0441\u0438\u043b\u0430 \u0445\u0440\u0430\u043d\u0438\u0442\u0435\u043b\u044f \xd7'+(1.45+site.rematches*.18).toFixed(2));
+    }else{
+      site.active=true;site.remaining=3;
+      const pack=site.id==='forge'?['ash_spirit','stone_guardian','blood_berserker']:['rift_archer','cursed_skull','rift_warden'];
+      for(let i=0;i<pack.length;i++)if(spawnBossRealmCreature(pack[i],site.x+(i-1)*74,site.y+45))monsters[monsters.length-1].realmDungeonId=site.id;
+      toast(site.name+' \u043e\u0442\u043a\u0440\u044b\u0442\u0430! \u041f\u043e\u0431\u0435\u0434\u0438 \u0442\u0440\u0451\u0445 \u0441\u0442\u0440\u0430\u0436\u0435\u0439, \u0437\u0430\u0442\u0435\u043c \u0445\u0440\u0430\u043d\u0438\u0442\u0435\u043b\u044f.');
+    }
+    saveGame();return true;
+  }
+  function drawBossRealmAwakeningArena(camX,camY,time){
+    const theme=bossRealmArenaTheme();
+    const active=monsters.find(m=>m.bossRealmCreature&&m.hp>0&&['boss','god'].includes(BOSS_REALM_CREATURES[m.realmType]?.tier));
+    const wx=active?active.x:player.x+Math.cos(time/2400)*120,wy=active?active.y:player.y-150;
+    const x=wx-camX,y=wy-camY;
+    ctx.save();
+    if(x>-360&&x<width+360&&y>-320&&y<height+320){
+      if(theme==='infernal'){
+        const pulse=.5+.5*Math.sin(time/260);
+        ctx.translate(x,y+34);
+        ctx.fillStyle='#08080d';ctx.beginPath();ctx.ellipse(0,24,190,79,.02,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#4d2020';ctx.lineWidth=15;ctx.beginPath();ctx.ellipse(0,21,176,67,-.04,0,Math.PI*2);ctx.stroke();
+        const lava=ctx.createRadialGradient(-18,-8,8,0,22,164);lava.addColorStop(0,'#ffcf63');lava.addColorStop(.28,'#ff6a22');lava.addColorStop(.7,'#c52f19');lava.addColorStop(1,'#45121b');
+        ctx.fillStyle=lava;ctx.beginPath();ctx.ellipse(0,23,158,52,.01,0,Math.PI*2);ctx.fill();
+        for(let i=0;i<8;i++){const a=i*.785,rr=85+(i%3)*24;ctx.strokeStyle=i%2?'#ffbd50':'#ff4a20';ctx.globalAlpha=.55+.3*pulse;ctx.lineWidth=4+(i%2)*2;ctx.beginPath();ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr*.32+23);ctx.quadraticCurveTo(Math.cos(a+.18)*130,Math.sin(a+.18)*70+23,Math.cos(a+.4)*190,Math.sin(a+.4)*82+23);ctx.stroke();}
+        for(let i=0;i<6;i++){const bx=Math.sin(time/450+i*2.1)*110,by=12+Math.cos(time/390+i)*17;ctx.fillStyle='#ffe8a0';ctx.globalAlpha=.6+.4*Math.sin(time/170+i);ctx.beginPath();ctx.arc(bx,by,2+(i%3),0,Math.PI*2);ctx.fill();}
+        ctx.globalAlpha=1;ctx.restore();ctx.save();ctx.translate(x,y);
+        for(let i=0;i<5;i++){const a=i*1.25+time/850,ex=Math.cos(a)*205,ey=Math.sin(a)*88;ctx.fillStyle='#17151e';ctx.beginPath();ctx.moveTo(ex-17,ey+24);ctx.lineTo(ex-9,ey-32-(i%2)*24);ctx.lineTo(ex+2,ey-48-(i%2)*22);ctx.lineTo(ex+12,ey-19);ctx.lineTo(ex+24,ey+24);ctx.closePath();ctx.fill();ctx.strokeStyle='#ff7936';ctx.lineWidth=2;ctx.stroke();}
+      }else if(theme==='glacier'){
+        ctx.translate(x,y+20);ctx.fillStyle='rgba(16,48,72,.72)';ctx.beginPath();ctx.ellipse(0,25,178,66,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#8deaff';ctx.globalAlpha=.55;ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(0,21,165,55,0,0,Math.PI*2);ctx.stroke();
+        for(let i=0;i<11;i++){const a=i*.57+time/1900,rr=115+(i%3)*24,px=Math.cos(a)*rr,py= Math.sin(a)*rr*.34;ctx.fillStyle='#9cecff';ctx.globalAlpha=.3+.3*Math.sin(time/240+i);ctx.beginPath();ctx.moveTo(px-10,py+25);ctx.lineTo(px,py-42-(i%3)*13);ctx.lineTo(px+9,py+25);ctx.closePath();ctx.fill();}
+        ctx.globalAlpha=1;
+      }else if(theme==='blood'){
+        ctx.translate(x,y+30);ctx.fillStyle='#100b18';ctx.beginPath();ctx.ellipse(0,19,174,62,-.03,0,Math.PI*2);ctx.fill();const blood=ctx.createRadialGradient(0,12,5,0,19,160);blood.addColorStop(0,'#b52f50');blood.addColorStop(.7,'#6e1739');blood.addColorStop(1,'#260f25');ctx.fillStyle=blood;ctx.beginPath();ctx.ellipse(0,17,151,43,-.03,0,Math.PI*2);ctx.fill();
+        for(let i=0;i<6;i++){const a=i*1.047+time/1800,px=Math.cos(a)*190,py=Math.sin(a)*66;ctx.fillStyle='#28202e';ctx.fillRect(px-12,py-56,24,82);ctx.fillStyle='#9b526b';ctx.fillRect(px-16,py-58,32,7);ctx.globalAlpha=.5+.3*Math.sin(time/240+i);ctx.strokeStyle='#f16b86';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(px,py+12,18+Math.sin(time/170+i)*4,5,0,0,Math.PI*2);ctx.stroke();}
+        ctx.globalAlpha=1;
+      }else{
+        ctx.translate(x,y+12);ctx.strokeStyle='#a9a0ff';ctx.lineWidth=4;ctx.globalAlpha=.45+.2*Math.sin(time/250);ctx.shadowColor='#9e91ff';ctx.shadowBlur=22;ctx.beginPath();ctx.ellipse(0,18,172,62,time/2200,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.ellipse(0,18,125,42,-time/1900,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+        for(let i=0;i<9;i++){const a=time/900+i*Math.PI*2/9,px=Math.cos(a)*190,py=18+Math.sin(a)*68;ctx.fillStyle=i%2?'#c9c3ff':'#ffe6a6';ctx.beginPath();ctx.moveTo(px,py-15);ctx.lineTo(px+7,py);ctx.lineTo(px,py+15);ctx.lineTo(px-7,py);ctx.closePath();ctx.fill();}
+        ctx.shadowBlur=0;
+      }
+    }
+    ctx.restore();
+    if(theme==='glacier'){
+      ctx.save();for(let i=0;i<28;i++){const px=(i*97+time*(.018+(i%4)*.004))%(width+30)-15,py=(i*53+time*(.025+(i%5)*.006))%(height+20)-10;ctx.globalAlpha=.22+.35*(i%4)/4;ctx.fillStyle='#d9f8ff';ctx.beginPath();ctx.arc(px,py,1+(i%3)*.6,0,Math.PI*2);ctx.fill();}ctx.restore();
+    }else if(theme==='infernal'){
+      ctx.save();for(let i=0;i<18;i++){const px=(i*83+time*(.025+(i%3)*.009))%(width+20)-10,py=(height-(i*59+time*(.04+(i%4)*.007))%(height+20));ctx.globalAlpha=.2+.35*(i%3)/3;ctx.fillStyle=i%2?'#ffb04b':'#ff5b30';ctx.beginPath();ctx.arc(px,py,1.5+(i%3),0,Math.PI*2);ctx.fill();}ctx.restore();
+    }
+    const sites=ensureBossRealmDungeonSites();
+    for(const site of sites){
+      const sx=site.x-camX,sy=site.y-camY;if(sx<-90||sx>width+90||sy<-100||sy>height+100)continue;
+      const pulse=.5+.5*Math.sin(time/260+(site.id==='forge'?0:1.4)),color=site.complete?'#8ce9bd':site.id==='forge'?'#ff9b54':'#92eaff';
+      ctx.save();ctx.translate(sx,sy);ctx.fillStyle='#080b15bb';ctx.beginPath();ctx.ellipse(0,20,47,15,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#302d43';ctx.fillRect(-34,-19,12,43);ctx.fillRect(22,-19,12,43);ctx.fillRect(-39,-25,78,10);
+      ctx.strokeStyle=color;ctx.lineWidth=4;ctx.shadowColor=color;ctx.shadowBlur=17+12*pulse;ctx.beginPath();ctx.ellipse(0,-3,22,34,0,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle=site.active?'#3b203b':'#111b30';ctx.beginPath();ctx.ellipse(0,-3,16,27,0,0,Math.PI*2);ctx.fill();
+      for(let i=0;i<4;i++){const a=time/700+i*Math.PI/2;ctx.fillStyle=color;ctx.globalAlpha=.6+.4*pulse;ctx.beginPath();ctx.arc(Math.cos(a)*29,Math.sin(a)*26-3,3,0,Math.PI*2);ctx.fill();}
+      ctx.globalAlpha=1;ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff';ctx.shadowBlur=5;ctx.fillText(site.name,0,-47);ctx.font='bold 9px Segoe UI';ctx.fillStyle=color;ctx.fillText(site.complete?'E \xb7 \u041f\u041e\u0412\u0422\u041e\u0420\u041d\u042b\u0419 \u0411\u041e\u0419':site.active?'\u0418\u0421\u041f\u042b\u0422\u0410\u041d\u0418\u0415 \u0418\u0414\u0401\u0422':'E \xb7 \u0412\u041e\u0419\u0422\u0418',0,48);ctx.restore();
+    }
+  }
+  function drawBossRealmAwakeningCreature(m,x,y,time,d,z){
+    const tier=d.tier,elite=tier!=='mob',pulse=.5+.5*Math.sin(time/170+m.phase),blink=Math.sin(time/1050+m.phase*3)>0.992?.22:1;
+    ctx.save();
+    if(elite){
+      // Animated layered mantle, shoulder plates, engraved chest and limb joints.
+      ctx.globalAlpha=.9;ctx.fillStyle='#090b19';ctx.beginPath();ctx.moveTo(-10,-5);ctx.quadraticCurveTo(-20,12,-25,35+Math.sin(time/120+m.phase)*4);ctx.lineTo(0,24);ctx.lineTo(25,35-Math.sin(time/120+m.phase)*4);ctx.quadraticCurveTo(20,12,10,-5);ctx.closePath();ctx.fill();
+      ctx.globalAlpha=1;ctx.fillStyle='#b9a6d7';ctx.strokeStyle=d.eyes;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-10,-7);ctx.lineTo(-22,-13);ctx.lineTo(-17,-2);ctx.lineTo(-8,2);ctx.closePath();ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(10,-7);ctx.lineTo(22,-13);ctx.lineTo(17,-2);ctx.lineTo(8,2);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.strokeStyle=d.eyes;ctx.globalAlpha=.7;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(-7,1);ctx.lineTo(0,10);ctx.lineTo(7,1);ctx.moveTo(0,10);ctx.lineTo(0,19);ctx.stroke();ctx.globalAlpha=1;
+    }
+    // Distinct, layered eyes with iris, pupil, reflected highlights and animated blink.
+    const eyeY=-19,eyeX=d.size>2?7:6,eyeR=d.size>2?5.3:3.3;
+    for(const side of [-1,1]){
+      ctx.save();ctx.translate(side*eyeX,eyeY);ctx.scale(1,blink);
+      ctx.fillStyle='#080711';ctx.beginPath();ctx.ellipse(0,0,eyeR+2,eyeR+1.7,0,0,Math.PI*2);ctx.fill();
+      ctx.shadowColor=d.eyes;ctx.shadowBlur=gameSettings.graphicsQuality==='low'?0:18;ctx.fillStyle=d.eyes;ctx.beginPath();ctx.ellipse(0,0,eyeR,eyeR*.78,0,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;ctx.fillStyle='#10101b';ctx.beginPath();ctx.ellipse(.8,.2,eyeR*.32,eyeR*.65,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-eyeR*.3,-eyeR*.3,Math.max(1,eyeR*.22),0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+    ctx.strokeStyle='#171322';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-13,-25);ctx.lineTo(-4,-23);ctx.moveTo(4,-23);ctx.lineTo(13,-25);ctx.stroke();
+    if(m.phaseStage>=2){ctx.strokeStyle=d.eyes;ctx.globalAlpha=.45+.35*pulse;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-3,31+pulse*4,Math.PI*.08,Math.PI*.92);ctx.stroke();ctx.globalAlpha=1;}
+    if(m.realmType==='abyss_king'){
+      ctx.fillStyle='#27203c';ctx.strokeStyle='#d4b76f';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-16,-27);ctx.lineTo(-18,-48);ctx.lineTo(-7,-38);ctx.lineTo(0,-54);ctx.lineTo(8,-38);ctx.lineTo(19,-48);ctx.lineTo(16,-27);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.fillStyle='#ff6eae';ctx.shadowColor='#ff6eae';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(0,-39,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      ctx.strokeStyle='#a88acb';ctx.lineWidth=2;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(-18+i*18,11);ctx.lineTo(-10+i*10,23);ctx.stroke();}
+    }else if(m.realmType==='rift_dragon'){
+      const flap=Math.sin(time/115+m.phase)*12;
+      for(const side of [-1,1]){ctx.fillStyle='#3c2026';ctx.strokeStyle='#e98c58';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(side*7,-2);ctx.quadraticCurveTo(side*25,-31-flap,side*42,-37-flap);ctx.lineTo(side*31,-4);ctx.lineTo(side*13,12);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#f3a16a';ctx.beginPath();ctx.moveTo(side*14,2);ctx.lineTo(side*37,-31-flap);ctx.stroke();}
+      ctx.fillStyle='#ef8f58';ctx.beginPath();ctx.ellipse(0,-9,11,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#20101a';ctx.fillRect(-4,-7,8,3);
+      ctx.strokeStyle='#ffb75d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-8,-25);ctx.lineTo(-17,-40);ctx.moveTo(8,-25);ctx.lineTo(17,-40);ctx.stroke();
+    }else if(m.realmType==='ancient_devourer'){
+      for(let i=0;i<6;i++){const side=i%2?1:-1,yy=-2+(i%3)*8,wave=Math.sin(time/180+i+m.phase)*8;ctx.strokeStyle=i%2?'#9bd46b':'#567b3d';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(side*8,yy);ctx.bezierCurveTo(side*25,yy-18+wave,side*(34+wave),yy+18,side*(42+wave),yy-7);ctx.stroke();ctx.fillStyle=d.eyes;ctx.beginPath();ctx.arc(side*(42+wave),yy-7,2.5,0,Math.PI*2);ctx.fill();}
+      ctx.fillStyle='#16131d';ctx.beginPath();ctx.ellipse(0,5,12,10,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#c9ff76';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(0,5,8,0,Math.PI*2);ctx.stroke();
+    }else if(m.realmType==='end_knight'){
+      ctx.fillStyle='#9aa7b8';ctx.strokeStyle='#e8e2cf';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-14,-12);ctx.lineTo(-11,-31);ctx.lineTo(0,-38);ctx.lineTo(11,-31);ctx.lineTo(14,-12);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.fillStyle='#171d2b';ctx.fillRect(-10,-22,20,5);ctx.fillStyle=d.eyes;ctx.fillRect(-7,-21,5,2);ctx.fillRect(2,-21,5,2);
+      ctx.strokeStyle='#d8dfeb';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(19,-3);ctx.lineTo(30,22);ctx.stroke();ctx.strokeStyle='#f3d889';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(13,5);ctx.lineTo(25,-1);ctx.stroke();
+    }else if(m.realmType==='astral_god'){
+      ctx.strokeStyle='#ffdf92';ctx.lineWidth=2;ctx.shadowColor='#ffdf92';ctx.shadowBlur=16;ctx.beginPath();ctx.ellipse(0,-24,27,8,time/1400,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.ellipse(0,-24,12,31,-time/1800,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+      for(let i=0;i<5;i++){const a=time/600+i*1.256;ctx.fillStyle=i%2?'#fff0bd':'#a9f4ff';ctx.beginPath();ctx.arc(Math.cos(a)*34,-19+Math.sin(a)*23,1.6,0,Math.PI*2);ctx.fill();}
+    }else if(m.realmType==='chronos_god'){
+      ctx.strokeStyle='#b9f1ff';ctx.lineWidth=2.5;ctx.shadowColor='#73dfff';ctx.shadowBlur=15;ctx.beginPath();ctx.arc(0,-20,31,time/1200,time/1200+Math.PI*1.8);ctx.stroke();ctx.shadowBlur=0;
+      ctx.strokeStyle='#f5d98c';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-20,18,0,Math.PI*2);ctx.moveTo(0,-20);ctx.lineTo(Math.sin(time/700)*8,-31-Math.cos(time/700)*8);ctx.moveTo(0,-20);ctx.lineTo(9*Math.cos(time/1300),-20+9*Math.sin(time/1300));ctx.stroke();
+      for(let i=0;i<4;i++){const a=-time/850+i*Math.PI/2;ctx.fillStyle='#8cecff';ctx.beginPath();ctx.moveTo(Math.cos(a)*39,Math.sin(a)*25-20);ctx.lineTo(Math.cos(a)*48,Math.sin(a)*32-20);ctx.lineTo(Math.cos(a)*39+3,Math.sin(a)*25-14);ctx.closePath();ctx.fill();}
+    }else if(m.realmType==='magma_behemoth'||m.realmType==='worldbreaker_colossus'){
+      ctx.fillStyle='#272532';ctx.strokeStyle='#ff8a46';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-19,-7);ctx.lineTo(-16,-31);ctx.lineTo(-7,-24);ctx.lineTo(0,-39);ctx.lineTo(8,-24);ctx.lineTo(17,-31);ctx.lineTo(20,-7);ctx.closePath();ctx.fill();ctx.stroke();
+      for(let i=0;i<5;i++){const xx=-12+i*6;ctx.strokeStyle=i%2?'#ffbd59':'#ff5c2f';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(xx,0);ctx.lineTo(xx+Math.sin(time/200+i)*3,17);ctx.stroke();}
+      ctx.fillStyle='#ffb65a';ctx.shadowColor='#ff6a2b';ctx.shadowBlur=13;ctx.beginPath();ctx.arc(0,4,5+Math.sin(time/130)*1.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    }else if(m.realmType==='frost_empress'){
+      ctx.fillStyle='#d5f5ff';ctx.strokeStyle='#6fd5f1';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-18,-25);ctx.lineTo(-21,-49);ctx.lineTo(-9,-39);ctx.lineTo(-2,-56);ctx.lineTo(6,-39);ctx.lineTo(20,-49);ctx.lineTo(16,-24);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.strokeStyle='#b7f8ff';ctx.lineWidth=3;for(let side of [-1,1]){ctx.beginPath();ctx.moveTo(side*11,-4);ctx.lineTo(side*28,9+Math.sin(time/170)*4);ctx.lineTo(side*20,24);ctx.stroke();}
+      ctx.fillStyle='#e8fdff';ctx.beginPath();ctx.arc(0,-2,4,0,Math.PI*2);ctx.fill();
+    }else if(m.realmType==='void_mirror'){
+      ctx.fillStyle='#100d20';ctx.strokeStyle='#d59cff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-14,-28);ctx.lineTo(0,-43);ctx.lineTo(14,-28);ctx.lineTo(13,17);ctx.lineTo(-13,17);ctx.closePath();ctx.fill();ctx.stroke();
+      for(let i=0;i<5;i++){const a=time/450+i*Math.PI*2/5;ctx.save();ctx.translate(Math.cos(a)*34,Math.sin(a)*23-10);ctx.rotate(a);ctx.fillStyle='#c89eff';ctx.globalAlpha=.55+.35*pulse;ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(5,0);ctx.lineTo(0,7);ctx.lineTo(-5,0);ctx.closePath();ctx.fill();ctx.restore();}
+      ctx.fillStyle='#fff';ctx.shadowColor=d.eyes;ctx.shadowBlur=20;ctx.fillRect(-3,-18,6,2);ctx.shadowBlur=0;
+    }
+    if(m.raidCrystalCount>0){
+      for(let i=0;i<m.raidCrystalCount;i++){const a=time/430+i*Math.PI*2/3,px=Math.cos(a)*49,py=-13+Math.sin(a)*27;ctx.save();ctx.translate(px,py);ctx.rotate(a);ctx.fillStyle='#ffe49a';ctx.strokeStyle='#fff6cb';ctx.lineWidth=1.5;ctx.shadowColor='#ffd46c';ctx.shadowBlur=15;ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,0);ctx.lineTo(0,9);ctx.lineTo(-6,0);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();}
+    }
+    if(m.action==='cast'||m.telegraphActive){ctx.strokeStyle=d.eyes;ctx.globalAlpha=.5+.4*pulse;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,39+pulse*8,time/300,time/300+Math.PI*1.55);ctx.stroke();}
+    ctx.restore();
+  }
+
   function drawBossRealmCreature(m,x,y,time){
     const d=BOSS_REALM_CREATURES[m.realmType];if(!d)return;const z=d.size,w=Math.sin(m.animation||time/100)*3,cast=m.actionTimer>0;
     ctx.save();ctx.translate(x,y);ctx.scale(z,z);
@@ -188,6 +396,7 @@
     else if(['abyss_king','astral_god','chronos_god'].includes(m.realmType)){ctx.strokeStyle=d.eyes;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-16,-29);ctx.lineTo(-12,-41);ctx.lineTo(-4,-31);ctx.lineTo(0,-44);ctx.lineTo(5,-31);ctx.lineTo(13,-41);ctx.lineTo(17,-29);ctx.stroke();ctx.fillStyle=d.eyes;ctx.beginPath();ctx.arc(0,-4,3,0,Math.PI*2);ctx.fill();}
     else if(m.realmType==='rift_dragon'){ctx.fillStyle=d.color;ctx.beginPath();ctx.moveTo(-10,-3);ctx.lineTo(-34,-25);ctx.lineTo(-25,8);ctx.lineTo(-10,12);ctx.moveTo(10,-3);ctx.lineTo(34,-25);ctx.lineTo(25,8);ctx.lineTo(10,12);ctx.fill();ctx.strokeStyle='#f0a17a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-5,-23);ctx.lineTo(-13,-36);ctx.moveTo(5,-23);ctx.lineTo(13,-36);ctx.stroke();}
     if(m.action==='dash'&&m.actionTimer>0){ctx.strokeStyle=d.eyes;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-25,0);ctx.lineTo(-43,9);ctx.moveTo(25,0);ctx.lineTo(43,9);ctx.stroke();}
+    drawBossRealmAwakeningCreature(m,x,y,time,d,z);
     ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='900 '+(d.tier==='god'?12:10)+'px Segoe UI';ctx.fillStyle=d.tier==='god'?'#ffe8a3':d.tier==='boss'?'#f5c6ff':'#f4edff';ctx.shadowColor='#080812';ctx.shadowBlur=5;ctx.fillText(d.name,x,y-42*z);ctx.fillStyle='#1b1528';ctx.fillRect(x-24*z,y-34*z,48*z,4);ctx.fillStyle=d.eyes;ctx.fillRect(x-24*z,y-34*z,48*z*Math.max(0,m.hp/m.maxHp),4);ctx.restore();
   }
   function bossRealmAbilityDamageMultiplier(){return bossRealmDamageBoostTimer>0?1.5:1;}
@@ -196,18 +405,17 @@
   function useBossRealmSprint(){if(!bossRealmMode){toast('Способность доступна в Мире боссов.');return;}if(bossRealmSprintCooldown>0){toast('Сверхрывок перезаряжается: '+Math.ceil(bossRealmSprintCooldown)+' сек.');return;}bossRealmSprintTimer=5.5;bossRealmSprintCooldown=20;spawnVisualBurst(player.x,player.y,30,'spark','#77f4ff');toast('СВЕРХРЫВОК · скорость ×2,5 на 5,5 секунды');}
   function drawBossRealmHud(){
     if(!bossRealmMode)return;
-    ctx.save();ctx.fillStyle='rgba(13,10,30,.88)';ctx.strokeStyle='#8d72d7';ctx.beginPath();ctx.roundRect(width/2-150,15,300,bossRealmState.eventName?56:38,12);ctx.fill();ctx.stroke();ctx.textAlign='center';ctx.font='900 11px Segoe UI';ctx.fillStyle='#e7d9ff';ctx.fillText('МИР БОССОВ · ВОЛНА '+bossRealmState.wave,width/2,31);if(bossRealmState.eventName){ctx.font='bold 10px Segoe UI';ctx.fillStyle='#ffd88b';ctx.fillText(bossRealmState.eventName+' · '+Math.ceil(bossRealmState.eventRemaining)+' сек.',width/2,51);}ctx.restore();
-    ctx.save();ctx.textAlign='right';ctx.font='bold 10px Segoe UI';let y=78;const line=(label,value,color)=>{ctx.fillStyle=color;ctx.fillText(label+' · '+value,width-18,y);y+=15;};
+    ctx.save();ctx.fillStyle='rgba(13,10,30,.88)';ctx.strokeStyle='#8d72d7';ctx.beginPath();ctx.roundRect(width/2-150,15,300,bossRealmState.eventName?56:38,12);ctx.fill();ctx.stroke();ctx.textAlign='center';ctx.font='900 11px Segoe UI';ctx.fillStyle='#e7d9ff';ctx.fillText('МИР БОССОВ · ВОЛНА '+bossRealmState.wave,width/2,31);if(bossRealmState.eventName){ctx.font='bold 10px Segoe UI';ctx.fillStyle='#ffd88b';ctx.fillText(bossRealmState.eventName+' · '+Math.ceil(bossRealmState.eventRemaining)+' сек.',width/2,51);}ctx.restore();if(bossRealmWaveBannerTimer>0){ctx.save();ctx.textAlign='center';ctx.font='1000 22px Segoe UI';ctx.fillStyle='#fff0bd';ctx.shadowColor='#9c6bff';ctx.shadowBlur=22;ctx.fillText(bossRealmWaveBannerText,width/2,height*.24);ctx.font='bold 10px Segoe UI';ctx.fillStyle='#e0d6ff';ctx.fillText('ПЯТЬ ПОБЕД ДЛЯ СЛЕДУЮЩЕЙ ВОЛНЫ',width/2,height*.24+20);ctx.restore();}ctx.save();ctx.textAlign='right';ctx.font='bold 10px Segoe UI';let y=78;const line=(label,value,color)=>{ctx.fillStyle=color;ctx.fillText(label+' · '+value,width-18,y);y+=15;};
     line('V Невидимость',bossRealmInvisibleTimer>0?bossRealmInvisibleTimer.toFixed(1)+'с':bossRealmInvisibilityCooldown>0?'КД '+Math.ceil(bossRealmInvisibilityCooldown)+'с':'ГОТОВО','#a9f1ff');
     line('B +50% урона',bossRealmDamageBoostTimer>0?bossRealmDamageBoostTimer.toFixed(1)+'с':bossRealmAbilityCooldown>0?'КД '+Math.ceil(bossRealmAbilityCooldown)+'с':'ГОТОВО','#ffe08b');
     line('N Сверхрывок ×2,5',bossRealmSprintTimer>0?bossRealmSprintTimer.toFixed(1)+'с':bossRealmSprintCooldown>0?'КД '+Math.ceil(bossRealmSprintCooldown)+'с':'ГОТОВО','#83f2ff');
-    line('Убийства',bossRealmState.kills,'#e8ddff');line('Главари',bossRealmState.defeatedBosses.length+'/4','#ffb6db');line('Боги',bossRealmState.defeatedGods.length+'/2','#ffe49c');line('O Журнал',bossRealmJournalOpen?'ОТКРЫТ':'ПОСМОТРЕТЬ','#9deaff');ctx.restore();
+    line('Убийства',bossRealmState.kills,'#e8ddff');line('Главари',bossRealmState.defeatedBosses.length+'/8','#ffb6db');line('Боги',bossRealmState.defeatedGods.length+'/2','#ffe49c');line('O Журнал',bossRealmJournalOpen?'ОТКРЫТ':'ПОСМОТРЕТЬ','#9deaff');ctx.restore();
     if(bossRealmJournalOpen){
-      const panelW=Math.min(360,width-32),panelH=270,panelX=16,panelY=Math.max(72,height-panelH-18);
+      const panelW=Math.min(360,width-32),panelH=Math.min(370,height-90),panelX=16,panelY=Math.max(72,height-panelH-18);
       ctx.save();ctx.fillStyle='rgba(8,10,25,.94)';ctx.strokeStyle='#8d72d7';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(panelX,panelY,panelW,panelH,13);ctx.fill();ctx.stroke();ctx.textAlign='left';ctx.font='900 12px Segoe UI';ctx.fillStyle='#e7d9ff';ctx.fillText('ЖУРНАЛ МИРА БОССОВ',panelX+16,panelY+23);
-      ctx.font='bold 10px Segoe UI';ctx.fillStyle='#d9caff';ctx.fillText('Убийств: '+bossRealmState.kills+'   ·   Волна: '+bossRealmState.wave,panelX+16,panelY+43);
+      ctx.font='bold 10px Segoe UI';ctx.fillStyle='#d9caff';ctx.fillText('Убийств: '+bossRealmState.kills+'   ·   Волна: '+bossRealmState.wave+'   ·   до следующей: '+(5-bossRealmState.kills%5),panelX+16,panelY+43);
       let py=panelY+66;ctx.font='900 10px Segoe UI';ctx.fillStyle='#ffb6db';ctx.fillText('ГЛАВАРИ',panelX+16,py);py+=19;
-      for(const id of ['abyss_king','rift_dragon','ancient_devourer','end_knight']){const defeated=bossRealmState.defeatedBosses.includes(id);ctx.font='bold 10px Segoe UI';ctx.fillStyle=defeated?'#83e6a1':'#d5d2e6';ctx.fillText((defeated?'✓ ':'○ ')+BOSS_REALM_CREATURES[id].name,panelX+19,py);py+=17;}
+      for(const id of ['abyss_king','rift_dragon','ancient_devourer','end_knight','magma_behemoth','frost_empress','void_mirror','worldbreaker_colossus']){const defeated=bossRealmState.defeatedBosses.includes(id);ctx.font='bold 10px Segoe UI';ctx.fillStyle=defeated?'#83e6a1':'#d5d2e6';ctx.fillText((defeated?'✓ ':'○ ')+BOSS_REALM_CREATURES[id].name,panelX+19,py);py+=17;}
       py+=5;ctx.font='900 10px Segoe UI';ctx.fillStyle='#ffe49c';ctx.fillText('БОГИ',panelX+16,py);py+=19;
       for(const id of ['astral_god','chronos_god']){const defeated=bossRealmState.defeatedGods.includes(id);ctx.font='bold 10px Segoe UI';ctx.fillStyle=defeated?'#83e6a1':'#d5d2e6';ctx.fillText((defeated?'✓ ':'○ ')+BOSS_REALM_CREATURES[id].name,panelX+19,py);py+=17;}
       ctx.textAlign='right';ctx.font='9px Segoe UI';ctx.fillStyle='#9ea7c6';ctx.fillText('Нажми O, чтобы закрыть',panelX+panelW-14,panelY+panelH-12);ctx.restore();
@@ -643,6 +851,21 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     { name: 'Рыба', icon: '🐟', count: 0, description: 'Свежая рыба с озера. Можно продать охотнику или съесть, чтобы восстановить 12 голода.' },
     { name: 'Жемчуг', icon: '🦪', count: 0, description: 'Редкая находка во время рыбалки. Хорошо ценится охотником.' },
     ...resourceItems];
+  // Boss Realm: ten persistent legendary passive relics.
+  const BOSS_REALM_RELICS = [
+    {name:"\u0421\u0435\u0440\u0434\u0446\u0435 \u041f\u0435\u043f\u043b\u0430",icon:"\ud83d\udd25",count:0,description:"\u0423\u0440\u043e\u043d \u043e\u0440\u0443\u0436\u0438\u044f +7%. \u0420\u0435\u043b\u0438\u043a\u0432\u0438\u044f \u041f\u0435\u043f\u0435\u043b\u044c\u043d\u043e\u0433\u043e \u0422\u0438\u0442\u0430\u043d\u0430."},
+    {name:"\u041a\u043e\u0440\u043e\u043d\u0430 \u041c\u043e\u0440\u043e\u0437\u0430",icon:"\ud83d\udc51",count:0,description:"\u0417\u0430\u0449\u0438\u0442\u0430 +4%. \u0420\u0435\u043b\u0438\u043a\u0432\u0438\u044f \u041b\u0435\u0434\u044f\u043d\u043e\u0439 \u0418\u043c\u043f\u0435\u0440\u0430\u0442\u0440\u0438\u0446\u044b."},
+    {name:"\u0417\u0435\u0440\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u041f\u0440\u0438\u0437\u043c\u0430",icon:"\ud83d\udca0",count:0,description:"\u0423\u0440\u043e\u043d +4%, \u0448\u0430\u043d\u0441 \u043a\u0440\u0438\u0442\u0438\u0447\u0435\u0441\u043a\u043e\u0433\u043e \u0443\u0434\u0430\u0440\u0430 +4%."},
+    {name:"\u0427\u0435\u0448\u0443\u044f \u0420\u0430\u0437\u043b\u043e\u043c\u043d\u043e\u0433\u043e \u0414\u0440\u0430\u043a\u043e\u043d\u0430",icon:"\ud83d\udc09",count:0,description:"\u0417\u0430\u0449\u0438\u0442\u0430 +5%."},
+    {name:"\u041f\u0435\u0447\u0430\u0442\u044c \u0411\u0435\u0437\u0434\u043d\u044b",icon:"\ud83c\udf11",count:0,description:"\u0423\u0440\u043e\u043d \u043e\u0440\u0443\u0436\u0438\u044f +6%."},
+    {name:"\u041a\u043e\u0440\u0435\u043d\u044c \u0414\u0440\u0435\u0432\u043d\u0435\u0433\u043e \u041f\u043e\u0436\u0438\u0440\u0430\u0442\u0435\u043b\u044f",icon:"\ud83c\udf3f",count:0,description:"\u0417\u0430\u0449\u0438\u0442\u0430 +5%."},
+    {name:"\u0417\u043d\u0430\u043a \u0420\u044b\u0446\u0430\u0440\u044f \u041a\u043e\u043d\u0446\u0430",icon:"\u2694\ufe0f",count:0,description:"\u0423\u0440\u043e\u043d \u043e\u0440\u0443\u0436\u0438\u044f +6%."},
+    {name:"\u0410\u0441\u0442\u0440\u0430\u043b\u044c\u043d\u044b\u0439 \u041e\u0440\u0435\u043e\u043b",icon:"\u2728",count:0,description:"\u0423\u0440\u043e\u043d \u043e\u0440\u0443\u0436\u0438\u044f +8%."},
+    {name:"\u041f\u0435\u0441\u043e\u0447\u043d\u044b\u0435 \u0427\u0430\u0441\u044b \u0425\u0440\u043e\u043d\u043e\u0441\u0430",icon:"\u231b",count:0,description:"\u0423\u0440\u043e\u043d +4%, \u0437\u0430\u0449\u0438\u0442\u0430 +3%."},
+    {name:"\u042f\u0434\u0440\u043e \u0420\u0430\u0437\u0440\u0443\u0448\u0438\u0442\u0435\u043b\u044f \u041c\u0438\u0440\u043e\u0432",icon:"\ud83d\udc8e",count:0,description:"\u0423\u0440\u043e\u043d +12%, \u0437\u0430\u0449\u0438\u0442\u0430 +5%."}
+  ];
+  for (const relic of BOSS_REALM_RELICS) if (!inventoryItems.some(item => item.name === relic.name)) inventoryItems.push({...relic});
+
   const starterItemCounts = inventoryItems.map(item => ({name:item.name,count:item.count}));
 
   function normalizeGameSettings(value = {}) {
@@ -1542,6 +1765,9 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       for(let i=0;i<7;i++){const x=hash(i+Math.floor(time/90),127)*width,y=hash(i+Math.floor(time/90),239)*height;ctx.strokeStyle='#ffb36b';ctx.lineWidth=2;ctx.globalAlpha=.65;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-18,y+25);ctx.stroke();}ctx.globalAlpha=1;
     }
     if(bossRealmHazard){const hx=bossRealmHazard.x-camX,hy=bossRealmHazard.y-camY;if(hx>-90&&hx<width+90&&hy>-90&&hy<height+90){const pulse=.5+.5*Math.sin(time/75);ctx.save();ctx.globalAlpha=.65+.25*pulse;ctx.strokeStyle=bossRealmHazard.kind==='storm'?'#8ce8ff':'#ff9b55';ctx.fillStyle=bossRealmHazard.kind==='storm'?'rgba(65,180,255,.13)':'rgba(255,105,55,.13)';ctx.lineWidth=3;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=16;ctx.beginPath();ctx.arc(hx,hy,34+pulse*5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(hx,hy,44+Math.sin(time/55)*3,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff';ctx.fillText('УДАР '+bossRealmHazard.timer.toFixed(1)+'с',hx,hy-52);ctx.restore();}}
+    if(['eclipse','time_rift'].includes(bossRealmState.eventId)){ctx.save();ctx.globalAlpha=.16+.07*Math.sin(time/220);ctx.fillStyle=bossRealmState.eventId==='eclipse'?'#190b34':'#073b55';ctx.fillRect(0,0,width,height);ctx.restore();}
+    if(bossRealmState.eventId==='blizzard'){ctx.save();for(let i=0;i<42;i++){const sx=(i*79+time*(.03+(i%5)*.006))%(width+20)-10,sy=(i*43+time*(.07+(i%4)*.01))%(height+20)-10;ctx.globalAlpha=.24+.28*(i%3)/3;ctx.strokeStyle='#d9faff';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx-4,sy+8);ctx.stroke();}ctx.restore();}
+    drawBossRealmAwakeningArena(camX,camY,time);
   }
 
   function draw(dt,time){
@@ -2263,7 +2489,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     let remaining=cfg.items;
     for(const item of candidates){if(remaining<=0)break;const wanted=(currentDifficulty==='hell'||currentDifficulty==='impossible')?Math.max(1,Math.ceil(item.count*((currentDifficulty==='impossible'?.55:.35)+Math.random()*(currentDifficulty==='impossible'?.35:.4)))):Math.min(item.count,1+Math.floor(Math.random()*2));const amount=Math.min(item.count,wanted,remaining);if(amount<=0)continue;item.count-=amount;remaining-=amount;if(Math.random()<cfg.dropChance&&lootDrops.length<76){lootDrops.push({x:deathX+(Math.random()-.5)*48,y:deathY+(Math.random()-.5)*42,name:item.name,count:amount,life:240,phase:Math.random()*6.28});dropped+=amount;}}
     if(dungeonMode){dungeonMode=false;player.x=dungeonReturn.x;player.y=dungeonReturn.y;}if(caveMode){caveMode=false;player.x=caveReturn.x;player.y=caveReturn.y;}
-    inHouse=false;mineMode=false;tradeWorldMode=false;player.hp=100;player.x=bedSpawn.x;player.y=bedSpawn.y;player.vx=player.vy=0;dodgeTimer=0;monsters.length=0;
+    inHouse=false;mineMode=false;tradeWorldMode=false;player.hp=100;player.x=bedSpawn.x;player.y=bedSpawn.y;player.vx=player.vy=0;dodgeTimer=0;if(bossRealmMode){for(const mob of monsters){if(!mob.bossRealmCreature)continue;mob.hp=Math.max(1,Number(mob.maxHp)||1);mob.flash=0;mob.attackCooldown=1.25;mob.specialCooldown=3+Math.random()*2;mob.telegraphTimer=0;mob.telegraphActive=false;mob.action='idle';mob.actionTimer=0;mob.shield=0;}bossRealmState.spawnTimer=Math.max(4,Number(bossRealmState.spawnTimer)||0);spawnVisualBurst(deathX,deathY,48,'spark','#9deaff');}else monsters.length=0;
     updateVitals();renderInventory();updateWalletHud();
     const message=currentDifficulty==='easy'?'Ты погиб, но вещи сохранены. Потеряно до 2 золота и 10 голода.':currentDifficulty==='medium'?'Ты погиб и возродился у кровати. Потеряно до 5 золота и 20 голода.':currentDifficulty==='hard'?'Ты погиб. Потеряно до 15 золота, часть вещей и 35 голода.':currentDifficulty==='impossible'?'НЕВОЗМОЖНО: потеряно до 50 золота, почти все переносимые ресурсы и 70 голода. Враги не прощают ошибок.':'Ты погиб на жаре. Потеряно до 30 золота, часть ресурсов и 55 голода.';
     toast(message+(dropped?' Выпавшие вещи остались на месте смерти.':''));saveGame();
@@ -2303,7 +2529,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
         if(!world.trees.some(t=>Math.hypot(t.x-wolfBossX,t.y-slideY.y)<22))wolfBossY=slideY.y;
       }
     }wolfBossAttackTimer-=dt;wolfBossSpecialTimer=Math.max(0,wolfBossSpecialTimer-dt);if(wolfBossSpecialTimer<=0){wolfBossSpecialTimer=8.5;if(dist<190&&!immortal&&dodgeTimer<=0){const howlDamage=Math.max(1,Math.round((18+difficultyConfig().rank*5)*(1-armorReduction())));player.hp=Math.max(0,player.hp-howlDamage);spawnVisualBurst(player.x,player.y,26,'spark','#a9d7ff');updateVitals();playWolfSound('howl');toast('ОБОРОТЕН · ОГЛУШИТЕЛЬНЫЙ ВОЙ: −'+howlDamage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}if(wolfBossAttackTimer<=0){wolfBossAttackTimer=Math.max(.7,1.5-difficultyConfig().rank*.12);playWolfSound(Math.random()<.28?'howl':'growl');if(wolfCompanionUnlocked&&wolfCompanionHp>0&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<48){wolfCompanionHp=Math.max(0,wolfCompanionHp-Math.round((12+difficultyConfig().rank*3)*(dogBehavior==='guard' ? 0.55 : 1)));if(wolfCompanionHp<=0)onWolfDogDeath();}else if(dist<wolfAttackRange&&!immortal&&dodgeTimer<=0){const damage=12+difficultyConfig().rank*4;player.hp=Math.max(0,player.hp-damage);updateVitals();toast('Оборотень ударил тебя: −'+damage+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}}
-    if(wolfCompanionUnlocked&&wolfCompanionHp>0&&!inHouse&&!mineMode&&!caveMode&&!tradeWorldMode){wolfCompanionAttackTimer-=dt;if(wolfCompanionAttackTimer<=0){wolfCompanionAttackTimer=.85;const damage=Math.round((10+difficultyConfig().rank*5)*(dogBehavior==='hunt'?1.45:dogBehavior==='guard' ? 0.75 : 1)*(isModInstalled('beast_companions')?1.5:1)*(1+skillBonus('beastmaster')*.08));if(wolfBossActive&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<70){wolfBossHp-=damage;if(wolfBossHp<=0)defeatWolfBoss();}else{let target=null,bd=70;for(const mob of monsters){if(mob.exploding)continue;const d=Math.hypot(mob.x-wolfCompanionX(),mob.y-wolfCompanionY());if(d<bd){bd=d;target=mob;}}if(target){target.hp-=damage;if(target.hp<=0){if(target.bossRealmCreature)recordBossRealmDefeat(target);else scheduleNemesis(target.isRebornBoss?'boss':'monster',target.id,target.bossTitle||monsterLabel(target.type),target.type,Math.min(8.35,(target.rebirthMultiplier||1)*1.7));const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);notifyExpansionEnemyDefeated(target);dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);awardXP(12,'помощь собаки');}}}}
+    if(wolfCompanionUnlocked&&wolfCompanionHp>0&&!inHouse&&!mineMode&&!caveMode&&!tradeWorldMode){wolfCompanionAttackTimer-=dt;if(wolfCompanionAttackTimer<=0){wolfCompanionAttackTimer=.85;const damage=Math.round((10+difficultyConfig().rank*5)*(dogBehavior==='hunt'?1.45:dogBehavior==='guard' ? 0.75 : 1)*(isModInstalled('beast_companions')?1.5:1)*(1+skillBonus('beastmaster')*.08));if(wolfBossActive&&Math.hypot(wolfCompanionX()-wolfBossX,wolfCompanionY()-wolfBossY)<70){wolfBossHp-=damage;if(wolfBossHp<=0)defeatWolfBoss();}else{let target=null,bd=70;for(const mob of monsters){if(mob.exploding)continue;const d=Math.hypot(mob.x-wolfCompanionX(),mob.y-wolfCompanionY());if(d<bd){bd=d;target=mob;}}if(target){if(target.bossRealmCreature&&target.raidCrystalCount>0){target.raidCrystalCount--;target.flash=.18;spawnVisualBurst(target.x,target.y,18,'spark','#ffe49a');}else if(target.bossRealmCreature&&target.shield>0){target.shield=Math.max(0,target.shield-1);target.flash=.12;spawnVisualBurst(target.x,target.y,14,'spark','#8deaff');}else{target.hp-=damage;if(target.hp<=0){if(target.bossRealmCreature)recordBossRealmDefeat(target);else scheduleNemesis(target.isRebornBoss?'boss':'monster',target.id,target.bossTitle||monsterLabel(target.type),target.type,Math.min(8.35,(target.rebirthMultiplier||1)*1.7));const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);notifyExpansionEnemyDefeated(target);dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);awardXP(12,'помощь собаки');}}}}}
     }
   }
   function onWolfDogDeath(){if(wolfDogDeathHandled)return;wolfDogDeathHandled=true;wolfCompanionUnlocked=false;wolfCompanionHp=0;if(wolfCompanionRevivals<3){wolfCompanionRevivals++;wolfBossDefeated=false;wolfBossActive=true;wolfBossHp=1000+difficultyConfig().rank*500;const den=wolfDenPosition();wolfBossX=den.x;wolfBossY=den.y;toast('Собака погибла. Оборотень вернулся в лес — победи его снова ('+wolfCompanionRevivals+'/3 возрождений).');}else toast('Собака погибла окончательно: лимит возрождений босса исчерпан.');saveGame();}
@@ -2462,8 +2688,10 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     }else{
       for(let i=monsters.length-1;i>=0;i--){
         const mob=monsters[i];if(mob.exploding||Math.hypot(player.x-mob.x,player.y-mob.y)>radius)continue;
+        if(mob.bossRealmCreature&&mob.raidCrystalCount>0){mob.raidCrystalCount--;mob.flash=.18;hits++;spawnVisualBurst(mob.x,mob.y,18,'spark','#ffe49a');continue;}
+        if(mob.bossRealmCreature&&mob.shield>0){mob.shield=Math.max(0,mob.shield-1);mob.flash=.12;hits++;spawnVisualBurst(mob.x,mob.y,14,'spark','#8deaff');continue;}
         mob.hp=Math.max(0,mob.hp-damage);hits++;spawnVisualBurst(mob.x,mob.y,8,'spark',color);
-        if(mob.hp<=0){scheduleNemesis(mob.isRebornBoss?'boss':'monster',mob.id,mob.bossTitle||monsterLabel(mob.type),mob.type,Math.min(8.35,(mob.rebirthMultiplier||1)*1.7));monsters.splice(i,1);notifyExpansionEnemyDefeated(mob);dropMonsterLoot(mob);trackAdventureQuest('hunt',1,!!mob.villageRaid);awardXP(12,'особая атака');kills++;}
+        if(mob.hp<=0){if(mob.bossRealmCreature)recordBossRealmDefeat(mob);else scheduleNemesis(mob.isRebornBoss?'boss':'monster',mob.id,mob.bossTitle||monsterLabel(mob.type),mob.type,Math.min(8.35,(mob.rebirthMultiplier||1)*1.7));monsters.splice(i,1);notifyExpansionEnemyDefeated(mob);dropMonsterLoot(mob);trackAdventureQuest('hunt',1,!!mob.villageRaid);awardXP(12,'особая атака');kills++;}
       }
       if(!caveMode&&!mineMode&&!inHouse){
         for(const def of biomeBossDefs()){
@@ -2533,7 +2761,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
     if(caveMode&&!caveBossDefeated){const bossDistance=Math.hypot(player.x-caveBossX,player.y-caveBossY);if(bossDistance<Math.max(115,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч';const base=weaponDamage(weapon);const damage=Math.round(base*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1)*(Math.random()<.14?2:1));caveBossHp=Math.max(0,caveBossHp-damage);caveBossFlash=.18;spawnVisualBurst(caveBossX,caveBossY,12,'spark',weapon==='Огненный меч'?'#ff9a42':'#b6e7ff');toast('Страж получил '+damage+' урона ('+Math.ceil(caveBossHp)+'/'+bossMaxHp()+').');if(caveBossHp<=0)defeatCaveBoss();else saveGame();return;}toast('Подойди к Каменному стражу ближе.');return;}
     if(caveMode){toast(caveBossDefeated?'Сокровищница уже доступна. Подойди к сундуку и нажми E.':'Подойди к Каменному стражу ближе.');return;}
     let target=null,best=weaponRange();for(const mob of monsters){const d=Math.hypot(mob.x-player.x,mob.y-player.y);if(d<best){best=d;target=mob;}}
-    if(target){if(target.bossRealmCreature&&target.shield>0){target.shield=Math.max(0,target.shield-1);target.flash=.12;spawnVisualBurst(target.x,target.y,14,'spark','#8deaff');toast((BOSS_REALM_CREATURES[target.realmType]?.name||'Враг')+' блокирует удар щитом!');return;}const weapon=equipment.weapon||'Деревянный меч',baseDamage=weaponDamage(weapon)*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1)*bossRealmAbilityDamageMultiplier(),critical=Math.random()<.14,swordDamage=Math.round(critical?baseDamage*2:baseDamage);target.hp-=swordDamage;target.flash=.2;spawnVisualBurst(target.x,target.y,critical?16:8,'spark',weapon==='Огненный меч'?'#ff8738':weapon==='Ледяной посох'?'#8be9ff':weapon==='Молниеносное копьё'?'#d8a4ff':critical?'#ffe16b':'#ff9aa9');if(critical)toast('КРИТИЧЕСКИЙ УДАР! ×2 урона!');if(target.hp<=0){if(target.bossRealmCreature)recordBossRealmDefeat(target);else scheduleNemesis(target.isRebornBoss?'boss':'monster',target.id,target.bossTitle||monsterLabel(target.type),target.type,Math.min(8.35,(target.rebirthMultiplier||1)*1.7));const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);notifyExpansionEnemyDefeated(target);spawnVisualBurst(target.x,target.y,20,'spark',target.type==='skeleton'?'#e5e1d0':'#ff7b9b');dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);if(isModInstalled('bounty_hunter')){walletCents+=100+Math.floor(Math.random()*301);updateWalletHud();}awardXP(Math.round((target.bossRealmCreature?(BOSS_REALM_CREATURES[target.realmType]?.tier==='god'?1200:BOSS_REALM_CREATURES[target.realmType]?.tier==='boss'?450:BOSS_REALM_CREATURES[target.realmType]?.tier==='elite'?110:35):(target.type==='brute'?35:target.type==='skeleton'?28:target.type==='wisp'?24:target.type==='bomb'?20:target.type==='ice'?38:target.type==='scorpion'?32:18))*(isModInstalled('bounty_hunter')?1.2:1)),'победа над '+(target.bossRealmCreature?BOSS_REALM_CREATURES[target.realmType].name:'монстром'));questStage=Math.max(questStage,4);toast((target.bossRealmCreature?BOSS_REALM_CREATURES[target.realmType].name:monsterLabel(target.type))+' побеждён! На земле осталась добыча.');}else toast('Удар на '+swordDamage+' урона! У монстра осталось '+target.hp+' здоровья.');drawMinimap();return;}
+    if(target){if(target.bossRealmCreature&&target.raidCrystalCount>0){target.raidCrystalCount--;target.flash=.18;spawnVisualBurst(target.x,target.y,24,'spark','#ffe49a');toast('КРИСТАЛЛ ЗАЩИТЫ РАЗБИТ · осталось '+target.raidCrystalCount);saveGame();return;}if(target.bossRealmCreature&&target.shield>0){target.shield=Math.max(0,target.shield-1);target.flash=.12;spawnVisualBurst(target.x,target.y,14,'spark','#8deaff');toast((BOSS_REALM_CREATURES[target.realmType]?.name||'Враг')+' блокирует удар щитом!');return;}const weapon=equipment.weapon||'Деревянный меч',baseDamage=weaponDamage(weapon)*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1)*bossRealmAbilityDamageMultiplier(),critical=Math.random()<Math.min(.35,.14+bossRealmRelicTotals().crit),swordDamage=Math.round(critical?baseDamage*2:baseDamage);target.hp-=swordDamage;target.flash=.2;spawnVisualBurst(target.x,target.y,critical?16:8,'spark',weapon==='Огненный меч'?'#ff8738':weapon==='Ледяной посох'?'#8be9ff':weapon==='Молниеносное копьё'?'#d8a4ff':critical?'#ffe16b':'#ff9aa9');if(critical)toast('КРИТИЧЕСКИЙ УДАР! ×2 урона!');if(target.hp<=0){if(target.bossRealmCreature)recordBossRealmDefeat(target);else scheduleNemesis(target.isRebornBoss?'boss':'monster',target.id,target.bossTitle||monsterLabel(target.type),target.type,Math.min(8.35,(target.rebirthMultiplier||1)*1.7));const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);notifyExpansionEnemyDefeated(target);spawnVisualBurst(target.x,target.y,20,'spark',target.type==='skeleton'?'#e5e1d0':'#ff7b9b');dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);if(isModInstalled('bounty_hunter')){walletCents+=100+Math.floor(Math.random()*301);updateWalletHud();}awardXP(Math.round((target.bossRealmCreature?(BOSS_REALM_CREATURES[target.realmType]?.tier==='god'?1200:BOSS_REALM_CREATURES[target.realmType]?.tier==='boss'?450:BOSS_REALM_CREATURES[target.realmType]?.tier==='elite'?110:35):(target.type==='brute'?35:target.type==='skeleton'?28:target.type==='wisp'?24:target.type==='bomb'?20:target.type==='ice'?38:target.type==='scorpion'?32:18))*(isModInstalled('bounty_hunter')?1.2:1)),'победа над '+(target.bossRealmCreature?BOSS_REALM_CREATURES[target.realmType].name:'монстром'));questStage=Math.max(questStage,4);toast((target.bossRealmCreature?BOSS_REALM_CREATURES[target.realmType].name:monsterLabel(target.type))+' побеждён! На земле осталась добыча.');}else toast('Удар на '+swordDamage+' урона! У монстра осталось '+target.hp+' здоровья.');drawMinimap();return;}
     const selectedItem=inventoryItems.filter(entry=>entry.count>0)[selectedSlot-1];
     if(selectedItem&&selectedItem.name==='Топор'){
       let treeTarget=null;best=86;for(const tree of world.trees){const d=Math.hypot(tree.x-player.x,tree.y-player.y);if(d<best){best=d;treeTarget=tree;}}
@@ -2909,10 +3137,10 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
   const WEAPON_BASE_DAMAGE={'Деревянный меч':20,'Железный меч':35,'Огненный меч':50,'Стальной меч':62,'Меч титана':100,'Меч дракона':130,'Меч пустоты':170,'Ледяной посох':28,'Молниеносное копьё':46,'Трезубец прилива':210,'Гарпун бури':280,'Клинок бездны':360};
   const LEGENDARY_SWORDS=new Set(['Меч титана','Меч дракона','Меч пустоты','Трезубец прилива','Гарпун бури','Клинок бездны']);
   const SWORD_DIFFICULTY_MULTIPLIER={easy:1,medium:1.25,hard:1.6,hell:2.1,impossible:2.75};
-  function weaponDamage(name=equipment.weapon){const base=((WEAPON_BASE_DAMAGE[name]||20)+(Math.max(0,Math.min(5,Number(weaponUpgrades[name])||0))*8))*(isModInstalled('legendary_gear')?1.18:1);const difficultyBonus=LEGENDARY_SWORDS.has(name)?(SWORD_DIFFICULTY_MULTIPLIER[currentDifficulty]||1):1;const classBonus=(classHas('swordsman')&&String(name).toLowerCase().includes('меч')?1.1:classHas('archer')&&name==='Молниеносное копьё'?1.2:classHas('mage')&&name==='Ледяной посох'?1.2:1)*(1+skills.warrior*.08+(name==='Молниеносное копьё'?skills.ranger*.06:0)+communityModBonus('damage')*.02);return Math.round(base*difficultyBonus*classBonus*(name==='Ледяной посох'?1.15:1)*(name==='Молниеносное копьё'&&isModInstalled('marksman')?1.2:1)*(weaponEnchantments[name]?1.15:1)*(strengthPotionTimer>0?1.3:1)*(window.SkyRealmExpansionSystems?.damageMultiplier?.()||1)*armorSetBonuses(name).damage);}
+  function weaponDamage(name=equipment.weapon){const base=((WEAPON_BASE_DAMAGE[name]||20)+(Math.max(0,Math.min(5,Number(weaponUpgrades[name])||0))*8))*(isModInstalled('legendary_gear')?1.18:1);const difficultyBonus=LEGENDARY_SWORDS.has(name)?(SWORD_DIFFICULTY_MULTIPLIER[currentDifficulty]||1):1;const classBonus=(classHas('swordsman')&&String(name).toLowerCase().includes('меч')?1.1:classHas('archer')&&name==='Молниеносное копьё'?1.2:classHas('mage')&&name==='Ледяной посох'?1.2:1)*(1+skills.warrior*.08+(name==='Молниеносное копьё'?skills.ranger*.06:0)+communityModBonus('damage')*.02);return Math.round(base*difficultyBonus*classBonus*(name==='Ледяной посох'?1.15:1)*(name==='Молниеносное копьё'&&isModInstalled('marksman')?1.2:1)*(weaponEnchantments[name]?1.15:1)*(strengthPotionTimer>0?1.3:1)*(window.SkyRealmExpansionSystems?.damageMultiplier?.()||1)*armorSetBonuses(name).damage*(1+bossRealmRelicTotals().damage));}
   function weaponRange(name=equipment.weapon){return name==='Ледяной посох'?230:name==='Молниеносное копьё'?125:82;}
   function armorSetBonuses(weapon=equipment.weapon){const guardian=equipment.armor==='Броня стража'&&equipment.helmet==='Шлем стража'&&equipment.boots==='Сапоги стража'&&equipment.amulet==='Амулет стража';const mage=equipment.armor==='Мантия мага'&&equipment.helmet==='Корона мага'&&equipment.boots==='Сапоги мага'&&equipment.amulet==='Амулет мага';return {name:guardian?'Страж':mage?'Маг':'Нет полного комплекта',guardian,mage,damage:guardian?1.10:mage&&weapon==='Ледяной посох'?1.20:1,defense:guardian?.10:mage?.06:0};}
-  function armorReduction(){let r=equipment.armor==='Нагрудник Бога'?.90:equipment.armor==='Кожаная броня'?.4:equipment.armor==='Броня стража'?.52:equipment.armor==='Мантия мага'?.25:0;if(equipment.armor)r+=armorUpgrade*.035;r+=(equipment.helmet==='Шлем лесника'?.15:equipment.helmet==='Шлем стража'?.16:equipment.helmet==='Корона мага'?.04:0)+(equipment.amulet==='Амулет стража'?.1:equipment.amulet==='Амулет мага'?.05:0)+armorSetBonuses().defense+(wardPotionTimer>0?.2:0)+skills.guardian*.025+communityModBonus('defense')*.015+(isModInstalled('guardian_oath')?.08:0)+(window.SkyRealmExpansionSystems?.defenseBonus?.()||0);return Math.min(.95,r);}
+  function armorReduction(){let r=equipment.armor==='Нагрудник Бога'?.90:equipment.armor==='Кожаная броня'?.4:equipment.armor==='Броня стража'?.52:equipment.armor==='Мантия мага'?.25:0;if(equipment.armor)r+=armorUpgrade*.035;r+=(equipment.helmet==='Шлем лесника'?.15:equipment.helmet==='Шлем стража'?.16:equipment.helmet==='Корона мага'?.04:0)+(equipment.amulet==='Амулет стража'?.1:equipment.amulet==='Амулет мага'?.05:0)+armorSetBonuses().defense+(wardPotionTimer>0?.2:0)+skills.guardian*.025+communityModBonus('defense')*.015+(isModInstalled('guardian_oath')?.08:0)+(window.SkyRealmExpansionSystems?.defenseBonus?.()||0);r+=bossRealmRelicTotals().defense;return Math.min(.95,r);}
   function itemCount(name){const i=inventoryItems.find(v=>v.name===name);return i?i.count:0;}
   function changeItem(name,delta){const i=inventoryItems.find(v=>v.name===name);if(!i)return false;if(i.count+delta<0)return false;i.count+=delta;if(delta>0){try{window.SkyRealmChallengeHooks?.onItemGained?.(name,delta);}catch(error){console.warn('[SkyRealm challenge progress]',error);}}return true;}
   function formatMoney(cents){return (Math.floor(cents/100))+','+String(Math.abs(cents%100)).padStart(2,'0')+' 🟡';}
@@ -2988,6 +3216,7 @@ window.addEventListener('beforeunload',()=>{syncProfileStats(true);recordAdventu
       toast('Подойди к кровати, верстаку или двери.');return;
     }
     if(await interactBossRealmPortal())return;
+    if(interactBossRealmDungeonSite())return;
     if(interactWolfCage())return;
     const nearbyNpc=nearestVillageNpc();if(nearbyNpc){talkToVillageNpc(nearbyNpc);return;}const nearbyCitizen=villageNpcs.filter(n=>n.id==='citizen').sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y))[0];if(tradeWorldMode&&nearbyCitizen&&Math.hypot(player.x-nearbyCitizen.x,player.y-nearbyCitizen.y)<76){const lines=['Сегодня на рынке много покупателей!','Хорошая погода для прогулки.','Я живу здесь уже много лет.','Будь осторожен ночью, за стенами опасно.','Говорят, в шахте нашли редкую руду.'];toast(nearbyCitizen.name+': «'+lines[Math.abs(Math.floor(nearbyCitizen.phase))%lines.length]+'»');return;}
     // The old starter-base blacksmith, elder and explorer were removed from this world.
@@ -3726,7 +3955,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function resetWorldState(){
     totalGameMinutesPlayed=0;
-    bossRealmMode=false;bossReturnWorldId=null;bossReturnX=21*TILE+16;bossReturnY=26*TILE+16;bossRealmState={kills:0,wave:1,elapsed:0,spawnTimer:0,eventTimer:65,eventName:'',eventId:'',eventRemaining:0,introSeen:false,defeatedBosses:[],defeatedGods:[]};bossRealmInvisibleTimer=0;bossRealmInvisibilityCooldown=0;bossRealmDamageBoostTimer=0;bossRealmAbilityCooldown=0;bossRealmSprintTimer=0;bossRealmSprintCooldown=0;bossRealmHazard=null;bossRealmHazardCooldown=0;bossRealmJournalOpen=false;
+    bossRealmMode=false;bossReturnWorldId=null;bossReturnX=21*TILE+16;bossReturnY=26*TILE+16;bossRealmState={kills:0,wave:1,elapsed:0,spawnTimer:0,eventTimer:65,eventName:'',eventId:'',eventRemaining:0,introSeen:false,defeatedBosses:[],defeatedGods:[],dungeonSites:[]};bossRealmInvisibleTimer=0;bossRealmInvisibilityCooldown=0;bossRealmDamageBoostTimer=0;bossRealmAbilityCooldown=0;bossRealmSprintTimer=0;bossRealmSprintCooldown=0;bossRealmHazard=null;bossRealmHazardCooldown=0;bossRealmJournalOpen=false;
     dungeonMode=false;dungeonReturn={x:player.x,y:player.y};dungeonRoom=1;dungeonClearedRooms=[];dungeonEnemyHp=0;dungeonEnemyX=0;dungeonEnemyY=0;dungeonChestOpened=false;dungeonTrapCooldown=0;biomeBosses=makeBiomeBossState();strengthPotionTimer=0;wardPotionTimer=0;speedPotionTimer=0;healPotionTimer=0;healPotionRemaining=0;eventRollTimer=74;meteorShowerTimer=0;meteorPoint=null;worldEventCamp=null;worldEventTraveler=null;lastWorldMeteorNight=-1;lastWorldHordeNight=-1;lastWorldCampDay=-1;lastWorldTravelerDay=-2;
     bloodMoonActive=false;bloodMoonRewardPending=false;lastBloodMoonNight=-1;wolfBossActive=false;wolfBossHp=0;wolfBossKeyDropped=false;wolfCageOpen=false;wolfDogCaged=true;wolfBossX=0;wolfBossY=0;wolfBossFlash=0;wolfBossAttackTimer=1.2;wolfBossDefeated=false;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfCompanionAttackTimer=.5;wolfCompanionRevivals=0;wolfDogDeathHandled=false;wolfCompanionOffsetX=20;wolfCompanionOffsetY=24;dogBehavior='follow';villageQuestStage=0;blacksmithQuestStage=0;explorerQuestStage=0;npcQuestState={};villageReputation=0;villageRaidActive=false;villageRaidKills=0;villageRaidTimer=0;lastVillageRaidDay=-1;
     player.x=21*TILE;player.y=26*TILE;player.vx=player.vy=0;player.face='down';player.frame=0;player.hp=100;player.stamina=84;
@@ -3773,7 +4002,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       window.SkyRealmExpansionSystems?.importState?.(d?.expansionSystems||null);
       if(d&&typeof d==='object'){
         seaWorldData=d.seaWorldData&&typeof d.seaWorldData==='object'?d.seaWorldData:null;
-        if(bossRealmMode){const q=d.bossRealmState;if(q&&typeof q==='object')bossRealmState={kills:Math.max(0,Math.min(100000,Math.floor(Number(q.kills)||0))),wave:Math.max(1,Math.min(100,Math.floor(Number(q.wave)||1))),elapsed:Math.max(0,Number(q.elapsed)||0),spawnTimer:Math.max(0,Number(q.spawnTimer)||0),eventTimer:Math.max(0,Number(q.eventTimer)||40),eventName:String(q.eventName||''),eventId:String(q.eventId||''),eventRemaining:Math.max(0,Number(q.eventRemaining)||0),introSeen:!!q.introSeen,defeatedBosses:Array.isArray(q.defeatedBosses)?q.defeatedBosses.filter(v=>['abyss_king','rift_dragon','ancient_devourer','end_knight'].includes(v)):[],defeatedGods:Array.isArray(q.defeatedGods)?q.defeatedGods.filter(v=>['astral_god','chronos_god'].includes(v)):[]};if(Array.isArray(d.bossRealmCreatures))for(const m of d.bossRealmCreatures.slice(0,18)){if(!m||!BOSS_REALM_CREATURES[m.realmType]||!Number.isFinite(m.x)||!Number.isFinite(m.y)||!Number.isFinite(m.hp))continue;monsters.push({...m,bossRealmCreature:true,hp:Math.max(0,Math.min(10000000,m.hp)),maxHp:Math.max(1,Math.min(10000000,Number(m.maxHp)||1)),x:Math.max(TILE,Math.min(COLS*TILE-TILE,m.x)),y:Math.max(TILE,Math.min(ROWS*TILE-TILE,m.y))});}}
+        if(bossRealmMode){const q=d.bossRealmState;if(q&&typeof q==='object')bossRealmState={kills:Math.max(0,Math.min(100000,Math.floor(Number(q.kills)||0))),wave:Math.max(1,Math.min(100,Math.floor(Number(q.wave)||1))),elapsed:Math.max(0,Number(q.elapsed)||0),spawnTimer:Math.max(0,Number(q.spawnTimer)||0),eventTimer:Math.max(0,Number(q.eventTimer)||40),eventName:String(q.eventName||''),eventId:String(q.eventId||''),eventRemaining:Math.max(0,Number(q.eventRemaining)||0),introSeen:!!q.introSeen,defeatedBosses:Array.isArray(q.defeatedBosses)?q.defeatedBosses.filter(v=>['abyss_king','rift_dragon','ancient_devourer','end_knight','magma_behemoth','frost_empress','void_mirror','worldbreaker_colossus'].includes(v)):[],defeatedGods:Array.isArray(q.defeatedGods)?q.defeatedGods.filter(v=>['astral_god','chronos_god'].includes(v)):[],dungeonSites:Array.isArray(q.dungeonSites)?q.dungeonSites.slice(0,2).filter(v=>v&&['forge','temple'].includes(v.id)&&Number.isFinite(v.x)&&Number.isFinite(v.y)).map(v=>({...v,active:!!v.active,complete:!!v.complete,remaining:Math.max(0,Math.min(3,Number(v.remaining)||0)),rematches:Math.max(0,Math.min(50,Number(v.rematches)||0))})):[]};if(Array.isArray(d.bossRealmCreatures))for(const m of d.bossRealmCreatures.slice(0,18)){if(!m||!BOSS_REALM_CREATURES[m.realmType]||!Number.isFinite(m.x)||!Number.isFinite(m.y)||!Number.isFinite(m.hp))continue;monsters.push({...m,bossRealmCreature:true,hp:Math.max(0,Math.min(10000000,m.hp)),maxHp:Math.max(1,Math.min(10000000,Number(m.maxHp)||1)),x:Math.max(TILE,Math.min(COLS*TILE-TILE,m.x)),y:Math.max(TILE,Math.min(ROWS*TILE-TILE,m.y))});}}
         coopWorldEntry=d.coopWorldEntry&&typeof d.coopWorldEntry==='object'?d.coopWorldEntry:null;
         clearedSnowTiles=new Set(Array.isArray(d.clearedSnowTiles)?d.clearedSnowTiles.filter(k=>/^\d+,\d+$/.test(k)):[]);snowShovelHits=d.snowShovelHits&&typeof d.snowShovelHits==='object'?Object.fromEntries(Object.entries(d.snowShovelHits).filter(([k,v])=>/^\d+,\d+$/.test(k)&&Number.isFinite(v)).map(([k,v])=>[k,Math.max(0,Math.min(2,Math.floor(v)))])):{};
         if(Number.isFinite(d.x)&&Number.isFinite(d.y)){player.x=Math.max(TILE,Math.min(COLS*TILE-TILE,d.x));player.y=Math.max(TILE,Math.min(ROWS*TILE-TILE,d.y));}if(d.bedSpawn&&Number.isFinite(d.bedSpawn.x)&&Number.isFinite(d.bedSpawn.y))bedSpawn={x:Math.max(TILE,Math.min(COLS*TILE-TILE,d.bedSpawn.x)),y:Math.max(TILE,Math.min(ROWS*TILE-TILE,d.bedSpawn.y))};
