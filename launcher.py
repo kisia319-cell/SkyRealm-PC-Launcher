@@ -1334,13 +1334,25 @@ def _skyrealm_startup_update():
         manifest_url = str(config.get("manifest_url", "")).strip()
         if not manifest_url.startswith("https://"):
             return False
-        request = urllib.request.Request(manifest_url, headers={"User-Agent": "SkyRealmLauncher-Updater/1.0", "Cache-Control": "no-cache"})
+        cache_buster = ("&" if "?" in manifest_url else "?") + "cache=" + str(time.time_ns())
+        request = urllib.request.Request(manifest_url + cache_buster, headers={"User-Agent": "SkyRealmLauncher-Updater/1.0", "Cache-Control": "no-cache", "Pragma": "no-cache"})
         with urllib.request.urlopen(request, timeout=8) as response:
             manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
         version = str(manifest.get("version", "")).strip()
         version_path = Path(resource_path("launcher_version.txt"))
         current = version_path.read_text(encoding="utf-8").strip() if version_path.is_file() else "0.9.5"
-        if not version or _skyrealm_version_tuple(version) <= _skyrealm_version_tuple(current):
+        latest_tuple = _skyrealm_version_tuple(version)
+        current_tuple = _skyrealm_version_tuple(current)
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with (root / "update.log").open("a", encoding="utf-8") as log:
+                log.write(time.strftime("%Y-%m-%d %H:%M:%S") +
+                          f" | startup launcher update check: current={current or 'unknown'}, latest={version or 'missing'}\n")
+        except OSError:
+            pass
+        if not latest_tuple:
+            raise ValueError("В манифесте отсутствует корректная версия лаунчера")
+        if latest_tuple <= current_tuple:
             return False
 
         # Ask before replacing the running launcher. "No" keeps the current version
