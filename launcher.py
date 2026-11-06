@@ -469,11 +469,20 @@ class LauncherApi:
             launcher_version = Path(resource_path("launcher_version.txt")).read_text(encoding="utf-8").strip()
             latest_launcher = str(manifest.get("version", "")).strip()
             latest_game = str(manifest.get("game_version", "")).strip()
+            installed_game_tuple = _skyrealm_version_tuple(installed_game)
+            latest_game_tuple = _skyrealm_version_tuple(latest_game)
+            game_version_state = (
+                "installed_newer" if installed_game_tuple and latest_game_tuple and installed_game_tuple > latest_game_tuple
+                else "current" if installed_game_tuple and latest_game_tuple and installed_game_tuple == latest_game_tuple
+                else "update_available" if installed_game_tuple and latest_game_tuple and latest_game_tuple > installed_game_tuple
+                else "unknown"
+            )
             return {
                 "ok": True, "launcher_version": launcher_version, "latest_launcher_version": latest_launcher,
                 "launcher_update_available": bool(_skyrealm_version_tuple(latest_launcher) and _skyrealm_version_tuple(latest_launcher) > _skyrealm_version_tuple(launcher_version)),
                 "game_version": installed_game or "не установлена", "latest_game_version": latest_game,
-                "game_update_available": bool(_skyrealm_version_tuple(latest_game) and _skyrealm_version_tuple(latest_game) > _skyrealm_version_tuple(installed_game)),
+                "game_update_available": game_version_state == "update_available",
+                "game_version_state": game_version_state,
                 "game_installed": bool(installed_game),
                 "rollback_available": bool(install_dir.with_name("game.previous").is_dir() and previous_game),
                 "previous_game_version": previous_game,
@@ -511,8 +520,14 @@ class LauncherApi:
             state = self.get_update_status()
             if not state.get("ok"):
                 return state
+            if state.get("game_version_state") == "installed_newer":
+                return {"ok": False, "message": "Восстановление отменено: опубликованный пакет игры старее уже установленной версии (" + str(state.get("latest_game_version")) + " < " + str(state.get("game_version")) + "). Это защитит игру от отката."}
+            if state.get("game_version_state") == "unknown":
+                return {"ok": False, "message": "Восстановление заблокировано: версии игры не удалось надёжно сравнить."}
             install_dir = skyrealm_game_dir()
             bundled_version = Path(resource_path("game/version.txt")).read_text(encoding="utf-8").strip()
+            if _skyrealm_version_tuple(bundled_version) and _skyrealm_version_tuple(bundled_version) < _skyrealm_version_tuple(state.get("game_version")):
+                return {"ok": False, "message": "Восстановление отменено: встроенная копия игры старее установленной версии."}
             installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True, force=True)
             required = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
             missing = [name for name in required if not (install_dir / name).is_file()]
