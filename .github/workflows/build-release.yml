@@ -97,15 +97,15 @@ jobs:
         run: python -m pip install --upgrade pip pywebview pyinstaller psutil
 
       - name: Build game window executable
-        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
 
       - name: Build updater helper
-        run: python -m PyInstaller --noconfirm --clean --onefile --console --name SkyRealmUpdater --distpath updater_dist --workpath build_updater/work --specpath build_updater update_helper.py
+        run: python -m PyInstaller --noconfirm --clean --onefile --console --noupx --name SkyRealmUpdater --distpath updater_dist --workpath build_updater/work --specpath build_updater update_helper.py
 
       - name: Build launcher executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --onefile --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" launcher.py
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" launcher.py
           if (-not (Test-Path "dist/SkyRealm.exe")) { throw "SkyRealm.exe was not created" }
 
       - name: Prepare update archives and manifest
