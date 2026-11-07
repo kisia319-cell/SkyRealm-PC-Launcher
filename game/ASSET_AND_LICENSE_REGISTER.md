@@ -11,3 +11,9 @@ This file accompanies the game-only archive. It covers the inspected game source
 - Not audited: historical ZIP contents, user mods, and provenance of binary assets stored outside this game folder.
 
 This is a technical inventory, not legal advice or a guarantee of rights clearance. Verify every final release archive and every user-added mod before commercial distribution.
+
+
+## Runtime CDN dependencies
+- Supabase JS SDK `@supabase/supabase-js@2.118.0`: Realtime multiplayer client, MIT.
+- Pyodide `0.29.5`: Python custom-mod runtime, MPL-2.0. Loaded dynamically from jsDelivr only when the Python mod worker starts.
+- These are remote runtime dependencies, not files stored inside this folder or the game ZIP. Their licenses and source links are listed in the root `THIRD_PARTY_NOTICES.txt`.
