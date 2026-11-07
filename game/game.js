@@ -5284,7 +5284,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   window.addEventListener('beforeunload',()=>{try{saveGame();}catch(_){}});
   window.addEventListener('resize', resize);
   window.addEventListener('fullscreenchange',()=>{gameSettings.windowMode=document.fullscreenElement?'fullscreen':'windowed';document.getElementById('game-window-mode-select').value=gameSettings.windowMode;localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));});
-  canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused){autoResumeCoopRoomOnInput();canvas.focus();}},true);
+  canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused)canvas.focus();},true);
+  canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused)autoResumeCoopRoomOnInput();},true);
   canvas.addEventListener('pointermove', (ev) => {if(!mineMode)return;const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;let index=-1,bd=38;mineRocks.forEach((r,i)=>{if(r.hp<=0)return;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;index=i;}});mineHoverIndex=index;let over=index>=0;if(!over)over=mineBarrels.some(b=>b.hp>0&&Math.hypot(mineRockScreenPosition(b).x-x,mineRockScreenPosition(b).y-y)<30)||mineCreatures.some(m=>m.hp>0&&Math.hypot(mineCreatureScreenPosition(m).x-x,mineCreatureScreenPosition(m).y-y)<54);canvas.style.cursor=over?'crosshair':'default';});
   canvas.addEventListener('pointerleave',()=>{mineHoverIndex=-1;canvas.style.cursor='default';});
   function selectedInventoryItem(){return inventoryItems.filter(i=>i.count>0)[selectedSlot-1]||null;}
