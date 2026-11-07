@@ -5,7 +5,7 @@
   const $=id=>document.getElementById(id),host=()=>window.SkyRealmCustomModHost;
   const runners=new Map();let mods=[],lastTick=0,editingId=null;
   function safeText(value,max=120){return String(value??'').replace(/[\u0000-\u001f]/g,' ').trim().slice(0,max);}
-  function readMods(){try{const raw=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');if(!Array.isArray(raw))return [];return raw.filter(m=>m&&typeof m==='object'&&/^[a-z0-9_-]{6,48}$/i.test(m.id||'')&&['javascript','python'].includes(m.language)&&typeof m.source==='string'&&m.source.length<=MAX_CODE).slice(0,MAX_SAVED).map(m=>({id:m.id,name:safeText(m.name,32)||'Мой мод',description:safeText(m.description,140),language:m.language,source:m.source,enabled:m.enabled===true,createdAt:Number(m.createdAt)||Date.now()}));}catch(_){return [];}}
+  function readMods(){try{const raw=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');if(!Array.isArray(raw))return [];return raw.filter(m=>m&&typeof m==='object'&&/^[a-z0-9][a-z0-9._:-]{1,127}$/i.test(m.id||'')&&['javascript','python'].includes(m.language)&&typeof m.source==='string'&&m.source.length<=MAX_CODE).slice(0,MAX_SAVED).map(m=>({id:m.id,name:safeText(m.name,32)||'Мой мод',description:safeText(m.description,140),language:m.language,source:m.source,enabled:m.enabled===true,createdAt:Number(m.createdAt)||Date.now()}));}catch(_){return [];}}
   function saveMods(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(mods));return true;}catch(_){setStatus('Не удалось сохранить список модов. Проверь свободное место.',true);return false;}}
   function setStatus(message,error=false,success=false){const node=$('script-mod-status');if(!node)return;node.textContent=message;node.classList.toggle('error',!!error);node.classList.toggle('success',!!success);}
   function idForNewMod(){return 'usr_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9);}
@@ -166,7 +166,7 @@
         if(!raw||typeof raw!=='object')continue;
         const id=String(raw.id||''),name=safeText(raw.name,32),description=safeText(raw.description,140);
         const language=raw.language,source=String(raw.source||'');
-        if(!/^[a-z0-9_-]{6,48}$/.test(id))continue;
+        if(!/^[a-z0-9][a-z0-9._:-]{1,127}$/.test(id))continue;
         try{validateSource(name,language,source);}catch(_){continue;}
         const existing=mods.find(item=>item.id===id);
         if(existing){
