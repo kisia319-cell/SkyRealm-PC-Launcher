@@ -2117,7 +2117,7 @@ function setupVillageNpcs(){
     ctx.save();ctx.translate(exit.x,exit.y);ctx.fillStyle='#352b20';ctx.strokeStyle='#f3c16b';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,cell*.34*exit.zoom,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#ffe2a0';ctx.font='bold '+Math.max(9,10*exit.zoom)+'px Segoe UI';ctx.textAlign='center';ctx.fillText(mineLevel<8?'НИЖЕ':'СОКРОВИЩЕ',0,cell*.55*exit.zoom);ctx.restore();
   }
   function drawMineBarrels(){
-    for(const b of mineBarrels){if(b.hp<=0)continue;const p=mineRockScreenPosition(b);ctx.save();ctx.translate(p.x,p.y);
+    for(const b of mineBarrels){if(b.hp<=0)continue;const p=mineRockScreenPosition(b);ctx.save();ctx.translate(p.x,p.y);ctx.scale(p.zoom,p.zoom);
       ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,13,19,7,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#4a2d20';ctx.beginPath();ctx.moveTo(-12,-16);ctx.quadraticCurveTo(-19,-3,-13,13);ctx.quadraticCurveTo(0,20,13,13);ctx.quadraticCurveTo(19,-3,12,-16);ctx.closePath();ctx.fill();
       ctx.fillStyle='#986037';ctx.beginPath();ctx.moveTo(-10,-14);ctx.quadraticCurveTo(-15,0,-10,12);ctx.quadraticCurveTo(0,16,10,12);ctx.quadraticCurveTo(15,0,10,-14);ctx.closePath();ctx.fill();
@@ -2128,7 +2128,7 @@ function setupVillageNpcs(){
     }
   }
   function drawMineCreatures(time=performance.now()){
-    for(const m of mineCreatures){if(m.hp<=0)continue;const p=mineCreatureScreenPosition(m),x=p.x,y=p.y,bob=Math.sin(time/230+m.phase)*2.4;ctx.save();ctx.translate(x,y+bob);
+    for(const m of mineCreatures){if(m.hp<=0)continue;const p=mineCreatureScreenPosition(m),x=p.x,y=p.y,bob=Math.sin(time/230+m.phase)*2.4;ctx.save();ctx.translate(x,y+bob);ctx.scale(p.zoom,p.zoom);
       ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,13,19,7,0,0,Math.PI*2);ctx.fill();
       if(m.kind==='bat'){const wing=Math.sin(time/95+m.phase)*8;ctx.fillStyle=m.flash>0?'#fff0dc':'#40364f';ctx.beginPath();ctx.moveTo(-4,-1);ctx.quadraticCurveTo(-18,-20-wing,-29,-8);ctx.quadraticCurveTo(-24,8,-8,7);ctx.lineTo(0,3);ctx.lineTo(8,7);ctx.quadraticCurveTo(24,8,29,-8);ctx.quadraticCurveTo(18,-20+wing,4,-1);ctx.closePath();ctx.fill();ctx.fillStyle='#a59ab5';ctx.beginPath();ctx.arc(0,-3,10,0,Math.PI*2);ctx.fill();}
       else{ctx.fillStyle=m.flash>0?'#fff0dc':'#59483c';ctx.beginPath();ctx.ellipse(0,2,19,13,-.08,0,Math.PI*2);ctx.fill();ctx.fillStyle='#76634f';ctx.beginPath();ctx.arc(-10,-8,7,0,Math.PI*2);ctx.arc(9,-8,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#42352e';ctx.fillRect(-13,8,5,8);ctx.fillRect(8,8,5,8);}
