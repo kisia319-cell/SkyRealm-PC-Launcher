@@ -29,6 +29,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: "@SkyRealmGame"
+          TELEGRAM_STICKER_ID: ${{ secrets.TELEGRAM_STICKER_ID }}
           EVENT_NAME: ${{ github.event_name }}
           HEAD_SHA: ${{ github.sha }}
           RELEASE_NAME: ${{ github.event.release.name }}
@@ -130,18 +131,50 @@ jobs:
 
               selected = commits if has_major else batch
               processed_sha = selected[-1][0]
-              lines = "\\n".join("• " + html.escape(subject) for _, subject in selected)
+              translations = {
+                  "update release manifest": "Обновлена информация о версии и составе релиза",
+                  "add medium-update telegram publishing threshold": "Улучшена система новостей: два средних обновления теперь объединяются в один выпуск",
+                  "add animated telegraphed attacks for surface biome bosses": "Боссам поверхностных биомов добавлены новые атаки с предупреждающей анимацией",
+                  "fix biome boss attack windup resolution": "Исправлена подготовка и своевременный запуск атак боссов биомов",
+              }
+
+              def russian_news(subject):
+                  clean = re.sub(r"^\[(?:medium|среднее|major|важно)\]\s*", "", subject, flags=re.I)
+                  clean = re.sub(r"^(?:medium|среднее|major|release|feat|feature)\s*:\s*", "", clean, flags=re.I)
+                  key = clean.strip().lower()
+                  if key in translations:
+                      return translations[key]
+                  if re.search(r"boss|босс", key):
+                      return "Улучшены боссы: добавлены или исправлены боевые механики"
+                  if re.search(r"attack|атак", key):
+                      return "Улучшены боевые атаки и их анимации"
+                  if re.search(r"mine|cave|шахт|пещер", key):
+                      return "Обновлены шахты и пещеры обычного мира"
+                  if re.search(r"world|biome|мир|биом", key):
+                      return "Обновлены миры и биомы SkyRealm"
+                  if re.search(r"fix|bug|исправ", key):
+                      return "Исправлены ошибки и улучшена стабильность игры"
+                  if re.search(r"add|добав", key):
+                      return "В SkyRealm добавлены новые возможности"
+                  return "Внесены улучшения в игру и систему разработки SkyRealm"
+
+              news_items = []
+              for _, subject in selected:
+                  item = russian_news(subject)
+                  if item not in news_items:
+                      news_items.append(item)
+              lines = "\n".join("▫️ " + html.escape(item) for item in news_items)
               if has_major:
-                  heading = "✨ <b>Важное обновление SkyRealm</b>"
-                  intro = "Вышло крупное изменение проекта:"
+                  heading = "🚀 <b>КРУПНОЕ ОБНОВЛЕНИЕ SKYREALM</b>"
+                  intro = "В этом обновлении:"
               elif has_two_medium:
-                  heading = "📦 <b>Новые обновления SkyRealm</b>"
-                  intro = f"Вышло {medium_count} средних обновления — собрали их в одном выпуске:"
+                  heading = "📦 <b>НОВОСТИ РАЗРАБОТКИ SKYREALM</b>"
+                  intro = f"Подготовили выпуск из {medium_count} средних обновлений:"
               else:
-                  heading = "🛠 <b>Дайджест разработки SkyRealm</b>"
-                  intro = f"Собрали {len(selected)} небольших изменений в один выпуск:"
+                  heading = "🛠 <b>ДАЙДЖЕСТ РАЗРАБОТКИ SKYREALM</b>"
+                  intro = f"Собрали {len(selected)} небольших изменений:"
               compare = f"https://github.com/{repo}/compare/{base}...{processed_sha}"
-              text = f"{heading}\n\n{intro}\n\n{lines}\n\n<a href=\"{compare}\">Посмотреть изменения</a>"
+              text = f"{heading}\n\n{intro}\n\n{lines}\n\n🔗 <a href=\"{compare}\">Все изменения на GitHub</a>\n\n💚 Спасибо, что следите за SkyRealm!"
 
           if len(text) > 3900:
               text = text[:3850] + "\n\n…"
@@ -164,6 +197,30 @@ jobs:
               raise RuntimeError("Telegram API rejected the message: " + str(result))
 
           print("Telegram message published successfully.")
+
+          sticker_id = os.environ.get("TELEGRAM_STICKER_ID", "").strip()
+          if sticker_id:
+              sticker_payload = json.dumps({
+                  "chat_id": os.environ["TELEGRAM_CHAT_ID"],
+                  "sticker": sticker_id
+              }).encode("utf-8")
+              sticker_request = urllib.request.Request(
+                  f"https://api.telegram.org/bot{token}/sendSticker",
+                  data=sticker_payload,
+                  headers={"Content-Type": "application/json"},
+                  method="POST"
+              )
+              try:
+                  with urllib.request.urlopen(sticker_request, timeout=30) as response:
+                      sticker_result = json.loads(response.read().decode("utf-8"))
+                  if sticker_result.get("ok"):
+                      print("Telegram sticker published successfully.")
+                  else:
+                      print("Sticker was not sent; the news message is already published.")
+              except Exception as error:
+                  print("Sticker was not sent; the news message is already published:", str(error))
+          else:
+              print("No TELEGRAM_STICKER_ID configured; decorative emoji are included in the news post.")
 
           subprocess.run(
               ["git", "push", "--force", "origin", f"{processed_sha}:refs/heads/telegram-news-state"],
