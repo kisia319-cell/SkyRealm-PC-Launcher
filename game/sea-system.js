@@ -264,8 +264,11 @@
     save();b?.save?.();
   }
   function spawnShark(){if(!Array.isArray(state.sharks))state.sharks=[];if(state.sharks.length>=3)return false;const shark={id:'shark-'+Date.now()+'-'+Math.floor(Math.random()*1e6),x:clamp(state.x+rand(-28,28),3,W-3),y:clamp(state.y+rand(-28,28),3,H-3),hp:55,angle:rand(0,6.28),speed:rand(12,20),cool:rand(.5,2)};state.sharks.push(shark);return true;}
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&active)save();});
   function frame(now){
-    if(!active)return;const dt=Math.min(.04,(now-last)/1000);last=now;state.time+=dt;state.wave+=dt*2;
+    if(!active)return;
+    if(document.hidden){last=now;raf=requestAnimationFrame(frame);return;}
+    const dt=Math.min(.04,(now-last)/1000);last=now;state.time+=dt;state.wave+=dt*2;
     update(dt);draw();if(state.messageLeft>0){state.messageLeft-=dt;if(state.messageLeft<=0)$('sea-message').textContent='';}
     if(now-state.lastSave>5000){state.lastSave=now;save();}
     raf=requestAnimationFrame(frame);
