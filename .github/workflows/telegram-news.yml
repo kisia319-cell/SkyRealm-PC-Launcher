@@ -105,51 +105,66 @@ jobs:
                   print("No new commits to announce.")
                   sys.exit(0)
 
-              # Only explicitly marked releases are "major". Normal feat:/feature:
-          # commits are evaluated by scope instead of being promoted automatically.
-          major_pattern = re.compile(
-              r"(\[major\]|\[важно\]|^major\s*:|^release\s*:)",
-              re.IGNORECASE
-          )
-          has_major = any(major_pattern.search(subject) for _, subject in commits)
+              # Major = explicitly announced release or genuinely large gameplay expansion.
+              major_pattern = re.compile(
+                  r"(\\[major\\]|\\[важно\\]|^major\\s*:|^release\\s*:|new world|нов(?:ый|ая) мир|new game mode|нов(?:ый|ая) режим|complete rework|полная переработка|новая боевая система)",
+                  re.IGNORECASE
+              )
+              has_major = any(major_pattern.search(subject) for _, subject in commits)
 
-          batch = commits[:7]
-          explicit_medium_pattern = re.compile(
-              r"(\[medium\]|\[среднее\]|^medium\s*:|^среднее\s*:)",
-              re.IGNORECASE
-          )
-          boss_number_pattern = re.compile(
-              r"\b(\d+)\s*(?:boss(?:es)?|босс(?:а|ов|ы)?)\b|"
-              r"\b(?:four|четыре)\s+(?:boss(?:es)?|босс(?:а|ов|ы)?)\b",
-              re.IGNORECASE
-          )
-          attack_pattern = re.compile(r"attack|атак", re.IGNORECASE)
+              batch = commits[:7]
+              explicit_medium_pattern = re.compile(
+                  r"(\\[medium\\]|\\[среднее\\]|^medium\\s*:|^среднее\\s*:)",
+                  re.IGNORECASE
+              )
+              boss_number_pattern = re.compile(
+                  r"\\b(\\d+)\\s*(?:boss(?:es)?|босс(?:а|ов|ы)?)\\b|"
+                  r"\\b(?:four|четыре)\\s+(?:boss(?:es)?|босс(?:а|ов|ы)?)\\b",
+                  re.IGNORECASE
+              )
+              attack_pattern = re.compile(r"attack|атак", re.IGNORECASE)
 
-          def medium_weight(subject):
-              if explicit_medium_pattern.search(subject):
-                  return 1.0
-              boss_match = boss_number_pattern.search(subject)
-              if boss_match and attack_pattern.search(subject):
-                  count_text = boss_match.group(1)
-                  boss_count = int(count_text) if count_text else 4
-                  if boss_count >= 4:
-                      return 1.5
-                  if boss_count >= 2:
+              def medium_weight(subject):
+                  if explicit_medium_pattern.search(subject):
                       return 1.0
-                  return 0.5
-              return 0.0
+                  boss_match = boss_number_pattern.search(subject)
+                  if boss_match and attack_pattern.search(subject):
+                      count_text = boss_match.group(1)
+                      boss_count = int(count_text) if count_text else 4
+                      if boss_count >= 4:
+                          return 1.5
+                      if boss_count >= 2:
+                          return 1.0
+                      return 0.5
+                  return 0.0
 
-          medium_total = sum(medium_weight(subject) for _, subject in batch)
-          has_two_medium = medium_total >= 2.0
+              medium_total = sum(medium_weight(subject) for _, subject in batch)
+              # Several medium-sized changes together form a major release.
+              if medium_total >= 4.0:
+                  has_major = True
+              has_medium = medium_total >= 2.0 and not has_major
 
-          if not has_major and not has_two_medium and len(commits) < 5:
+              fix_pattern = re.compile(r"fix|bug| исправ|исправлен|почин|устран", re.IGNORECASE)
+              minor_change_pattern = re.compile(
+                  r"barrel|бочк|animation|анимац|remove|removed|убрал|удалил|tweak|мелк|небольш|"
+                  r"polish|подправ|баланс|визуал|эффект|частиц|мелкое изменение",
+                  re.IGNORECASE
+              )
+              fix_commits = [(sha, subject) for sha, subject in batch if fix_pattern.search(subject)]
+              minor_commits = [(sha, subject) for sha, subject in batch if minor_change_pattern.search(subject)]
+              small_ready = len(fix_commits) >= 3 and len(minor_commits) >= 1
+
+              if not has_major and not has_medium and not small_ready:
                   if state_initialized:
                       subprocess.run(
                           ["git", "push", "--force", "origin", f"{base}:refs/heads/telegram-news-state"],
                           check=True
                       )
                       print("Initialized the news cursor at " + base)
-                  print(f"Collected {len(commits)} changes, weighted medium total: {medium_total:.1f}; waiting for a publish threshold.")
+                  print(
+                      f"Collected {len(commits)} commits; fixes={len(fix_commits)}, "
+                      f"minor gameplay changes={len(minor_commits)}, medium weight={medium_total:.1f}; waiting."
+                  )
                   sys.exit(0)
 
               selected = commits if has_major else batch
@@ -190,12 +205,12 @@ jobs:
               if has_major:
                   heading = "🚀 <b>КРУПНОЕ ОБНОВЛЕНИЕ SKYREALM</b>"
                   intro = "В этом обновлении:"
-              elif has_two_medium:
-                  heading = "📦 <b>НОВОСТИ РАЗРАБОТКИ SKYREALM</b>"
-                  intro = f"Набралось {medium_total:.1f} условных средних обновлений:"
+              elif has_medium:
+                  heading = "📦 <b>СРЕДНЕЕ ОБНОВЛЕНИЕ SKYREALM</b>"
+                  intro = f"Набралось {medium_total:.1f} балла по масштабу изменений:"
               else:
-                  heading = "🛠 <b>ДАЙДЖЕСТ РАЗРАБОТКИ SKYREALM</b>"
-                  intro = f"Собрали {len(selected)} небольших изменений:"
+                  heading = "🛠 <b>НЕБОЛЬШИЕ ИЗМЕНЕНИЯ SKYREALM</b>"
+                  intro = f"Собрали {len(fix_commits)} исправлений и {len(minor_commits)} небольших игровых изменений:"
               compare = f"https://github.com/{repo}/compare/{base}...{processed_sha}"
               text = f"{heading}\n\n{intro}\n\n{lines}\n\n🔗 <a href=\"{compare}\">Все изменения на GitHub</a>\n\n💚 Спасибо, что следите за SkyRealm!"
 
