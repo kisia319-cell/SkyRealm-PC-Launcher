@@ -45,7 +45,9 @@ const expected = [
   '20261103043128_skyrealm_staff_roles.sql',
   '20261103144757_staff_role_expiry_and_public_bootstrap.sql',
   '20261103150208_staff_admin_bootstrap_claim_code.sql',
-  '20261107165757_skyrealm_public_mod_catalog.sql'
+  '20261107165757_skyrealm_public_mod_catalog.sql',
+  '20261107180303_skyrealm_roadmap_voting.sql',
+  '20261107180626_skyrealm_roadmap_voting_user_indexes.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
@@ -106,6 +108,10 @@ assert.ok(read(expected[39]).includes('bootstrap_code_hash'));
 assert.ok(read(expected[40]).includes('create table if not exists public.skyrealm_mod_releases'));
 assert.ok(read(expected[40]).includes('skyrealm_mod_releases_public_read'));
 assert.ok(read(expected[40]).includes('skyrealm-community-mods'));
+assert.ok(read(expected[41]).includes('create table if not exists public.skyrealm_roadmap_ideas'));
+assert.ok(read(expected[41]).includes('unique(idea_id,user_id)'));
+assert.ok(read(expected[42]).includes('skyrealm_roadmap_submissions_user_created_idx'));
+assert.ok(read(expected[42]).includes('skyrealm_roadmap_votes_user_idx'));
 
 console.log('SkyRealm Supabase migration history tests passed.');
 
