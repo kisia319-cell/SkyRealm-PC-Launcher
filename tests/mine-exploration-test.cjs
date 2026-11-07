@@ -91,7 +91,7 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.ok(source.includes('const nx = player.x + player.vx*dt, ny = player.y + player.vy*dt;'),'normal world movement integration remains unchanged');
  assert.ok(source.includes('if (!blocked(nx, player.y)) player.x = nx;'));
  assert.ok(source.includes('if (!blocked(player.x, ny)) player.y = ny;'));
- assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,quarryProgress'));
+ assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,mineFeaturesVersion:1,mineMazeVersion:2,quarryProgress'));
  assert.ok(source.includes('drawMinePassages()'));assert.ok(source.includes('updateMineCreatures(dt)'));assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));assert.ok(source.includes('mineMazeVersion:2'));
 });
 console.log('PASS '+tests.length+' mine exploration tests: '+tests.join(' | '));
