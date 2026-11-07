@@ -697,13 +697,13 @@
     combatCombo=combatComboTimer>0?combatCombo%4+1:1;combatComboTimer=1.45;
     combatCurrentDamage=[1,1.08,1.18,1.38][combatCombo-1]*(combatPerfectDodge>0?1.65:1);
     if(combatPerfectDodge>0){combatPerfectDodge=0;toast('ИДЕАЛЬНОЕ УКЛОНЕНИЕ · КОНТРАТАКА ×1.65!');}
-    combatEnergy=Math.min(100,combatEnergy+8+(combatCombo===4?9:0));combatWeaponTrail=.34;
+    combatEnergy=Math.min(100,combatEnergy+8+(combatCombo===4?9:0));updateVitals();combatWeaponTrail=.34;
     const style=combatStyle(),x=player.x+(player.face==='left'?-25:player.face==='right'?25:0),y=player.y+(player.face==='up'?-25:player.face==='down'?18:0);
     spawnVisualBurst(x,y,combatCombo===4?24:12,'spark',style[0]);if(combatCombo===4){spawnVisualBurst(x,y,18,'dust','#ffffff');toast('ФИНИШЕР · '+style[1]+'!');}
   }
   function combatTakeDamage(amount,label,color){
     if(immortal||dodgeTimer>0)return 0;
-    if(combatParryTimer>0){combatParryTimer=0;combatGuardTimer=0;combatEnergy=Math.min(100,combatEnergy+24);combatPerfectDodge=.9;spawnVisualBurst(player.x,player.y,30,'spark','#ffe58a');toast('ИДЕАЛЬНОЕ ПАРИРОВАНИЕ! Контратака усилена.');return 0;}
+    if(combatParryTimer>0){combatParryTimer=0;combatGuardTimer=0;combatEnergy=Math.min(100,combatEnergy+24);updateVitals();combatPerfectDodge=.9;spawnVisualBurst(player.x,player.y,30,'spark','#ffe58a');toast('ИДЕАЛЬНОЕ ПАРИРОВАНИЕ! Контратака усилена.');return 0;}
     const guarded=combatGuardTimer>0,hit=Math.max(1,Math.round(amount*(guarded?.28:1)*(1-armorReduction())));
     player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,guarded?15:10,'spark',guarded?'#9bdcff':(color||'#ff6688'));updateVitals();toast(label+' · −'+hit+' HP'+(guarded?' · БЛОК':''));
     if(guarded)combatEnergy=Math.min(100,combatEnergy+5);if(player.hp<=0)respawnPlayerAfterDefeat();return hit;
@@ -720,7 +720,7 @@
     const target=candidates.filter(m=>Math.hypot(m.x-player.x,m.y-player.y)<=reach).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
     const forward={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]}[player.face]||[0,1];
     const fx=target?(player.x+target.x)*.5:player.x+forward[0]*100,fy=target?(player.y+target.y)*.5:player.y+forward[1]*100;
-    combatEnergy=0;combatUltimateCooldown=2.8;combatCinematic={active:true,elapsed:0,duration:2.35,hitAt:1.28,hitDone:false,focusX:fx,focusY:fy,style:style[0],name:style[1],weapon:equipment.weapon||'Деревянный меч'};
+    combatEnergy=0;updateVitals();combatUltimateCooldown=2.8;combatCinematic={active:true,elapsed:0,duration:2.55,hitAt:1.42,hitDone:false,focusX:fx,focusY:fy,targetX:target?.x??null,targetY:target?.y??null,style:style[0],name:style[1],weapon:equipment.weapon||'Деревянный меч'};
     combatWeaponTrail=.75;attackAnimTimer=.75;spawnCombatBurst(player.x,player.y,28,'dust','#dceeff');spawnCombatBurst(player.x,player.y,18,'spark',style[0]);
     toast('КИНОУДАР · '+style[1]+' · замедление 0.5×');
   }
@@ -1390,7 +1390,7 @@ let audioContext=null;
     spawnVisualBurst(chest.x,chest.y,22,'spark','#ffd86b');playSound('coin');renderInventory();saveGame();drawMinimap();awardXP(45,'найден сундук');
     toast('Сундук открыт! Золота: '+gold+'; '+chosen.filter(r=>r.name!=='Золото').map(r=>r.name+' ×'+r.count).join(', '));
   }
-  function startDodge(){if(paused||inMainMenu||workbenchDialogOpen||inventoryDialogOpen||signDialogOpen||dodgeCooldown>0||player.stamina<18||mineMode)return;let dx=0,dy=0;const f=player.face;if(f==='left')dx=-1;else if(f==='right')dx=1;else if(f==='up')dy=-1;else dy=1;dodgeVX=dx;dodgeVY=dy;dodgeFacing=f;dodgeTimer=.24;dodgeCooldown=1.15;player.stamina=Math.max(0,player.stamina-18);combatPerfectDodge=.24;combatEnergy=Math.min(100,combatEnergy+7);spawnVisualBurst(player.x,player.y,18,'dust','#a8d9ff');spawnVisualBurst(player.x,player.y,8,'spark','#d9f4ff');toast('Перекат! Точное уклонение усилит следующую атаку.');}
+  function startDodge(){if(paused||inMainMenu||workbenchDialogOpen||inventoryDialogOpen||signDialogOpen||dodgeCooldown>0||player.stamina<18||mineMode)return;let dx=0,dy=0;const f=player.face;if(f==='left')dx=-1;else if(f==='right')dx=1;else if(f==='up')dy=-1;else dy=1;dodgeVX=dx;dodgeVY=dy;dodgeFacing=f;dodgeTimer=.24;dodgeCooldown=1.15;player.stamina=Math.max(0,player.stamina-18);combatPerfectDodge=.24;combatEnergy=Math.min(100,combatEnergy+7);updateVitals();spawnVisualBurst(player.x,player.y,18,'dust','#a8d9ff');spawnVisualBurst(player.x,player.y,8,'spark','#d9f4ff');toast('Перекат! Точное уклонение усилит следующую атаку.');}
   function spawnVisualBurst(x,y,count=8,kind='spark',color='#ffe29a'){
     for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,sp=kind==='dust'?18+Math.random()*30:35+Math.random()*115;visualParticles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-12,life:.35+Math.random()*.55,maxLife:.9,size:kind==='spark'?2+Math.random()*3:2+Math.random()*4,kind,color,rot:Math.random()*6.28});}
     if(visualParticles.length>180)visualParticles.splice(0,visualParticles.length-180);
@@ -1669,7 +1669,9 @@ function setupVillageNpcs(){
   }
   function drawPlayer(camX,camY,dt){
     const x=player.x-camX,y=player.y-camY;player.frame += dt*(Math.abs(player.vx)+Math.abs(player.vy)>.01?11:3);const step=Math.sin(player.frame)*2.2;
-    ctx.save();ctx.translate(Math.round(x),Math.round(y));if(bossRealmMode&&bossRealmInvisibleTimer>0)ctx.globalAlpha=.32;
+    ctx.save();ctx.translate(Math.round(x),Math.round(y));
+    if(combatCinematic?.active){const cp=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration)),charge=Math.sin(Math.min(1,cp/.58)*Math.PI)*8,dir={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]}[player.face]||[0,1];ctx.translate(dir[0]*charge,dir[1]*charge);ctx.scale(1+charge*.003,1-charge*.002);}
+    if(bossRealmMode&&bossRealmInvisibleTimer>0)ctx.globalAlpha=.32;
     const moving=Math.hypot(player.vx,player.vy)>2,bodyBob=moving?Math.abs(Math.sin(player.frame*1.7))*1.7:Math.sin(player.frame*.7)*.35;
     ctx.translate(0,bodyBob);
     if(combatGuardTimer>0){const pulse=.5+.5*Math.sin(performance.now()/35);ctx.save();ctx.globalAlpha=.35+pulse*.3;ctx.strokeStyle='#9bdcff';ctx.shadowColor='#78dfff';ctx.shadowBlur=18;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,0,20+pulse*3,26+pulse*3,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
@@ -1719,7 +1721,9 @@ function setupVillageNpcs(){
     if(combatCinematic?.active){
       const p=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
       cinematicZoom=1+Math.sin(Math.PI*p)*.52;
-      const focusX=combatCinematic.focusX-camX,focusY=combatCinematic.focusY-camY;
+      const focusWorldX=combatCinematic.targetX==null?combatCinematic.focusX:player.x*.36+combatCinematic.targetX*.64;
+      const focusWorldY=combatCinematic.targetY==null?combatCinematic.focusY:player.y*.36+combatCinematic.targetY*.64;
+      const focusX=focusWorldX-camX,focusY=focusWorldY-camY;
       const shake=combatCinematicImpactFlash>0?combatCameraShake:1.8;
       cinematicShakeX=(Math.random()-.5)*shake;cinematicShakeY=(Math.random()-.5)*shake;
       ctx.save();ctx.translate(width/2+cinematicShakeX,height/2+cinematicShakeY);ctx.scale(cinematicZoom,cinematicZoom);ctx.translate(-focusX,-focusY);
