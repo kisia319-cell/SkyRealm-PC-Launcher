@@ -131,3 +131,10 @@ body.performance-saver .art-orb, body.performance-saver .live-dot, body.performa
 .calendar-events-heading{margin-top:24px}
 @media(max-width:760px){.daily-rewards-panel{padding:13px}.daily-rewards-stats{width:100%}.daily-rewards-stats>div{flex:1}.daily-reward-weekdays,.daily-reward-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.daily-reward-day{min-height:82px}.daily-rewards-claim-row{align-items:stretch;flex-direction:column}.daily-rewards-claim-row button{width:100%;min-width:0}}
 @media(max-width:420px){.daily-reward-weekdays,.daily-reward-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.daily-rewards-top h2{font-size:17px}}
+
+/* Launcher control-centre shortcuts, screenshot previews and support contacts */
+.system-shortcuts{display:flex;flex-wrap:wrap;gap:9px;margin:-3px 0 18px}
+.screenshot-card-preview{overflow:hidden;position:relative}
+.screenshot-thumbnail{display:block;width:100%;height:100%;min-height:124px;object-fit:cover}
+.screenshot-viewer-head .system-actions{align-items:center}
+.support-page .support-card a{max-width:100%;overflow-wrap:anywhere}

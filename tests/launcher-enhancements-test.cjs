@@ -80,3 +80,13 @@ assert.ok(app.includes("vsync: $('#vsync-toggle') ? $('#vsync-toggle').checked :
 assert.ok(app.includes("p.vsync = p.vsync !== false"),'VSync must default to enabled for existing settings');
 assert.ok(html.includes('id="vsync-toggle"'),'Settings must expose a VSync toggle');
 assert.ok(css.includes('body.reduce-motion')&&css.includes('body.high-contrast')&&css.includes('body.performance-saver'),'Accessibility and resource-saving toggles must have working styles');
+
+assert.match(enhancements,/function bindLauncherNavigation\(\)/,'Launcher navigation must route dynamic tabs through a delegated handler');
+assert.ok(enhancements.includes('event.stopImmediatePropagation()') && enhancements.includes('routes={calendar:openCalendarPage,system:openSystemPage,screenshots:openScreenshotsPage,support:openSupportPage}'),'All dynamic launcher sections must have working navigation');
+assert.ok(enhancements.includes('system-open-screenshots')&&enhancements.includes('system-open-support'),'Control center must link directly to screenshots and support');
+assert.ok(enhancements.includes('href="mailto:kisia319@gmail.com"')&&enhancements.includes('href="tel:+79962819878"'),'Support must show the configured email and telephone contacts');
+assert.ok(enhancements.includes('screenshot-thumbnail')&&enhancements.includes('get_screenshot_data(item.name)'),'Screenshot gallery must render saved image previews');
+assert.ok(enhancements.includes('screenshot-viewer-download')&&enhancements.includes('download.download=item.name'),'Screenshot viewer must offer a local PNG download');
+assert.ok(enhancements.includes('items.slice(0,24)'),'Screenshot gallery must limit visible cards to avoid unbounded memory use');
+assert.ok(enhancements.includes('launcherEnhancementsInitialized')&&enhancements.includes('setup.forEach'),'A failure in one dynamic page must not prevent other launcher sections from initializing');
+assert.ok(game.includes("if(e.code==='F12'||e.key==='F12'){e.preventDefault();saveGameScreenshot();return;}")&&game.includes("api.save_screenshot(canvas.toDataURL('image/png'))"),'F12 must save a PNG from the game canvas through the native screenshot API');

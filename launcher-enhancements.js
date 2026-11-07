@@ -10,6 +10,7 @@
   const currentTime = () => new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
   let notificationPanel = null, notificationList = null, notificationCount = null;
   let cachedNotifications = [], cachedUpdate = null, pollTimer = null;
+  let launcherNavigationBound = false, launcherEnhancementsInitialized = false;
 
   function ensureSystemPage() {
     const nav = $('.nav');
@@ -27,6 +28,7 @@
       page.className = 'page inner-page system-page'; page.id = 'page-system';
       page.innerHTML = `
         <div class="page-heading system-intro"><div><div class="section-kicker">SKYREALM · КОНТРОЛЬ</div><h1>Центр <span>управления</span></h1><p>Обновления, состояние сервисов, диагностика, облачные сохранения и показатели компьютера.</p></div><button class="secondary-btn" id="system-refresh" type="button">↻ Обновить всё</button></div>
+        <div class="system-shortcuts" aria-label="Быстрые разделы"><button class="secondary-btn" id="system-open-screenshots" type="button">▧ Открыть скриншоты</button><button class="secondary-btn" id="system-open-support" type="button">? Открыть поддержку</button></div>
         <div><div class="section-heading"><div><div class="section-kicker">СЕТЬ</div><h2>Состояние сервисов</h2></div><span class="heading-note" id="system-checked-at">Ещё не проверяли</span></div><div class="system-grid">
           <article class="system-card"><div class="system-state"><i class="system-dot checking" id="system-auth-dot"></i><span id="system-auth-title">Авторизация: проверка</span></div><p id="system-auth-copy">Вход и регистрация игроков</p></article>
           <article class="system-card"><div class="system-state"><i class="system-dot checking" id="system-coop-dot"></i><span id="system-coop-title">Кооператив: проверка</span></div><p id="system-coop-copy">Комнаты и совместные игровые сессии</p></article>
@@ -231,8 +233,10 @@
       const page=document.createElement('section');page.className='page inner-page support-page';page.id='page-support';
       page.innerHTML=`
         <div class="page-heading"><div><div class="section-kicker">SKYREALM · ПОМОЩЬ</div><h1>Центр <span>поддержки</span></h1><p>Если что-то не работает, собери диагностику и отправь отчёт разработчику.</p></div></div>
-        <div class="support-grid"><article class="support-card"><b>Сообщить об ошибке</b><p>Опиши проблему и приложи скопированный диагностический отчёт.</p><a class="primary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/issues/new" target="_blank" rel="noopener">Создать обращение</a></article>
-        <article class="support-card"><b>Обновления и инструкции</b><p>Открыть исходный код, описание проекта и последние версии лаунчера.</p><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher" target="_blank" rel="noopener">Репозиторий GitHub</a><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest" target="_blank" rel="noopener">Последний релиз</a></article></div>
+        <div class="support-grid"><article class="support-card"><b>Написать по электронной почте</b><p>Для вопросов, сообщений об ошибках и предложений.</p><a class="primary-btn" href="mailto:kisia319@gmail.com">kisia319@gmail.com</a></article>
+        <article class="support-card"><b>Связаться по телефону</b><p>Контактный номер поддержки SkyRealm.</p><a class="secondary-btn" href="tel:+79962819878">+7 996 281 9878</a></article>
+        <article class="support-card"><b>Сообщить об ошибке на GitHub</b><p>Создай обращение и приложи диагностический отчёт.</p><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/issues/new" target="_blank" rel="noopener">Создать обращение ↗</a></article>
+        <article class="support-card"><b>Обновления и инструкции</b><p>Открыть исходный код и последние версии лаунчера.</p><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher" target="_blank" rel="noopener">Репозиторий GitHub</a><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest" target="_blank" rel="noopener">Последний релиз</a></article></div>
         <article class="support-card support-diagnostics"><b>Диагностический отчёт</b><p id="support-diagnostics-status">Отчёт содержит версии, состояние файлов и локальные показатели компьютера. Пароли и токены авторизации в него не включаются.</p><button class="primary-btn" id="support-copy-diagnostics" type="button">Скопировать отчёт</button></article>`;
       main.append(page);
     }
@@ -269,9 +273,9 @@
     if(!$('#page-screenshots')){
       const page=document.createElement('section');page.className='page inner-page screenshots-page';page.id='page-screenshots';
       page.innerHTML=`
-        <div class="page-heading"><div><div class="section-kicker">SKYREALM · ГАЛЕРЕЯ</div><h1>Мои <span>скриншоты</span></h1><p>Снимки игрового мира, сделанные клавишей F12. Файлы хранятся локально на этом компьютере.</p></div><div class="system-actions"><button class="secondary-btn" id="screenshots-refresh" type="button">↻ Обновить</button><button class="secondary-btn" id="screenshots-open-folder" type="button">Открыть папку</button></div></div>
+        <div class="page-heading"><div><div class="section-kicker">SKYREALM · ГАЛЕРЕЯ</div><h1>Мои <span>скриншоты</span></h1><p>В игре нажми F12 — снимок PNG сохранится на компьютере автоматически. Здесь можно просмотреть и скачать сохранённые снимки.</p></div><div class="system-actions"><button class="secondary-btn" id="screenshots-refresh" type="button">↻ Обновить</button><button class="secondary-btn" id="screenshots-open-folder" type="button">Открыть папку</button></div></div>
         <p class="screenshots-status" id="screenshots-status" aria-live="polite"></p><div class="screenshots-grid" id="screenshots-grid"><div class="screenshots-empty">Загружаем галерею…</div></div>
-        <div class="screenshot-viewer" id="screenshot-viewer" hidden aria-hidden="true"><div class="screenshot-viewer-panel"><div class="screenshot-viewer-head"><b id="screenshot-viewer-title">Скриншот</b><button class="secondary-btn" id="screenshot-viewer-close" type="button">Закрыть</button></div><img id="screenshot-viewer-image" alt="Скриншот SkyRealm"></div></div>`;
+        <div class="screenshot-viewer" id="screenshot-viewer" hidden aria-hidden="true"><div class="screenshot-viewer-panel"><div class="screenshot-viewer-head"><b id="screenshot-viewer-title">Скриншот</b><div class="system-actions"><a class="secondary-btn" id="screenshot-viewer-download" hidden>Скачать PNG</a><button class="secondary-btn" id="screenshot-viewer-close" type="button">Закрыть</button></div></div><img id="screenshot-viewer-image" alt="Скриншот SkyRealm"></div></div>`;
       main.append(page);
     }
     if(!$('#screenshots-refresh')?.dataset.bound){
@@ -292,30 +296,43 @@
   function screenshotNotice(message){const status=$('#screenshots-status');if(status)status.textContent=message;else console.warn('[SkyRealm screenshots]',message);}
   function closeScreenshotViewer(){
     const viewer=$('#screenshot-viewer');if(!viewer)return;viewer.hidden=true;viewer.setAttribute('aria-hidden','true');$('#screenshot-viewer-image').removeAttribute('src');
+    const download=$('#screenshot-viewer-download');if(download){download.hidden=true;download.removeAttribute('href');download.removeAttribute('download');}
   }
   async function refreshScreenshots(){
     const grid=$('#screenshots-grid');if(!grid)return;grid.replaceChildren();
     const api=window.pywebview?.api;
-    if(typeof api?.get_screenshots!=='function'){grid.textContent='Галерея доступна в установленной Windows-версии лаунчера.';return;}
+    if(typeof api?.get_screenshots!=='function'){grid.textContent='Галерея и локальное сохранение доступны в установленной Windows-версии лаунчера.';return;}
     try{
       const result=await api.get_screenshots();if(!result?.ok)throw new Error(result?.message||'Не удалось загрузить скриншоты.');
       const items=Array.isArray(result.screenshots)?result.screenshots:[];
-      if(!items.length){grid.innerHTML='<div class="screenshots-empty"><b>Пока нет скриншотов</b><span>Запусти игру и нажми F12, чтобы сделать первый снимок.</span></div>';return;}
-      items.forEach(item=>{
+      if(!items.length){grid.innerHTML='<div class="screenshots-empty"><b>Пока нет скриншотов</b><span>Запусти игру и нажми F12. Снимок сохранится в папке SkyRealm\\screenshots.</span></div>';return;}
+      items.slice(0,24).forEach((item,index)=>{
         const card=document.createElement('article');card.className='screenshot-card';
         const preview=document.createElement('div');preview.className='screenshot-card-preview';preview.textContent='▧';
         const details=document.createElement('div');details.className='screenshot-card-details';
         const title=document.createElement('b');title.textContent=item.name||'Скриншот';
         const meta=document.createElement('small');meta.textContent=(item.created_at||'')+' · '+(item.size_kb||0)+' КБ';
+        if(index<8&&item.name&&typeof api.get_screenshot_data==='function'){
+          const thumbnail=document.createElement('img');thumbnail.className='screenshot-thumbnail';thumbnail.loading='lazy';thumbnail.decoding='async';thumbnail.alt='Предпросмотр '+item.name;
+          preview.replaceChildren(thumbnail);
+          api.get_screenshot_data(item.name).then(image=>{
+            if(image?.ok&&image.data_url)thumbnail.src=image.data_url;
+            else{thumbnail.remove();preview.textContent='Предпросмотр недоступен';}
+          }).catch(()=>{thumbnail.remove();preview.textContent='▧';});
+        }
         const open=document.createElement('button');open.type='button';open.className='secondary-btn';open.textContent='Просмотреть';
         open.addEventListener('click',async()=>{
-          try{const image=await api.get_screenshot_data(item.name);if(!image?.ok)throw new Error(image?.message||'Не удалось открыть скриншот.');
+          try{
+            const image=await api.get_screenshot_data(item.name);if(!image?.ok||!image.data_url)throw new Error(image?.message||'Не удалось открыть скриншот.');
             $('#screenshot-viewer-title').textContent=item.name;$('#screenshot-viewer-image').src=image.data_url;
+            const download=$('#screenshot-viewer-download');download.href=image.data_url;download.download=item.name;download.hidden=false;
             const viewer=$('#screenshot-viewer');viewer.hidden=false;viewer.setAttribute('aria-hidden','false');
           }catch(error){screenshotNotice(error.message||'Не удалось открыть скриншот.');}
         });
         details.append(title,meta,open);card.append(preview,details);grid.append(card);
       });
+      if(items.length>24)screenshotNotice('Показаны последние 24 скриншота из '+items.length+'. Остальные файлы остаются в папке снимков.');
+      else screenshotNotice('Скриншотов: '+items.length+'. Нажми F12 в игре, чтобы сохранить новый снимок.');
     }catch(error){grid.textContent=error.message||'Галерея временно недоступна.';}
   }
   function setService(key,ok,detail) {
@@ -502,6 +519,8 @@
     await Promise.all([refreshServices(),checkUpdates(),refreshMetrics(),refreshDiagnostics(),refreshNotifications()]);
   }
   function bindSystemActions() {
+    $('#system-open-screenshots')?.addEventListener('click',openScreenshotsPage);
+    $('#system-open-support')?.addEventListener('click',openSupportPage);
     $('#system-refresh')?.addEventListener('click',refreshAll);
     $('#system-check-updates')?.addEventListener('click',checkUpdates);
     $('#system-install-update')?.addEventListener('click',()=>runUpdateAction('install_game_update','#system-install-update'));
@@ -525,9 +544,22 @@
       }catch(error){if(message)message.textContent=error.message||'Не удалось открыть облачные сохранения.';}
     });
   }
+  function bindLauncherNavigation(){
+    if(launcherNavigationBound)return;launcherNavigationBound=true;
+    document.addEventListener('click',event=>{
+      const button=event.target?.closest?.('.nav-item[data-page]');if(!button)return;
+      const routes={calendar:openCalendarPage,system:openSystemPage,screenshots:openScreenshotsPage,support:openSupportPage};
+      const action=routes[button.dataset.page];if(!action)return;
+      event.preventDefault();event.stopImmediatePropagation();
+      try{action();}catch(error){console.error('[SkyRealm launcher navigation]',error);const status=$('#toast');if(status){status.textContent='Не удалось открыть раздел. Перезапусти лаунчер и попробуй снова.';status.classList.add('show');}}
+    },true);
+  }
   function init() {
-    ensureSystemPage();ensureCalendarPage();ensureSupportPage();ensureScreenshotsPage();addNotificationControl();bindSystemActions();
-    refreshServices();refreshNotifications();
+    if(launcherEnhancementsInitialized)return;launcherEnhancementsInitialized=true;
+    const setup=[ensureSystemPage,ensureCalendarPage,ensureSupportPage,ensureScreenshotsPage];
+    setup.forEach(setupSection=>{try{setupSection();}catch(error){console.error('[SkyRealm launcher section init]',error);}});
+    try{bindLauncherNavigation();addNotificationControl();bindSystemActions();}catch(error){console.error('[SkyRealm launcher controls init]',error);}
+    try{refreshServices();refreshNotifications();}catch(error){console.error('[SkyRealm launcher refresh]',error);}
     pollTimer=window.setInterval(()=>{refreshNotifications();refreshServices();},45_000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
