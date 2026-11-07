@@ -2092,7 +2092,16 @@ function setupVillageNpcs(){
     const totalX=mx*speed*dt,totalY=my*speed*dt,r=10,steps=Math.max(1,Math.ceil(Math.max(Math.abs(totalX),Math.abs(totalY))/6)),stepX=totalX/steps,stepY=totalY/steps;
     const can=(x,y)=>{
       const a=mineCellFromWorld(x-r,y-r),b=mineCellFromWorld(x+r,y-r),c=mineCellFromWorld(x-r,y+r),d=mineCellFromWorld(x+r,y+r);
-      return mineCellWalkable(a.x,a.y)&&mineCellWalkable(b.x,b.y)&&mineCellWalkable(c.x,c.y)&&mineCellWalkable(d.x,d.y);
+      if(!mineCellWalkable(a.x,a.y)||!mineCellWalkable(b.x,b.y)||!mineCellWalkable(c.x,c.y)||!mineCellWalkable(d.x,d.y))return false;
+      // Barrels are solid obstacles: keep the player outside their visible wooden body.
+      for(const barrel of mineBarrels){
+        if(barrel.hp<=0)continue;
+        const pos=mineFeatureWorldPosition(barrel);
+        const minDistance=r+16;
+        const dx=x-pos.x,dy=y-pos.y;
+        if(dx*dx+dy*dy<minDistance*minDistance)return false;
+      }
+      return true;
     };
     for(let i=0;i<steps;i++){
       if(stepX&&can(minePlayerX+stepX,minePlayerY))minePlayerX+=stepX;
@@ -2179,7 +2188,7 @@ function setupVillageNpcs(){
       ctx.fillStyle='#b67b45';ctx.fillRect(-12,-13,24,4);ctx.fillRect(-14,1,28,5);ctx.fillStyle='#6b452c';ctx.fillRect(-5,-12,3,24);ctx.fillRect(4,-11,3,23);
       ctx.fillStyle='#c7955d';ctx.beginPath();ctx.ellipse(0,-14,11,4,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#593b2a';ctx.beginPath();ctx.ellipse(0,-14,7,2,0,0,Math.PI*2);ctx.fill();
       if(b.hp<b.maxHp){ctx.strokeStyle='#ffe09a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.stroke();}
-      ctx.fillStyle='#e8d6b5';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('БОЧКА',0,29);ctx.textAlign='left';ctx.restore();
+      ctx.restore();
     }
   }
   function drawMineCreatures(time=performance.now()){

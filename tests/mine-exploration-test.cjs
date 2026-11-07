@@ -111,4 +111,15 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.match(source,/damage:10/,'New mine creatures must use the fixed 10 HP attack value.');
  assert.match(source,/Math\.hypot\(mineCreatureScreenPosition\(m\)\.x-mineHitX,mineCreatureScreenPosition\(m\)\.y-mineHitY\)<54/,'Mine creature click targets must be forgiving.');
 });
+testCase('mine barrels block player movement until destroyed and have no floating label',()=>{
+ const f=fixture();f.ctx.mineBarrels=[{x:120,y:90,hp:2}];
+ f.ctx.mineFeatureWorldPosition=b=>({x:b.x,y:b.y});
+ f.ctx.mineCellFromWorld=()=>({x:1,y:1});f.ctx.mineCellWalkable=()=>true;
+ run(f.ctx,['mineMovePlayer'],['mineMovePlayer']);
+ f.ctx.minePlayerX=80;f.ctx.minePlayerY=90;f.ctx.mineMovePlayer(1,0,100,1);
+ assert.ok(f.ctx.minePlayerX<95,'player must stop before reaching the solid barrel');
+ f.ctx.mineBarrels[0].hp=0;f.ctx.minePlayerX=80;f.ctx.mineMovePlayer(1,0,100,1);
+ assert.ok(f.ctx.minePlayerX>120,'destroyed barrels must no longer block movement');
+ assert.ok(!source.includes("fillText('БОЧКА'"),'barrels must not display a floating name label');
+});
 console.log('PASS '+tests.length+' mine exploration tests: '+tests.join(' | '));
