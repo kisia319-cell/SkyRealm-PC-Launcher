@@ -660,8 +660,11 @@
       spawnCombatBurst(def.x,def.y,52,'spark',style[0]);spawnCombatBurst(def.x,def.y,24,'dust','#ffffff');
       if(boss.hp<=0)defeatBiomeBoss(def,boss);
     }
-    if(dungeonMode&&typeof dungeonBossHp==='number'&&dungeonBossHp>0){
-      const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*2.7);dungeonBossHp=Math.max(0,dungeonBossHp-damage);hits++;spawnCombatBurst(player.x,player.y-90,42,'spark',style[0]);
+    if(wolfBossActive&&wolfBossHp>0&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=reach){
+      const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*2.7);wolfBossHp=Math.max(0,wolfBossHp-damage);wolfBossFlash=.5;hits++;spawnCombatBurst(wolfBossX,wolfBossY,48,'spark',style[0]);if(wolfBossHp<=0)defeatWolfBoss();
+    }
+    if(caveMode&&!caveBossDefeated&&caveBossHp>0&&Math.hypot(player.x-caveBossX,player.y-caveBossY)<=reach){
+      const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*2.7);caveBossHp=Math.max(0,caveBossHp-damage);caveBossFlash=.5;hits++;spawnCombatBurst(caveBossX,caveBossY,48,'spark',style[0]);if(caveBossHp<=0)defeatCaveBoss();
     }
     spawnCombatBurst(player.x,player.y,76,'spark',style[0]);spawnCombatBurst(player.x,player.y,42,'dust','#ffffff');
     combatCinematicImpactFlash=.32;combatCameraShake=13;saveGame();
@@ -701,7 +704,7 @@
     const target=candidates.filter(m=>Math.hypot(m.x-player.x,m.y-player.y)<=reach).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
     const forward={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]}[player.face]||[0,1];
     const fx=target?(player.x+target.x)*.5:player.x+forward[0]*100,fy=target?(player.y+target.y)*.5:player.y+forward[1]*100;
-    combatEnergy=0;combatUltimateCooldown=2.8;combatCinematic={active:true,elapsed:0,duration:2.35,hitAt:1.28,hitDone:false,focusX:fx,focusY:fy,style:style[0],name:style[1]};
+    combatEnergy=0;combatUltimateCooldown=2.8;combatCinematic={active:true,elapsed:0,duration:2.35,hitAt:1.28,hitDone:false,focusX:fx,focusY:fy,style:style[0],name:style[1],weapon:equipment.weapon||'Деревянный меч'};
     combatWeaponTrail=.75;attackAnimTimer=.75;spawnCombatBurst(player.x,player.y,28,'dust','#dceeff');spawnCombatBurst(player.x,player.y,18,'spark',style[0]);
     toast('КИНОУДАР · '+style[1]+' · замедление 0.5×');
   }
@@ -2380,7 +2383,6 @@ function setupVillageNpcs(){
     drawDayNightOverlay(camX,camY);
     updateObjective();
     ctx.restore();
-    drawCombatCinematicOverlay(time);
   }
   function drawCombatCinematicOverlay(time){
     if(!combatCinematic?.active&&!combatCinematicImpactFlash)return;
@@ -2392,7 +2394,9 @@ function setupVillageNpcs(){
       ctx.fillStyle='rgba(2,5,12,'+(0.68+intensity*.2)+')';ctx.fillRect(0,0,width,bar);ctx.fillRect(0,height-bar,width,bar);
       const cx=width*.5,cy=height*.5,edge=ctx.createRadialGradient(cx,cy,Math.min(width,height)*.2,cx,cy,Math.max(width,height)*.72);
       edge.addColorStop(0,'rgba(0,0,0,0)');edge.addColorStop(1,'rgba(0,0,0,'+(.12+intensity*.28)+')');ctx.fillStyle=edge;ctx.fillRect(0,0,width,height);
-      if(intensity>.15){ctx.save();ctx.globalAlpha=intensity*.24;ctx.strokeStyle=combatCinematic.style;ctx.lineWidth=2;for(let n=0;n<18;n++){const a=n*Math.PI/9+time*.0002,r=Math.max(width,height)*(.35+(n%3)*.1);ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r*.18,cy+Math.sin(a)*r*.18);ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);ctx.stroke();}ctx.restore();}
+      if(intensity>.15&&gameSettings.graphicsQuality!=='low'){ctx.save();ctx.globalAlpha=intensity*(gameSettings.graphicsQuality==='high'?.26:.13);ctx.strokeStyle=combatCinematic.style;ctx.lineWidth=2;const rays=gameSettings.graphicsQuality==='high'?22:12;for(let n=0;n<rays;n++){const a=n*Math.PI*2/rays+time*.0002,r=Math.max(width,height)*(.35+(n%3)*.1);ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r*.18,cy+Math.sin(a)*r*.18);ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);ctx.stroke();}ctx.restore();}
+      // A foreground weapon sweep sells the close, over-the-shoulder impact shot.
+      if(intensity>.2){ctx.save();const swing=(1-p)*1.9-.55;ctx.translate(width*.78,height*.86);ctx.rotate(swing);ctx.globalAlpha=Math.min(.95,intensity*1.15);ctx.strokeStyle=combatCinematic.style;ctx.fillStyle='#c8d5e6';ctx.shadowColor=combatCinematic.style;ctx.shadowBlur=gameSettings.graphicsQuality==='low'?2:16;ctx.lineWidth=combatCinematic.weapon==='Молниеносное копьё'?11:7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,48);ctx.lineTo(-10,-72);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#526174';ctx.beginPath();ctx.moveTo(-17,52);ctx.lineTo(17,52);ctx.lineTo(11,37);ctx.lineTo(-11,37);ctx.closePath();ctx.fill();ctx.strokeStyle='#f4f8ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-5,-62);ctx.lineTo(-9,25);ctx.stroke();ctx.restore();}
       ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#ffffff';ctx.shadowColor=combatCinematic.style;ctx.shadowBlur=14;ctx.fillText(combatCinematic.hitDone?'УДАР!':combatCinematic.name.toUpperCase(),width/2,height-Math.min(height*.12,34+intensity*24)+22);ctx.shadowBlur=0;
     }
     if(combatCinematicImpactFlash>0){ctx.fillStyle='rgba(255,255,255,'+Math.min(.42,combatCinematicImpactFlash*1.25)+')';ctx.fillRect(0,0,width,height);}
@@ -4820,8 +4824,6 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function tickFrame(now){
     const realDt=Math.min(.04,(now-last)/1000);
-    updateCombatCinematic(realDt);
-    const dt=realDt*(combatCinematic?.active?.5:1);
     last=now;
     ambientTime=now;
     // The animated main menu is DOM/CSS-driven. Keep its visual scene responsive
@@ -4845,6 +4847,8 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     const coopRoomPaused=coopRoomState?.status==='paused';
     // Co-op room pause stops shared actions and the authoritative clock, but it must not freeze local player movement.
     if(paused&&currentWorldId&&!inMainMenu){requestAnimationFrame(tick);return;}
+    updateCombatCinematic(realDt);
+    const dt=realDt*(combatCinematic?.active?.5:1);
     updateVisualEffects(dt);
     if (!paused && !signDialogOpen && !inventoryDialogOpen && !fullMapOpen && !workbenchDialogOpen) {
       updateMagic(dt);bossRealmInvisibleTimer=Math.max(0,bossRealmInvisibleTimer-dt);bossRealmInvisibilityCooldown=Math.max(0,bossRealmInvisibilityCooldown-dt);bossRealmDamageBoostTimer=Math.max(0,bossRealmDamageBoostTimer-dt);bossRealmAbilityCooldown=Math.max(0,bossRealmAbilityCooldown-dt);bossRealmSprintTimer=Math.max(0,bossRealmSprintTimer-dt);bossRealmSprintCooldown=Math.max(0,bossRealmSprintCooldown-dt);playerAttackCooldown=Math.max(0,playerAttackCooldown-dt);combatAbilityCooldown=Math.max(0,combatAbilityCooldown-dt);dodgeCooldown=Math.max(0,dodgeCooldown-dt);dodgeTimer=Math.max(0,dodgeTimer-dt);
@@ -4906,7 +4910,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     }
     updateCoopPosition(dt);
     if(!document.hidden){minimapTimer += dt; if (minimapTimer >= .16) { drawMinimap(); minimapTimer = 0; }
-      try { draw(dt, now); } catch (error) { console.error('SkyRealm render error:', error); drawEmergencyWorld(); }
+      try { draw(dt, now); drawCombatCinematicOverlay(now); } catch (error) { console.error('SkyRealm render error:', error); drawEmergencyWorld(); }
       updateWalletHud();}
     requestAnimationFrame(tick);
   }
