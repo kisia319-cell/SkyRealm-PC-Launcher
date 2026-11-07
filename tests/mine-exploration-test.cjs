@@ -100,14 +100,20 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.ok(source.includes('const nx = player.x + player.vx*dt, ny = player.y + player.vy*dt;'),'normal world movement integration remains unchanged');
  assert.ok(source.includes('if (!blocked(nx, player.y)) player.x = nx;'));
  assert.ok(source.includes('if (!blocked(player.x, ny)) player.y = ny;'));
- assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,mineFeaturesVersion:1,mineMazeVersion:2,quarryProgress'));
+ assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,mineFeaturesVersion:1,mineMazeVersion:3,quarryProgress'));
  assert.ok(source.includes('drawMinePassages()'));assert.ok(source.includes('updateMineCreatures(dt)'));
  assert.match(source,/function drawMineBackdrop\(/,'Mine must draw a full-screen cave background behind the maze.');
  assert.ok(source.includes('drawMineBackdrop(time);'),'Mine passage rendering must paint the cave backdrop before corridor tiles.');
  assert.match(source,/drawPlayer\(player\.x-width\/2,player\.y-height\/2,dt\)/,'Mine must render the complete player appearance and equipment instead of a placeholder body.');
  assert.match(source,/Jagged host rock with a dark bevel/,'Ore deposits must have layered rock faces and mineral facets.');
  assert.match(source,/Occasional ceiling stalactites hang over the dark rock/,'Mine walls must include ceiling formations.');
- assert.match(source,/A handful of animated lantern pools and drifting dust motes/,'Mine atmosphere must include lantern lighting and dust.');assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));assert.ok(source.includes('mineMazeVersion:2'));
+ assert.match(source,/A handful of animated lantern pools and drifting dust motes/,'Mine atmosphere must include lantern lighting and dust.');assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));
+ assert.match(source,/function drawMineSkyWindow\\(/,'Mine must show a visible moon or sun through a ceiling opening.');
+ assert.ok(source.includes('mineDepth,mineLevel'),'Mine saves must keep floor depth separate from manual upgrade level.');
+ assert.ok(source.includes('mineDepth++'),'Descending must change depth without automatically upgrading the mine.');
+ assert.ok(source.includes('const oreTier=Math.max(1,Math.min(8,mineLevel,mineDepth))'),'Ore rarity must be limited by manual upgrade and current depth.');
+ assert.ok(source.includes('function grantGoldToWallet(amount)'),'Admin and moderator gold must use the persistent wallet transaction.');
+ assert.ok(source.includes('const editTargetNode=isEditableTarget(e.target)?e.target:(isEditableTarget(activeElement)?activeElement:null)'),'Keyboard handler must inspect the actual focused input element.');assert.ok(source.includes('mineMazeVersion:3'));
  assert.match(source,/function autoResumeCoopRoomOnInput\(\)/,'Owner input must automatically resume a paused shared world.');
  assert.ok(source.includes("if(k===' '&&mineMode&&!formTarget&&!inMainMenu&&!paused&&!blockingOverlay){e.preventDefault();attackMineCreature();return;}"),'Spacebar must provide a reliable mine creature attack.');
  assert.match(source,/damage:10/,'New mine creatures must use the fixed 10 HP attack value.');
@@ -124,5 +130,25 @@ testCase('players can walk through barrels and barrels have no floating label',(
  assert.ok(f.ctx.minePlayerX>120,'destroyed barrels must remain non-blocking');
  assert.ok(!source.includes("fillText('БОЧКА'"),'barrels must not display a floating name label');
  assert.ok(!source.includes("fillText('Бочка'"),'barrels must not display a capitalized floating label');
+});
+
+testCase('ore deposits are solid obstacles and cannot be walked through',()=>{
+ const f=fixture();f.ctx.mineRocks=[{x:120,y:90,hp:2,ore:'Железо'}];
+ f.ctx.mineFeatureWorldPosition=r=>({x:r.x,y:r.y});
+ f.ctx.mineCellFromWorld=()=>({x:1,y:1});f.ctx.mineCellWalkable=()=>true;
+ run(f.ctx,['mineMovePlayer'],['mineMovePlayer']);
+ f.ctx.minePlayerX=80;f.ctx.minePlayerY=90;f.ctx.mineMovePlayer(1,0,100,1);
+ assert.ok(f.ctx.minePlayerX<105,'live ore deposit must stop player movement before the rock');
+ f.ctx.mineRocks[0].hp=0;f.ctx.minePlayerX=80;f.ctx.mineMovePlayer(1,0,100,1);
+ assert.ok(f.ctx.minePlayerX>120,'destroyed ore deposit must no longer block movement');
+});
+testCase('admin and moderator gold grants update the persistent world wallet',()=>{
+ const f=fixture();let hud=0,adminStats=0;
+ f.ctx.walletCents=0;f.ctx.shopDialogOpen=false;
+ f.ctx.updateWalletHud=()=>hud++;f.ctx.refreshAdminStats=()=>adminStats++;
+ run(f.ctx,['grantGoldToWallet'],['grantGoldToWallet']);
+ assert.equal(f.ctx.grantGoldToWallet(125),125);
+ assert.equal(f.ctx.walletCents,12500,'125 gold must be stored as 12500 wallet cents');
+ assert.equal(hud,1);assert.equal(adminStats,1);assert.equal(f.events.saves,1);
 });
 console.log('PASS '+tests.length+' mine exploration tests: '+tests.join(' | '));
