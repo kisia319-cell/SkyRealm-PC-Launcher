@@ -83,21 +83,53 @@
     if(['astral_god','chronos_god'].includes(type))return 'astral';
     return 'forge';
   }
+  function bossRealmMuseumPosition(x,y,exclude=null){
+    const gap=19*TILE,centers=[];
+    for(const mob of monsters){
+      if(!mob||mob===exclude||!mob.bossRealmCreature||mob.hp<=0)continue;
+      const cx=Number.isFinite(mob.territoryX)?mob.territoryX:Number(mob.x),cy=Number.isFinite(mob.territoryY)?mob.territoryY:Number(mob.y);
+      if(Number.isFinite(cx)&&Number.isFinite(cy))centers.push({x:cx,y:cy});
+    }
+    const sites=Array.isArray(bossRealmState.dungeonSites)?bossRealmState.dungeonSites:[];
+    for(const site of sites)if(Number.isFinite(site?.x)&&Number.isFinite(site?.y))centers.push({x:site.x,y:site.y});
+    const minX=8*TILE,maxX=(COLS-8)*TILE,minY=8*TILE,maxY=(ROWS-8)*TILE;
+    const valid=(px,py)=>centers.every(c=>Math.hypot(px-c.x,py-c.y)>=gap-1);
+    let best=null,bestScore=Infinity;
+    const baseX=Math.max(minX,Math.min(maxX,Number(x)||player.x)),baseY=Math.max(minY,Math.min(maxY,Number(y)||player.y));
+    for(let radius=19;radius<=64;radius+=2){
+      for(let i=0;i<32;i++){
+        const angle=i*Math.PI/16,px=Math.max(minX,Math.min(maxX,baseX+Math.cos(angle)*radius*TILE)),py=Math.max(minY,Math.min(maxY,baseY+Math.sin(angle)*radius*TILE));
+        if(!valid(px,py))continue;
+        const score=Math.hypot(px-baseX,py-baseY);
+        if(score<bestScore){best={x:px,y:py};bestScore=score;}
+      }
+      if(best&&bestScore<=(radius+1)*TILE)break;
+    }
+    if(best)return best;
+    for(let gy=minY;gy<=maxY;gy+=gap)for(let gx=minX;gx<=maxX;gx+=gap){
+      if(!valid(gx,gy))continue;
+      const score=Math.hypot(gx-baseX,gy-baseY);
+      if(score<bestScore){best={x:gx,y:gy};bestScore=score;}
+    }
+    return best||{x:baseX,y:baseY};
+  }
   function spawnBossRealmCreature(type,x,y){
     const d=BOSS_REALM_CREATURES[type];
     const isMajorBoss=!!d&&['boss','god'].includes(d.tier);
     if(!bossRealmMode||!d||(!isMajorBoss&&bossRealmCreatureCount()>=12)||(isMajorBoss&&monsters.some(m=>m.bossRealmCreature&&m.hp>0&&['boss','god'].includes(BOSS_REALM_CREATURES[m.realmType]?.tier))))return false;
+    const realmSites=ensureBossRealmDungeonSites();
     let arenaSite=null;
     if(isMajorBoss){
-      arenaSite=ensureBossRealmDungeonSites().find(site=>site.id===bossRealmArenaIdFor(type))||null;
+      arenaSite=realmSites.find(site=>site.id===bossRealmArenaIdFor(type))||null;
       if(arenaSite){
         x=arenaSite.x;y=arenaSite.y;
         arenaSite.active=true;arenaSite.complete=false;arenaSite.remaining=0;arenaSite.bossId=type;
       }
     }
     if(!Number.isFinite(x)||!Number.isFinite(y)){const a=Math.random()*Math.PI*2,r=340+Math.random()*210;x=Math.max(64,Math.min(COLS*TILE-64,player.x+Math.cos(a)*r));y=Math.max(64,Math.min(ROWS*TILE-64,player.y+Math.sin(a)*r));}
+    if(!isMajorBoss){const museum=bossRealmMuseumPosition(x,y);x=museum.x;y=museum.y;}
     const hp=Math.round(d.hp*difficultyConfig().monsterHp);
-    const mob={id:newCoopEntityId(),type:'brute',realmType:type,bossRealmCreature:true,bossTitle:d.name,x,y,hp,maxHp:hp,speed:d.speed,damageScale:difficultyConfig().monsterDamage,phase:Math.random()*6.28,flash:0,attackCooldown:1,specialCooldown:3+Math.random()*3,telegraphTimer:0,telegraphActive:false,phaseStage:1,action:'idle',actionTimer:0,shield:0,rage:0,animation:Math.random()*6,raidCrystalCount:type==='worldbreaker_colossus'?3:0,territoryX:x,territoryY:y,territoryRadius:isMajorBoss?12*TILE:d.tier==='elite'?11*TILE:10*TILE,museumDamage:0};
+    const mob={id:newCoopEntityId(),type:'brute',realmType:type,bossRealmCreature:true,bossTitle:d.name,x,y,hp,maxHp:hp,speed:d.speed,damageScale:difficultyConfig().monsterDamage,phase:Math.random()*6.28,flash:0,attackCooldown:1,specialCooldown:3+Math.random()*3,telegraphTimer:0,telegraphActive:false,phaseStage:1,action:'idle',actionTimer:0,shield:0,rage:0,animation:Math.random()*6,raidCrystalCount:type==='worldbreaker_colossus'?3:0,territoryX:x,territoryY:y,territoryRadius:isMajorBoss?12*TILE:d.tier==='elite'?11*TILE:10*TILE,museumDamage:0,museumLayoutVersion:2};
     if(isMajorBoss&&arenaSite){mob.arenaId=arenaSite.id;mob.arenaX=arenaSite.x;mob.arenaY=arenaSite.y;mob.arenaRadius=160;mob.realmDungeonId=arenaSite.id;mob.realmDungeonFinal=true;toast('АРЕНА ПРОБУЖДЕНА: '+arenaSite.name+' · '+d.name+' ждёт тебя!');}
     monsters.push(mob);
     return true;
@@ -211,6 +243,12 @@
       const arenaRadius=Math.max(10*TILE,Math.min(14*TILE,Number(m.arenaRadius)||12*TILE));
       if(!Number.isFinite(m.territoryX))m.territoryX=hasArena?m.arenaX:m.x;
       if(!Number.isFinite(m.territoryY))m.territoryY=hasArena?m.arenaY:m.y;
+      if(m.museumLayoutVersion!==2){
+        const museum=hasArena?{x:arenaSite.x,y:arenaSite.y}:bossRealmMuseumPosition(m.x,m.y,m);
+        m.territoryX=museum.x;m.territoryY=museum.y;
+        if(!hasArena){m.x=museum.x;m.y=museum.y;}
+        m.museumLayoutVersion=2;
+      }
       if(!Number.isFinite(m.territoryRadius)||m.territoryRadius<10*TILE)m.territoryRadius=12*TILE;
       m.flash=Math.max(0,(Number(m.flash)||0)-step);m.attackCooldown=Math.max(0,m.attackCooldown-step);m.specialCooldown=Math.max(0,m.specialCooldown-step);m.actionTimer=Math.max(0,m.actionTimer-step);m.telegraphTimer=Math.max(0,m.telegraphTimer-step);m.rage=Math.max(0,m.rage-step);m.animation=(Number(m.animation)||0)+step*8;
       if(m.hp<=0)continue;
@@ -262,18 +300,23 @@
     const existing=Array.isArray(bossRealmState.dungeonSites)?bossRealmState.dungeonSites:[];
     const clamp=(v,max)=>Math.max(TILE*5,Math.min(max-TILE*5,v));
     const specs=[
-      {id:'forge',name:'Пепельная кузня',theme:'infernal',bossId:'magma_behemoth',dx:-12,dy:9},
-      {id:'glacier',name:'Ледяной колизей',theme:'glacier',bossId:'frost_empress',dx:12,dy:9},
-      {id:'temple',name:'Храм вечности',theme:'blood',bossId:'void_mirror',dx:-12,dy:-9},
-      {id:'astral',name:'Астральный круг',theme:'astral',bossId:'astral_god',dx:12,dy:-9}
+      {id:'forge',name:'Пепельная кузня',theme:'infernal',bossId:'magma_behemoth',dx:-16,dy:12},
+      {id:'glacier',name:'Ледяной колизей',theme:'glacier',bossId:'frost_empress',dx:16,dy:12},
+      {id:'temple',name:'Храм вечности',theme:'blood',bossId:'void_mirror',dx:-16,dy:-12},
+      {id:'astral',name:'Астральный круг',theme:'astral',bossId:'astral_god',dx:16,dy:-12}
     ];
+    const oldAnchors=existing.filter(v=>Number.isFinite(v?.x)&&Number.isFinite(v?.y));
+    const anchorX=oldAnchors.length?oldAnchors.reduce((sum,v)=>sum+v.x,0)/oldAnchors.length:player.x;
+    const anchorY=oldAnchors.length?oldAnchors.reduce((sum,v)=>sum+v.y,0)/oldAnchors.length:player.y;
+    const clampSite=(v,max)=>Math.max(TILE*8,Math.min(max-TILE*8,v));
     let changed=existing.length!==specs.length;
     const sites=specs.map(spec=>{
       const old=existing.find(v=>v&&v.id===spec.id);
       const site={
         id:spec.id,name:spec.name,theme:spec.theme,bossId:old&&BOSS_REALM_CREATURES[old.bossId]?old.bossId:spec.bossId,
-        x:old&&Number.isFinite(old.x)?clamp(old.x,COLS*TILE):clamp(player.x+spec.dx*TILE,COLS*TILE),
-        y:old&&Number.isFinite(old.y)?clamp(old.y,ROWS*TILE):clamp(player.y+spec.dy*TILE,ROWS*TILE),
+        x:old?.layoutVersion===2&&Number.isFinite(old.x)?clampSite(old.x,COLS*TILE):clampSite(anchorX+spec.dx*TILE,COLS*TILE),
+        y:old?.layoutVersion===2&&Number.isFinite(old.y)?clampSite(old.y,ROWS*TILE):clampSite(anchorY+spec.dy*TILE,ROWS*TILE),
+        layoutVersion:2,
         active:!!old?.active,complete:!!old?.complete,
         remaining:Math.max(0,Math.min(3,Math.floor(Number(old?.remaining)||0))),
         rematches:Math.max(0,Math.min(50,Math.floor(Number(old?.rematches)||0)))
@@ -303,7 +346,7 @@
   }
   function interactBossRealmDungeonSite(){
     if(!bossRealmMode)return false;
-    const site=ensureBossRealmDungeonSites().find(v=>Math.hypot(player.x-v.x,player.y-v.y)<118);
+    const site=ensureBossRealmDungeonSites().filter(v=>Math.hypot(player.x-v.x,player.y-v.y)<76).sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y))[0];
     if(!site)return false;
     if(site.active){
       const arenaBoss=monsters.find(m=>m.bossRealmCreature&&m.realmDungeonFinal&&m.realmDungeonId===site.id&&m.hp>0);
@@ -530,7 +573,7 @@
     const targetX=Number.isFinite(realm?.bossReturnX)?realm.bossReturnX:bossReturnX,targetY=Number.isFinite(realm?.bossReturnY)?realm.bossReturnY:bossReturnY;saveGame();const loading=showBossRealmLoading('ВОЗВРАЩЕНИЕ','Загружаем твой исходный мир…');await new Promise(resolve=>requestAnimationFrame(resolve));loading.set(28,'Проверяем сохранение исходного мира…');const originSave=localStorage.getItem(worldSaveKey(targetId));const originSaveKb=originSave?Math.max(1,Math.ceil(originSave.length/1024)):0;loading.set(52,originSave?`Найдено сохранение (${originSaveKb} КБ). Восстанавливаем мир…`:'Сохранение не найдено. Создаём исходный мир…');await new Promise(resolve=>requestAnimationFrame(resolve));loading.set(72,'Загружаем карту и состояние игрока…');const loadStartedAt=performance.now();enterWorld(targetId,null,{skipCharacterEntry:true});bossRealmMode=false;player.x=targetX;player.y=targetY;player.vx=player.vy=0;saveGame();await new Promise(resolve=>requestAnimationFrame(resolve));loading.set(100,`Исходный мир готов · ${Math.max(1,Math.round(performance.now()-loadStartedAt))} мс`);await new Promise(resolve=>setTimeout(resolve,120));loading.close();toast('Ты вернулся в исходный мир.');return true;
   }
   async function interactBossRealmPortal(){
-    if(!currentWorldId||tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return false;const p=bossRealmPortalPosition();if(Math.hypot(player.x-p.x,player.y-p.y)>112)return false;
+    if(!currentWorldId||tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return false;const p=bossRealmPortalPosition();if(Math.hypot(player.x-p.x,player.y-p.y)>(bossRealmMode?76:112))return false;
     if(bossRealmMode){await leaveBossRealm();return true;}if(!bossRealmPortalUnlocked()){toast('Портал откроется после того, как ты переживёшь 3 ночи. Осталось: '+Math.max(0,3-survivedNights)+'.');return true;}await enterBossRealm();return true;
   }
   function bossMaxHp(){return difficultyConfig().bossHp;}
@@ -3062,10 +3105,25 @@ function setupVillageNpcs(){
     let remaining=cfg.items;
     for(const item of candidates){if(remaining<=0)break;const wanted=(currentDifficulty==='hell'||currentDifficulty==='impossible')?Math.max(1,Math.ceil(item.count*((currentDifficulty==='impossible'?.55:.35)+Math.random()*(currentDifficulty==='impossible'?.35:.4)))):Math.min(item.count,1+Math.floor(Math.random()*2));const amount=Math.min(item.count,wanted,remaining);if(amount<=0)continue;item.count-=amount;remaining-=amount;if(Math.random()<cfg.dropChance&&lootDrops.length<76){lootDrops.push({x:deathX+(Math.random()-.5)*48,y:deathY+(Math.random()-.5)*42,name:item.name,count:amount,life:240,phase:Math.random()*6.28});dropped+=amount;}}
     if(dungeonMode){dungeonMode=false;player.x=dungeonReturn.x;player.y=dungeonReturn.y;}if(caveMode){caveMode=false;player.x=caveReturn.x;player.y=caveReturn.y;}
-    inHouse=false;mineMode=false;tradeWorldMode=false;player.hp=100;player.x=bedSpawn.x;player.y=bedSpawn.y;player.vx=player.vy=0;dodgeTimer=0;if(bossRealmMode){for(const mob of monsters){if(!mob.bossRealmCreature)continue;mob.hp=Math.max(1,Number(mob.maxHp)||1);mob.flash=0;mob.attackCooldown=1.25;mob.specialCooldown=3+Math.random()*2;mob.telegraphTimer=0;mob.telegraphActive=false;mob.action='idle';mob.actionTimer=0;mob.shield=0;}bossRealmState.spawnTimer=Math.max(4,Number(bossRealmState.spawnTimer)||0);spawnVisualBurst(deathX,deathY,48,'spark','#9deaff');}else monsters.length=0;
-    updateVitals();renderInventory();updateWalletHud();
+    const diedInBossRealm=bossRealmMode;
+    inHouse=false;mineMode=false;tradeWorldMode=false;player.hp=100;player.vx=player.vy=0;dodgeTimer=0;
     const message=currentDifficulty==='easy'?'Ты погиб, но вещи сохранены. Потеряно до 2 золота и 10 голода.':currentDifficulty==='medium'?'Ты погиб и возродился у кровати. Потеряно до 5 золота и 20 голода.':currentDifficulty==='hard'?'Ты погиб. Потеряно до 15 золота, часть вещей и 35 голода.':currentDifficulty==='impossible'?'НЕВОЗМОЖНО: потеряно до 50 золота, почти все переносимые ресурсы и 70 голода. Враги не прощают ошибок.':'Ты погиб на жаре. Потеряно до 30 золота, часть ресурсов и 55 голода.';
-    toast(message+(dropped?' Выпавшие вещи остались на месте смерти.':''));saveGame();
+    if(diedInBossRealm){
+      for(const mob of monsters){if(!mob.bossRealmCreature)continue;mob.hp=Math.max(1,Number(mob.maxHp)||1);mob.flash=0;mob.attackCooldown=1.25;mob.specialCooldown=3+Math.random()*2;mob.telegraphTimer=0;mob.telegraphActive=false;mob.action='idle';mob.actionTimer=0;mob.shield=0;}
+      bossRealmState.spawnTimer=Math.max(4,Number(bossRealmState.spawnTimer)||0);spawnVisualBurst(deathX,deathY,48,'spark','#9deaff');
+      updateVitals();renderInventory();updateWalletHud();toast(message+(dropped?' Выпавшие вещи остались на месте смерти.':'')+' Возвращаемся в исходный мир.');
+      saveGame();
+      void leaveBossRealm().then(returned=>{
+        if(!returned||bossRealmMode){toast('Не удалось загрузить исходный мир. Вернись через меню миров.');return;}
+        inHouse=false;mineMode=false;caveMode=false;tradeWorldMode=false;player.hp=100;
+        player.x=Number.isFinite(bedSpawn?.x)?bedSpawn.x:36*TILE+40;player.y=Number.isFinite(bedSpawn?.y)?bedSpawn.y:15*TILE+154;
+        player.vx=player.vy=0;dodgeTimer=0;updateVitals();saveGame();
+        toast('Ты возродился у кровати в исходном мире. Мир боссов сохранён отдельно.');
+      }).catch(error=>{console.warn('[SkyRealm Boss Realm death return]',error);toast('Ошибка возврата после смерти. Попробуй вернуться через портал.');});
+      return;
+    }
+    player.x=bedSpawn.x;player.y=bedSpawn.y;monsters.length=0;
+    updateVitals();renderInventory();updateWalletHud();toast(message+(dropped?' Выпавшие вещи остались на месте смерти.':''));saveGame();
   }
   function interactWolfCage(){const p=wolfCagePosition();if(Math.hypot(player.x-p.x,player.y-p.y)>92)return false;if(!wolfCageOpen){if(!wolfBossKeyDropped||itemCount('Ключ от клетки')<1){toast('Клетка заперта. Победи Оборотня и забери ключ!');return true;}changeItem('Ключ от клетки',-1);wolfCageOpen=true;playWolfSound('howl');toast('Клетка открыта! Нажми E рядом с собакой, чтобы приручить её.');saveGame();return true;}if(wolfDogCaged){wolfDogCaged=false;wolfCompanionUnlocked=true;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;playSound('sheep');toast('Собака приручена! Она будет ходить за тобой. У неё 300 HP.');saveGame();return true;}return true;}
   function clampWolfBossToForest(x,y){
@@ -3777,7 +3835,7 @@ function setupVillageNpcs(){
   }
   async function interact(){
     if(dungeonMode){interactDungeon();return;}
-    if(window.SkyRealmExpansionSystems?.interactWorldEvent?.())return;
+    if(!bossRealmMode&&window.SkyRealmExpansionSystems?.interactWorldEvent?.())return;
     if(collectMeteor())return;
     if(collectWorldEventCamp())return;
     if(collectWorldEventTraveler())return;
@@ -3801,8 +3859,6 @@ function setupVillageNpcs(){
       if(nearBench){workbenchUsed=true;questStage=Math.max(questStage,3);saveGame();openWorkbench();return;}
       toast('Подойди к кровати, верстаку или двери.');return;
     }
-    if(await interactBossRealmPortal())return;
-    if(interactBossRealmDungeonSite())return;
     if(interactWolfCage())return;
     const quarryBroker=quarryBrokerPosition();if(!tradeWorldMode&&!bossRealmMode&&!inHouse&&!mineMode&&!caveMode&&!dungeonMode&&Math.hypot(player.x-quarryBroker.x,player.y-quarryBroker.y)<104){openNpcQuestDialog({id:'quarry'});return;}if(tryMineWorldRock())return;const nearbyNpc=nearestVillageNpc();if(nearbyNpc){talkToVillageNpc(nearbyNpc);return;}const nearbyCitizen=villageNpcs.filter(n=>n.id==='citizen').sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y))[0];if(tradeWorldMode&&nearbyCitizen&&Math.hypot(player.x-nearbyCitizen.x,player.y-nearbyCitizen.y)<76){const lines=['Сегодня на рынке много покупателей!','Хорошая погода для прогулки.','Я живу здесь уже много лет.','Будь осторожен ночью, за стенами опасно.','Говорят, в шахте нашли редкую руду.'];toast(nearbyCitizen.name+': «'+lines[Math.abs(Math.floor(nearbyCitizen.phase))%lines.length]+'»');return;}
     // The old starter-base blacksmith, elder and explorer were removed from this world.
@@ -3816,12 +3872,25 @@ function setupVillageNpcs(){
     if(!tradeWorldMode&&Math.hypot(player.x-(74*TILE+16),player.y-(18*TILE+16))<112){caveReturn={x:player.x,y:player.y};caveMode=true;player.x=width*.35;player.y=height*.58;player.vx=player.vy=0;caveBossX=width*.72;caveBossY=height*.30;caveBossAttackTimer=difficultyConfig().bossInterval;caveBossFlash=0;toast(caveBossDefeated?'Ты вернулся в исследованную пещеру.':'В пещере Каменный страж! Победи его, чтобы открыть сокровищницу.');return;}
     if(Math.hypot(player.x-(tradeEntranceX*TILE+16),player.y-(tradeEntranceY*TILE+16))<112){transitionTradeWorld();return;}
     if(Math.hypot(player.x-(mineTileX*TILE+16),player.y-(mineTileY*TILE+16))<112){mineMode=true;mineHoverIndex=-1;minePlayerAttackCooldown=0;mineMaze=null;ensureMineMaze();minePlayerX=1.5*MINE_CELL_SIZE;minePlayerY=(MINE_MAZE_ROWS-1.5)*MINE_CELL_SIZE;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в шахту. Выбери кирку и нажми по залежи левой кнопкой 2 раза.');return;}
-    // Enter a house only when the player deliberately presses E at its doorway.
-    // A broad proximity radius caused accidental transfers while walking past walls.
+    // Resolve a house doorway before portals, arena markers or signs so nearby props cannot steal E.
     const placedHouse=placedStructures.find(s=>s.type==='house'&&Math.abs(player.x-s.x)<34&&Math.abs(player.y-(s.y+43))<42);
     if(placedHouse){bedSpawn={x:placedHouse.x,y:placedHouse.y+55};enteredPlacedHouse={x:placedHouse.x,y:placedHouse.y};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в свой дом. E у кровати — спать, у верстака — использовать.');saveGame();return;}
     const hx=36*TILE-120,hy=15*TILE-120;
     if(Math.abs(player.x-(hx+160))<42&&Math.abs(player.y-(hy+274))<48){bedSpawn={x:36*TILE+40,y:15*TILE+154};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в дом. E у кровати — спать, у верстака — использовать.');if(questStage<2)questStage=2;saveGame();return;}
+    if(bossRealmMode){
+      const candidates=[];
+      const portal=bossRealmPortalPosition(),portalDistance=Math.hypot(player.x-portal.x,player.y-portal.y);
+      if(portalDistance<=76)candidates.push({kind:'portal',distance:portalDistance});
+      const nearestSite=ensureBossRealmDungeonSites().map(site=>({site,distance:Math.hypot(player.x-site.x,player.y-site.y)})).filter(v=>v.distance<=76).sort((a,b)=>a.distance-b.distance)[0];
+      if(nearestSite)candidates.push({kind:'site',distance:nearestSite.distance});
+      const nearestSign=(world.signs||[]).map(sign=>({sign,distance:Math.hypot(player.x-sign.x,player.y-sign.y)})).filter(v=>v.distance<=90).sort((a,b)=>a.distance-b.distance)[0];
+      if(nearestSign)candidates.push({kind:'sign',distance:nearestSign.distance});
+      candidates.sort((a,b)=>a.distance-b.distance);
+      if(candidates[0]?.kind==='portal'){await interactBossRealmPortal();return;}
+      if(candidates[0]?.kind==='site'){interactBossRealmDungeonSite();return;}
+      if(candidates[0]?.kind==='sign'){openSignDialog();questStage=Math.max(questStage,1);return;}
+    }else if(await interactBossRealmPortal())return;
+    if(interactBossRealmDungeonSite())return;
     const chest=treasureChests.find(c=>Math.hypot(player.x-c.x,player.y-c.y)<100);if(chest){if(chest.opened)toast('Этот сундук уже открыт.');else openTreasureChest(chest);return;}
     const s=world.signs[0];if(Math.hypot(s.x-player.x,s.y-player.y)<118){openSignDialog();questStage=Math.max(questStage,1);}else toast('Подойди к дорожному знаку или двери дома.');
   }
