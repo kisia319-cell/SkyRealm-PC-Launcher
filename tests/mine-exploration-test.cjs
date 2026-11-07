@@ -45,13 +45,13 @@ testCase('barrels and mixed single/pair creature groups generate deterministical
  f.ctx.generateMineFeatures(3);assert.equal(JSON.stringify({barrels:f.ctx.mineBarrels,creatures:f.ctx.mineCreatures}),first);
 });
 testCase('defeating a cave creature awards coal, hunter profession progress and XP',()=>{
- const f=fixture();run(f.ctx,['mineCreatureScreenPosition','strikeMineCreature'],['strikeMineCreature']);
+ const f=fixture();run(f.ctx,['generateMineMaze','ensureMineMaze','mineCellWalkable','mineCellFromWorld','mineNearestFloorCell','mineFeatureWorldPosition','mineWorldToScreen','mineRockScreenPosition','mineCreatureScreenPosition'].concat(['strikeMineCreature']),['strikeMineCreature']);
  const mob={x:.5,y:.5,hp:10,maxHp:10,kind:'crawler',name:'Пещерный грызун'};
  assert.equal(f.ctx.strikeMineCreature(mob,30),true);assert.equal(mob.hp,0);assert.ok(f.inventory['Уголь']>=1);
  assert.equal(f.events.jobs[0][0],'hunter');assert.equal(f.events.xp.length,1);assert.equal(f.events.saves,1);assert.equal(f.events.renders,1);
 });
 testCase('barrels break in two hits and award their stored resources',()=>{
- const f=fixture();run(f.ctx,['strikeMineBarrel'],['strikeMineBarrel']);const barrel={x:80,y:160,hp:2,maxHp:2,coal:2,stone:3};
+ const f=fixture();run(f.ctx,['generateMineMaze','ensureMineMaze','mineCellWalkable','mineCellFromWorld','mineNearestFloorCell','mineFeatureWorldPosition','mineWorldToScreen','mineRockScreenPosition','mineCreatureScreenPosition'].concat(['strikeMineBarrel']),['strikeMineBarrel']);const barrel={x:80,y:160,hp:2,maxHp:2,coal:2,stone:3};
  f.ctx.strikeMineBarrel(barrel);assert.equal(barrel.hp,1);assert.equal(f.inventory['Уголь']||0,0);
  f.ctx.strikeMineBarrel(barrel);assert.equal(barrel.hp,0);assert.equal(f.inventory['Уголь'],2);assert.equal(f.inventory['Камень'],3);
  assert.equal(f.events.saves,2);assert.equal(f.events.renders,1);
