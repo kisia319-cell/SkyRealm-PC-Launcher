@@ -1599,6 +1599,9 @@ function setupVillageNpcs(){
     ctx.save();ctx.translate(Math.round(x),Math.round(y));if(bossRealmMode&&bossRealmInvisibleTimer>0)ctx.globalAlpha=.32;
     const moving=Math.hypot(player.vx,player.vy)>2,bodyBob=moving?Math.abs(Math.sin(player.frame*1.7))*1.7:Math.sin(player.frame*.7)*.35;
     ctx.translate(0,bodyBob);
+    if(combatGuardTimer>0){const pulse=.5+.5*Math.sin(performance.now()/35);ctx.save();ctx.globalAlpha=.35+pulse*.3;ctx.strokeStyle='#9bdcff';ctx.shadowColor='#78dfff';ctx.shadowBlur=18;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,0,20+pulse*3,26+pulse*3,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
+    if(combatWeaponTrail>0){const style=combatStyle(),progress=1-combatWeaponTrail/.34,angle=player.face==='left'?Math.PI:player.face==='up'?-Math.PI/2:player.face==='down'?Math.PI/2:0;ctx.save();ctx.rotate(angle);ctx.globalAlpha=Math.max(0,combatWeaponTrail/.34);ctx.strokeStyle=style[0];ctx.shadowColor=style[0];ctx.shadowBlur=18;ctx.lineWidth=combatCombo===4?7:4;ctx.beginPath();ctx.arc(5,-2,27+progress*13,-1.25,1.25);ctx.stroke();if(combatCombo===4){ctx.lineWidth=2;ctx.beginPath();ctx.arc(5,-2,38+progress*15,-1.15,1.15);ctx.stroke();}ctx.restore();}
+    if(combatCombo>0&&combatComboTimer>0){ctx.save();ctx.globalAlpha=Math.min(1,combatComboTimer*2);ctx.textAlign='center';ctx.font='900 11px Segoe UI';ctx.fillStyle=combatStyle()[0];ctx.shadowColor=combatStyle()[0];ctx.shadowBlur=9;ctx.fillText('COMBO '+combatCombo,0,-36);ctx.restore();}
     if(attackAnimTimer>0){const progress=1-attackAnimTimer/.24,angle=player.face==='left'?Math.PI:player.face==='up'?-Math.PI/2:player.face==='down'?Math.PI/2:0;ctx.save();ctx.rotate(angle);ctx.globalAlpha=Math.max(0,1-progress);ctx.strokeStyle=equipment.weapon==='Огненный меч'?'#ff9a42':equipment.weapon==='Ледяной посох'?'#8be9ff':'#e8f5ff';ctx.lineWidth=3+progress*2;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=12;ctx.beginPath();ctx.arc(7,-3,22+progress*5,-1.15,1.15);ctx.stroke();ctx.restore();}
     ctx.fillStyle='#102a2a66';ctx.beginPath();ctx.ellipse(0,13,13,7,0,0,Math.PI*2);ctx.fill();
     ctx.fillStyle=equipment.armor?'#7a899b':(playerAppearance.armor||'#526fba');ctx.fillRect(-9,-3,18,15);ctx.fillStyle=playerAppearance.accent||'#9cb9ff';ctx.fillRect(-7,-2,14,13);
@@ -1838,6 +1841,9 @@ function setupVillageNpcs(){
       if(!b.active&&d<440){b.active=true;b.hp=b.hp>0?Math.min(b.hp,maxHp):maxHp;b.attackTimer=1.3;b.specialTimer=Math.max(2,b.specialTimer||7);toast('ОПАСНОСТЬ: '+def.name+' заметил тебя!');playSound('portal');saveGame();}
       if(!b.active)continue;
       const power=Math.max(1,Math.min(8.35,b.rebirthMultiplier));
+      const hpRatio=b.hp/Math.max(1,maxHp),nextPhase=hpRatio<=.25?3:hpRatio<=.6?2:1;
+      if(b.combatPhase!==nextPhase){const previous=b.combatPhase||1;b.combatPhase=nextPhase;if(nextPhase>previous){spawnVisualBurst(def.x,def.y,32,'spark',nextPhase===3?'#ff5a68':def.color);toast(def.name+' · ФАЗА '+nextPhase+(nextPhase===2?' · ярость пробуждается!':' · предельная ярость!'));b.specialTimer=Math.min(b.specialTimer,1.1);}}
+
       b.attackTimer=Math.max(0,b.attackTimer-step);b.specialTimer=Math.max(0,b.specialTimer-step);
       const windupWasActive=(b.attackWindup||0)>0;if(windupWasActive)b.attackWindup=Math.max(0,b.attackWindup-step);
       const canBossHit=!immortal&&(!Number.isFinite(dodgeTimer)||dodgeTimer<=0);
@@ -1914,6 +1920,13 @@ function setupVillageNpcs(){
       else if(def.id==='jungle'){ctx.fillStyle='#6a432d';ctx.fillRect(-8,-5,16,26);ctx.fillStyle=b.flash>0?'#fff':'#73d45b';ctx.beginPath();ctx.ellipse(0,-14,23,18,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(-16,-22);ctx.lineTo(-30,-35);ctx.lineTo(-13,-31);ctx.moveTo(16,-22);ctx.lineTo(30,-35);ctx.lineTo(13,-31);ctx.strokeStyle=def.color;ctx.lineWidth=6;ctx.stroke();ctx.fillStyle='#fff3b0';ctx.fillRect(-9,-17,5,4);ctx.fillRect(4,-17,5,4);ctx.fillStyle='#284b25';ctx.fillRect(-5,-6,10,3);}
       else{ctx.beginPath();ctx.moveTo(-25,15);ctx.lineTo(-23,-10);ctx.lineTo(-9,-20);ctx.lineTo(0,-14);ctx.lineTo(12,-28);ctx.lineTo(24,-8);ctx.lineTo(28,15);ctx.closePath();ctx.fill();}
       ctx.shadowBlur=0;ctx.restore();
+      // Exposed weak-point sigils pulse brighter as the boss loses health.
+      const hpRatio=Math.max(0,b.hp/bossHpMax(def)),weakPulse=.5+.5*Math.sin(time/105);
+      ctx.save();ctx.translate(x,y);ctx.globalAlpha=.48+weakPulse*.38;ctx.strokeStyle=def.id==='frost'?'#b9f6ff':def.id==='sand'?'#ffd17a':def.id==='jungle'?'#b8ff78':'#df9cff';ctx.fillStyle=ctx.strokeStyle;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=12;
+      const weakX=def.id==='jungle'?0:def.id==='sand'?0:4,weakY=def.id==='frost'?-5:-9;
+      ctx.beginPath();ctx.arc(weakX,weakY,4+weakPulse*2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(weakX,weakY,9+weakPulse*4,0,Math.PI*2);ctx.stroke();
+      if(hpRatio<=.6){ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,34+weakPulse*5,0,Math.PI*2);ctx.stroke();}
+      ctx.restore();
       if(def.id==='jungle'&&b.teleportFade>0){ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,b.teleportFade/.8));ctx.translate((b.attackTargetX||player.x)-camX,(b.attackTargetY||player.y)-camY);ctx.shadowColor='#8dff62';ctx.shadowBlur=24;ctx.fillStyle='#6a432d';ctx.fillRect(-7,-3,14,23);ctx.fillStyle='#73d45b';ctx.beginPath();ctx.ellipse(0,-13,22,17,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#9cff67';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-13,-20);ctx.lineTo(-26,-34);ctx.moveTo(13,-20);ctx.lineTo(26,-34);ctx.stroke();ctx.fillStyle='#fff3b0';ctx.fillRect(-8,-16,4,4);ctx.fillRect(4,-16,4,4);ctx.restore();}
       ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#fff';ctx.fillText(def.name,x,y-40);ctx.fillStyle='#241a27';ctx.fillRect(x-39,y-32,78,6);ctx.fillStyle=def.color;ctx.fillRect(x-39,y-32,78*Math.max(0,(b.active?b.hp:bossHpMax(def))/bossHpMax(def)),6);ctx.restore();
     }
