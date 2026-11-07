@@ -45,7 +45,7 @@ const expected = [
   '20261103043128_skyrealm_staff_roles.sql',
   '20261103144757_staff_role_expiry_and_public_bootstrap.sql',
   '20261103150208_staff_admin_bootstrap_claim_code.sql',
-  '20261107230000_skyrealm_public_mod_catalog.sql'
+  '20261107165757_skyrealm_public_mod_catalog.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
