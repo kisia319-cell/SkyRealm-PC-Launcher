@@ -146,7 +146,24 @@ $('edition-choose-free').addEventListener('click',()=>{
  premiumActive=false;currentEdition='free';
  show('edition-free-view','Бесплатная версия · Free','Вот что входит в каждое издание SkyRealm.','🌿');
 });
-$('edition-choose-premium').addEventListener('click',()=>{currentEdition='premium';openActivation();});
+async function choosePremium(){
+ currentEdition='premium';
+ try{
+  if(await verifyPremium()){
+   let note='';
+   try{await persistChoice('premium');}catch(_){note=' Не удалось сохранить выбор в аккаунте — проверь вход и повтори настройку позже.';}
+   $('edition-success-text').textContent='Premium уже активирован на этом устройстве.'+note;
+   show('edition-success-view','Добро пожаловать в Premium','Лицензия проверена сервером.','✧');
+   return;
+  }
+ }catch(_){
+  show('edition-activation-view','Проверка Premium','Не удалось проверить текущую активацию. Проверь интернет и повтори попытку.','✧');
+  setStatus('Существующая лицензия не сброшена. Для проверки нужно соединение.',true);
+  return;
+ }
+ openActivation();
+}
+$('edition-choose-premium').addEventListener('click',choosePremium);
 $('edition-back').addEventListener('click',()=>show('edition-choice-view','Выберите версию игры','Выбери издание SkyRealm перед началом путешествия.','✦'));
 $('edition-activate').addEventListener('click',activate);
 $('edition-code-input').addEventListener('keydown',e=>{if(e.key==='Enter')activate();});
