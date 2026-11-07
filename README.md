@@ -13,7 +13,7 @@
 
 ## Текущая версия игры
 
-Установленная и публикуемая сборка игры: **0.20.50.85**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
+Установленная и публикуемая сборка игры: **0.20.50.86**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
 
 ## 0.20.50.80 — Account Edition Preferences
 
@@ -27,6 +27,15 @@
 - Players can now walk through mine barrels without changing the maze wall collision.
 - Added a full-screen cave rock backdrop with layered strata, ceiling silhouettes and subtle mineral glints behind the mine passages.
 - Kept barrels free of floating text labels.
+
+## 0.20.50.86 — Boss Realm structure and collision rebuild
+
+- Fixed the house exit route by removing a decorative collision that blocked the doorway.
+- Expanded workbench interaction so it can be opened from any accessible side.
+- Rebuilt all six companion visuals with distinct body shapes, facial details, animated wings and tails, markings, glow and particles.
+- Added in-game audio controls for music, sound effects and interface sounds; changes save with game preferences.
+- Staff roles are refreshed when returning to the main menu and retry sooner after an unconfirmed role check.
+- Player movement code was not changed.
 
 ## 0.20.50.85 — House access, companion models and audio settings
 
