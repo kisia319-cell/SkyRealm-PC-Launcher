@@ -37,7 +37,7 @@ function plain(value) { return JSON.parse(JSON.stringify(value)); }
 
 const hashFn = extractFunction('hash');
 const mineFn = extractFunction('generateMineStock');
-const mineContext = { mineSeed: 417, mineLevel: 1, mineRocks: [], mineHoverIndex: -1, Math };
+const mineContext = { mineSeed: 417, mineLevel: 1, mineRocks: [], mineHoverIndex: -1, isModInstalled:()=>false, Math };
 execute(mineContext, [hashFn, mineFn], ['generateMineStock']);
 function stock(day, level) {
   mineContext.mineLevel = level;
