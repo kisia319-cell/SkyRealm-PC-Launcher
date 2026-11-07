@@ -138,7 +138,19 @@ jobs:
               $parts = $line -split "`t"
               if ($parts.Count -ge 2) {
                 $changedFiles++
-                if ($parts[0] -match '^\d+          Compress-Archive -Path "dist/SkyRealm.exe","launcher_version.txt" -DestinationPath "update_release/SkyRealm_Update.zip" -Force
+                if ($parts[0] -ne "-") { $changedLines += [int]$parts[0] }
+                if ($parts[1] -ne "-") { $changedLines += [int]$parts[1] }
+              }
+            }
+          }
+          if ($changedFiles -le 2 -and $changedLines -le 80) { $updateCategory = "Исправление" }
+          elseif ($changedFiles -le 5 -and $changedLines -le 180) { $updateCategory = "Небольшое" }
+          elseif ($changedLines -le 700) { $updateCategory = "Среднее" }
+          elseif ($changedLines -le 2000) { $updateCategory = "Крупное" }
+          else { $updateCategory = "Глобальное" }
+          Write-Host "Update category: $updateCategory ($changedFiles files, $changedLines changed lines)"
+
+          Compress-Archive -Path "dist/SkyRealm.exe","launcher_version.txt" -DestinationPath "update_release/SkyRealm_Update.zip" -Force
           $hash = (Get-FileHash "update_release/SkyRealm_Update.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
 
           # Publish both a directly downloadable executable and a convenient portable ZIP.
