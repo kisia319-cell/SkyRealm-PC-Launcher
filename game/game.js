@@ -4763,8 +4763,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   function generateMineStock(dayIndex=0){
     const seed=mineSeed+(dayIndex*7919)+(mineDepth*313)+(mineLevel*104729);ensureMineMaze();
-    // Floor depth changes the layout; valuable ore tiers still require manual mine upgrades.
-    const oreTier=Math.max(1,Math.min(8,mineLevel,mineDepth));
+    // Floor depth changes ore locations; ore rarity and volume unlock only through manual mine upgrades.
+    const oreTier=Math.max(1,Math.min(8,mineLevel));
     const nodeCount=Math.min(52,24+(Math.max(1,mineLevel)-1)*4);
     mineRocks=Array.from({length:nodeCount},(_,i)=>{
       let ore;const roll=Math.min(.999,hash(i+seed,19)+(isModInstalled('geology_scanner')?.10:0));
