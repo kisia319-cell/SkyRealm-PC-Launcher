@@ -2027,12 +2027,20 @@ function setupVillageNpcs(){
   function mineRockScreenPosition(r){return {x:65+(r.x/330)*(width-130),y:85+(r.y/255)*(height-150)};}
 
   function minePassagePaths(){
+    // Main gallery with several side routes, dead-end pockets and a cross-connection.
     return [
       [[8,220],[38,204],[70,188],[105,168],[145,153],[184,132],[220,108],[262,104],[305,122]],
       [[105,168],[108,130],[88,98],[55,81],[30,86]],
       [[184,132],[186,99],[205,72],[227,52]],
       [[262,104],[278,130],[296,154],[315,172]],
-      [[145,153],[153,181],[178,202],[212,214],[250,205]]
+      [[145,153],[153,181],[178,202],[212,214],[250,205]],
+      [[70,188],[58,172],[42,160],[27,162]],
+      [[88,98],[83,75],[65,58],[43,48]],
+      [[205,72],[239,66],[269,74],[289,90],[301,108]],
+      [[296,154],[302,179],[294,201],[274,220],[252,228]],
+      [[178,202],[164,222],[145,237],[119,232],[102,216]],
+      [[220,108],[235,128],[241,151],[224,173],[195,181]],
+      [[145,153],[126,139],[112,119],[108,130]]
     ];
   }
   function drawMinePassages(){
@@ -2051,7 +2059,7 @@ function setupVillageNpcs(){
       ctx.beginPath();ctx.ellipse(p.x,p.y,rx*.62*scale,ry*.55*scale,0,0,Math.PI*2);ctx.fill();
     }
     // Supports are grouped at structural weak points instead of filling every few metres.
-    const supports=[[70,188],[145,153],[220,108],[88,98],[212,214]];
+    const supports=[[70,188],[145,153],[220,108],[88,98],[212,214],[42,160],[83,75],[269,74],[294,201],[145,237],[241,151]];
     supports.forEach(([x,y],i)=>{
       const p=mineRockScreenPosition({x,y}),w=31*scale,h=35*scale;
       ctx.fillStyle='#30271f';ctx.fillRect(p.x-w-3,p.y-h,7*scale,h*2);ctx.fillRect(p.x+w-4,p.y-h,7*scale,h*2);
@@ -4343,7 +4351,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function saveGame(){
     if(!currentWorldId)return false;
-    const serialized=JSON.stringify({bossRealmMode,bossReturnWorldId,bossReturnX,bossReturnY,bossRealmState,bossRealmCreatures:bossRealmMode?monsters.filter(m=>m.bossRealmCreature&&m.hp>0).map(m=>({...m})):[],seaWorldData,clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,quarryProgress,quarryRocks:world.rocks.map(r=>({x:r.x,y:r.y,hp:r.hp,maxHp:r.maxHp,ore:r.ore,quality:r.quality,regrowAt:r.regrowAt})),adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,specialCooldown:m.specialCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},nemesisEvents,lastNemesisRaidDay,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,totalGameMinutesPlayed,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,waterHelmetLevel,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay,expansionSystems:window.SkyRealmExpansionSystems?.exportState?.()||null});
+    const serialized=JSON.stringify({bossRealmMode,bossReturnWorldId,bossReturnX,bossReturnY,bossRealmState,bossRealmCreatures:bossRealmMode?monsters.filter(m=>m.bossRealmCreature&&m.hp>0).map(m=>({...m})):[],seaWorldData,clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,mineFeaturesVersion:1,quarryProgress,quarryRocks:world.rocks.map(r=>({x:r.x,y:r.y,hp:r.hp,maxHp:r.maxHp,ore:r.ore,quality:r.quality,regrowAt:r.regrowAt})),adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,specialCooldown:m.specialCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},nemesisEvents,lastNemesisRaidDay,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,totalGameMinutesPlayed,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,waterHelmetLevel,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay,expansionSystems:window.SkyRealmExpansionSystems?.exportState?.()||null});
     try{
       localStorage.setItem(saveKey,serialized);
     }catch(error){
@@ -4399,7 +4407,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
         }
         if(Array.isArray(d.farmCrops))farmCrops=d.farmCrops.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,60).map(v=>({...v,stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0),crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null,moisture:Math.max(0,Math.min(100,Number(v.moisture)||0)),fertilized:v.fertilized===true}));
         if(d.playerAppearance&&typeof d.playerAppearance==='object')applyAppearanceData(d.playerAppearance);
-if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerLevel));if(Number.isFinite(d.playerXP))playerXP=Math.max(0,d.playerXP);caveChestOpened=d.caveChestOpened===true;if(Array.isArray(d.treasureChests))for(const c of treasureChests){const saved=d.treasureChests.find(v=>v&&v.id===c.id);if(saved)c.opened=saved.opened===true;}if(Number.isFinite(d.walletCents))walletCents=Math.max(0,Math.floor(d.walletCents));if(Number.isInteger(d.tradeEntranceX))tradeEntranceX=d.tradeEntranceX;if(Number.isInteger(d.tradeEntranceY))tradeEntranceY=d.tradeEntranceY;mineLevel=Math.max(1,Math.min(8,Number(d.mineLevel)||1));houseLevel=Math.max(1,Math.min(3,Number(d.houseLevel)||1));// Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.if(Array.isArray(d.mineRocks)&&d.mineRocks.length){mineRocks=d.mineRocks.slice(0,60).map(r=>({x:Number(r.x)||100,y:Number(r.y)||100,ore:['Уголь','Железо','Камень','Кристалл','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(r.ore)?r.ore:'Камень',hp:Math.max(0,Math.min(2,Number(r.hp)||0)),maxHp:2}));}if(mineRocks.filter(r=>r.ore==='Камень'&&r.hp>0).length<8)generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));if(!Array.isArray(d.mineBarrels)||!Array.isArray(d.mineCreatures))generateMineFeatures(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));if(Array.isArray(d.mineBarrels))mineBarrels=d.mineBarrels.slice(0,12).filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)).map(v=>({id:String(v.id||'').slice(0,64),x:Math.max(0,Math.min(330,v.x)),y:Math.max(0,Math.min(255,v.y)),hp:Math.max(0,Math.min(2,Math.floor(Number(v.hp)||0))),maxHp:2,coal:Math.max(1,Math.min(2,Math.floor(Number(v.coal)||1))),stone:Math.max(1,Math.min(3,Math.floor(Number(v.stone)||1)))}));if(Array.isArray(d.mineCreatures))mineCreatures=d.mineCreatures.slice(0,12).filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.hp)).map(v=>({id:String(v.id||'').slice(0,64),name:v.kind==='bat'?'Каменная летучая мышь':'Пещерный грызун',kind:v.kind==='bat'?'bat':'crawler',x:Math.max(12,Math.min(320,v.x)),y:Math.max(30,Math.min(238,v.y)),hp:Math.max(0,Math.min(2000,Number(v.hp)||0)),maxHp:Math.max(1,Math.min(2000,Number(v.maxHp)||1)),damage:Math.max(1,Math.min(80,Number(v.damage)||4)),speed:Math.max(1,Math.min(100,Number(v.speed)||30)),attackCooldown:Math.max(0,Math.min(10,Number(v.attackCooldown)||0)),phase:Number(v.phase)||0,flash:0}));
+if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerLevel));if(Number.isFinite(d.playerXP))playerXP=Math.max(0,d.playerXP);caveChestOpened=d.caveChestOpened===true;if(Array.isArray(d.treasureChests))for(const c of treasureChests){const saved=d.treasureChests.find(v=>v&&v.id===c.id);if(saved)c.opened=saved.opened===true;}if(Number.isFinite(d.walletCents))walletCents=Math.max(0,Math.floor(d.walletCents));if(Number.isInteger(d.tradeEntranceX))tradeEntranceX=d.tradeEntranceX;if(Number.isInteger(d.tradeEntranceY))tradeEntranceY=d.tradeEntranceY;mineLevel=Math.max(1,Math.min(8,Number(d.mineLevel)||1));houseLevel=Math.max(1,Math.min(3,Number(d.houseLevel)||1));// Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.if(Array.isArray(d.mineRocks)&&d.mineRocks.length){mineRocks=d.mineRocks.slice(0,60).map(r=>({x:Number(r.x)||100,y:Number(r.y)||100,ore:['Уголь','Железо','Камень','Кристалл','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(r.ore)?r.ore:'Камень',hp:Math.max(0,Math.min(2,Number(r.hp)||0)),maxHp:2}));}if(mineRocks.filter(r=>r.ore==='Камень'&&r.hp>0).length<8)generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));restoreMineFeaturesFromSave(d,Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));
         for(const felled of felledTrees){const idx=world.trees.findIndex(tree=>Math.round(tree.x)===felled.x&&Math.round(tree.y)===felled.y);if(idx>=0)world.trees.splice(idx,1);}
         for(const tree of world.trees){const progress=treeChops.find(v=>v.x===Math.round(tree.x)&&v.y===Math.round(tree.y));if(progress)tree.chops=progress.chops;}
         furnaceCrafted=!!d.furnaceCrafted;if(Array.isArray(d.placedStructures))placedStructures=d.placedStructures.filter(v=>v&&['furnace','house','torch','coal','storage','farmplot','tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall','tech-guardpost','tech-trap','tech-solar','tech-processor'].includes(v.type)&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,250).map(v=>({...v,contents:v.type==='storage'&&v.contents&&typeof v.contents==='object'?{...v.contents}:{},stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0)}));lootDrops.length=0;if(Array.isArray(d.lootDrops))d.lootDrops.slice(0,80).forEach(v=>{if(v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&inventoryItems.some(i=>i.name===v.name)&&Number.isFinite(v.count))lootDrops.push({id:typeof v.id==='string'?v.id:'',shared:v.shared===true,x:v.x,y:v.y,name:v.name,count:Math.max(1,Math.min(99,Math.floor(v.count))),life:Math.max(0,Math.min(240,Number(v.life)||240)),phase:Number(v.phase)||0,world_mode:['surface','cave','dungeon'].includes(v.world_mode)?v.world_mode:'surface'});});
@@ -4585,15 +4593,46 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   function generateMineFeatures(dayIndex=0){
     const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);
-    const barrelSpots=[[48,196],[124,150],[194,130],[279,133],[220,207],[64,84]],barrelCount=Math.min(6,4+Math.floor((mineLevel-1)/3));
+    const barrelSpots=[[48,196],[124,150],[194,130],[307,160],[250,205],[44,120],[43,48],[302,183],[154,227]],barrelCount=Math.min(barrelSpots.length,5+Math.floor((mineLevel-1)/2));
     mineBarrels=barrelSpots.slice(0,barrelCount).map(([x,y],i)=>({id:'barrel-'+seed+'-'+i,x:x+(hash(i+seed,53)-.5)*8,y:y+(hash(i+seed,59)-.5)*7,hp:2,maxHp:2,coal:1+Math.floor(hash(i+seed,61)*2),stone:1+Math.floor(hash(i+seed,67)*3)}));
-    const packs=[[{x:101,y:168,kind:'crawler'}],[{x:277,y:130,kind:'crawler'},{x:292,y:143,kind:'bat'}],[{x:61,y:84,kind:'bat'}],[{x:212,y:211,kind:'crawler'},{x:231,y:205,kind:'bat'}]];
-    const groupCount=Math.min(packs.length,2+Math.floor((mineLevel-1)/2));let index=0;mineCreatures=[];
+    const packs=[[{x:101,y:168,kind:'crawler'}],[{x:277,y:122,kind:'crawler'},{x:292,y:143,kind:'bat'}],[{x:61,y:84,kind:'bat'}],[{x:212,y:211,kind:'crawler'},{x:231,y:205,kind:'bat'}],[{x:48,y:160,kind:'crawler'}],[{x:269,y:74,kind:'crawler'},{x:281,y:84,kind:'bat'}],[{x:294,y:201,kind:'bat'}]];
+    const groupCount=Math.min(packs.length,3+Math.floor((mineLevel-1)/2));let index=0;mineCreatures=[];
     packs.slice(0,groupCount).forEach(pack=>pack.forEach(spot=>{
       const jitterX=(hash(index+seed,41)-.5)*7,jitterY=(hash(index+seed,43)-.5)*6,p={x:spot.x+jitterX,y:spot.y+jitterY},kind=spot.kind==='bat'?'bat':'crawler',maxHp=45+mineLevel*12+(kind==='crawler'?10:0);
       mineCreatures.push({id:'mine-creature-'+seed+'-'+index,name:kind==='bat'?'Каменная летучая мышь':'Пещерный грызун',kind,x:p.x,y:p.y,hp:maxHp,maxHp,damage:Math.round(3+mineLevel*.8),speed:kind==='bat'?34+mineLevel*2:24+mineLevel*2,attackCooldown:1.1+hash(index+seed,47)*1.7,phase:hash(index+seed,49)*6.28,flash:0});index++;
     }));
     minePlayerAttackCooldown=0;
+  }
+  function restoreMineFeaturesFromSave(data,dayIndex=0){
+    const saved=data&&typeof data==='object'?data:{};
+    const version=Math.max(0,Math.floor(Number(saved.mineFeaturesVersion)||0));
+    const savedBarrels=Array.isArray(saved.mineBarrels)?saved.mineBarrels:null;
+    const savedCreatures=Array.isArray(saved.mineCreatures)?saved.mineCreatures:null;
+    // Early saves stored empty arrays before barrels and cave creatures were generated.
+    // Backfill only the missing category and keep any already-damaged/killed objects.
+    const backfillBarrels=version<1&&(!savedBarrels||savedBarrels.length===0);
+    const backfillCreatures=version<1&&(!savedCreatures||savedCreatures.length===0);
+    if(backfillBarrels||backfillCreatures)generateMineFeatures(dayIndex);
+    if(savedBarrels&&!backfillBarrels){
+      mineBarrels=savedBarrels.slice(0,12).filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)).map(v=>({
+        id:String(v.id||'').slice(0,64),x:Math.max(0,Math.min(330,v.x)),y:Math.max(0,Math.min(255,v.y)),
+        hp:Math.max(0,Math.min(2,Math.floor(Number(v.hp)||0))),maxHp:2,
+        coal:Math.max(1,Math.min(2,Math.floor(Number(v.coal)||1))),stone:Math.max(1,Math.min(3,Math.floor(Number(v.stone)||1)))
+      }));
+    }else if(!savedBarrels&&!backfillBarrels)mineBarrels=[];
+    if(savedCreatures&&!backfillCreatures){
+      mineCreatures=savedCreatures.slice(0,12).filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.hp)).map(v=>{
+        const kind=v.kind==='bat'?'bat':'crawler';
+        return {
+          id:String(v.id||'').slice(0,64),name:kind==='bat'?'Каменная летучая мышь':'Пещерный грызун',kind,
+          x:Math.max(12,Math.min(320,v.x)),y:Math.max(30,Math.min(238,v.y)),
+          hp:Math.max(0,Math.min(2000,Number(v.hp)||0)),maxHp:Math.max(1,Math.min(2000,Number(v.maxHp)||1)),
+          damage:Math.max(1,Math.min(80,Number(v.damage)||4)),speed:Math.max(1,Math.min(100,Number(v.speed)||30)),
+          attackCooldown:Math.max(0,Math.min(10,Number(v.attackCooldown)||0)),phase:Number(v.phase)||0,flash:0
+        };
+      });
+    }else if(!savedCreatures&&!backfillCreatures)mineCreatures=[];
+    return {backfilledBarrels,backfilledCreatures};
   }
   function createMineForWorld(recordId){
     mineSeed=Array.from(String(recordId)).reduce((a,c)=>a+c.charCodeAt(0),0);
