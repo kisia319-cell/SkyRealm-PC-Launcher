@@ -1990,6 +1990,38 @@ function setupVillageNpcs(){
       ctx.fillStyle=i%3===0?'#77518d':'#4c4169';ctx.beginPath();ctx.moveTo(-h*.35,12);ctx.lineTo(-h*.22,-h*.55);ctx.lineTo(0,-h);ctx.lineTo(h*.24,-h*.48);ctx.lineTo(h*.4,12);ctx.closePath();ctx.fill();
       ctx.fillStyle='#d5a5ff';ctx.beginPath();ctx.moveTo(0,-h*.76);ctx.lineTo(h*.13,-h*.24);ctx.lineTo(0,2);ctx.lineTo(-h*.13,-h*.24);ctx.closePath();ctx.fill();ctx.restore();
     }
+    // Visible ancient structures replace the legacy valley-house collision remnants in Boss Realm.
+    if(bossRealmMode){
+      const sites=ensureBossRealmDungeonSites();
+      for(const site of sites){
+        const sx=site.x-camX,sy=site.y-camY;
+        if(sx<-240||sx>width+240||sy<-220||sy>height+220)continue;
+        const theme=site.theme;
+        const stone=theme==='glacier'?'#8fd5e8':theme==='infernal'?'#80505a':theme==='blood'?'#79536f':'#7062a9';
+        const light=theme==='glacier'?'#c7f7ff':theme==='infernal'?'#ff9a55':theme==='blood'?'#e77a9e':'#bca8ff';
+        const dark=theme==='glacier'?'#294c67':theme==='infernal'?'#261b2b':theme==='blood'?'#2b1b36':'#211a43';
+        ctx.save();ctx.translate(sx,sy);
+        ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,34,112,34,0,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle=stone;ctx.globalAlpha=.75;ctx.lineWidth=8;ctx.beginPath();ctx.ellipse(0,12,94,29,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+        ctx.fillStyle=dark;ctx.beginPath();ctx.ellipse(0,10,82,24,0,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle=light;ctx.globalAlpha=.55;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,10,70,18,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+        for(let i=0;i<6;i++){
+          const a=i*Math.PI/3,px=Math.cos(a)*92,py=Math.sin(a)*27;
+          ctx.save();ctx.translate(px,py);
+          ctx.fillStyle=dark;ctx.fillRect(-10,-5,20,42);
+          ctx.fillStyle=stone;ctx.fillRect(-13,-12,26,10);ctx.fillRect(-8,-2,16,30);
+          ctx.fillStyle=light;ctx.globalAlpha=.72;ctx.fillRect(-3,-7,3,29);ctx.globalAlpha=1;
+          ctx.fillStyle=dark;ctx.beginPath();ctx.moveTo(-15,-12);ctx.lineTo(0,-25);ctx.lineTo(15,-12);ctx.closePath();ctx.fill();
+          ctx.strokeStyle=light;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-8,7);ctx.lineTo(0,0);ctx.lineTo(8,7);ctx.stroke();
+          ctx.restore();
+        }
+        ctx.fillStyle=stone;ctx.fillRect(-34,-8,68,12);ctx.fillStyle=dark;ctx.fillRect(-27,-18,54,10);
+        ctx.fillStyle=light;ctx.globalAlpha=.8;ctx.shadowColor=light;ctx.shadowBlur=14;ctx.beginPath();ctx.arc(0,-30+Math.sin(time/260)*2,7,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;
+        ctx.strokeStyle=light;ctx.globalAlpha=.65;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-30,17+Math.sin(time/210)*2,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+        for(let i=0;i<4;i++){const a=time/500+i*Math.PI/2;ctx.fillStyle=light;ctx.globalAlpha=.55;ctx.beginPath();ctx.arc(Math.cos(a)*42,-22+Math.sin(a)*8,2,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+        ctx.restore();
+      }
+    }
     if(bossRealmState.eventId==='blood_moon'||bossRealmState.eventId==='storm'){
       ctx.save();ctx.globalAlpha=.12+.05*Math.sin(time/180);ctx.fillStyle=bossRealmState.eventId==='blood_moon'?'#b92f55':'#477bb2';ctx.fillRect(0,0,width,height);ctx.restore();
     }
@@ -3553,7 +3585,7 @@ function setupVillageNpcs(){
   }
   function houseFurnitureBlocked(x,y){const r=9,boxes=[[42,35,148,186],[153,91,190,143],[174,27,272,61],[286,72,379,98],[272,105,390,177],[296,201,380,279],[155,266,190,296]];return boxes.some(([l,t,rr,b])=>x+r>l&&x-r<rr&&y+r>t&&y-r<b);}
   function houseInteractionNear(x,y,rect){return x>=rect[0]&&x<=rect[2]&&y>=rect[1]&&y<=rect[3];}
-  function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>322||houseFurnitureBlocked(x,y);}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){const forest=villageCenters.find(v=>v.id==='forest');if(forest){const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270];for(let row=0;row<3;row++)for(let col=0;col<6;col++){const hx=forest.x*TILE+16+xOffsets[col]+(row===1?28:row===2?-24:0),hy=forest.y*TILE+16+rowY[row];if(x>hx-76&&x<hx+76&&y>hy-12*TILE-54&&y<hy-12*TILE+84)return true;}}for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
+  function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>322||houseFurnitureBlocked(x,y);}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(bossRealmMode)return false;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){const forest=villageCenters.find(v=>v.id==='forest');if(forest){const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270];for(let row=0;row<3;row++)for(let col=0;col<6;col++){const hx=forest.x*TILE+16+xOffsets[col]+(row===1?28:row===2?-24:0),hy=forest.y*TILE+16+rowY[row];if(x>hx-76&&x<hx+76&&y>hy-12*TILE-54&&y<hy-12*TILE+84)return true;}}for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
   function updateObjective(){
     if(dungeonMode){const cleared=dungeonClearedRooms.includes(dungeonRoom);document.getElementById('objective').textContent=dungeonRoom===5?(cleared?(dungeonChestOpened?'Выйди из руин':'Открой сундук Архонта'):'Победи Архонта руин'):cleared?'Найди дверь в следующую комнату':'Победи стража комнаты '+dungeonRoom;document.getElementById('location-name').textContent='Древние руины · '+dungeonRoom+'/5';return;}
     if(caveMode){document.getElementById('objective').textContent=caveChestOpened?'Вернись в долину или исследуй пещеру':'Найди сияющий сундук в тайной пещере';document.getElementById('location-name').textContent='Тайная пещера';return;}
