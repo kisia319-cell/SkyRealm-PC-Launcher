@@ -107,19 +107,19 @@ jobs:
 
               # Major = explicitly announced release or genuinely large gameplay expansion.
               major_pattern = re.compile(
-                  r"(\\[major\\]|\\[важно\\]|^major\\s*:|^release\\s*:|new world|нов(?:ый|ая) мир|new game mode|нов(?:ый|ая) режим|complete rework|полная переработка|новая боевая система)",
+                  r"(\[major\]|\[важно\]|^major\s*:|^release\s*:|new world|нов(?:ый|ая) мир|new game mode|нов(?:ый|ая) режим|complete rework|полная переработка|новая боевая система)",
                   re.IGNORECASE
               )
               has_major = any(major_pattern.search(subject) for _, subject in commits)
 
               batch = commits[:7]
               explicit_medium_pattern = re.compile(
-                  r"(\\[medium\\]|\\[среднее\\]|^medium\\s*:|^среднее\\s*:)",
+                  r"(\[medium\]|\[среднее\]|^medium\s*:|^среднее\s*:)",
                   re.IGNORECASE
               )
               boss_number_pattern = re.compile(
-                  r"\\b(\\d+)\\s*(?:boss(?:es)?|босс(?:а|ов|ы)?)\\b|"
-                  r"\\b(?:four|четыре)\\s+(?:boss(?:es)?|босс(?:а|ов|ы)?)\\b",
+                  r"\b(\d+)\s*(?:boss(?:es)?|босс(?:а|ов|ы)?)\b|"
+                  r"\b(?:four|четыре)\s+(?:boss(?:es)?|босс(?:а|ов|ы)?)\b",
                   re.IGNORECASE
               )
               attack_pattern = re.compile(r"attack|атак", re.IGNORECASE)
