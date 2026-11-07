@@ -24,6 +24,7 @@
       <button class="nav-item" data-page="shop"><span class="nav-ico">◇</span><span>Магазин</span><span class="nav-soon">СКОРО</span></button>
       <button class="nav-item" data-page="mods"><span class="nav-ico">🧩</span><span>Моды</span><span class="nav-badge">8</span></button>
       <button class="nav-item" data-page="community"><span class="nav-ico">♧</span><span>Сообщество</span></button>
+      <button class="nav-item" data-page="support"><span class="nav-ico">?</span><span>Поддержка</span></button>
       <button class="nav-item" data-page="calendar"><span class="nav-ico">▦</span><span>Календарь наград</span></button>
       <button class="nav-item" data-page="settings"><span class="nav-ico">⚙</span><span>Настройки</span></button>
     </nav>
@@ -34,7 +35,7 @@
       <div><b id="sidebar-status-label">Проверяем сервер</b><small>Облачная авторизация</small></div>
     </div>
     <button class="sidebar-help" type="button" data-page="news"><span>?</span> Помощь и ответы</button>
-    <div class="side-version">SKYREALM <b>v1.2.12</b> · GAME CENTER</div>
+    <div class="side-version">SKYREALM <b>v1.2.13</b> · GAME CENTER</div>
   </aside>
 
   <main class="main">
@@ -277,6 +278,17 @@
     <section class="calendar-panel"><div class="calendar-month-head"><button class="secondary-btn" id="calendar-prev" type="button">←</button><b id="calendar-month-label"></b><button class="secondary-btn" id="calendar-next" type="button">→</button></div><div class="calendar-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div class="calendar-days" id="calendar-days"></div></section>
     <section class="calendar-panel"><h2>Добавить событие</h2><label class="calendar-field">Название<input id="calendar-event-title" maxlength="70" placeholder="Например, вечер кооператива"></label><label class="calendar-field">Дата<input id="calendar-event-date" type="date"></label><label class="calendar-field">Тип<select id="calendar-event-type"><option value="session">Игровая сессия</option><option value="challenge">Испытание</option><option value="update">Обновление</option><option value="community">Событие сообщества</option></select></label><button class="primary-btn" id="calendar-event-add" type="button">Добавить в календарь</button><p class="calendar-status" id="calendar-status" aria-live="polite"></p><div class="calendar-event-list" id="calendar-event-list"></div></section>
   </div>
+</section>
+
+<section class="page inner-page support-page" id="page-support">
+  <div class="page-heading"><div><div class="section-kicker">SKYREALM · ПОМОЩЬ</div><h1>Центр <span>поддержки</span></h1><p>Свяжись со мной напрямую или отправь сообщение об ошибке. Контактные данные показаны прямо в этой вкладке.</p></div></div>
+  <div class="support-grid">
+    <article class="support-card"><b>Электронная почта</b><p>Для вопросов, сообщений об ошибках и предложений по SkyRealm.</p><a class="primary-btn" href="mailto:kisia319@gmail.com">Написать: kisia319@gmail.com</a></article>
+    <article class="support-card"><b>Телефон</b><p>Контактный номер поддержки.</p><a class="secondary-btn" href="tel:+79962819878">Позвонить: +7 996 281 9878</a></article>
+    <article class="support-card"><b>Сообщить об ошибке</b><p>Создай обращение на GitHub и приложи диагностический отчёт.</p><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/issues/new" target="_blank" rel="noopener">Создать обращение ↗</a></article>
+    <article class="support-card"><b>Обновления и инструкции</b><p>Исходный код проекта и последние версии лаунчера.</p><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher" target="_blank" rel="noopener">Репозиторий GitHub</a><a class="secondary-btn" href="https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest" target="_blank" rel="noopener">Последний релиз</a></article>
+  </div>
+  <article class="support-card support-diagnostics"><b>Диагностический отчёт</b><p id="support-diagnostics-status">Отчёт содержит версии, состояние файлов и локальные показатели компьютера. Пароли и токены авторизации в него не включаются.</p><button class="primary-btn" id="support-copy-diagnostics" type="button">Скопировать отчёт</button></article>
 </section>
 
 <section class="page inner-page" id="page-settings"><div class="page-heading"><div class="section-kicker">ПОД ТЕБЯ</div><h1>Настройки <span>лаунчера</span></h1><p>Параметры интерфейса сохраняются на этом устройстве.</p></div><div class="settings-card"><div class="setting-row language-setting"><div><b id="language-title">Язык лаунчера</b><small id="language-subtitle">Выбери язык интерфейса. Доступны только два языка.</small></div><select id="language-select" aria-label="Язык лаунчера"><option value="ru">Русский</option><option value="en">English</option></select></div>

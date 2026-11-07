@@ -90,3 +90,8 @@ assert.ok(enhancements.includes('screenshot-viewer-download')&&enhancements.incl
 assert.ok(enhancements.includes('items.slice(0,24)'),'Screenshot gallery must limit visible cards to avoid unbounded memory use');
 assert.ok(enhancements.includes('launcherEnhancementsInitialized')&&enhancements.includes('setup.forEach'),'A failure in one dynamic page must not prevent other launcher sections from initializing');
 assert.ok(game.includes("if(e.code==='F12'||e.key==='F12'){e.preventDefault();saveGameScreenshot();return;}")&&game.includes("api.save_screenshot(canvas.toDataURL('image/png'))"),'F12 must save a PNG from the game canvas through the native screenshot API');
+
+assert.ok(html.includes('data-page="support"') && html.includes('id="page-support"'),'Support tab and its page must exist directly in static launcher HTML, before dynamic scripts run');
+assert.ok(html.includes('href="mailto:kisia319@gmail.com"'),'Support page must show the requested email in static HTML');
+assert.ok(html.includes('href="tel:+79962819878"'),'Support page must show the requested phone number in static HTML');
+assert.ok(app.includes("support:t('pageSupport')"),'The core launcher navigation must recognize the support page and its breadcrumb');

@@ -6,7 +6,7 @@
   let currentLanguage = ['ru', 'en'].includes(localStorage.getItem('skyrealm_language')) ? localStorage.getItem('skyrealm_language') : 'ru';
   const LANGUAGE_TEXT = {
     ru: {
-      pageHome:'ИГРОВОЙ ЦЕНТР', pageNews:'ХРОНИКИ МИРА', pageShop:'МАГАЗИН ПРИКЛЮЧЕНИЙ', pageMods:'КАТАЛОГ МОДОВ', pageCommunity:'СООБЩЕСТВО', pageSettings:'НАСТРОЙКИ',
+      pageHome:'ИГРОВОЙ ЦЕНТР', pageNews:'ХРОНИКИ МИРА', pageShop:'МАГАЗИН ПРИКЛЮЧЕНИЙ', pageMods:'КАТАЛОГ МОДОВ', pageCommunity:'СООБЩЕСТВО', pageSupport:'ПОДДЕРЖКА', pageSettings:'НАСТРОЙКИ',
       loginTitle:'Войти в SkyRealm', registerTitle:'Создай аккаунт', loginIntro:'Войди, чтобы открыть свой профиль, или создай новый аккаунт.', registerIntro:'Заполни данные ниже. После регистрации мы попросим подтвердить почту кодом.',
       usernameLogin:'Почта или имя игрока', usernameRegister:'Имя игрока', usernamePlaceholderLogin:'Введите почту или имя игрока', usernamePlaceholderRegister:'Придумай имя (3–20 символов)',
       passwordPlaceholderLogin:'Введите пароль', passwordPlaceholderRegister:'Не менее 8 символов', submitLogin:'Войти в аккаунт <span>→</span>', submitRegister:'Создать аккаунт <span>→</span>', switchLogin:'Создать аккаунт <span>→</span>', switchRegister:'← Вернуться ко входу',
@@ -16,7 +16,7 @@
       busyConnect:'Подключаемся к серверу…', busyVerify:'Проверяем код…', busyResend:'Отправляем…', languageChanged:'Language saved.', statusChecking:'Проверяем сервер…', statusOnline:'Облачный сервер онлайн', statusOffline:'Нет связи с облаком', statusUnconfigured:'Сервер не настроен'
     },
     en: {
-      pageHome:'GAME CENTER', pageNews:'WORLD CHRONICLES', pageShop:'ADVENTURE SHOP', pageMods:'MOD WORKSHOP', pageCommunity:'COMMUNITY', pageSettings:'SETTINGS',
+      pageHome:'GAME CENTER', pageNews:'WORLD CHRONICLES', pageShop:'ADVENTURE SHOP', pageMods:'MOD WORKSHOP', pageCommunity:'COMMUNITY', pageSupport:'SUPPORT', pageSettings:'SETTINGS',
       loginTitle:'Sign in to SkyRealm', registerTitle:'Create your account', loginIntro:'Sign in to open your profile, or create a new account.', registerIntro:'Fill in the details below. We’ll ask you to verify your email after registration.',
       usernameLogin:'Email or player name', usernameRegister:'Player name', usernamePlaceholderLogin:'Enter email or username', usernamePlaceholderRegister:'Choose a name (3–20 characters)',
       passwordPlaceholderLogin:'Enter password', passwordPlaceholderRegister:'At least 8 characters', submitLogin:'Sign in <span>→</span>', submitRegister:'Create account <span>→</span>', switchLogin:'Create account <span>→</span>', switchRegister:'← Back to sign in',
@@ -27,7 +27,7 @@
     }
   };
   const t = (key) => LANGUAGE_TEXT[currentLanguage][key] || LANGUAGE_TEXT.ru[key] || key;
-  const getPageNames = () => ({home:t('pageHome'),news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),settings:t('pageSettings')});
+  const getPageNames = () => ({home:t('pageHome'),news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),support:t('pageSupport'),settings:t('pageSettings')});
   let pageNames = getPageNames();
   let gameLaunchBusy = false;
   const toast = (message) => {
