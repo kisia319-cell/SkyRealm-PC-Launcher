@@ -702,7 +702,8 @@ class LauncherApi:
                     temp_runner = runner_path.with_suffix(".exe.new")
                     shutil.copy2(bundled_runner, temp_runner)
                     os.replace(temp_runner, runner_path)
-                command = [str(runner_path), "--skyrealm-game", str(installed_index)]
+                # The separate runner reopens this exact launcher executable after the game window closes.
+                command = [str(runner_path), "--skyrealm-game", str(installed_index), "--return-launcher", str(Path(sys.executable).resolve())]
             else:
                 # Source-mode development still works with the current Python interpreter.
                 command = [sys.executable, str(Path(__file__).resolve()), "--skyrealm-game", str(installed_index)]
@@ -1497,8 +1498,25 @@ def _skyrealm_startup_update():
 
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "--skyrealm-game":
+        return_launcher = ""
+        if "--return-launcher" in sys.argv:
+            try:
+                return_launcher = sys.argv[sys.argv.index("--return-launcher") + 1]
+            except (IndexError, ValueError):
+                return_launcher = ""
         try:
             run_game_window(sys.argv[2])
+            # Reopen the launcher only after the game WebView and local HTTP server exit.
+            if return_launcher:
+                launcher_path = Path(return_launcher).resolve()
+                if launcher_path.is_file() and launcher_path.suffix.lower() == ".exe":
+                    subprocess.Popen(
+                        [str(launcher_path)],
+                        cwd=str(launcher_path.parent),
+                        close_fds=True,
+                        creationflags=(getattr(subprocess, "DETACHED_PROCESS", 0) |
+                                       getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)),
+                    )
         except Exception as exc:
             details = traceback.format_exc()
             log_hint = "не удалось записать журнал"
