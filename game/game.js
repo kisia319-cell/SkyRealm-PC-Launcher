@@ -2093,14 +2093,6 @@ function setupVillageNpcs(){
     const can=(x,y)=>{
       const a=mineCellFromWorld(x-r,y-r),b=mineCellFromWorld(x+r,y-r),c=mineCellFromWorld(x-r,y+r),d=mineCellFromWorld(x+r,y+r);
       if(!mineCellWalkable(a.x,a.y)||!mineCellWalkable(b.x,b.y)||!mineCellWalkable(c.x,c.y)||!mineCellWalkable(d.x,d.y))return false;
-      // Barrels are solid obstacles: keep the player outside their visible wooden body.
-      for(const barrel of mineBarrels){
-        if(barrel.hp<=0)continue;
-        const pos=mineFeatureWorldPosition(barrel);
-        const minDistance=r+16;
-        const dx=x-pos.x,dy=y-pos.y;
-        if(dx*dx+dy*dy<minDistance*minDistance)return false;
-      }
       return true;
     };
     for(let i=0;i<steps;i++){
@@ -2120,9 +2112,46 @@ function setupVillageNpcs(){
     }
     return null;
   }
+  function drawMineBackdrop(time=performance.now()){
+    // Full-screen cave rock remains visible behind the maze, instead of leaving empty black gaps.
+    const base=ctx.createLinearGradient(0,0,0,height);
+    base.addColorStop(0,'#29343a');base.addColorStop(.34,'#1a252b');base.addColorStop(.72,'#11191f');base.addColorStop(1,'#080d12');
+    ctx.fillStyle=base;ctx.fillRect(0,0,width,height);
+    const ambient=ctx.createRadialGradient(width*.5,height*.43,Math.min(width,height)*.08,width*.5,height*.43,Math.max(width,height)*.78);
+    ambient.addColorStop(0,'rgba(91,103,99,.16)');ambient.addColorStop(.55,'rgba(42,54,58,.08)');ambient.addColorStop(1,'rgba(0,0,0,.48)');
+    ctx.fillStyle=ambient;ctx.fillRect(0,0,width,height);
+    // Uneven rock strata along the cave perimeter create a visible backdrop around the walkable tunnels.
+    for(let layer=0;layer<7;layer++){
+      const y=height*(.08+layer*.145)+Math.sin(time*.00012+layer)*5;
+      ctx.beginPath();ctx.moveTo(0,y);
+      for(let x=0;x<=width+40;x+=40){
+        const wave=Math.sin(x*.014+layer*1.7)*8+Math.sin(x*.037-layer)*3;
+        ctx.lineTo(x,y+wave);
+      }
+      ctx.lineTo(width,height);ctx.lineTo(0,height);ctx.closePath();
+      ctx.fillStyle=layer%2?'rgba(9,15,19,.075)':'rgba(128,137,129,.045)';ctx.fill();
+    }
+    // Large, irregular silhouettes at the upper and lower edges make the ceiling and floor read as rock.
+    for(let i=0;i<15;i++){
+      const x=(i+.5)*width/15,seed=hash(i+mineSeed*2,mineLevel+17),w=width/15*(.55+seed*.55);
+      const h=18+seed*58;
+      ctx.fillStyle=i%2?'#111a20':'#202a2e';
+      ctx.beginPath();ctx.moveTo(x-w*.6,0);ctx.lineTo(x+w*.6,0);ctx.lineTo(x+w*.35,h*.42);ctx.lineTo(x+Math.sin(i*4)*w*.12,h);ctx.lineTo(x-w*.28,h*.48);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(142,151,143,.12)';ctx.beginPath();ctx.moveTo(x-w*.35,2);ctx.lineTo(x-w*.12,h*.35);ctx.lineTo(x-w*.18,h*.55);ctx.closePath();ctx.fill();
+      const bottom=height-(12+seed*32);
+      ctx.fillStyle='#0c1318';ctx.beginPath();ctx.moveTo(x-w*.65,height);ctx.lineTo(x+w*.65,height);ctx.lineTo(x+w*.3,bottom);ctx.lineTo(x-w*.25,bottom+10);ctx.closePath();ctx.fill();
+    }
+    // A few dim mineral seams and reflective fragments add depth without obscuring gameplay.
+    for(let i=0;i<11;i++){
+      const seed=hash(i+mineSeed*9,mineLevel*13),x=seed*width,y=(.16+hash(i+31,mineSeed)*.7)*height;
+      ctx.strokeStyle=i%3===0?'rgba(105,177,183,.22)':'rgba(151,137,111,.13)';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(x-12,y-8);ctx.lineTo(x-3,y);ctx.lineTo(x+4,y-3);ctx.lineTo(x+14,y+7);ctx.stroke();
+      if(i%3===0){ctx.fillStyle='rgba(112,204,211,.25)';ctx.beginPath();ctx.arc(x,y,2.2+Math.sin(time/420+i)*.5,0,Math.PI*2);ctx.fill();}
+    }
+  }
   function drawMinePassages(){
     const g=ensureMineMaze(),cell=MINE_CELL_SIZE,time=performance.now();
-    ctx.fillStyle='#080d13';ctx.fillRect(0,0,width,height);
+    drawMineBackdrop(time);
     // Every corridor is a layered stone floor; blocked cells become raised rock walls.
     for(let row=0;row<MINE_MAZE_ROWS;row++)for(let col=0;col<MINE_MAZE_COLS;col++){
       const p=mineWorldToScreen((col+.5)*cell,(row+.5)*cell),size=cell*p.zoom,half=size/2;
@@ -2181,6 +2210,7 @@ function setupVillageNpcs(){
     ctx.save();ctx.translate(exit.x,exit.y);ctx.fillStyle='#352b20';ctx.strokeStyle='#f3c16b';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,cell*.34*exit.zoom,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#ffe2a0';ctx.font='bold '+Math.max(9,10*exit.zoom)+'px Segoe UI';ctx.textAlign='center';ctx.fillText(mineLevel<8?'НИЖЕ':'СОКРОВИЩЕ',0,cell*.55*exit.zoom);ctx.restore();
   }
   function drawMineBarrels(){
+    // Barrels are intentionally drawn without floating names or text labels.
     for(const b of mineBarrels){if(b.hp<=0)continue;const p=mineRockScreenPosition(b);ctx.save();ctx.translate(p.x,p.y);ctx.scale(p.zoom,p.zoom);
       ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,13,19,7,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#4a2d20';ctx.beginPath();ctx.moveTo(-12,-16);ctx.quadraticCurveTo(-19,-3,-13,13);ctx.quadraticCurveTo(0,20,13,13);ctx.quadraticCurveTo(19,-3,12,-16);ctx.closePath();ctx.fill();
