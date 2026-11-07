@@ -55,12 +55,12 @@ async function getSessionToken(){
   return typeof session?.token==='string'?session.token:'';
  }catch(_){return '';}
 }
-async function apiRequest(body,authenticated=false){
+async function apiRequest(body,authenticated=false,allowNegative=false){
  const headers={'Content-Type':'application/json','apikey':PUBLISHABLE_KEY};
  if(authenticated&&sessionToken)headers.Authorization='Bearer '+sessionToken;
  const response=await fetch(API,{method:'POST',headers,cache:'no-store',body:JSON.stringify(body)});
  const data=await response.json().catch(()=>({}));
- if(!response.ok||data.ok!==true){
+ if(!response.ok||(!allowNegative&&data.ok!==true)){
   const error=new Error(data.code||'REQUEST_FAILED');error.code=data.code||'';error.status=response.status;throw error;
  }
  return data;
@@ -88,8 +88,8 @@ function openActivation(){
  window.setTimeout(()=>{const input=$('edition-code-input');if(!shade.hidden&&!$('edition-activation-view').hidden)input.focus();},80);
 }
 async function verifyPremium(){
- const data=await apiRequest({action:'verify',device_id:deviceId()});
- premiumActive=data.edition==='premium';
+ const data=await apiRequest({action:'verify',device_id:deviceId()},false,true);
+ premiumActive=data.ok===true&&data.edition==='premium';
  return premiumActive;
 }
 async function request(next){
