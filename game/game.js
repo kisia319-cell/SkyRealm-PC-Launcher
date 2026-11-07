@@ -2040,16 +2040,18 @@ function setupVillageNpcs(){
     ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
     for(const path of paths){
       ctx.beginPath();path.forEach((p,i)=>{const q=mineRockScreenPosition({x:p[0],y:p[1]});if(i===0)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y);});
-      ctx.strokeStyle='#151c24';ctx.lineWidth=104*scale;ctx.stroke();ctx.strokeStyle='#39413f';ctx.lineWidth=91*scale;ctx.stroke();
-      ctx.strokeStyle='#665b4b';ctx.lineWidth=78*scale;ctx.stroke();ctx.strokeStyle='#89785f';ctx.lineWidth=45*scale;ctx.stroke();
-      ctx.strokeStyle='rgba(211,184,139,.16)';ctx.lineWidth=2*scale;ctx.stroke();
+      // Narrow, readable tunnels: keep the walkable floor clearly separated from the rock walls.
+      ctx.strokeStyle='#151c24';ctx.lineWidth=68*scale;ctx.stroke();ctx.strokeStyle='#39413f';ctx.lineWidth=60*scale;ctx.stroke();
+      ctx.strokeStyle='#665b4b';ctx.lineWidth=52*scale;ctx.stroke();ctx.strokeStyle='#89785f';ctx.lineWidth=34*scale;ctx.stroke();
+      ctx.strokeStyle='rgba(211,184,139,.20)';ctx.lineWidth=1.5*scale;ctx.stroke();
     }
     for(const [x,y,rx,ry] of [[30,86,27,22],[227,52,29,22],[315,172,25,23],[250,205,27,20]]){
       const p=mineRockScreenPosition({x,y});ctx.fillStyle='#4a4b43';ctx.beginPath();ctx.ellipse(p.x,p.y,rx*scale,ry*scale,0,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle='#1c242b';ctx.lineWidth=5*scale;ctx.stroke();ctx.fillStyle='rgba(153,130,97,.28)';
       ctx.beginPath();ctx.ellipse(p.x,p.y,rx*.62*scale,ry*.55*scale,0,0,Math.PI*2);ctx.fill();
     }
-    const supports=[[38,204],[70,188],[105,168],[145,153],[184,132],[220,108],[262,104],[108,130],[88,98],[186,99],[153,181],[212,214],[278,130]];
+    // Supports are grouped at structural weak points instead of filling every few metres.
+    const supports=[[70,188],[145,153],[220,108],[88,98],[212,214]];
     supports.forEach(([x,y],i)=>{
       const p=mineRockScreenPosition({x,y}),w=31*scale,h=35*scale;
       ctx.fillStyle='#30271f';ctx.fillRect(p.x-w-3,p.y-h,7*scale,h*2);ctx.fillRect(p.x+w-4,p.y-h,7*scale,h*2);
@@ -2236,7 +2238,8 @@ function setupVillageNpcs(){
       ctx.beginPath();ctx.moveTo(x-21,y+9);ctx.lineTo(x-17,y-9);ctx.lineTo(x-6,y-18);ctx.lineTo(x+10,y-16);ctx.lineTo(x+20,y-4);ctx.lineTo(x+17,y+12);ctx.lineTo(x-2,y+18);ctx.closePath();ctx.fill();
       const oreGleams={'Кристалл':'#8ae6ff','Железо':'#d4a29b','Уголь':'#858b96','Медь':'#ffc08a','Олово':'#eef4ff','Серебро':'#ffffff','Золото':'#ffe68a','Рубин':'#ff829a','Сапфир':'#9bc8ff','Обсидиан':'#ad8bdf','Мифрил':'#d1ffff','Уран':'#baff7d','Алмаз':'#ffffff'};ctx.fillStyle=oreGleams[r.ore]||'#cbb59a';ctx.fillRect(x-8,y-5,6,5);ctx.fillRect(x+3,y+2,7,5);ctx.fillRect(x+2,y-10,4,4);
       if(i===mineHoverIndex){ctx.strokeStyle='#ffe09a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,25,0,Math.PI*2);ctx.stroke();}
-      ctx.fillStyle='#f0e6d0';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText(r.ore+' · '+r.hp+'/2',x,y+34);ctx.textAlign='left';
+      // Keep the mine readable: show ore labels only for the selected deposit.
+      if(i===mineHoverIndex){ctx.fillStyle='#fff0c9';ctx.font='bold 12px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#10151d';ctx.shadowBlur=4;ctx.fillText(r.ore+' · '+r.hp+'/2',x,y+34);ctx.shadowBlur=0;ctx.textAlign='left';}
     });
     // Keep the same player visible while inside the mine, so this is a location change, not a character swap.
     const px=minePlayerX,py=minePlayerY||height-108;ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(px,py+24,17,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f2c18f';ctx.fillRect(px-6,py-20,12,13);ctx.fillStyle='#526fba';ctx.fillRect(px-8,py-7,16,20);ctx.fillStyle='#2c3447';ctx.fillRect(px-7,py+12,5,10);ctx.fillRect(px+2,py+12,5,10);
