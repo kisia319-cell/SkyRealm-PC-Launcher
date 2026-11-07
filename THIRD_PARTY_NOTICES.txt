@@ -94,3 +94,28 @@ RELEASE AUDIT NOTES
   2026-11-07.
 - Historical EXE/ZIP binaries have not all been unpacked and independently
   inspected. This notice is not a blanket certification of every past build.
+
+
+BROWSER RUNTIME DEPENDENCIES (LOADED FROM CDN BY THE GAME)
+
+@supabase/supabase-js 2.118.0 — MIT
+Loaded from:
+https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0
+Source and license:
+https://github.com/supabase/supabase-js
+https://github.com/supabase/supabase-js/blob/master/LICENSE
+Copyright (c) 2020 Supabase. Include the MIT copyright and permission notice
+when redistributing this software or substantial portions of it.
+
+Pyodide 0.29.5 — Mozilla Public License 2.0 (MPL-2.0)
+Loaded from:
+https://cdn.jsdelivr.net/pyodide/v0.29.5/full/pyodide.js
+https://cdn.jsdelivr.net/pyodide/v0.29.5/full/
+Source and license:
+https://github.com/pyodide/pyodide
+Pyodide is a CPython distribution compiled to WebAssembly. It is loaded only
+for Python-based custom-mod functionality. Pyodide's distribution and any
+packages fetched by user mods have their own license terms. Audit the exact
+Pyodide lockfile and any dynamically installed packages before a release
+that bundles or redistributes them. The game currently references this
+version by URL and does not vendor the runtime files in the repository.
