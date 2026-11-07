@@ -30,7 +30,7 @@ function fixture(){
 }
 testCase('mine is a connected generated labyrinth with an entrance and distant stairs',()=>{
  const f=fixture();f.ctx.MINE_MAZE_COLS=21;f.ctx.MINE_MAZE_ROWS=15;f.ctx.MINE_CELL_SIZE=44;
- run(f.ctx,['generateMineMaze','mineCellWalkable','mineCellFromWorld'],['generateMineMaze','mineCellWalkable','mineCellFromWorld']);
+ run(f.ctx,['generateMineMaze','ensureMineMaze','mineCellWalkable','mineCellFromWorld'],['generateMineMaze','mineCellWalkable','mineCellFromWorld']);
  const grid=f.ctx.generateMineMaze();assert.equal(grid.length,15);assert.equal(grid[0].length,21);
  assert.equal(f.ctx.mineCellWalkable(1,13),true);assert.equal(f.ctx.mineCellWalkable(19,1),true);
  const seen=new Set(['1,13']),queue=[[1,13]];for(let i=0;i<queue.length;i++){const [x,y]=queue[i];for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(f.ctx.mineCellWalkable(nx,ny)&&!seen.has(k)){seen.add(k);queue.push([nx,ny]);}}}
@@ -81,9 +81,16 @@ testCase('current mine saves do not respawn cleared objects',()=>{
  assert.equal(result.backfilledBarrels,false);assert.equal(result.backfilledCreatures,false);
  assert.equal(f.ctx.mineBarrels.length,0);assert.equal(f.ctx.mineCreatures.length,0);
 });
-testCase('original mine movement block remains unchanged',()=>{
- const movement="if(mineMode && (mx||my)){if(mx&&my){mx*=.7071;my*=.7071;}minePlayerX=Math.max(48,Math.min(width-48,minePlayerX+mx*speed*dt));minePlayerY=Math.max(100,Math.min(height-70,(minePlayerY||height-108)+my*speed*dt));}";
- assert.ok(source.includes(movement));assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,quarryProgress'));
+testCase('maze walls block mine-only movement while ordinary world movement remains unchanged',()=>{
+ const f=fixture();run(f.ctx,['generateMineMaze','ensureMineMaze','mineCellWalkable','mineCellFromWorld','mineMovePlayer'],['generateMineMaze','mineCellWalkable','mineMovePlayer']);
+ f.ctx.generateMineMaze();f.ctx.minePlayerX=1.5*44;f.ctx.minePlayerY=13.5*44;
+ const start={x:1,y:13},wall=[[0,-1],[1,0],[0,1],[-1,0]].find(([dx,dy])=>!f.ctx.mineCellWalkable(start.x+dx,start.y+dy));
+ assert.ok(wall,'start cell should have at least one wall');
+ const before={x:f.ctx.minePlayerX,y:f.ctx.minePlayerY};f.ctx.mineMovePlayer(wall[0],wall[1],220,1);
+ assert.equal(f.ctx.minePlayerX,before.x);assert.equal(f.ctx.minePlayerY,before.y);
+ const ordinaryMovement="const nx = player.x + player.vx*dt, ny = player.y + player.vy*dt;\\n        if (!blocked(nx, player.y)) player.x = nx;\\n        if (!blocked(player.x, ny)) player.y = ny;";
+ assert.ok(source.includes(ordinaryMovement),'normal world walking physics must remain untouched');
+ assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,quarryProgress'));
  assert.ok(source.includes('drawMinePassages()'));assert.ok(source.includes('updateMineCreatures(dt)'));assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));assert.ok(source.includes('mineMazeVersion:2'));
 });
 console.log('PASS '+tests.length+' mine exploration tests: '+tests.join(' | '));
