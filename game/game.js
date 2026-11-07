@@ -1765,7 +1765,7 @@ function setupVillageNpcs(){
   }
   function drawWolfCompanion(camX,camY,time){if(!wolfCompanionUnlocked||wolfCompanionHp<=0)return;const x=wolfCompanionX()-camX,y=wolfCompanionY()-camY;if(x<-50||x>width+50||y<-50||y>height+50)return;ctx.save();ctx.translate(x,y+Math.sin(time/180));ctx.fillStyle='#b8c4d5';ctx.beginPath();ctx.ellipse(0,0,13,9,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(10,-5,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#71839c';ctx.beginPath();ctx.moveTo(5,-10);ctx.lineTo(3,-20);ctx.lineTo(11,-13);ctx.moveTo(14,-11);ctx.lineTo(21,-18);ctx.lineTo(19,-7);ctx.fill();ctx.fillStyle='#f4c6cc';ctx.fillRect(12,-6,2,2);ctx.fillStyle='#fff';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('🐕 '+Math.ceil(wolfCompanionHp)+'/300',0,-25);ctx.restore();}
 
-  function makeBiomeBossState(){return {frost:{active:false,defeated:false,hp:0,attackTimer:1.35,specialTimer:7,flash:0,rebirthMultiplier:1,rebirthCount:0},sand:{active:false,defeated:false,hp:0,attackTimer:1.5,specialTimer:8,flash:0,rebirthMultiplier:1,rebirthCount:0},blight:{active:false,defeated:false,hp:0,attackTimer:1.7,specialTimer:9,flash:0,rebirthMultiplier:1,rebirthCount:0},jungle:{active:false,defeated:false,hp:0,attackTimer:1.6,specialTimer:7.5,flash:0,rebirthMultiplier:1,rebirthCount:0}};}
+  function makeBiomeBossState(){const make=(attackTimer,specialTimer)=>({active:false,defeated:false,hp:0,attackTimer,specialTimer,flash:0,rebirthMultiplier:1,rebirthCount:0,attackWindup:0,attackVisual:0,attackHit:false,attackTargetX:0,attackTargetY:0,attackPhase:0,teleportFade:0,teleportCooldown:0});return {frost:make(1.35,7),sand:make(1.5,8),blight:make(1.7,9),jungle:make(1.6,7.5)};}
   function biomeBossDefs(){const rank=difficultyConfig().rank;return [{id:'frost',name:'Ледяной титан',x:(COLS-10)*TILE+16,y:9*TILE+16,color:'#83e9ff',reward:'Сердце ледника',maxHp:850+rank*330,damage:10+rank*6},{id:'sand',name:'Король скорпионов',x:9*TILE+16,y:(ROWS-12)*TILE+16,color:'#ffb24a',reward:'Жало короля',maxHp:780+rank*300,damage:9+rank*5},{id:'blight',name:'Страж порчи',x:(COLS-9)*TILE+16,y:Math.max(46,ROWS-24)*TILE+16,color:'#b7ed6e',reward:'Сердце порчи',maxHp:1000+rank*360,damage:12+rank*6},{id:'jungle',name:'Хранитель лиан',x:Math.floor(COLS*.29)*TILE+16,y:Math.floor(ROWS*.49)*TILE+16,color:'#73d45b',reward:'Сердце джунглей',maxHp:1050+rank*390,damage:12+rank*6}];}
   function bossHpMax(def){const state=biomeBosses?.[def.id];return Math.round(def.maxHp*Math.max(1,Math.min(8.35,Number(state?.rebirthMultiplier)||1)));}
   function normalizeBiomeBossState(saved){
@@ -1786,7 +1786,10 @@ function setupVillageNpcs(){
         attackTimer:Number.isFinite(rawAttackTimer)?Math.max(0,Math.min(5,rawAttackTimer)):1.3,
         specialTimer:Number.isFinite(rawSpecialTimer)?Math.max(0,Math.min(20,rawSpecialTimer)):7,
         flash:0,rebirthMultiplier:multiplier,
-        rebirthCount:Math.max(0,Math.min(4,Math.floor(Number(v.rebirthCount)||0)))
+        rebirthCount:Math.max(0,Math.min(4,Math.floor(Number(v.rebirthCount)||0))),
+        attackWindup:Math.max(0,Math.min(2,Number(v.attackWindup)||0)),attackVisual:Math.max(0,Math.min(2,Number(v.attackVisual)||0)),attackHit:v.attackHit===true,
+        attackTargetX:Number.isFinite(Number(v.attackTargetX))?Number(v.attackTargetX):0,attackTargetY:Number.isFinite(Number(v.attackTargetY))?Number(v.attackTargetY):0,
+        attackPhase:Number(v.attackPhase)||0,teleportFade:Math.max(0,Math.min(1,Number(v.teleportFade)||0)),teleportCooldown:Math.max(0,Math.min(30,Number(v.teleportCooldown)||0))
       };
       if(!defeated&&out[def.id].hp<=0)out[def.id].hp=maxHp;
     }
@@ -1796,47 +1799,53 @@ function setupVillageNpcs(){
     if(dungeonMode||caveMode||mineMode||inHouse||tradeWorldMode||bossRealmMode)return;
     const step=Number.isFinite(dt)?Math.max(0,Math.min(.1,dt)):0;
     for(const def of biomeBossDefs()){
-      const b=biomeBosses[def.id];
-      if(!b||b.defeated)continue;
+      const b=biomeBosses[def.id];if(!b||b.defeated)continue;
       if(!Number.isFinite(b.rebirthMultiplier)||b.rebirthMultiplier<1)b.rebirthMultiplier=1;
-      const maxHp=bossHpMax(def);
-      if(!Number.isFinite(b.hp))b.hp=maxHp;
-      else b.hp=Math.max(0,Math.min(maxHp,b.hp));
-      if(!Number.isFinite(b.attackTimer))b.attackTimer=.35;
-      if(!Number.isFinite(b.specialTimer))b.specialTimer=.5;
-      const d=Math.hypot(player.x-def.x,player.y-def.y);
-      if(!Number.isFinite(d))continue;
-      b.flash=Math.max(0,(b.flash||0)-step);
-      if(!b.active&&d<440){
-        b.active=true;b.hp=b.hp>0?Math.min(b.hp,maxHp):maxHp;
-        b.attackTimer=1.3;b.specialTimer=Math.max(2,b.specialTimer||7);
-        toast('ОПАСНОСТЬ: '+def.name+' заметил тебя!');playSound('portal');saveGame();
-      }
+      const maxHp=bossHpMax(def);if(!Number.isFinite(b.hp))b.hp=maxHp;else b.hp=Math.max(0,Math.min(maxHp,b.hp));
+      if(!Number.isFinite(b.attackTimer))b.attackTimer=.35;if(!Number.isFinite(b.specialTimer))b.specialTimer=.5;
+      b.flash=Math.max(0,(b.flash||0)-step);b.attackVisual=Math.max(0,(b.attackVisual||0)-step);b.teleportCooldown=Math.max(0,(b.teleportCooldown||0)-step);
+      b.teleportFade=Math.max(0,(b.teleportFade||0)-step*2.4);
+      const d=Math.hypot(player.x-def.x,player.y-def.y);if(!Number.isFinite(d))continue;
+      if(!b.active&&d<440){b.active=true;b.hp=b.hp>0?Math.min(b.hp,maxHp):maxHp;b.attackTimer=1.3;b.specialTimer=Math.max(2,b.specialTimer||7);toast('ОПАСНОСТЬ: '+def.name+' заметил тебя!');playSound('portal');saveGame();}
       if(!b.active)continue;
       const power=Math.max(1,Math.min(8.35,b.rebirthMultiplier));
-      b.attackTimer=Math.max(0,b.attackTimer-step);
-      b.specialTimer=Math.max(0,b.specialTimer-step);
+      b.attackTimer=Math.max(0,b.attackTimer-step);b.specialTimer=Math.max(0,b.specialTimer-step);
+      b.attackWindup=Math.max(0,(b.attackWindup||0)-step);
       const canBossHit=!immortal&&(!Number.isFinite(dodgeTimer)||dodgeTimer<=0);
       const meleeRange=def.id==='jungle'?138:108;
       if(d<=meleeRange&&b.attackTimer<=0&&canBossHit){
         b.attackTimer=Math.max(.65,1.65-difficultyConfig().rank*.13);
         const hit=Math.max(1,Math.round(def.damage*power*(1-armorReduction())*(isModInstalled('elemental_lords')?1.25:1)));
-        player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,9,'spark',def.color);
-        updateVitals();toast(def.name+' атакует: −'+hit+' HP');
+        player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,9,'spark',def.color);updateVitals();toast(def.name+' атакует: −'+hit+' HP');
         if(player.hp<=0)respawnPlayerAfterDefeat();
       }
-      if(b.specialTimer<=0){
-        const radius=def.id==='frost'?148:def.id==='sand'?126:def.id==='blight'?174:158;
-        if(d<=radius&&canBossHit){
-          b.specialTimer=Math.max(5.5,9-difficultyConfig().rank*.55);
-          const special=Math.max(1,Math.round(def.damage*power*1.65*(1-armorReduction())));
-          player.hp=Math.max(0,player.hp-special);spawnVisualBurst(player.x,player.y,22,'spark',def.color);
-          updateVitals();const move={frost:'ЛЕДЯНАЯ БУРЯ',sand:'ЯДОВИТОЕ ЖАЛО',blight:'ВОЛНА ПОРОЧИ',jungle:'УДАР КОРНЕЙ'}[def.id];
-          toast(def.name+' применяет '+move+': −'+special+' HP!');
-          if(player.hp<=0)respawnPlayerAfterDefeat();
-        }else{
-          // Keep a ready special attack queued until the player enters its hit radius.
-          b.specialTimer=.2;
+      if(b.specialTimer<=0&&b.attackWindup<=0&&b.attackVisual<=0){
+        b.attackWindup=.92;b.attackHit=false;b.attackTargetX=player.x;b.attackTargetY=player.y;b.attackPhase=0;
+        b.specialTimer=Math.max(6.2,9-difficultyConfig().rank*.45);
+        const warning={frost:'ЛЕДЯНОЙ РАЗЛОМ',sand:'ПЕСЧАНАЯ ЗАСАДА',blight:'СПОРОВЫЙ ВЗРЫВ',jungle:'ПРОБУЖДЕНИЕ КОРНЕЙ'}[def.id];
+        toast(def.name+' готовит атаку: '+warning+' — уклоняйся!');
+      }
+      if(b.attackWindup>0){
+        b.attackPhase+=step*8;
+        if(b.attackWindup<=.02&&!b.attackHit){
+          b.attackHit=true;b.attackVisual=1.35;
+          const tx=b.attackTargetX,ty=b.attackTargetY;
+          const radius={frost:92,sand:78,blight:112,jungle:96}[def.id]||90;
+          const hitDistance=Math.hypot(player.x-tx,player.y-ty);
+          if(hitDistance<=radius&&canBossHit){
+            const special=Math.max(1,Math.round(def.damage*power*1.55*(1-armorReduction())));
+            player.hp=Math.max(0,player.hp-special);updateVitals();
+            const move={frost:'ЛЕДЯНЫЕ ШИПЫ',sand:'УДАР ИЗ ПЕСКА',blight:'ЯДОВИТЫЕ СПОРЫ',jungle:'ПОДЗЕМНЫЕ ЩУПАЛЬЦА'}[def.id];
+            toast(def.name+' · '+move+': −'+special+' HP!');
+            if(player.hp<=0)respawnPlayerAfterDefeat();
+          }else spawnVisualBurst(tx,ty,12,'spark',def.color);
+          if(def.id==='jungle'&&b.teleportCooldown<=0){
+            b.teleportCooldown=8;b.teleportFade=.8;
+            const angle=Math.atan2(player.y-def.y,player.x-def.x);
+            const nx=Math.max(TILE,Math.min(COLS*TILE-TILE,player.x-Math.cos(angle)*145));
+            const ny=Math.max(TILE,Math.min(ROWS*TILE-TILE,player.y-Math.sin(angle)*145));
+            b.attackTargetX=nx;b.attackTargetY=ny;
+          }
         }
       }
     }
@@ -1846,7 +1855,42 @@ function setupVillageNpcs(){
       spawnSharedLoot(def.x,def.y,[{name:def.reward,count:1},{name:'Кристалл',count:3},{name:'Малое зелье',count:2},{name:'Золото',count:75}],'surface');
     }else{walletCents+=7500;changeItem(def.reward,1);changeItem('Кристалл',3);changeItem('Малое зелье',2);renderInventory();}
     spawnVisualBurst(def.x,def.y,32,'spark',def.color);playSound('portal');awardXP(220,'победа: '+def.name);saveGame();toast(def.name+' повержен! Награда появилась в мире.');}
-  function drawBiomeBosses(camX,camY,time){for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||b.defeated)continue;const dist=Math.hypot(player.x-def.x,player.y-def.y);if(!b.active&&dist>560)continue;const x=def.x-camX,y=def.y-camY;if(x<-100||x>width+100||y<-100||y>height+100)continue;ctx.save();ctx.translate(x,y);ctx.scale(1+Math.sin(time/170)*.035,1+Math.sin(time/170)*.035);ctx.fillStyle='#08101ba8';ctx.beginPath();ctx.ellipse(0,17,35,11,0,0,Math.PI*2);ctx.fill();ctx.shadowColor=def.color;ctx.shadowBlur=20;ctx.fillStyle=b.flash>0?'#fff':def.color;if(def.id==='frost'){ctx.beginPath();ctx.moveTo(-24,17);ctx.lineTo(-20,-12);ctx.lineTo(-11,-25);ctx.lineTo(-4,-13);ctx.lineTo(3,-33);ctx.lineTo(12,-14);ctx.lineTo(23,-22);ctx.lineTo(26,14);ctx.closePath();ctx.fill();}else if(def.id==='sand'){ctx.beginPath();ctx.ellipse(0,1,24,19,0,0,Math.PI*2);ctx.fill();ctx.fillRect(-28,-10,9,7);ctx.fillRect(19,-10,9,7);ctx.strokeStyle=def.color;ctx.lineWidth=5;ctx.beginPath();ctx.arc(3,-12,24,Math.PI,Math.PI*1.8);ctx.stroke();}else if(def.id==='jungle'){ctx.fillStyle='#6a432d';ctx.fillRect(-8,-5,16,26);ctx.fillStyle=b.flash>0?'#fff':'#73d45b';ctx.beginPath();ctx.ellipse(0,-14,23,18,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(-16,-22);ctx.lineTo(-30,-35);ctx.lineTo(-13,-31);ctx.moveTo(16,-22);ctx.lineTo(30,-35);ctx.lineTo(13,-31);ctx.strokeStyle=def.color;ctx.lineWidth=6;ctx.stroke();ctx.fillStyle='#fff3b0';ctx.fillRect(-9,-17,5,4);ctx.fillRect(4,-17,5,4);ctx.fillStyle='#284b25';ctx.fillRect(-5,-6,10,3);}else{ctx.beginPath();ctx.moveTo(-25,15);ctx.lineTo(-23,-10);ctx.lineTo(-9,-20);ctx.lineTo(0,-14);ctx.lineTo(12,-28);ctx.lineTo(24,-8);ctx.lineTo(28,15);ctx.closePath();ctx.fill();}ctx.shadowBlur=0;ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#fff';ctx.fillText(def.name,x,y-40);ctx.fillStyle='#241a27';ctx.fillRect(x-39,y-32,78,6);ctx.fillStyle=def.color;ctx.fillRect(x-39,y-32,78*Math.max(0,(b.active?b.hp:bossHpMax(def))/bossHpMax(def)),6);ctx.restore();}}
+  function drawBiomeBosses(camX,camY,time){
+    for(const def of biomeBossDefs()){
+      const b=biomeBosses[def.id];if(!b||b.defeated)continue;
+      const dist=Math.hypot(player.x-def.x,player.y-def.y);if(!b.active&&dist>560)continue;
+      const x=def.x-camX,y=def.y-camY;if(x<-180||x>width+180||y<-180||y>height+180)continue;
+      const wind=b.attackWindup>0,visual=b.attackVisual>0,phase=b.attackPhase||time/100;
+      if(wind||visual){
+        ctx.save();ctx.translate((b.attackTargetX||def.x)-camX,(b.attackTargetY||def.y)-camY);
+        const pulse=.5+.5*Math.sin(time/55);
+        ctx.globalAlpha=wind?.25+.45*pulse:Math.max(0,b.attackVisual/1.35);
+        ctx.strokeStyle=def.color;ctx.fillStyle=def.color;ctx.shadowColor=def.color;ctx.shadowBlur=18;ctx.lineWidth=4;
+        if(def.id==='jungle'){
+          for(let i=0;i<5;i++){const a=i*Math.PI*2/5+phase*.18,len=48+Math.sin(phase+i)*15;ctx.beginPath();ctx.moveTo(Math.cos(a)*len,Math.sin(a)*len+25);ctx.bezierCurveTo(Math.cos(a+1)*24,Math.sin(a+1)*24,Math.cos(a-1)*35,Math.sin(a-1)*35,-Math.cos(a)*14,-Math.sin(a)*14);ctx.stroke();ctx.beginPath();ctx.arc(Math.cos(a)*len,Math.sin(a)*len+25,5+Math.sin(phase+i)*2,0,Math.PI*2);ctx.fill();}
+          ctx.beginPath();ctx.arc(0,8,32+pulse*12,0,Math.PI*2);ctx.stroke();
+        }else if(def.id==='frost'){
+          for(let i=0;i<8;i++){const a=i*Math.PI/4+phase*.08;ctx.save();ctx.rotate(a);ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(-8,-38-pulse*14);ctx.lineTo(0,-58-pulse*18);ctx.lineTo(8,-38-pulse*14);ctx.closePath();ctx.fill();ctx.restore();}
+        }else if(def.id==='sand'){
+          ctx.beginPath();ctx.ellipse(0,12,28+pulse*46,12+pulse*20,0,0,Math.PI*2);ctx.stroke();for(let i=0;i<7;i++){const a=i*Math.PI*2/7+phase*.2;ctx.beginPath();ctx.arc(Math.cos(a)*48,Math.sin(a)*22,4+pulse*3,0,Math.PI*2);ctx.fill();}
+        }else{
+          for(let i=0;i<12;i++){const a=i*Math.PI/6+phase*.1;ctx.beginPath();ctx.arc(Math.cos(a)*(24+pulse*38),Math.sin(a)*(16+pulse*28),4+pulse*3,0,Math.PI*2);ctx.fill();}
+          ctx.beginPath();ctx.arc(0,0,42+pulse*18,0,Math.PI*2);ctx.stroke();
+        }
+        ctx.restore();
+      }
+      ctx.save();ctx.translate(x,y);const fade=Math.max(0,Math.min(1,1-(b.teleportFade||0)));
+      ctx.globalAlpha=fade;ctx.translate(0,Math.sin(time/160)*2);ctx.scale(1+Math.sin(time/170)*.035,1+Math.sin(time/170)*.035);
+      ctx.fillStyle='#08101ba8';ctx.beginPath();ctx.ellipse(0,17,35,11,0,0,Math.PI*2);ctx.fill();
+      ctx.shadowColor=def.color;ctx.shadowBlur=20;ctx.fillStyle=b.flash>0?'#fff':def.color;
+      if(def.id==='frost'){ctx.beginPath();ctx.moveTo(-24,17);ctx.lineTo(-20,-12);ctx.lineTo(-11,-25);ctx.lineTo(-4,-13);ctx.lineTo(3,-33);ctx.lineTo(12,-14);ctx.lineTo(23,-22);ctx.lineTo(26,14);ctx.closePath();ctx.fill();}
+      else if(def.id==='sand'){ctx.beginPath();ctx.ellipse(0,1,24,19,0,0,Math.PI*2);ctx.fill();ctx.fillRect(-28,-10,9,7);ctx.fillRect(19,-10,9,7);ctx.strokeStyle=def.color;ctx.lineWidth=5;ctx.beginPath();ctx.arc(3,-12,24,Math.PI,Math.PI*1.8);ctx.stroke();}
+      else if(def.id==='jungle'){ctx.fillStyle='#6a432d';ctx.fillRect(-8,-5,16,26);ctx.fillStyle=b.flash>0?'#fff':'#73d45b';ctx.beginPath();ctx.ellipse(0,-14,23,18,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(-16,-22);ctx.lineTo(-30,-35);ctx.lineTo(-13,-31);ctx.moveTo(16,-22);ctx.lineTo(30,-35);ctx.lineTo(13,-31);ctx.strokeStyle=def.color;ctx.lineWidth=6;ctx.stroke();ctx.fillStyle='#fff3b0';ctx.fillRect(-9,-17,5,4);ctx.fillRect(4,-17,5,4);ctx.fillStyle='#284b25';ctx.fillRect(-5,-6,10,3);}
+      else{ctx.beginPath();ctx.moveTo(-25,15);ctx.lineTo(-23,-10);ctx.lineTo(-9,-20);ctx.lineTo(0,-14);ctx.lineTo(12,-28);ctx.lineTo(24,-8);ctx.lineTo(28,15);ctx.closePath();ctx.fill();}
+      ctx.shadowBlur=0;ctx.restore();
+      ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#fff';ctx.fillText(def.name,x,y-40);ctx.fillStyle='#241a27';ctx.fillRect(x-39,y-32,78,6);ctx.fillStyle=def.color;ctx.fillRect(x-39,y-32,78*Math.max(0,(b.active?b.hp:bossHpMax(def))/bossHpMax(def)),6);ctx.restore();
+    }
+  }
   function dungeonGatePosition(){return {x:(COLS-15)*TILE+16,y:25*TILE+16};}
   function drawDungeonGate(camX,camY,time){const p=dungeonGatePosition(),x=p.x-camX,y=p.y-camY;if(x<-90||x>width+90||y<-100||y>height+100)return;ctx.save();ctx.translate(x,y);ctx.fillStyle='#11192599';ctx.beginPath();ctx.ellipse(0,14,42,16,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#716a73';ctx.fillRect(-28,-16,10,38);ctx.fillRect(18,-16,10,38);ctx.fillRect(-30,-20,60,8);ctx.fillStyle='#262b3a';ctx.beginPath();ctx.arc(0,-5,19,Math.PI,Math.PI*2);ctx.lineTo(19,19);ctx.lineTo(-19,19);ctx.closePath();ctx.fill();ctx.strokeStyle='#b99cff';ctx.lineWidth=3;ctx.shadowColor='#a77bff';ctx.shadowBlur=12+Math.sin(time/200)*4;ctx.beginPath();ctx.arc(0,-4,15,Math.PI,Math.PI*2);ctx.stroke();ctx.fillStyle='#f3eaff';ctx.font='900 10px Segoe UI';ctx.textAlign='center';ctx.fillText('РУИНЫ',0,34);ctx.fillText('E · ВОЙТИ',0,46);ctx.restore();}
   function dungeonEnemyMaxHp(room=dungeonRoom){return Math.round((room===5?620:90+room*42)*(.65+difficultyConfig().rank*.28)*(isModInstalled('lost_dungeons')?1.35:1));}
