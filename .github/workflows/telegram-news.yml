@@ -110,7 +110,7 @@ jobs:
               # Ignore release-manifest and news-bot maintenance commits. They are
               # implementation plumbing, not player-facing game updates.
               meta_pattern = re.compile(
-                  r"(release manifest|preview manifest|telegram.*news|news.*(threshold|classification|digest)|"
+                  r"(release manifest|preview manifest|telegram|news.*(threshold|classification|digest)|label detection|weighted update sizes|"
                   r"workflow|readme|documentation|docs:|version bump)",
                   re.IGNORECASE
               )
