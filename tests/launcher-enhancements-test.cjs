@@ -81,7 +81,7 @@ assert.ok(app.includes("p.vsync = p.vsync !== false"),'VSync must default to ena
 assert.ok(html.includes('id="vsync-toggle"'),'Settings must expose a VSync toggle');
 assert.ok(css.includes('body.reduce-motion')&&css.includes('body.high-contrast')&&css.includes('body.performance-saver'),'Accessibility and resource-saving toggles must have working styles');
 
-assert.match(enhancements,/function bindLauncherNavigation\\(\\)/,'Launcher navigation must route dynamic tabs through a delegated handler');
+assert.match(enhancements,/function bindLauncherNavigation\(\)/,'Launcher navigation must route dynamic tabs through a delegated handler');
 assert.ok(enhancements.includes('event.stopImmediatePropagation()') && enhancements.includes('routes={calendar:openCalendarPage,system:openSystemPage,screenshots:openScreenshotsPage,support:openSupportPage}'),'All dynamic launcher sections must have working navigation');
 assert.ok(enhancements.includes('system-open-screenshots')&&enhancements.includes('system-open-support'),'Control center must link directly to screenshots and support');
 assert.ok(enhancements.includes('href="mailto:kisia319@gmail.com"')&&enhancements.includes('href="tel:+79962819878"'),'Support must show the configured email and telephone contacts');
