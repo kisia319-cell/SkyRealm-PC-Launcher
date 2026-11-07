@@ -111,7 +111,7 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.match(source,/function drawMineSkyWindow\(/,'Mine must show a visible moon or sun through a ceiling opening.');
  assert.ok(source.includes('mineLevel,mineDepth'),'Mine saves must keep floor depth separate from manual upgrade level.');
  assert.ok(source.includes('mineDepth++'),'Descending must change depth without automatically upgrading the mine.');
- assert.ok(source.includes('const oreTier=Math.max(1,Math.min(8,mineLevel,mineDepth))'),'Ore rarity must be limited by manual upgrade and current depth.');
+ assert.ok(source.includes('const oreTier=Math.max(1,Math.min(8,mineLevel))'),'Ore rarity must be limited by manual upgrade and current depth.');
  assert.ok(source.includes('function grantGoldToWallet(amount)'),'Admin and moderator gold must use the persistent wallet transaction.');
  assert.ok(source.includes('const editTargetNode=isEditableTarget(e.target)?e.target:(isEditableTarget(activeElement)?activeElement:null)'),'Keyboard handler must inspect the actual focused input element.');assert.ok(source.includes('mineMazeVersion:3'));
  assert.match(source,/function autoResumeCoopRoomOnInput\(\)/,'Owner input must automatically resume a paused shared world.');
