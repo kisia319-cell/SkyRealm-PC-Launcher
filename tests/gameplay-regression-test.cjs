@@ -38,10 +38,11 @@ function plain(value) { return JSON.parse(JSON.stringify(value)); }
 const hashFn = extractFunction('hash');
 const mineHelpers = ['generateMineMaze','ensureMineMaze','mineCellWalkable','mineFeaturePoint'].map(extractFunction);
 const mineFn = extractFunction('generateMineStock');
-const mineContext = { mineSeed: 417, mineLevel: 1, mineRocks: [], mineHoverIndex: -1, mineMaze:null, MINE_MAZE_COLS:21, MINE_MAZE_ROWS:15, MINE_CELL_SIZE:44, isModInstalled:()=>false, Math };
+const mineContext = { mineSeed: 417, mineLevel: 1, mineDepth:1, mineRocks: [], mineHoverIndex: -1, mineMaze:null, MINE_MAZE_COLS:21, MINE_MAZE_ROWS:15, MINE_CELL_SIZE:44, isModInstalled:()=>false, Math };
 execute(mineContext, [hashFn, ...mineHelpers, mineFn], ['generateMineStock']);
-function stock(day, level) {
+function stock(day, level, depth=level) {
   mineContext.mineLevel = level;
+  mineContext.mineDepth = depth;
   mineContext.generateMineStock(day);
   return plain(mineContext.mineRocks);
 }
@@ -53,8 +54,13 @@ assert.deepEqual(day3Again, day3, 'A given world, mine level and day must genera
 assert.notDeepEqual(day4, day3, 'A new game day must regenerate mine stock.');
 assert.ok(day3.slice(0, 7).every(rock => rock.ore === 'Камень'));
 assert.ok(day3.every(rock => rock.hp === 2 && rock.maxHp === 2));
-assert.equal(stock(3, 5).length, 40, 'The highest mine level must provide the expanded node count.');
-const deepOre = new Set(stock(3, 5).map(rock => rock.ore));
+assert.equal(stock(3, 5, 5).length, 40, 'The highest mine upgrade must provide the expanded node count.');
+const deepOre = new Set(stock(3, 5, 5).map(rock => rock.ore));
+const lockedOre = new Set(stock(3, 1, 5).map(rock => rock.ore));
+const upgradedShallowOre = new Set(stock(3, 5, 1).map(rock => rock.ore));
+assert.ok(!lockedOre.has('Мифрил')&&!lockedOre.has('Уран')&&!lockedOre.has('Алмаз'),'Going deeper must not unlock high-tier ore without manually upgrading the mine.');
+assert.ok(upgradedShallowOre.has('Мифрил')&&upgradedShallowOre.has('Уран')&&upgradedShallowOre.has('Алмаз'),'Manual mine upgrades must unlock higher-tier ores even before descending.');
+assert.notDeepEqual(stock(3,5,5),stock(3,5,4),'Each floor depth must have different ore locations.');
 for (const ore of ['Мифрил','Уран','Алмаз']) assert.ok(deepOre.has(ore), 'Deep mines must include ' + ore + ' for the tested seed.');
 
 const refreshFn = extractFunction('refreshMineDailyStock');
@@ -64,6 +70,7 @@ const refreshContext = {
   gameMinuteTotal: 5 * 1440 + 821,
   mineMode: true,
   mineLevel: 4,
+  mineDepth: 4,
   generateMineStock: day => { generatedDay = day; },
   saveGame: () => { saves++; return true; },
   toast: () => { notices++; }
