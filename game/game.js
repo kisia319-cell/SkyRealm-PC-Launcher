@@ -1810,7 +1810,7 @@ function setupVillageNpcs(){
       if(!b.active)continue;
       const power=Math.max(1,Math.min(8.35,b.rebirthMultiplier));
       b.attackTimer=Math.max(0,b.attackTimer-step);b.specialTimer=Math.max(0,b.specialTimer-step);
-      b.attackWindup=Math.max(0,(b.attackWindup||0)-step);
+      const windupWasActive=(b.attackWindup||0)>0;if(windupWasActive)b.attackWindup=Math.max(0,b.attackWindup-step);
       const canBossHit=!immortal&&(!Number.isFinite(dodgeTimer)||dodgeTimer<=0);
       const meleeRange=def.id==='jungle'?138:108;
       if(d<=meleeRange&&b.attackTimer<=0&&canBossHit){
@@ -1825,9 +1825,9 @@ function setupVillageNpcs(){
         const warning={frost:'ЛЕДЯНОЙ РАЗЛОМ',sand:'ПЕСЧАНАЯ ЗАСАДА',blight:'СПОРОВЫЙ ВЗРЫВ',jungle:'ПРОБУЖДЕНИЕ КОРНЕЙ'}[def.id];
         toast(def.name+' готовит атаку: '+warning+' — уклоняйся!');
       }
-      if(b.attackWindup>0){
+      if(windupWasActive){
         b.attackPhase+=step*8;
-        if(b.attackWindup<=.02&&!b.attackHit){
+        if(b.attackWindup<=0&&!b.attackHit){
           b.attackHit=true;b.attackVisual=1.35;
           const tx=b.attackTargetX,ty=b.attackTargetY;
           const radius={frost:92,sand:78,blight:112,jungle:96}[def.id]||90;
