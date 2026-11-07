@@ -147,7 +147,7 @@ jobs:
               fix_pattern = re.compile(r"fix|bug| исправ|исправлен|почин|устран", re.IGNORECASE)
               minor_change_pattern = re.compile(
                   r"barrel|бочк|animation|анимац|remove|removed|убрал|удалил|tweak|мелк|небольш|"
-                  r"polish|подправ|баланс|визуал|эффект|частиц|мелкое изменение",
+                  r"polish|подправ|баланс|визуал|эффект|частиц|мелкое изменение|add|добав|change|измен|update|обнов",
                   re.IGNORECASE
               )
               fix_commits = [(sha, subject) for sha, subject in batch if fix_pattern.search(subject)]
@@ -167,8 +167,16 @@ jobs:
                   )
                   sys.exit(0)
 
-              selected = commits if has_major else batch
-              processed_sha = selected[-1][0]
+              if has_major:
+                  selected = commits
+                  processed_sha = selected[-1][0]
+              elif has_medium:
+                  selected = batch
+                  processed_sha = selected[-1][0]
+              else:
+                  # A small digest contains only fixes and minor gameplay changes.
+                  selected = sorted(set(fix_commits + minor_commits), key=lambda item: batch.index(item))
+                  processed_sha = batch[-1][0]
               translations = {
                   "update release manifest": "Обновлена информация о версии и составе релиза",
                   "add medium-update telegram publishing threshold": "Улучшена система новостей: два средних обновления теперь объединяются в один выпуск",
