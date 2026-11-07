@@ -1,0 +1,73 @@
+SKYREALM — THIRD-PARTY NOTICES
+Checked: 2026-11-07
+
+This notice covers the launcher source/build configuration inspected in
+kisia319-cell/SkyRealm-PC-Launcher. It is not a complete bill of materials
+for every previously produced executable. Exact package versions and the
+full transitive dependency set are not pinned in the current build scripts;
+re-check the actual build environment and PyInstaller bundles before release.
+
+1. pywebview
+   License: BSD 3-Clause.
+   Project: https://github.com/r0x0r/pywebview
+   License text: https://github.com/r0x0r/pywebview/blob/master/LICENSE
+
+   Copyright (c) 2014-2017, Roman Sirokov
+   All rights reserved.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+
+   * Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+   * Neither the name of the copyright holder nor the names of its contributors
+     may be used to endorse or promote products derived from this software
+     without specific prior written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+   POSSIBILITY OF SUCH DAMAGE.
+
+2. PyInstaller
+   License: GPL-2.0-or-later with the PyInstaller Bootloader Exception.
+   Official explanation: https://www.pyinstaller.org/en/stable/license.html
+   License text: https://github.com/pyinstaller/pyinstaller/blob/develop/COPYING.txt
+
+   The exception permits bundling and distributing executables built from
+   the application's own source under the application's chosen license,
+   subject to the licenses of the application's dependencies. Modifications
+   to PyInstaller itself require separate GPL compliance review.
+
+3. Python 3.12
+   License: Python Software Foundation License Version 2.
+   License: https://docs.python.org/3/license.html
+   Python is used as the build/runtime environment. Verify the Python runtime
+   and notices in the actual generated executable before distribution.
+
+4. Microsoft Edge WebView2 Runtime
+   Used by the Windows webview backend when available/required.
+   Distribution guidance: https://learn.microsoft.com/microsoft-edge/webview2/concepts/distribution
+   Check the applicable Microsoft terms and the selected Evergreen or Fixed
+   Version deployment model for the actual release.
+
+BUILD-DEPENDENCY NOTICE
+The current CI workflow also installs psutil, but its inclusion in the final
+runtime bundle has not been established. The local build script and CI install
+pywebview/PyInstaller without exact version pins. Transitive dependencies
+must be enumerated from the final build environment (for example, with
+python -m pip freeze) and their notices added here when they are actually
+redistributed.
+
+No separate third-party audio, music, font, 3D-model, texture, or JavaScript
+CDN asset was identified in the inspected source tree as of 2026-11-07.
