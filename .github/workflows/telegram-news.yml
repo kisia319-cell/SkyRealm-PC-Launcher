@@ -71,10 +71,17 @@ jobs:
                   text += f"\n\n<a href=\"https://github.com/{repo}/releases/tag/{html.escape(tag, quote=True)}\">Открыть релиз</a>"
               processed_sha = head
           else:
+              # Always classify against the latest main, not an older queued push event.
+              subprocess.run(
+                  ["git", "fetch", "origin", "+refs/heads/main:refs/remotes/origin/main"],
+                  check=True
+              )
+              head = git("rev-parse", "origin/main")
+
               state_initialized = False
               try:
                   subprocess.run(
-                      ["git", "fetch", "origin", "telegram-news-state:refs/remotes/origin/telegram-news-state"],
+                      ["git", "fetch", "origin", "+refs/heads/telegram-news-state:refs/remotes/origin/telegram-news-state"],
                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                   )
                   base = git("rev-parse", "origin/telegram-news-state")
@@ -86,141 +93,182 @@ jobs:
                       base = head
 
               if base == head:
-                  if state_initialized:
-                      subprocess.run(
-                          ["git", "push", "--force", "origin", f"{base}:refs/heads/telegram-news-state"],
-                          check=True
-                      )
                   print("No new commits to announce.")
                   sys.exit(0)
 
               raw = git("log", "--reverse", "--format=%H%x1f%s", f"{base}..{head}")
               commits = []
               for line in raw.splitlines():
-                  if "\x1f" in line:
-                      sha, subject = line.split("\x1f", 1)
+                  if "\\x1f" in line:
+                      sha, subject = line.split("\\x1f", 1)
                       commits.append((sha, subject.strip()))
 
               if not commits:
                   print("No new commits to announce.")
                   sys.exit(0)
 
-              # Major = explicitly announced release or genuinely large gameplay expansion.
-              major_pattern = re.compile(
-                  r"(\[major\]|\[важно\]|^major\s*:|^release\s*:|new world|нов(?:ый|ая) мир|new game mode|нов(?:ый|ая) режим|complete rework|полная переработка|новая боевая система)",
+              # Ignore release-manifest and news-bot maintenance commits. They are
+              # implementation plumbing, not player-facing game updates.
+              meta_pattern = re.compile(
+                  r"(release manifest|preview manifest|telegram.*news|news.*(threshold|classification|digest)|"
+                  r"workflow|readme|documentation|docs:|version bump)",
                   re.IGNORECASE
               )
-              has_major = any(major_pattern.search(subject) for _, subject in commits)
+              game_commits = [(sha, subject) for sha, subject in commits if not meta_pattern.search(subject)]
 
-              batch = commits[:7]
+              if not game_commits:
+                  subprocess.run(
+                      ["git", "push", "--force", "origin", f"{head}:refs/heads/telegram-news-state"],
+                      check=True
+                  )
+                  print("Only repository/release metadata changed; news cursor advanced without a post.")
+                  sys.exit(0)
+
+              major_pattern = re.compile(
+                  r"(\\[major\\]|\\[важно\\]|^major\\s*:|^release\\s*:|new world|нов(?:ый|ая) мир|"
+                  r"new game mode|нов(?:ый|ая) режим|complete rework|полная переработка|"
+                  r"новая боевая система|new combat system|major expansion|крупное расширение)",
+                  re.IGNORECASE
+              )
               explicit_medium_pattern = re.compile(
-                  r"(\[medium\]|\[среднее\]|^medium\s*:|^среднее\s*:)",
+                  r"(\\[medium\\]|\\[среднее\\]|^medium\\s*:|^среднее\\s*:)",
                   re.IGNORECASE
               )
-              boss_number_pattern = re.compile(
-                  r"\b(\d+)\s*(?:boss(?:es)?|босс(?:а|ов|ы)?)\b|"
-                  r"\b(?:four|четыре)\s+(?:boss(?:es)?|босс(?:а|ов|ы)?)\b",
+              feature_pattern = re.compile(
+                  r"add|добав|introduc|введ|implement|реализ|upgrade|улучш|redesign|переработ|"
+                  r"rework|refine|доработ|scale|расшир|create|созда|new|нов",
                   re.IGNORECASE
               )
-              attack_pattern = re.compile(r"attack|атак", re.IGNORECASE)
+              gameplay_pattern = re.compile(
+                  r"combat|бой|босс|boss|attack|атак|weapon|оруж|skill|навык|ability|способност|"
+                  r"biome|биом|world|мир|cave|пещер|mine|шахт|sea|море|island|остров|"
+                  r"enemy|враг|monster|монстр|animation|анимац|cinematic|кинемат|quest|задан|"
+                  r"craft|крафт|magic|маг|potion|зель|armor|брон|npc|mob|кооп|co-op|hud|интерфейс",
+                  re.IGNORECASE
+              )
+              fix_pattern = re.compile(
+                  r"fix|bug|исправ|почин|устран|resolve|correct|repair",
+                  re.IGNORECASE
+              )
+              minor_pattern = re.compile(
+                  r"barrel|бочк|animation|анимац|remove|removed|убрал|удалил|tweak|мелк|небольш|"
+                  r"polish|подправ|баланс|визуал|эффект|частиц|small change|мелкое изменение",
+                  re.IGNORECASE
+              )
 
               def medium_weight(subject):
                   if explicit_medium_pattern.search(subject):
+                      return 1.5
+                  if not feature_pattern.search(subject) or not gameplay_pattern.search(subject):
+                      return 0.0
+                  # A substantial gameplay feature is worth 1.5 points. Visual,
+                  # animation and HUD-only additions count as 1 point.
+                  if re.search(r"animation|анимац|effect|эффект|particle|частиц|hud|interface|интерфейс",
+                               subject, re.IGNORECASE):
                       return 1.0
-                  boss_match = boss_number_pattern.search(subject)
-                  if boss_match and attack_pattern.search(subject):
-                      count_text = boss_match.group(1)
-                      boss_count = int(count_text) if count_text else 4
-                      if boss_count >= 4:
-                          return 1.5
-                      if boss_count >= 2:
-                          return 1.0
-                      return 0.5
-                  return 0.0
+                  return 1.5
 
-              medium_total = sum(medium_weight(subject) for _, subject in batch)
-              # Several medium-sized changes together form a major release.
-              if medium_total >= 4.0:
+              medium_total = sum(medium_weight(subject) for _, subject in game_commits)
+              has_major = any(major_pattern.search(subject) for _, subject in game_commits)
+
+              # Large actual game-code diffs can qualify as major even if the
+              # commit title is vague. Count only files under the game directory.
+              try:
+                  game_diff = git("diff", "--numstat", base, head, "--", "game")
+                  changed_lines = 0
+                  changed_game_files = 0
+                  for row in game_diff.splitlines():
+                      parts = row.split("\\t")
+                      if len(parts) >= 3:
+                          try:
+                              changed_lines += int(parts[0]) + int(parts[1])
+                              changed_game_files += 1
+                          except ValueError:
+                              pass
+              except Exception:
+                  changed_lines = 0
+                  changed_game_files = 0
+
+              if medium_total >= 4.0 or (changed_lines >= 1200 and changed_game_files >= 3):
                   has_major = True
               has_medium = medium_total >= 2.0 and not has_major
 
-              fix_pattern = re.compile(r"fix|bug| исправ|исправлен|почин|устран", re.IGNORECASE)
-              minor_change_pattern = re.compile(
-                  r"barrel|бочк|animation|анимац|remove|removed|убрал|удалил|tweak|мелк|небольш|"
-                  r"polish|подправ|баланс|визуал|эффект|частиц|мелкое изменение|add|добав|change|измен|update|обнов",
-                  re.IGNORECASE
-              )
-              fix_commits = [(sha, subject) for sha, subject in batch if fix_pattern.search(subject)]
-              minor_commits = [(sha, subject) for sha, subject in batch if minor_change_pattern.search(subject)]
+              fix_commits = [(sha, subject) for sha, subject in game_commits if fix_pattern.search(subject)]
+              minor_commits = [
+                  (sha, subject) for sha, subject in game_commits
+                  if minor_pattern.search(subject) and not fix_pattern.search(subject)
+              ]
               small_ready = len(fix_commits) >= 3 and len(minor_commits) >= 1
 
               if not has_major and not has_medium and not small_ready:
-                  if state_initialized:
-                      subprocess.run(
-                          ["git", "push", "--force", "origin", f"{base}:refs/heads/telegram-news-state"],
-                          check=True
-                      )
-                      print("Initialized the news cursor at " + base)
                   print(
-                      f"Collected {len(commits)} commits; fixes={len(fix_commits)}, "
-                      f"minor gameplay changes={len(minor_commits)}, medium weight={medium_total:.1f}; waiting."
+                      f"Waiting for more game changes: {len(game_commits)} commits; "
+                      f"fixes={len(fix_commits)}, minor changes={len(minor_commits)}, "
+                      f"medium score={medium_total:.1f}, game diff={changed_lines} lines."
                   )
                   sys.exit(0)
 
-              if has_major:
-                  selected = commits
-                  processed_sha = selected[-1][0]
-              elif has_medium:
-                  selected = batch
-                  processed_sha = selected[-1][0]
+              if has_major or has_medium:
+                  selected = game_commits
               else:
-                  # A small digest contains only fixes and minor gameplay changes.
-                  selected = sorted(set(fix_commits + minor_commits), key=lambda item: batch.index(item))
-                  processed_sha = batch[-1][0]
+                  selected = sorted(
+                      set(fix_commits + minor_commits),
+                      key=lambda item: next(i for i, commit in enumerate(game_commits) if commit[0] == item[0])
+                  )
+
+              # Process the entire accumulated range. This avoids the old
+              # seven-commit window getting stuck behind manifest commits.
+              processed_sha = head
+
               translations = {
-                  "update release manifest": "Обновлена информация о версии и составе релиза",
-                  "add medium-update telegram publishing threshold": "Улучшена система новостей: два средних обновления теперь объединяются в один выпуск",
-                  "add animated telegraphed attacks for surface biome bosses": "Боссам поверхностных биомов добавлены новые атаки с предупреждающей анимацией",
-                  "fix biome boss attack windup resolution": "Исправлена подготовка и своевременный запуск атак боссов биомов",
+                  "add skyrealm combat arts, combos, parry and ultimate": "Добавлены боевые искусства, комбо, парирование и особая способность",
+                  "add combat animations, boss phases and weak-point effects": "Добавлены боевые анимации, фазы боссов и эффекты уязвимых мест",
+                  "scale biome boss attacks across combat phases": "Улучшены атаки боссов биомов и их боевые фазы",
+                  "add visible combat energy hud": "Добавлен индикатор боевой энергии",
+                  "upgrade combat ultimate with cinematic slow motion and dynamic camera": "Улучшена особая атака: кинематографическая камера и замедление времени",
+                  "refine combat cinematic timing, boss targets and rendering performance": "Улучшены кинематографические эффекты, выбор целей боссов и производительность",
+                  "add weapon-specific cinematic impact effects": "Добавлены уникальные эффекты попадания для разных видов оружия",
+                  "preserve co-op authority for cinematic ultimate attacks": "Исправлена синхронизация особых атак в совместной игре",
+                  "reset transient combat cinematic state with world changes": "Исправлено состояние боевых эффектов при смене мира",
               }
 
               def russian_news(subject):
-                  clean = re.sub(r"^\[(?:medium|среднее|major|важно)\]\s*", "", subject, flags=re.I)
-                  clean = re.sub(r"^(?:medium|среднее|major|release|feat|feature)\s*:\s*", "", clean, flags=re.I)
+                  clean = re.sub(r"^\\[(?:medium|среднее|major|важно)\\]\\s*", "", subject, flags=re.I)
+                  clean = re.sub(r"^(?:medium|среднее|major|release|feat|feature)\\s*:\\s*", "", clean, flags=re.I)
                   key = clean.strip().lower()
                   if key in translations:
                       return translations[key]
                   if re.search(r"boss|босс", key):
-                      return "Улучшены боссы: добавлены или исправлены боевые механики"
+                      return "Улучшены боссы: добавлены или доработаны боевые механики"
                   if re.search(r"attack|атак", key):
                       return "Улучшены боевые атаки и их анимации"
                   if re.search(r"mine|cave|шахт|пещер", key):
                       return "Обновлены шахты и пещеры обычного мира"
                   if re.search(r"world|biome|мир|биом", key):
-                      return "Обновлены миры и биомы SkyRealm"
-                  if re.search(r"fix|bug|исправ", key):
+                      return "Обновлены игровые миры и биомы SkyRealm"
+                  if re.search(r"fix|bug|исправ|почин", key):
                       return "Исправлены ошибки и улучшена стабильность игры"
-                  if re.search(r"add|добав", key):
-                      return "В SkyRealm добавлены новые возможности"
-                  return "Внесены улучшения в игру и систему разработки SkyRealm"
+                  if re.search(r"add|добав|new|нов", key):
+                      return "В SkyRealm добавлены новые игровые возможности"
+                  return "Доработаны игровые механики и визуальные эффекты SkyRealm"
 
               news_items = []
               for _, subject in selected:
                   item = russian_news(subject)
                   if item not in news_items:
                       news_items.append(item)
-              lines = "\n".join("▫️ " + html.escape(item) for item in news_items)
+              lines = "\\n".join("▫️ " + html.escape(item) for item in news_items)
               if has_major:
                   heading = "🚀 <b>КРУПНОЕ ОБНОВЛЕНИЕ SKYREALM</b>"
                   intro = "В этом обновлении:"
               elif has_medium:
                   heading = "📦 <b>СРЕДНЕЕ ОБНОВЛЕНИЕ SKYREALM</b>"
-                  intro = f"Набралось {medium_total:.1f} балла по масштабу изменений:"
+                  intro = f"Объединено изменений на {medium_total:.1f} балла:"
               else:
                   heading = "🛠 <b>НЕБОЛЬШИЕ ИЗМЕНЕНИЯ SKYREALM</b>"
                   intro = f"Собрали {len(fix_commits)} исправлений и {len(minor_commits)} небольших игровых изменений:"
               compare = f"https://github.com/{repo}/compare/{base}...{processed_sha}"
-              text = f"{heading}\n\n{intro}\n\n{lines}\n\n🔗 <a href=\"{compare}\">Все изменения на GitHub</a>\n\n💚 Спасибо, что следите за SkyRealm!"
+              text = f"{heading}\\n\\n{intro}\\n\\n{lines}\\n\\n🔗 <a href=\\\"{compare}\\\">Все изменения на GitHub</a>\\n\\n💚 Спасибо, что следите за SkyRealm!"
 
           if len(text) > 3900:
               text = text[:3850] + "\n\n…"
