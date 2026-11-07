@@ -5231,17 +5231,16 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const movementKey = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k) ||
       ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code);
     const activeElement=document.activeElement;
-     const isEditableTarget=node=>!!(node&&(node.matches?.('input,textarea,select,[contenteditable="true"]')||node.isContentEditable));
-     // In embedded WebView builds keydown.target can be the canvas while the real
-     // focused control is an input. Never let game shortcuts consume typed text.
-     if(isEditableTarget(e.target)||isEditableTarget(activeElement))return;
-     const editTarget = isEditableTarget(e.target)||isEditableTarget(activeElement);
-    // WebView can leave focus on a hidden search/name field after its dialog closes.
-    // A hidden editor must never swallow WASD/arrow input for the game.
-    const formTarget = !!(editTarget && !editTarget.disabled &&
-      !editTarget.closest?.('[hidden], [aria-hidden="true"]') &&
-      editTarget.getClientRects?.().length > 0 &&
-      getComputedStyle(editTarget).visibility !== 'hidden');
+    const isEditableTarget=node=>!!(node&&(node.matches?.('input,textarea,select,[contenteditable="true"]')||node.isContentEditable));
+    const editTargetNode=isEditableTarget(e.target)?e.target:(isEditableTarget(activeElement)?activeElement:null);
+    const editTarget=!!editTargetNode;
+    // Inspect the actual focused control, not a boolean match. This is important
+    // in WebView, where keydown.target may be the canvas even during text entry.
+    const formTarget=!!(editTargetNode&&!editTargetNode.disabled&&
+      !editTargetNode.closest?.('[hidden], [aria-hidden="true"]')&&
+      editTargetNode.getClientRects?.().length>0&&
+      getComputedStyle(editTargetNode).visibility!=='hidden');
+    if(formTarget)return;
     if (editTarget && !formTarget && movementKey && !inMainMenu) {
       try { canvas.focus(); } catch (_) {}
     }
