@@ -2621,9 +2621,9 @@ function setupVillageNpcs(){
           ctx.fillStyle='rgba(222,235,255,'+alpha+')';ctx.fillRect(sx,sy,hash(i,2)>.8?2:1,hash(i+8,2)>.6?2:1);
         }
         const mx=width-110,my=75;
-        ctx.save();ctx.shadowColor=bloodMoonActive?'#ff203f':'#c6d8ff';ctx.shadowBlur=darkness*25;
-        ctx.fillStyle=bloodMoonActive?'rgba(255,35,56,.96)':'rgba(220,231,255,'+Math.min(.9,darkness*1.8)+')';ctx.beginPath();ctx.arc(mx,my,bloodMoonActive?23:17,0,Math.PI*2);ctx.fill();
-        if(!bloodMoonActive){ctx.fillStyle='rgba(20,31,70,'+Math.min(.98,darkness*2)+')';ctx.beginPath();ctx.arc(mx+7,my-5,15,0,Math.PI*2);ctx.fill();}else{ctx.fillStyle='rgba(90,0,16,.7)';ctx.beginPath();ctx.arc(mx-7,my-5,5,0,Math.PI*2);ctx.arc(mx+8,my+7,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff6c7b';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.fillText('КРОВАВАЯ ЛУНА · МОНСТРЫ СИЛЬНЕЕ',width/2,35);}ctx.restore();
+        ctx.save();ctx.shadowColor=bloodMoonActive?'#ff203f':'#dce7ff';ctx.shadowBlur=darkness*34;
+        ctx.fillStyle=bloodMoonActive?'rgba(255,35,56,.98)':'rgba(238,243,255,'+Math.min(1,darkness*2.1)+')';ctx.beginPath();ctx.arc(mx,my,bloodMoonActive?28:24,0,Math.PI*2);ctx.fill();
+        if(!bloodMoonActive){ctx.fillStyle='rgba(20,31,70,'+Math.min(.98,darkness*2)+')';ctx.beginPath();ctx.arc(mx+11,my-9,22,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(236,242,255,.86)';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(mx,my,24,0,Math.PI*2);ctx.stroke();}else{ctx.fillStyle='rgba(90,0,16,.7)';ctx.beginPath();ctx.arc(mx-7,my-5,5,0,Math.PI*2);ctx.arc(mx+8,my+7,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff6c7b';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.fillText('КРОВАВАЯ ЛУНА · МОНСТРЫ СИЛЬНЕЕ',width/2,35);}ctx.restore();
         const px=player.x-camX,py=player.y-camY;
         const glow=ctx.createRadialGradient(px,py,3,px,py,105);
         glow.addColorStop(0,'rgba(255,202,115,.17)');glow.addColorStop(1,'rgba(255,202,115,0)');
