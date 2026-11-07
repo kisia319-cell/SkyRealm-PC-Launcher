@@ -126,8 +126,10 @@ jobs:
         run: |
           $version = (Get-Content launcher_version.txt -Raw).Trim()
           if (-not $version) { throw "launcher_version.txt is empty" }
-          # Automatic size category from changed source files since the latest published tag.
-          $baseTag = git tag --list "v*" --sort=-version:refname | Select-Object -First 1
+          # Exclude this release's own tag when rebuilding the same version.
+          $tags = @(git tag --list "v*" --sort=-version:refname)
+          $currentTag = "v$version"
+          $baseTag = $tags | Where-Object { $_ -ne $currentTag } | Select-Object -First 1
           $changedFiles = 0
           $changedLines = 0
           if ($baseTag) {
@@ -202,6 +204,7 @@ jobs:
           $title = "SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim())"
           $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
           $notes = "Категория обновления: $updateCategory. SkyRealm Launcher $((Get-Content launcher_version.txt -Raw).Trim()) + Game $gameVersion. Includes profile sync, friend requests, private chat, online/away/do-not-disturb/in-game presence, co-op room invitations, saved mod profiles, player statistics, VSync low-latency option, robust keyboard movement, verified login UI, SHA-256 diagnostics and world backup/restore, achievements and cosmetic rewards, searchable world library, adventure history, and external SkyRealmStudio handoff with automatic detection, install prompt, verified download and launch, plus direct validated publication of JavaScript/Python script mods into the game's own mod catalog, and a public community catalog for authenticated mod uploads and downloads. Adds physically placed fuel generators, batteries, automatic mining drills, powered shields, turrets, lamps and stronger settlement walls, scheduled night sieges, ancient guardian events with physical world beacons and proximity-based attacks, a five-room Lost Citadel, rare relic equipment with combat bonuses, and world-save-compatible technology progression; Boss Realm Awakening adds four new bosses, a shield-crystal raid, four animated elemental arenas, repeatable trials and ten legendary relics; fixed arena routing for major bosses; 12 professions with automatically tracked actions, repeatable contracts, career XP, levels and rewards; Russian/English language selection; and an expanded ordinary world with an outdoor quarry, an eight-level underground mine with a branching tunnel network, timber supports, destructible supply barrels and roaming cave creatures, deeper rare ores, pickaxe tiers, regrowing deposits, compost/fertilizer crafting, a stonemason merchant and paid delivery contracts, plus solar power panels and automatic ore processors; admin and moderator panels now include one-click God armor set, Abyss Blade and max gear upgrades with a persistent leggings slot. Existing accounts, worlds and single-player saves remain compatible. Adds a dedicated player voting page with server-backed one-account voting, duplicate idea merging and promotion after three different player submissions; includes the live development roadmap, categorized release history and generated posters for major/global updates."
+          $notes = [string]$releaseManifest.notes
           $assets = @(
             "dist/SkyRealm.exe",
             "update_release/SkyRealm_Windows.zip",
@@ -281,6 +284,7 @@ jobs:
             # This release contains the game archive built from game/ on the same commit.
             # Publish launcher and game metadata together so players always receive the newest game.
             $currentManifest.version = $builtManifest.version
+            $currentManifest.category = $builtManifest.category
             $currentManifest.download_url = $builtManifest.download_url
             $currentManifest.sha256 = $builtManifest.sha256
             $currentManifest.game_version = $builtManifest.game_version
