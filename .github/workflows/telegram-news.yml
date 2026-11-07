@@ -99,8 +99,8 @@ jobs:
               raw = git("log", "--reverse", "--format=%H%x1f%s", f"{base}..{head}")
               commits = []
               for line in raw.splitlines():
-                  if "\\x1f" in line:
-                      sha, subject = line.split("\\x1f", 1)
+                  if "\x1f" in line:
+                      sha, subject = line.split("\x1f", 1)
                       commits.append((sha, subject.strip()))
 
               if not commits:
@@ -125,13 +125,13 @@ jobs:
                   sys.exit(0)
 
               major_pattern = re.compile(
-                  r"(\\[major\\]|\\[важно\\]|^major\\s*:|^release\\s*:|new world|нов(?:ый|ая) мир|"
+                  r"(\[major\]|\[важно\]|^major\s*:|^release\s*:|new world|нов(?:ый|ая) мир|"
                   r"new game mode|нов(?:ый|ая) режим|complete rework|полная переработка|"
                   r"новая боевая система|new combat system|major expansion|крупное расширение)",
                   re.IGNORECASE
               )
               explicit_medium_pattern = re.compile(
-                  r"(\\[medium\\]|\\[среднее\\]|^medium\\s*:|^среднее\\s*:)",
+                  r"(\[medium\]|\[среднее\]|^medium\s*:|^среднее\s*:)",
                   re.IGNORECASE
               )
               feature_pattern = re.compile(
@@ -178,7 +178,7 @@ jobs:
                   changed_lines = 0
                   changed_game_files = 0
                   for row in game_diff.splitlines():
-                      parts = row.split("\\t")
+                      parts = row.split("\t")
                       if len(parts) >= 3:
                           try:
                               changed_lines += int(parts[0]) + int(parts[1])
@@ -233,8 +233,8 @@ jobs:
               }
 
               def russian_news(subject):
-                  clean = re.sub(r"^\\[(?:medium|среднее|major|важно)\\]\\s*", "", subject, flags=re.I)
-                  clean = re.sub(r"^(?:medium|среднее|major|release|feat|feature)\\s*:\\s*", "", clean, flags=re.I)
+                  clean = re.sub(r"^\[(?:medium|среднее|major|важно)\]\s*", "", subject, flags=re.I)
+                  clean = re.sub(r"^(?:medium|среднее|major|release|feat|feature)\s*:\s*", "", clean, flags=re.I)
                   key = clean.strip().lower()
                   if key in translations:
                       return translations[key]
@@ -257,7 +257,7 @@ jobs:
                   item = russian_news(subject)
                   if item not in news_items:
                       news_items.append(item)
-              lines = "\\n".join("▫️ " + html.escape(item) for item in news_items)
+              lines = "\n".join("▫️ " + html.escape(item) for item in news_items)
               if has_major:
                   heading = "🚀 <b>КРУПНОЕ ОБНОВЛЕНИЕ SKYREALM</b>"
                   intro = "В этом обновлении:"
@@ -268,7 +268,7 @@ jobs:
                   heading = "🛠 <b>НЕБОЛЬШИЕ ИЗМЕНЕНИЯ SKYREALM</b>"
                   intro = f"Собрали {len(fix_commits)} исправлений и {len(minor_commits)} небольших игровых изменений:"
               compare = f"https://github.com/{repo}/compare/{base}...{processed_sha}"
-              text = f"{heading}\\n\\n{intro}\\n\\n{lines}\\n\\n🔗 <a href=\\\"{compare}\\\">Все изменения на GitHub</a>\\n\\n💚 Спасибо, что следите за SkyRealm!"
+              text = f"{heading}\n\n{intro}\n\n{lines}\n\n🔗 <a href=\\"{compare}\\">Все изменения на GitHub</a>\n\n💚 Спасибо, что следите за SkyRealm!"
 
           if len(text) > 3900:
               text = text[:3850] + "\n\n…"
