@@ -13,7 +13,15 @@
 
 ## Текущая версия игры
 
-Установленная и публикуемая сборка игры: **0.20.50.70**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
+Установленная и публикуемая сборка игры: **0.20.50.79**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
+
+## 0.20.50.79 — Account Edition Preferences
+
+- Added an opt-in checkbox below Premium/Free choices to remember the selected edition.
+- Stored the preference against the authenticated SkyRealm account, so it follows the same account across computers and does not leak between different accounts.
+- When the checkbox is off, the account preference is cleared and the edition chooser appears on each game start.
+- Kept Premium activation validation and device-bound license checks intact.
+- Player movement and walking code were not changed.
 
 ## Обновление игры
 
