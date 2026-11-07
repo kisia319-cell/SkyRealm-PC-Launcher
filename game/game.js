@@ -3551,13 +3551,13 @@ function setupVillageNpcs(){
     toast('Игровой день действительно пропущен: +'+Math.floor(skippedMinutes)+' игровых минут, +'+target.nightsPassed+' прожитая ночь. Время засчитано в статистику.');
     return true;
   }
-  function houseFurnitureBlocked(x,y){const r=9,boxes=[[42,35,148,186],[153,91,190,143],[174,27,272,61],[286,72,379,98],[272,105,390,177],[296,201,380,279],[155,266,190,296],[203,249,241,278]];return boxes.some(([l,t,rr,b])=>x+r>l&&x-r<rr&&y+r>t&&y-r<b);}
+  function houseFurnitureBlocked(x,y){const r=9,boxes=[[42,35,148,186],[153,91,190,143],[174,27,272,61],[286,72,379,98],[272,105,390,177],[296,201,380,279],[155,266,190,296]];return boxes.some(([l,t,rr,b])=>x+r>l&&x-r<rr&&y+r>t&&y-r<b);}
   function houseInteractionNear(x,y,rect){return x>=rect[0]&&x<=rect[2]&&y>=rect[1]&&y<=rect[3];}
   function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>322||houseFurnitureBlocked(x,y);}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){const forest=villageCenters.find(v=>v.id==='forest');if(forest){const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270];for(let row=0;row<3;row++)for(let col=0;col<6;col++){const hx=forest.x*TILE+16+xOffsets[col]+(row===1?28:row===2?-24:0),hy=forest.y*TILE+16+rowY[row];if(x>hx-76&&x<hx+76&&y>hy-12*TILE-54&&y<hy-12*TILE+84)return true;}}for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
   function updateObjective(){
     if(dungeonMode){const cleared=dungeonClearedRooms.includes(dungeonRoom);document.getElementById('objective').textContent=dungeonRoom===5?(cleared?(dungeonChestOpened?'Выйди из руин':'Открой сундук Архонта'):'Победи Архонта руин'):cleared?'Найди дверь в следующую комнату':'Победи стража комнаты '+dungeonRoom;document.getElementById('location-name').textContent='Древние руины · '+dungeonRoom+'/5';return;}
     if(caveMode){document.getElementById('objective').textContent=caveChestOpened?'Вернись в долину или исследуй пещеру':'Найди сияющий сундук в тайной пещере';document.getElementById('location-name').textContent='Тайная пещера';return;}
-    if(inHouse){const nearBed=houseInteractionNear(player.x,player.y,[150,82,194,176]),nearBench=houseInteractionNear(player.x,player.y,[242,105,272,180]),nearDoor=houseInteractionNear(player.x,player.y,[174,286,246,324]);document.getElementById('objective').textContent=nearBed?'Нажми E у кровати, чтобы поспать':nearBench?'Нажми E у верстака':nearDoor?'Нажми E, чтобы выйти из дома':'Осмотри дом: кровать и верстак';document.getElementById('location-name').textContent='Дом у лесной долины';return;}
+    if(inHouse){const nearBed=houseInteractionNear(player.x,player.y,[150,82,194,176]),nearBench=Math.hypot(player.x-331,player.y-141)<82,nearDoor=houseInteractionNear(player.x,player.y,[174,278,246,330]);document.getElementById('objective').textContent=nearBed?'Нажми E у кровати, чтобы поспать':nearBench?'Нажми E у верстака':nearDoor?'Нажми E, чтобы выйти из дома':'Осмотри дом: кровать и верстак';document.getElementById('location-name').textContent='Дом у лесной долины';return;}
     const npc=nearestVillageNpc();if(npc){document.getElementById('objective').textContent='E · задание: '+NPC_NAMES[npc.id]+' / T · лавка';document.getElementById('location-name').textContent='Мир торговли · '+(villageCenters.find(v=>v.id===npc.villageId)?.name||'поселение')+' · репутация '+villageReputation;return;}
     const s = world.signs[0];
     const d = Math.hypot(s.x-player.x, s.y-player.y);
@@ -4885,6 +4885,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   window.addEventListener('skyrealm-coop-world-enter',event=>receiveCoopWorldEntry(event.detail));
   function returnToMainMenu(){
+    void refreshStaffRole(true);
     if(currentWorldId){saveGame();recordAdventureHistory();}
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
     // Returning to the main menu is local navigation; it must not pause the shared room.
@@ -4924,7 +4925,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         currentStaffRole='none';publicStaffGrantsEnabled=false;staffBootstrapAvailable=false;
         if(error?.message&&!error.message.includes('Войди в аккаунт'))console.warn('[SkyRealm staff role]',error.message);
       }finally{
-        staffRoleLastChecked=Date.now();
+        staffRoleLastChecked=Date.now()-(currentStaffRole==='none'?27000:0);
         syncAdminMenu();
         if(currentStaffRole!=='admin')setPanelOpen('admin-panel-shade',false);
         if(currentStaffRole!=='admin'&&currentStaffRole!=='moderator')setPanelOpen('moderator-panel-shade',false);
