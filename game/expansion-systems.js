@@ -9,8 +9,9 @@
   const emptyState = () => ({
     version:VERSION,
     research:0,
-    grid:{generators:0,batteries:0,turrets:0,guardposts:0,traps:0,walls:0,lamps:0,drills:0,shields:0},
+    grid:{generators:0,batteries:0,turrets:0,guardposts:0,traps:0,walls:0,lamps:0,drills:0,shields:0,solarPanels:0,processors:0},
     drillClock:0,
+    processorClock:0,
     power:0,
     fuelSeconds:0,
     fuelKind:'',
@@ -39,6 +40,8 @@
     generator:{title:'Топливный генератор',icon:'⚡',cost:{Древесина:30,Камень:20,Железо:8,Медь:4},gold:15,limit:4},
     battery:{title:'Аккумулятор',icon:'🔋',cost:{Железо:8,Медь:6,Кристалл:1},gold:10,limit:12},
     lamp:{title:'Электрический фонарь',icon:'💡',cost:{Медь:3,Древесина:4},gold:2,limit:20},
+    solar:{title:'Солнечная панель',icon:'☀️',cost:{Медь:8,Древесина:12,Кристалл:2},gold:25,limit:8,research:2},
+    processor:{title:'Обогатитель руды',icon:'🏭',cost:{Железо:18,Медь:14,Мифрил:2,Кристалл:3},gold:65,limit:4,research:4},
     turret:{title:'Автоматическая турель',icon:'🎯',cost:{Железо:12,Медь:5,Древесина:8,Кристалл:2},gold:25,limit:8,research:1},
     guardpost:{title:'Казарма стражи · 2 наёмных защитника',icon:'🛡️',cost:{Древесина:18,Камень:12,Железо:10,Медь:3},gold:20,limit:6,research:1},
     trap:{title:'Электрическая ловушка',icon:'⚡',cost:{Камень:8,Железо:8,Медь:6,Кристалл:1},gold:15,limit:12,research:1},
@@ -80,15 +83,16 @@
   function normalizeState(raw) {
     const base = emptyState();
     if (!raw || typeof raw !== 'object' || raw.version !== VERSION) return base;
-    base.research = clamp(Math.floor(Number(raw.research)||0),0,3);
+    base.research = clamp(Math.floor(Number(raw.research)||0),0,6);
     for (const key of Object.keys(base.grid)) {
-      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='guardposts'?6:key==='traps'?12:key==='batteries'?12:key==='drills'?3:key==='shields'?1:4);
+      base.grid[key] = clamp(Math.floor(Number(raw.grid?.[key])||0),0,key==='walls'?30:key==='lamps'?20:key==='turrets'?8:key==='guardposts'?6:key==='traps'?12:key==='batteries'?12:key==='drills'?3:key==='shields'?1:key==='solarPanels'?8:key==='processors'?4:4);
     }
     base.power = clamp(Number(raw.power)||0,0,capacityFor(base));
     base.fuelSeconds = clamp(Number(raw.fuelSeconds)||0,0,3600);
     base.fuelKind = ['Уголь','Древесина'].includes(raw.fuelKind)?raw.fuelKind:'';
     base.generatorClock = clamp(Number(raw.generatorClock)||0,0,60);
     base.drillClock = clamp(Number(raw.drillClock)||0,0,120);
+    base.processorClock = clamp(Number(raw.processorClock)||0,0,120);
     base.turretClock = clamp(Number(raw.turretClock)||0,0,60);
     base.guardClock = clamp(Number(raw.guardClock)||0,0,60);
     base.trapClock = clamp(Number(raw.trapClock)||0,0,60);
@@ -135,7 +139,7 @@
   }
 
   function capacityFor(s=state) {
-    return 60 + s.grid.batteries*120 + s.research*50;
+    return 60 + s.grid.batteries*120 + s.research*50 + s.grid.solarPanels*12;
   }
   function equippedRelic() {
     return state.relics.find(v=>v.id===state.equippedRelic)||null;
@@ -177,12 +181,12 @@
   }
   function renderPower() {
     const g=state.grid,cap=capacityFor();
-    let html='<div class="ex-grid-stats"><div><b>⚡ '+state.power.toFixed(0)+' / '+cap+'</b><small>Энергия в сети</small></div><div><b>'+g.generators+'</b><small>Генераторы</small></div><div><b>'+g.batteries+'</b><small>Аккумуляторы</small></div></div>';
+    let html='<div class="ex-grid-stats"><div><b>⚡ '+state.power.toFixed(0)+' / '+cap+'</b><small>Энергия в сети</small></div><div><b>'+g.generators+'</b><small>Генераторы</small></div><div><b>'+g.batteries+'</b><small>Аккумуляторы</small></div><div><b>'+g.solarPanels+'</b><small>Солнечные панели</small></div><div><b>'+g.processors+'</b><small>Обогатители</small></div></div>';
     html+='<div class="ex-meter"><i style="width:'+Math.round(state.power/Math.max(1,cap)*100)+'%"></i></div>';
-    html+='<p class="ex-muted">Генератор сжигает уголь или древесину. Аккумуляторы хранят заряд. Турели используют энергию только во время тревоги.</p>';
+    html+='<p class="ex-muted">Генератор сжигает уголь или древесину. Солнечные панели дают энергию днём. Аккумуляторы хранят заряд, а обогатители автоматически перерабатывают камень и уголь в руду.</p>';
     html+='<div class="ex-list">';
     for(const [id,item] of Object.entries(BUILDINGS)){
-      const count=g[{generator:'generators',battery:'batteries',turret:'turrets',guardpost:'guardposts',trap:'traps',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id]];
+      const count=g[{generator:'generators',battery:'batteries',turret:'turrets',guardpost:'guardposts',trap:'traps',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps',solar:'solarPanels',processor:'processors'}[id]];
       const locked=item.research&&state.research<item.research;
       const full=count>=item.limit;
       const affordable=canAfford(item.cost,item.gold);
@@ -192,8 +196,9 @@
       html+='</article>';
     }
     html+='</div>';
-    const researchCost={Железо:8+state.research*6,Медь:5+state.research*3,Кристалл:2+state.research};
-    html+='<article class="ex-card ex-research"><div class="ex-card-head"><b>🧠 Исследование автоматики</b><span>'+state.research+'/3</span></div><small>Новые турели, батареи и более эффективная генерация.</small><small>'+costText(researchCost,10+state.research*10)+'</small>'+renderButton('research','Исследовать',state.research>=3||!canAfford(researchCost,10+state.research*10))+'</article>';
+    const researchCost=state.research<3?{Железо:8+state.research*6,Медь:5+state.research*3,Кристалл:2+state.research}:state.research===3?{Мифрил:4,Алмаз:1,Уран:2}:state.research===4?{Мифрил:8,Алмаз:3,Уран:4,Кристалл:6}:{Мифрил:12,Алмаз:5,Уран:8,Рубин:4,Сапфир:4};
+    const researchGold=state.research<3?10+state.research*10:state.research===3?80:state.research===4?120:180;
+    html+='<article class="ex-card ex-research"><div class="ex-card-head"><b>🧠 Исследование автоматики</b><span>'+state.research+'/6</span></div><small>Шесть ступеней инженерии: генерация, солнечная энергия, автоматизация добычи и промышленные линии.</small><small>'+costText(researchCost,researchGold)+'</small>'+renderButton('research','Исследовать',state.research>=6||!canAfford(researchCost,researchGold))+'</article>';
     return html;
   }
   function renderDefense() {
@@ -279,7 +284,7 @@
   }
   function build(id) {
     const item=BUILDINGS[id];if(!item)return false;
-    const key={generator:'generators',battery:'batteries',turret:'turrets',guardpost:'guardposts',trap:'traps',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps'}[id];
+    const key={generator:'generators',battery:'batteries',turret:'turrets',guardpost:'guardposts',trap:'traps',drill:'drills',shield:'shields',wall:'walls',lamp:'lamps',solar:'solarPanels',processor:'processors'}[id];
     if(bridge()?.isCoopWorld?.()){notify('Технологические постройки пока доступны только в одиночных мирах.');return false;}
     if(state.grid[key]>=item.limit){notify('Достигнут предел постройки: '+item.title+'.');return false;}
     if(item.research&&state.research<item.research){notify('Сначала исследуй автоматику.');return false;}
@@ -294,15 +299,16 @@
     }
     state.grid[key]++;
     if(id==='battery')state.power=Math.min(capacityFor(),state.power+30);
+    b.recordProfession?.('technologist',1);
     save();notify('Построено на карте: '+item.title+'.');render();return true;
   }
   function research() {
-    if(state.research>=3)return false;
-    const cost={Железо:8+state.research*6,Медь:5+state.research*3,Кристалл:2+state.research};
-    const gold=10+state.research*10;
+    if(state.research>=6)return false;
+    const cost=state.research<3?{Железо:8+state.research*6,Медь:5+state.research*3,Кристалл:2+state.research}:state.research===3?{Мифрил:4,Алмаз:1,Уран:2}:state.research===4?{Мифрил:8,Алмаз:3,Уран:4,Кристалл:6}:{Мифрил:12,Алмаз:5,Уран:8,Рубин:4,Сапфир:4};
+    const gold=state.research<3?10+state.research*10:state.research===3?80:state.research===4?120:180;
     if(!spend(cost,gold)){notify('Не хватает ресурсов для исследования.');return false;}
-    state.research++;state.power=Math.min(capacityFor(),state.power+15);
-    save();notify('Автоматика исследована: уровень '+state.research+'/3.');render();return true;
+    state.research++;state.power=Math.min(capacityFor(),state.power+15);bridge()?.recordProfession?.('technologist',1);
+    save();notify('Автоматика исследована: уровень '+state.research+'/6.');render();return true;
   }
   function refillGenerator(dt) {
     if(state.grid.generators<=0)return;
@@ -311,14 +317,14 @@
     if(state.fuelSeconds<=0){
       const b=bridge();
       if(Number(b?.getItemCount?.('Уголь')||0)>0&&b?.spendItem?.('Уголь',1)){
-        state.fuelKind='Уголь';state.fuelSeconds=45;
+        state.fuelKind='Уголь';state.fuelSeconds=45*(bridge()?.isModInstalled?.('power_surge')?1.2:1);
       }else if(Number(b?.getItemCount?.('Древесина')||0)>=2&&b?.spendItem?.('Древесина',2)){
-        state.fuelKind='Древесина';state.fuelSeconds=20;
+        state.fuelKind='Древесина';state.fuelSeconds=20*(bridge()?.isModInstalled?.('power_surge')?1.2:1);
       }else{
         state.fuelSeconds=0;state.fuelKind='';return;
       }
     }
-    const output=(state.fuelKind==='Уголь'?1.1:.55)*state.grid.generators*(1+state.research*.15);
+    const output=(state.fuelKind==='Уголь'?1.1:.55)*state.grid.generators*(1+state.research*.15)*(bridge()?.isModInstalled?.('power_surge')?1.2:1);
     state.power=clamp(state.power+output*dt,0,capacityFor());
     if(state.grid.lamps>0)state.power=Math.max(0,state.power-state.grid.lamps*.035*dt);
   }
@@ -334,6 +340,27 @@
     b?.addItem?.(ore,1,'Автоматический бур');
     notify('Бур добыл: Камень ×'+(3*state.grid.drills)+' и '+ore+' ×1.');
     save();
+  }
+  function runSolarPanels(dt){
+    if(state.grid.solarPanels<=0)return;
+    const total=Number(bridge()?.getGameMinuteTotal?.());if(!Number.isFinite(total))return;
+    const minute=((total%1440)+1440)%1440;
+    const sunlight=clamp(1-Math.abs(minute-720)/360,0,1);
+    if(sunlight<=0)return;
+    const bonus=bridge()?.isModInstalled?.('power_surge')?1.2:1;
+    state.power=clamp(state.power+state.grid.solarPanels*.22*sunlight*bonus*dt,0,capacityFor());
+  }
+  function runOreProcessors(dt){
+    if(state.grid.processors<=0)return;
+    state.processorClock+=dt;if(state.processorClock<50||state.power<8)return;
+    const b=bridge();if(!b||Number(b.getItemCount?.('Камень')||0)<4||Number(b.getItemCount?.('Уголь')||0)<2)return;
+    if(b.spendItem?.('Камень',4)!==true)return;
+    if(b.spendItem?.('Уголь',2)!==true){b.addItem?.('Камень',4,'Возврат сырья обогатителя');return;}
+    state.processorClock=0;state.power=Math.max(0,state.power-8);
+    b.addItem?.('Железо',state.grid.processors,'Обогатитель руды');
+    b.addItem?.('Медь',Math.max(1,Math.floor(state.grid.processors/2)),'Обогатитель руды');
+    if(state.research>=5&&Math.random()<.3)b.addItem?.('Мифрил',1,'Глубокая переработка руды');
+    b.recordProfession?.('technologist',1);notify('Обогатитель переработал сырьё: железо и медь готовы.');save();
   }
   function startEvent(kind,day=0) {
     const b=bridge();if(state.event)return false;
@@ -547,10 +574,12 @@
     if(state.event&&state.event.x===0&&state.event.y===0){const point=bridge()?.getWorldEventSpawnPoint?.()||bridge()?.getPlayerPosition?.();if(point&&Number.isFinite(point.x)&&Number.isFinite(point.y)){state.event.x=Math.max(0,point.x);state.event.y=Math.max(0,point.y);save();}}
     if(state.event?.kind==='invasion'&&Number(bridge()?.getEventEnemyCount?.(state.event.id))===0&&state.event.remaining>0){const spawned=Number(bridge()?.spawnEventEnemies?.(state.event.id,state.event.x,state.event.y,state.event.remaining))||0;if(spawned>0)state.event.remaining=spawned;else finishEvent(false);}
     refillGenerator(Math.min(1,dt));
+    runSolarPanels(Math.min(1,dt));
+    runOreProcessors(Math.min(1,dt));
     runDrills(Math.min(1,dt));
     maybeStartNightEvent();
     updateEvent(Math.min(1,dt));
-    if(state.grid.batteries===0)state.power=Math.min(state.power,60);
+    if(state.grid.batteries===0&&state.grid.solarPanels===0)state.power=Math.min(state.power,60);
   }
   function reset() {
     const fresh=emptyState();
