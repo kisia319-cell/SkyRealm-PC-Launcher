@@ -13,7 +13,7 @@
 
 ## Текущая версия игры
 
-Установленная и публикуемая сборка игры: **0.20.50.82**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
+Установленная и публикуемая сборка игры: **0.20.50.83**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
 
 ## 0.20.50.80 — Account Edition Preferences
 
@@ -23,10 +23,16 @@
 - Kept Premium activation validation and device-bound license checks intact.
 - Player movement and walking code were not changed.
 
-## 0.20.50.82 — Mine visuals and barrel collision
+## 0.20.50.83 — Mine visuals and barrel collision
 - Players can now walk through mine barrels without changing the maze wall collision.
 - Added a full-screen cave rock backdrop with layered strata, ceiling silhouettes and subtle mineral glints behind the mine passages.
 - Kept barrels free of floating text labels.
+
+## 0.20.50.83 — English localization and responsive HUD
+- Expanded English translations for menus, crafting, equipment, mods, cloud saves, professions and sea content.
+- Improved case-insensitive matching for dynamically rendered labels.
+- HUD positions now use proportional coordinates, clamp to the visible game area after resizing, and reset when changing layout presets.
+- Removed the nested vitals bar from independent HUD dragging and improved compact/mobile preset placement.
 
 ## Обновление игры
 
