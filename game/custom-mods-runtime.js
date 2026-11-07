@@ -155,10 +155,40 @@
       saveMods();renderMods();setStatus('Мод импортирован. Включи его после проверки.',false,true);
     }catch(error){setStatus('Не удалось импортировать мод: '+(error.message||error),true);}};
     reader.onerror=function(){setStatus('Не удалось прочитать выбранный файл.',true);};reader.readAsText(file);}
+  async function syncPublishedMods(){
+    const api=window.pywebview?.api;
+    if(!api?.get_published_mods)return;
+    try{
+      const response=await api.get_published_mods();
+      if(!response?.ok||!Array.isArray(response.mods))return;
+      let changed=false,added=0;
+      for(const raw of response.mods.slice(0,MAX_SAVED)){
+        if(!raw||typeof raw!=='object')continue;
+        const id=String(raw.id||''),name=safeText(raw.name,32),description=safeText(raw.description,140);
+        const language=raw.language,source=String(raw.source||'');
+        if(!/^[a-z0-9_-]{6,48}$/.test(id))continue;
+        try{validateSource(name,language,source);}catch(_){continue;}
+        const existing=mods.find(item=>item.id===id);
+        if(existing){
+          if(existing.name!==name||existing.description!==description||existing.language!==language||existing.source!==source){
+            cleanupRunner(id);
+            existing.name=name;existing.description=description;existing.language=language;existing.source=source;changed=true;
+          }
+        }else if(mods.length<MAX_SAVED){
+          mods.push({id,name,description,language,source,enabled:false,createdAt:Number(raw.createdAt)||Date.now()});
+          changed=true;added++;
+        }
+      }
+      if(changed&&saveMods()){
+        renderMods();
+        if(added)setStatus('Из SkyRealm Mod Studio добавлено модов: '+added+'. Включи нужный мод в списке.',false,true);
+      }
+    }catch(error){setStatus('Не удалось синхронизировать моды из Studio: '+safeText(error?.message||error,180),true);}
+  }
   function step(){const bridge=host();if(!bridge?.canRun?.()){for(const id of Array.from(runners.keys()))cleanupRunner(id);return;}
     const now=Date.now();if(now-lastTick<2200)return;lastTick=now;let context;try{context=bridge.getContext();}catch(_){return;}
     mods.filter(m=>m.enabled).forEach(function(mod){let runner=runners.get(mod.id);if(!runner)runner=createRunner(mod);if(runner.ready&&!runner.busy)sendTick(runner,context);});}
-  function init(){mods=readMods();renderMods();
+  function init(){mods=readMods();renderMods();syncPublishedMods();window.addEventListener('pywebviewready',syncPublishedMods);
     $('script-mod-close')?.addEventListener('click',closeEditor);$('script-mod-test')?.addEventListener('click',testSource);$('script-mod-save')?.addEventListener('click',saveEditorMod);
     $('script-mod-language')?.addEventListener('change',function(){if($('script-mod-template').value==='starter')applyTemplate();});
     $('script-mod-template')?.addEventListener('change',applyTemplate);
