@@ -10,3 +10,12 @@ identified in the inspected game source tree.
 This notice does not certify historical archives or user-created mods.
 The Windows launcher Python dependencies are listed separately in the
 launcher repository's root THIRD_PARTY_NOTICES.txt.
+ 
+Runtime CDN dependencies used by the game:
+- @supabase/supabase-js 2.118.0 — MIT:
+  https://github.com/supabase/supabase-js/blob/master/LICENSE
+- Pyodide 0.29.5 — MPL-2.0:
+  https://github.com/pyodide/pyodide
+Both are loaded from jsDelivr at runtime; their full distributions are not
+stored in this game folder. Pyodide packages dynamically fetched by user mods
+may have separate licenses and must be audited individually.
