@@ -22,7 +22,7 @@
   const MOVEMENT_CODE_BY_DIRECTION = {up:['KeyW','ArrowUp'],down:['KeyS','ArrowDown'],left:['KeyA','ArrowLeft'],right:['KeyD','ArrowRight']};
   const MOVEMENT_DIRECTION_BY_ACTION = {w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
   const DEFAULT_GAME_KEY_BINDINGS = {up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD',interact:'KeyE',inventory:'KeyI',map:'KeyL',attack:'Space',dodge:'KeyQ',ability:'KeyR',heal:'KeyH',buff:'KeyJ'};
-  const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, vsync:true, musicVolume:35, sfxVolume:70, musicEnabled:false, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
+  const DEFAULT_GAME_SETTINGS = { resolution:'1280x720', windowMode:'windowed', graphicsQuality:'medium', performanceMode:'balanced', fpsLimit:0, vsync:true, musicVolume:35, sfxVolume:70, musicEnabled:false, uiSoundEnabled:true, keyBindings:{...DEFAULT_GAME_KEY_BINDINGS}, uiScale:'100', showVitals:true, showQuest:true, showControls:true, showInventory:true, showMinimap:true, earlyMonsterSpawn:false, hudLayout:'default', adminMode:false, moderatorMode:false };
   let gameSettings = readInitialSettings();
   const world = { trees: [], rocks: [], flowers: [], fireflies: [], signs: [], fences: [] };
   let treeChops=[],felledTrees=[];
@@ -703,7 +703,7 @@ NPC_SHOPS.quarry=[{name:'Улучшенная кирка',icon:'⛏️',price:85
 NPC_QUESTS.quarry={title:'Заказ каменоломни',desc:'Добудь и доставь 25 камня',items:{'Камень':25},gold:5200,xp:180,rewardItems:{'Уголь':3}};
 NPC_LABELS.quarry='КАМЕНЩИК';NPC_NAMES.quarry='Бран';NPC_COLORS.quarry='#8a8f83';
 let audioContext=null;
-  function playSound(kind='tap'){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!audioContext)audioContext=new AC();if(audioContext.state==='suspended')audioContext.resume();const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();const presets={wood:[150,85,'triangle',.12],stone:[280,115,'square',.09],iron:[620,240,'triangle',.14],coal:[190,130,'square',.1],step:[105,70,'sine',.045],hit:[230,95,'sawtooth',.07],sheep:[500,380,'sine',.1],craft:[390,780,'triangle',.18],coin:[900,1250,'sine',.12],portal:[180,660,'sine',.32],water:[520,340,'sine',.16],tap:[350,240,'sine',.06]};const q=presets[kind]||presets.tap;osc.type=q[2];osc.frequency.setValueAtTime(q[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(40,q[1]),now+q[3]);gain.gain.setValueAtTime(.0001,now);const volume=Math.max(0,Math.min(100,Number(gameSettings.sfxVolume??70)))/100;if(volume<=0)return;gain.gain.exponentialRampToValueAtTime(.07*volume,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+q[3]);osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+q[3]+.02);}catch(_){}}
+  function playSound(kind='tap'){if(kind==='tap'&&gameSettings.uiSoundEnabled===false)return;try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!audioContext)audioContext=new AC();if(audioContext.state==='suspended')audioContext.resume();const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();const presets={wood:[150,85,'triangle',.12],stone:[280,115,'square',.09],iron:[620,240,'triangle',.14],coal:[190,130,'square',.1],step:[105,70,'sine',.045],hit:[230,95,'sawtooth',.07],sheep:[500,380,'sine',.1],craft:[390,780,'triangle',.18],coin:[900,1250,'sine',.12],portal:[180,660,'sine',.32],water:[520,340,'sine',.16],tap:[350,240,'sine',.06]};const q=presets[kind]||presets.tap;osc.type=q[2];osc.frequency.setValueAtTime(q[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(40,q[1]),now+q[3]);gain.gain.setValueAtTime(.0001,now);const volume=Math.max(0,Math.min(100,Number(gameSettings.sfxVolume??70)))/100;if(volume<=0)return;gain.gain.exponentialRampToValueAtTime(.07*volume,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+q[3]);osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+q[3]+.02);}catch(_){}}
   // Original procedural sound effects are kept. Add optional original ambient music using Web Audio.
   let skyMusic=null;
   let skyMusicEnabled=false;
@@ -5146,6 +5146,10 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function setPaused(value){if(value&&hudMoveMode)finishHudMoveMode();paused=value;document.getElementById('pause-shade').hidden=!paused;keys.clear();pressedMovementCodes.clear();movementDirections.clear();if(paused){showPauseMain();}else{canvas.focus();}}
   function syncSettingsControls(){
     document.getElementById('game-quality-select').value=gameSettings.graphicsQuality;
+    const musicToggle=document.getElementById('game-music-enabled-toggle');if(musicToggle)musicToggle.checked=gameSettings.musicEnabled===true;
+    const uiSoundToggle=document.getElementById('game-ui-sound-toggle');if(uiSoundToggle)uiSoundToggle.checked=gameSettings.uiSoundEnabled!==false;
+    const musicVolume=document.getElementById('game-music-volume');if(musicVolume)musicVolume.value=String(gameSettings.musicVolume??35);
+    const sfxVolume=document.getElementById('game-sfx-volume');if(sfxVolume)sfxVolume.value=String(gameSettings.sfxVolume??70);
     const performanceSelect=document.getElementById('game-performance-select');if(performanceSelect)performanceSelect.value=gameSettings.performanceMode;
     document.getElementById('game-resolution-select').value=gameSettings.resolution;
     document.getElementById('game-window-mode-select').value=gameSettings.windowMode;
@@ -5197,6 +5201,10 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const previousMode=gameSettings.windowMode,previousHudLayout=gameSettings.hudLayout;
     gameSettings=normalizeGameSettings({
       ...gameSettings,
+      musicEnabled:document.getElementById('game-music-enabled-toggle')?.checked??gameSettings.musicEnabled,
+      uiSoundEnabled:document.getElementById('game-ui-sound-toggle')?.checked??gameSettings.uiSoundEnabled,
+      musicVolume:Number(document.getElementById('game-music-volume')?.value??gameSettings.musicVolume??35),
+      sfxVolume:Number(document.getElementById('game-sfx-volume')?.value??gameSettings.sfxVolume??70),
       graphicsQuality:document.getElementById('game-quality-select').value,
       performanceMode:document.getElementById('game-performance-select')?.value||'balanced',
       resolution:document.getElementById('game-resolution-select').value,
@@ -5210,6 +5218,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       hudLayout:document.getElementById('hud-layout-select').value
     });
     localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));
+    if(gameSettings.musicEnabled!==skyMusicEnabled)setSkyMusic(gameSettings.musicEnabled);
+    if(skyMusic){const volume=Math.max(0,Math.min(100,Number(gameSettings.musicVolume)||0))/100;skyMusic.master.gain.setTargetAtTime(Math.max(.0001,.18*volume),audioContext.currentTime,.12);}
     if(previousHudLayout!==gameSettings.hudLayout)resetHudPositions();
     applyVisualSettings();
     applyHudPositions();
@@ -5543,8 +5553,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     document.querySelectorAll('[data-settings-tab]').forEach(tab=>{const active=tab===btn;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',active?'true':'false');});
     document.getElementById('graphics-settings-panel').hidden=btn.dataset.settingsTab!=='graphics';
     document.getElementById('interface-settings-panel').hidden=btn.dataset.settingsTab!=='interface';
+    const audioPanel=document.getElementById('audio-settings-panel');if(audioPanel)audioPanel.hidden=btn.dataset.settingsTab!=='audio';
   }));
-  ['game-quality-select','game-performance-select','game-resolution-select','game-window-mode-select','game-ui-scale-select','show-vitals-toggle','show-quest-toggle','show-controls-toggle','show-inventory-toggle','show-minimap-toggle','hud-layout-select'].forEach(id=>document.getElementById(id).addEventListener('change',()=>applyAndSaveSettings(false)));
+  ['game-quality-select','game-performance-select','game-resolution-select','game-window-mode-select','game-ui-scale-select','show-vitals-toggle','show-quest-toggle','show-controls-toggle','show-inventory-toggle','show-minimap-toggle','hud-layout-select','game-music-enabled-toggle','game-ui-sound-toggle','game-music-volume','game-sfx-volume'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>applyAndSaveSettings(false)));
   document.getElementById('apply-game-settings').addEventListener('click',()=>applyAndSaveSettings(true));
   document.getElementById('toggle-hud-move').addEventListener('click',()=>{if(!hudMoveMode){setHudMoveMode(true);document.getElementById('pause-shade').hidden=true;paused=false;keys.clear();pressedMovementCodes.clear();canvas.focus();}else finishHudMoveMode();});
   document.getElementById('save-world-now').addEventListener('click',()=>{if(saveGame())toast('Мир успешно сохранён.');});
