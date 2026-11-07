@@ -4578,7 +4578,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       const jitterX=(hash(i+seed,7)-.5)*(13+layer*8),jitterY=(hash(i+seed,13)-.5)*(11+layer*7);
       return {x:Math.max(12,Math.min(320,anchor[0]+jitterX)),y:Math.max(30,Math.min(238,anchor[1]+jitterY)),ore,hp:2,maxHp:2};
     });
-    mineHoverIndex=-1;generateMineFeatures(dayIndex);
+    mineHoverIndex=-1;if(typeof generateMineFeatures==='function')generateMineFeatures(dayIndex);
   }
   function generateMineFeatures(dayIndex=0){
     const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);
