@@ -43,8 +43,9 @@ assert.equal(lumber.total,12,'Further trees must continue to count after the fir
 assert.equal(lumber.completed,3,'The contract tracker must complete repeat orders without requiring a manual re-accept');
 assert.ok(lumber.level>=2,'Repeated work must increase profession level');
 
+const minerBefore=api.getState().miner.total;
 api.record('miner',3);
-assert.equal(api.getState().miner.total,15,'Mining actions must be counted');
+assert.equal(api.getState().miner.total,minerBefore+3,'Mining actions must be counted on top of migrated progress');
 api.record('farmer',2);
 api.record('fisherman',2);
 api.record('hunter',2);
@@ -54,8 +55,9 @@ api.record('blacksmith',2);
 api.record('alchemist',2);
 api.record('cook',2);
 api.record('explorer',2);
-for(const id of ['miner','farmer','fisherman','hunter','builder','crafter','blacksmith','alchemist','cook','explorer'])
+for(const id of ['farmer','fisherman','hunter','builder','crafter','blacksmith','alchemist','cook','explorer'])
   assert.equal(api.getState()[id].total,2,'Each profession must keep an independent action count: '+id);
+assert.equal(api.getState().miner.total,minerBefore+5,'Miner must retain its migrated progress plus each new action');
 
 const before=api.getState().farmer;
 api.record('farmer',1);
