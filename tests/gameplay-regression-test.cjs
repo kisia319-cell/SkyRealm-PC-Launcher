@@ -124,7 +124,7 @@ bossContext.biomeBosses = {
 bossContext.player = {x:jungleDef.x,y:jungleDef.y,hp:100};
 Object.assign(bossContext,{
   dungeonMode:false,caveMode:false,mineMode:false,inHouse:false,tradeWorldMode:false,
-  immortal:false,dodgeTimer:0,
+  immortal:false,dodgeTimer:0,combatGuardTimer:0,combatParryTimer:0,
   armorReduction:()=>0,isModInstalled:()=>false,
   spawnVisualBurst:()=>{},updateVitals:()=>{},toast:m=>bossMessages.push(m),
   playSound:()=>{},saveGame:()=>{},respawnPlayerAfterDefeat:()=>{throw new Error('Unexpected defeat');}
