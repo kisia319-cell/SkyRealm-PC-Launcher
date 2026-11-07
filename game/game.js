@@ -1621,7 +1621,104 @@ function setupVillageNpcs(){
     saveGame();
   }
   function updateCaveBoss(dt){if(!caveMode||caveBossDefeated)return;const cfg=difficultyConfig();caveBossFlash=Math.max(0,caveBossFlash-dt);const dx=player.x-caveBossX,dy=player.y-caveBossY,dist=Math.hypot(dx,dy)||1;if(dist>62){caveBossX+=dx/dist*cfg.bossSpeed*dt;caveBossY+=dy/dist*cfg.bossSpeed*dt;}caveBossAttackTimer-=dt;caveBossSpecialTimer=Math.max(0,caveBossSpecialTimer-dt);if(caveBossSpecialTimer<=0){caveBossSpecialTimer=8;if(dist<180&&!immortal&&dodgeTimer<=0){const special=Math.max(1,Math.round(cfg.bossDamage*1.8*(1-armorReduction())));player.hp=Math.max(0,player.hp-special);updateVitals();spawnVisualBurst(player.x,player.y,24,'spark','#8ef5ff');toast('КАМЕННЫЙ СТРАЖ · СЕЙСМИЧЕСКИЙ РАЗЛОМ: −'+special+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}if(caveBossAttackTimer<=0){caveBossAttackTimer=cfg.bossInterval;if(dist<102&&dodgeTimer<=0&&!immortal){const reduction=armorReduction();const hit=Math.max(1,Math.round(cfg.bossDamage*(1-reduction)));player.hp=Math.max(0,player.hp-hit);updateVitals();spawnVisualBurst(player.x,player.y,12,'spark','#fb6876');toast('Каменный страж ударил: −'+hit+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}} }
-  function drawCaveInterior(dt,time){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#101522';ctx.fillRect(0,0,width,height);const g=ctx.createRadialGradient(width*.5,height*.48,30,width*.5,height*.48,Math.max(width,height)*.7);g.addColorStop(0,'#39404b');g.addColorStop(1,'#090d16');ctx.fillStyle=g;ctx.fillRect(0,0,width,height);for(let i=0;i<90;i++){const x=hash(i,4)*width,y=hash(9,i)*height;ctx.fillStyle=i%3?'#4a515b':'#6f9ca7';ctx.fillRect(x,y,2+(i%3),2+(i%3));}ctx.fillStyle='#1b2430';ctx.beginPath();ctx.ellipse(width*.5,height*.48,width*.42,height*.34,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#65727f';ctx.lineWidth=12;ctx.stroke();for(let i=0;i<8;i++){const x=width*(.18+i*.09),y=height*(.25+(i%3)*.14);ctx.fillStyle=i%2?'#257e9b':'#4da6bc';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=14;ctx.beginPath();ctx.moveTo(x-8,y+17);ctx.lineTo(x,y-12-(i%3)*4);ctx.lineTo(x+8,y+17);ctx.closePath();ctx.fill();}ctx.shadowBlur=0;drawCaveBoss();const cx=width*.73,cy=height*.48;ctx.fillStyle=caveChestOpened?'#5c5142':'#8c562e';ctx.fillRect(cx-20,cy-5,40,25);ctx.fillStyle=caveChestOpened?'#827463':'#c18a45';ctx.fillRect(cx-20,cy-14,40,12);ctx.fillStyle='#f7d56e';ctx.fillRect(cx-3,cy-6,6,15);if(!caveChestOpened){ctx.shadowColor='#ffcf62';ctx.shadowBlur=20;ctx.fillStyle='#ffdf81';ctx.beginPath();ctx.arc(cx,cy-14,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}const px=player.x,py=player.y;ctx.fillStyle='#102a2a99';ctx.beginPath();ctx.ellipse(px,py+13,16,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#3b2837';ctx.fillRect(px-7,py+6,5,9);ctx.fillRect(px+2,py+6,5,9);ctx.fillStyle=playerAppearance.armor||'#526fba';ctx.fillRect(px-9,py-4,18,15);const caveLook=playerAppearance,caveHair=caveLook.hairStyle||'short',caveFace=caveLook.face||'normal';if(caveHair==='hood'){ctx.fillStyle=caveLook.accent||'#9cb9ff';ctx.fillRect(px-9,py-22,18,19);}ctx.fillStyle=caveLook.skin||'#e8b88c';ctx.fillRect(px-6,py-18,12,13);ctx.fillStyle=caveLook.hair||'#352d3d';if(caveHair==='mohawk'){ctx.fillRect(px-2,py-23,4,10);}else if(caveHair==='curly'){for(const [hx,hy] of [[-6,-20],[0,-22],[6,-20]]){ctx.beginPath();ctx.arc(px+hx,py+hy,3,0,Math.PI*2);ctx.fill();}}else if(caveHair!=='hood'){ctx.fillRect(px-7,py-21,14,5);if(caveHair==='long')ctx.fillRect(px-8,py-17,3,12);}if(caveFace==='visor'){ctx.fillStyle=caveLook.accent||'#9cb9ff';ctx.fillRect(px-7,py-14,14,5);ctx.fillStyle=caveLook.eye||'#26334c';ctx.fillRect(px-4,py-13,3,2);ctx.fillRect(px+2,py-13,3,2);}else{ctx.fillStyle=caveLook.eye||'#26334c';ctx.fillRect(px-4,py-13,2,2);ctx.fillRect(px+3,py-13,2,2);if(caveFace==='stern'){ctx.fillRect(px-5,py-15,4,1);ctx.fillRect(px+2,py-15,4,1);}if(caveFace==='smile'){ctx.fillStyle='#7c4135';ctx.fillRect(px-2,py-8,5,1);}else if(caveFace==='mask'){ctx.fillStyle='#d5dce6';ctx.fillRect(px-5,py-10,10,5);ctx.fillStyle='#7e8ba0';ctx.fillRect(px-3,py-8,2,1);ctx.fillRect(px+1,py-8,2,1);}}if(equipment.helmet){ctx.fillStyle='#d7dfe8';ctx.fillRect(px-9,py-22,18,5);}ctx.fillStyle='#182b38';ctx.beginPath();ctx.ellipse(width*.16,height*.8,36,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#7bd7e7';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#f0d28b';ctx.font='bold 15px Segoe UI';ctx.textAlign='center';ctx.fillText('ТАЙНАЯ ПЕЩЕРА · E — взаимодействие',width/2,35);ctx.fillStyle='#a6bddb';ctx.font='12px Segoe UI';ctx.fillText(caveChestOpened?'Сундук уже открыт · E у входа — выйти':'Подойди к сияющему сундуку и нажми E',width/2,58);if(dodgeTimer>0){ctx.strokeStyle='#a8d9ff';ctx.lineWidth=4;ctx.globalAlpha=dodgeTimer/.24;ctx.beginPath();ctx.arc(px,py,30,0,Math.PI*1.6);ctx.stroke();ctx.globalAlpha=1;}drawRemotePlayers(0,0);}
+  function drawCaveInterior(dt,time){
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const t=Number.isFinite(time)?time:performance.now();
+    // A broad natural cavern: one open central chamber with roomy side galleries, never a maze.
+    const base=ctx.createLinearGradient(0,0,0,height);
+    base.addColorStop(0,'#303a3d');base.addColorStop(.48,'#202a2c');base.addColorStop(1,'#101719');
+    ctx.fillStyle=base;ctx.fillRect(0,0,width,height);
+    const ambient=ctx.createRadialGradient(width*.48,height*.48,Math.min(width,height)*.08,width*.48,height*.48,Math.max(width,height)*.78);
+    ambient.addColorStop(0,'rgba(115,139,126,.23)');ambient.addColorStop(.62,'rgba(57,77,74,.12)');ambient.addColorStop(1,'rgba(0,0,0,.68)');
+    ctx.fillStyle=ambient;ctx.fillRect(0,0,width,height);
+    // Irregular rock ceiling and walls frame a single large, connected floor.
+    ctx.fillStyle='#111a1c';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(width,0);
+    for(let i=16;i>=0;i--){const x=width*i/16;ctx.lineTo(x,18+hash(i,41)*height*.105+Math.sin(i*1.7+t*.00025)*5);}
+    ctx.closePath();ctx.fill();
+    ctx.fillStyle='#111a1c';ctx.beginPath();ctx.moveTo(0,height);ctx.lineTo(width,height);
+    for(let i=0;i<=16;i++){const x=width*i/16;ctx.lineTo(x,height-(16+hash(i+27,13)*height*.11+Math.sin(i*1.4+t*.0002)*5));}
+    ctx.closePath();ctx.fill();
+    // Wide, gently curving floor bands and broad side alcoves.
+    ctx.fillStyle='#343a35';ctx.beginPath();ctx.moveTo(width*.04,height*.19);
+    ctx.bezierCurveTo(width*.2,height*.08,width*.8,height*.1,width*.96,height*.25);
+    ctx.lineTo(width*.98,height*.78);ctx.bezierCurveTo(width*.76,height*.91,width*.22,height*.92,width*.03,height*.76);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#514d42';ctx.beginPath();ctx.ellipse(width*.5,height*.51,width*.44,height*.35,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#62594a';ctx.beginPath();ctx.ellipse(width*.5,height*.49,width*.405,height*.315,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(23,30,28,.42)';ctx.beginPath();ctx.ellipse(width*.5,height*.51,width*.39,height*.29,0,0,Math.PI*2);ctx.fill();
+    // Broad side galleries are open visual spaces, not narrow winding corridors.
+    for(const side of [-1,1]){
+      const x=width*(side<0?.16:.84),y=height*.49;
+      ctx.fillStyle='#353b37';ctx.beginPath();ctx.ellipse(x,y,width*.105,height*.235,side*.08,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#5b5548';ctx.beginPath();ctx.ellipse(x,y,width*.082,height*.195,side*.08,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='rgba(15,22,21,.65)';ctx.lineWidth=8;ctx.beginPath();ctx.ellipse(x,y,width*.105,height*.235,side*.08,0,Math.PI*2);ctx.stroke();
+    }
+    // Stone plates, cracks and scattered rubble add a mine-like floor texture.
+    for(let i=0;i<34;i++){
+      const x=width*(.08+hash(i+4,17)*.84),y=height*(.16+hash(i+21,8)*.68),r=5+hash(i+9,33)*15;
+      ctx.fillStyle=i%3?'rgba(24,31,29,.22)':'rgba(177,157,119,.12)';
+      ctx.beginPath();ctx.ellipse(x,y,r*1.7,r*.62,hash(i,3)*.8,0,Math.PI*2);ctx.fill();
+      if(i%4===0){ctx.strokeStyle='rgba(12,19,18,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x-r,y-r*.2);ctx.lineTo(x-r*.2,y+r*.25);ctx.lineTo(x+r*.7,y+r*.1);ctx.stroke();}
+    }
+    // Crystals glow from the rock edges, leaving the central route unobstructed.
+    for(let i=0;i<13;i++){
+      const side=i%2===0?-1:1,x=width*(side<0?.08+hash(i,4)*.13:.79+hash(i,4)*.13),y=height*(.18+hash(i+8,9)*.64),h=12+hash(i+3,5)*27;
+      ctx.save();ctx.translate(x,y);
+      const glow=ctx.createRadialGradient(0,0,2,0,0,h*2.5);glow.addColorStop(0,'rgba(89,205,220,.24)');glow.addColorStop(1,'rgba(89,205,220,0)');
+      ctx.fillStyle=glow;ctx.fillRect(-h*2.5,-h*2.5,h*5,h*5);
+      ctx.fillStyle=i%3===0?'#6ab6bd':i%3===1?'#4e879c':'#6c9a87';
+      ctx.beginPath();ctx.moveTo(-h*.32,h*.45);ctx.lineTo(-h*.18,-h*.38);ctx.lineTo(0,-h);ctx.lineTo(h*.25,-h*.28);ctx.lineTo(h*.36,h*.45);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(225,250,235,.55)';ctx.beginPath();ctx.moveTo(-h*.1,h*.2);ctx.lineTo(0,-h*.76);ctx.lineTo(h*.08,h*.18);ctx.closePath();ctx.fill();ctx.restore();
+    }
+    // Ceiling stalactites and floor stalagmites sit along the perimeter.
+    for(let i=0;i<17;i++){
+      const x=width*(.035+hash(i+5,22)*.93),top=20+hash(i,18)*height*.12,bottom=height-(18+hash(i+15,7)*height*.12),w=7+hash(i+3,11)*12;
+      ctx.fillStyle='#1a2424';ctx.beginPath();ctx.moveTo(x-w,0);ctx.lineTo(x+w,0);ctx.lineTo(x+w*.25,top);ctx.lineTo(x-w*.18,top*.78);ctx.closePath();ctx.fill();
+      if(i%2===0){ctx.fillStyle='#343c36';ctx.beginPath();ctx.moveTo(x-w,bottom+24);ctx.lineTo(x,bottom-3);ctx.lineTo(x+w,bottom+24);ctx.closePath();ctx.fill();}
+    }
+    // Wooden support frames and warm lamps are placed around the outer galleries.
+    for(let i=0;i<6;i++){
+      const x=width*(.12+i*.152),y=height*(i%2?.22:.77);
+      ctx.save();ctx.translate(x,y);
+      ctx.fillStyle='#49301f';ctx.fillRect(-15,-22,5,44);ctx.fillRect(10,-22,5,44);ctx.fillRect(-18,-25,36,5);
+      ctx.fillStyle='#9a7048';ctx.fillRect(-13,-20,2,39);ctx.fillRect(12,-20,2,39);
+      const pulse=.82+.18*Math.sin(t/210+i);
+      const lamp=ctx.createRadialGradient(0,-17,1,0,-17,34);lamp.addColorStop(0,'rgba(255,198,112,'+(.32*pulse)+')');lamp.addColorStop(1,'rgba(255,164,74,0)');
+      ctx.fillStyle=lamp;ctx.fillRect(-35,-52,70,70);ctx.fillStyle='#ffd18a';ctx.beginPath();ctx.arc(0,-17,3,0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+    // Fine drifting dust in the lantern beams.
+    for(let i=0;i<22;i++){
+      const phase=t*.00012+i*2.31,x=(hash(i,29)*width+Math.sin(phase)*12)%width,y=(hash(i+9,31)*height+(t*.009+i*19)%(height+20))%(height+20);
+      ctx.fillStyle='rgba(231,220,190,'+(.12+.18*(.5+.5*Math.sin(phase*2))+')');
+      ctx.beginPath();ctx.arc(x,y,1+(i%3)*.35,0,Math.PI*2);ctx.fill();
+    }
+    // The guardian and treasure occupy the far side of the same spacious chamber.
+    drawCaveBoss();
+    const cx=width*.73,cy=height*.48;
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(cx,cy+15,31,9,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=caveChestOpened?'#5c5142':'#8c562e';ctx.fillRect(cx-20,cy-5,40,25);
+    ctx.fillStyle=caveChestOpened?'#827463':'#c18a45';ctx.fillRect(cx-20,cy-14,40,12);
+    ctx.fillStyle='#f7d56e';ctx.fillRect(cx-3,cy-6,6,15);
+    if(!caveChestOpened){ctx.shadowColor='#ffcf62';ctx.shadowBlur=20;ctx.fillStyle='#ffdf81';ctx.beginPath();ctx.arc(cx,cy-14,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+    const px=player.x,py=player.y;
+    ctx.fillStyle='#102a2a99';ctx.beginPath();ctx.ellipse(px,py+13,16,7,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3b2837';ctx.fillRect(px-7,py+6,5,9);ctx.fillRect(px+2,py+6,5,9);
+    ctx.fillStyle=playerAppearance.armor||'#526fba';ctx.fillRect(px-9,py-4,18,15);
+    const caveLook=playerAppearance,caveHair=caveLook.hairStyle||'short',caveFace=caveLook.face||'normal';
+    if(caveHair==='hood'){ctx.fillStyle=caveLook.accent||'#9cb9ff';ctx.fillRect(px-9,py-22,18,19);}
+    ctx.fillStyle=caveLook.skin||'#e8b88c';ctx.fillRect(px-6,py-18,12,13);ctx.fillStyle=caveLook.hair||'#352d3d';
+    if(caveHair==='mohawk')ctx.fillRect(px-2,py-23,4,10);
+    else if(caveHair==='curly'){for(const [hx,hy] of [[-6,-20],[0,-22],[6,-20]]){ctx.beginPath();ctx.arc(px+hx,py+hy,3,0,Math.PI*2);ctx.fill();}}
+    else if(caveHair!=='hood'){ctx.fillRect(px-7,py-21,14,5);if(caveHair==='long')ctx.fillRect(px-8,py-17,3,12);}
+    if(caveFace==='visor'){ctx.fillStyle=caveLook.accent||'#9cb9ff';ctx.fillRect(px-7,py-14,14,5);ctx.fillStyle=caveLook.eye||'#26334c';ctx.fillRect(px-4,py-13,3,2);ctx.fillRect(px+2,py-13,3,2);}
+    else{ctx.fillStyle=caveLook.eye||'#26334c';ctx.fillRect(px-4,py-13,2,2);ctx.fillRect(px+3,py-13,2,2);if(caveFace==='stern'){ctx.fillRect(px-5,py-15,4,1);ctx.fillRect(px+2,py-15,4,1);}if(caveFace==='smile'){ctx.fillStyle='#7c4135';ctx.fillRect(px-2,py-8,5,1);}else if(caveFace==='mask'){ctx.fillStyle='#d5dce6';ctx.fillRect(px-5,py-10,10,5);ctx.fillStyle='#7e8ba0';ctx.fillRect(px-3,py-8,2,1);ctx.fillRect(px+1,py-8,2,1);}}
+    if(equipment.helmet){ctx.fillStyle='#d7dfe8';ctx.fillRect(px-9,py-22,18,5);}
+    ctx.fillStyle='#182b38';ctx.beginPath();ctx.ellipse(width*.16,height*.8,42,28,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#7bd7e7';ctx.lineWidth=4;ctx.stroke();
+    ctx.fillStyle='#f0d28b';ctx.font='bold 15px Segoe UI';ctx.textAlign='center';ctx.fillText('БОЛЬШАЯ ПЕЩЕРА · ОТКРЫТЫЙ ЗАЛ',width/2,35);
+    ctx.fillStyle='#a6bddb';ctx.font='12px Segoe UI';ctx.fillText(caveChestOpened?'Сундук открыт · E у выхода — вернуться':'Просторная пещера · победи Каменного стража и открой сундук',width/2,58);
+    if(dodgeTimer>0){ctx.strokeStyle='#a8d9ff';ctx.lineWidth=4;ctx.globalAlpha=dodgeTimer/.24;ctx.beginPath();ctx.arc(px,py,30,0,Math.PI*1.6);ctx.stroke();ctx.globalAlpha=1;}
+    drawRemotePlayers(0,0);
+  }
   function drawForestLabel(camX,camY){const x=(COLS-18)*TILE-camX,y=(ROWS-26)*TILE-camY;if(x<-220||x>width+220||y<-40||y>height+40)return;ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#d4f5b4';ctx.shadowColor='#143a1d';ctx.shadowBlur=8;ctx.fillText('ЛЕС · ЛОГОВО ОБОРОТНЯ',x,y);ctx.restore();}
   function drawWolfBoss(camX,camY,time=0){
     if(!wolfBossActive)return;
