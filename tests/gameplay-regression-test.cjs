@@ -36,9 +36,10 @@ function execute(context, functions, exportNames) {
 function plain(value) { return JSON.parse(JSON.stringify(value)); }
 
 const hashFn = extractFunction('hash');
+const mineHelpers = ['generateMineMaze','ensureMineMaze','mineCellWalkable','mineFeaturePoint'].map(extractFunction);
 const mineFn = extractFunction('generateMineStock');
-const mineContext = { mineSeed: 417, mineLevel: 1, mineRocks: [], mineHoverIndex: -1, isModInstalled:()=>false, Math };
-execute(mineContext, [hashFn, mineFn], ['generateMineStock']);
+const mineContext = { mineSeed: 417, mineLevel: 1, mineRocks: [], mineHoverIndex: -1, mineMaze:null, MINE_MAZE_COLS:21, MINE_MAZE_ROWS:15, MINE_CELL_SIZE:44, isModInstalled:()=>false, Math };
+execute(mineContext, [hashFn, ...mineHelpers, mineFn], ['generateMineStock']);
 function stock(day, level) {
   mineContext.mineLevel = level;
   mineContext.generateMineStock(day);
