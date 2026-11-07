@@ -307,8 +307,8 @@
       {id:'astral',name:'Астральный круг',theme:'astral',bossId:'astral_god',dx:16,dy:-12}
     ];
     const oldAnchors=existing.filter(v=>Number.isFinite(v?.x)&&Number.isFinite(v?.y));
-    const anchorX=oldAnchors.length?oldAnchors.reduce((sum,v)=>sum+v.x,0)/oldAnchors.length:player.x;
-    const anchorY=oldAnchors.length?oldAnchors.reduce((sum,v)=>sum+v.y,0)/oldAnchors.length:player.y;
+    const anchorX=Math.max(24*TILE,Math.min((COLS-24)*TILE,oldAnchors.length?oldAnchors.reduce((sum,v)=>sum+v.x,0)/oldAnchors.length:player.x));
+    const anchorY=Math.max(20*TILE,Math.min((ROWS-20)*TILE,oldAnchors.length?oldAnchors.reduce((sum,v)=>sum+v.y,0)/oldAnchors.length:player.y));
     const clampSite=(v,max)=>Math.max(TILE*8,Math.min(max-TILE*8,v));
     let changed=existing.length!==specs.length;
     const sites=specs.map(spec=>{
@@ -322,7 +322,7 @@
         remaining:Math.max(0,Math.min(3,Math.floor(Number(old?.remaining)||0))),
         rematches:Math.max(0,Math.min(50,Math.floor(Number(old?.rematches)||0)))
       };
-      if(!old||old.name!==site.name||old.theme!==site.theme||old.bossId!==site.bossId||old.x!==site.x||old.y!==site.y||!!old.active!==site.active||!!old.complete!==site.complete||Number(old.remaining)!==site.remaining||Number(old.rematches)!==site.rematches)changed=true;
+      if(!old||old.layoutVersion!==2||old.name!==site.name||old.theme!==site.theme||old.bossId!==site.bossId||old.x!==site.x||old.y!==site.y||!!old.active!==site.active||!!old.complete!==site.complete||Number(old.remaining)!==site.remaining||Number(old.rematches)!==site.rematches)changed=true;
       return site;
     });
     bossRealmState.dungeonSites=sites;
@@ -3836,6 +3836,7 @@ function setupVillageNpcs(){
   }
   async function interact(){
     if(dungeonMode){interactDungeon();return;}
+    if(!inHouse){
     // Resolve a house doorway before portals, arena markers or signs so nearby props cannot steal E.
     const placedHouse=placedStructures.find(s=>s.type==='house'&&Math.abs(player.x-s.x)<34&&Math.abs(player.y-(s.y+43))<42);
     if(placedHouse){bedSpawn={x:placedHouse.x,y:placedHouse.y+55};enteredPlacedHouse={x:placedHouse.x,y:placedHouse.y};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в свой дом. E у кровати — спать, у верстака — использовать.');saveGame();return;}
@@ -3855,6 +3856,7 @@ function setupVillageNpcs(){
       if(candidates[0]?.kind==='sign'){openSignDialog();questStage=Math.max(questStage,1);return;}
     }else if(await interactBossRealmPortal())return;
     if(interactBossRealmDungeonSite())return;
+    }
     if(!bossRealmMode&&window.SkyRealmExpansionSystems?.interactWorldEvent?.())return;
     if(collectMeteor())return;
     if(collectWorldEventCamp())return;
