@@ -30,12 +30,12 @@ function fixture(){
 }
 testCase('mine passage map has a main gallery and four branches',()=>{
  const f=fixture();run(f.ctx,['minePassagePaths'],['minePassagePaths']);
- const paths=f.ctx.minePassagePaths();assert.equal(paths.length,5);
+ const paths=f.ctx.minePassagePaths();assert.equal(paths.length,12);
  assert.ok(paths.every(p=>p.length>=4));assert.equal(JSON.stringify(paths[0][0]),JSON.stringify([8,220]));
 });
 testCase('barrels and mixed single/pair creature groups generate deterministically',()=>{
  const f=fixture();run(f.ctx,['generateMineFeatures'],['generateMineFeatures']);f.ctx.generateMineFeatures(3);
- assert.equal(f.ctx.mineBarrels.length,5);assert.equal(f.ctx.mineCreatures.length,4);
+ assert.equal(f.ctx.mineBarrels.length,6);assert.equal(f.ctx.mineCreatures.length,6);
  assert.ok(f.ctx.mineBarrels.every(b=>b.hp===2&&b.coal>=1&&b.stone>=1));
  assert.ok(f.ctx.mineCreatures.every(m=>m.hp===m.maxHp&&m.x>12&&m.x<320&&m.y>30&&m.y<238));
  const first=JSON.stringify({barrels:f.ctx.mineBarrels,creatures:f.ctx.mineCreatures});
@@ -57,6 +57,26 @@ testCase('creatures move toward the player and attack on cooldown',()=>{
  const f=fixture();run(f.ctx,['updateMineCreatures'],['updateMineCreatures']);
  f.ctx.mineCreatures=[{x:7,y:3,hp:30,maxHp:30,damage:7,speed:30,attackCooldown:0,phase:0,flash:0,name:'Пещерный грызун'}];
  f.ctx.updateMineCreatures(.1);assert.equal(f.ctx.player.hp,93);assert.ok(f.ctx.mineCreatures[0].attackCooldown>2);assert.equal(f.events.saves,1);
+});
+testCase('legacy worlds with empty mine feature arrays are backfilled',()=>{
+ const f=fixture();run(f.ctx,['generateMineFeatures','restoreMineFeaturesFromSave'],['restoreMineFeaturesFromSave']);
+ const result=f.ctx.restoreMineFeaturesFromSave({mineBarrels:[],mineCreatures:[]},3);
+ assert.equal(result.backfilledBarrels,true);assert.equal(result.backfilledCreatures,true);
+ assert.ok(f.ctx.mineBarrels.length>=5);assert.ok(f.ctx.mineCreatures.length>=4);
+});
+testCase('mine migration preserves already-broken barrels while filling missing creatures',()=>{
+ const f=fixture();run(f.ctx,['generateMineFeatures','restoreMineFeaturesFromSave'],['restoreMineFeaturesFromSave']);
+ const spent={id:'old-barrel',x:50,y:180,hp:0,maxHp:2,coal:1,stone:2};
+ const result=f.ctx.restoreMineFeaturesFromSave({mineFeaturesVersion:0,mineBarrels:[spent],mineCreatures:[]},2);
+ assert.equal(result.backfilledBarrels,false);assert.equal(result.backfilledCreatures,true);
+ assert.equal(f.ctx.mineBarrels.length,1);assert.equal(f.ctx.mineBarrels[0].hp,0);
+ assert.ok(f.ctx.mineCreatures.length>0);
+});
+testCase('current mine saves do not respawn cleared objects',()=>{
+ const f=fixture();run(f.ctx,['generateMineFeatures','restoreMineFeaturesFromSave'],['restoreMineFeaturesFromSave']);
+ const result=f.ctx.restoreMineFeaturesFromSave({mineFeaturesVersion:1,mineBarrels:[],mineCreatures:[]},2);
+ assert.equal(result.backfilledBarrels,false);assert.equal(result.backfilledCreatures,false);
+ assert.equal(f.ctx.mineBarrels.length,0);assert.equal(f.ctx.mineCreatures.length,0);
 });
 testCase('original mine movement block remains unchanged',()=>{
  const movement="if(mineMode && (mx||my)){if(mx&&my){mx*=.7071;my*=.7071;}minePlayerX=Math.max(48,Math.min(width-48,minePlayerX+mx*speed*dt));minePlayerY=Math.max(100,Math.min(height-70,(minePlayerY||height-108)+my*speed*dt));}";
