@@ -137,10 +137,10 @@ assert.ok(bossMessages.some(message=>message.includes('атакует')));
 bossContext.biomeBosses.jungle.attackTimer=5;
 bossContext.biomeBosses.jungle.specialTimer=0.05;
 const beforeSpecial=bossContext.player.hp;
-bossContext.updateBiomeBosses(0.1);
-assert.ok(bossContext.player.hp<beforeSpecial, 'Biome boss special attack must damage a player inside its radius.');
+for(let i=0;i<12&&bossContext.player.hp===beforeSpecial;i++)bossContext.updateBiomeBosses(0.1);
+assert.ok(bossContext.player.hp<beforeSpecial, 'Biome boss special attack must damage a player inside its radius after its telegraphed windup.');
 assert.ok(bossContext.biomeBosses.jungle.specialTimer>=5.5, 'Special attack cooldown must reset after a hit.');
-assert.ok(bossMessages.some(message=>message.includes('УДАР КОРНЕЙ')));
+assert.ok(bossMessages.some(message=>message.includes('ПОДЗЕМНЫЕ ЩУПАЛЬЦА')));
 
 const schedule = extractFunction('scheduleNemesis');
 let idNumber=0, scheduleSaves=0;
