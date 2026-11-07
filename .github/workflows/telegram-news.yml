@@ -105,28 +105,51 @@ jobs:
                   print("No new commits to announce.")
                   sys.exit(0)
 
-              major_pattern = re.compile(
-                  r"(\[major\]|\[важно\]|крупн\w* обновлен|^feat\s*:|^feature\s*:|^major\s*:|^release\s*:)",
-                  re.IGNORECASE
-              )
-              has_major = any(major_pattern.search(subject) for _, subject in commits)
+              # Only explicitly marked releases are "major". Normal feat:/feature:
+          # commits are evaluated by scope instead of being promoted automatically.
+          major_pattern = re.compile(
+              r"(\[major\]|\[важно\]|^major\s*:|^release\s*:)",
+              re.IGNORECASE
+          )
+          has_major = any(major_pattern.search(subject) for _, subject in commits)
 
-              medium_pattern = re.compile(
-                  r"(\[medium\]|\[среднее\]|^medium\s*:|^среднее\s*:)",
-                  re.IGNORECASE
-              )
-              batch = commits[:7]
-              medium_count = sum(1 for _, subject in batch if medium_pattern.search(subject))
-              has_two_medium = medium_count >= 2
+          batch = commits[:7]
+          explicit_medium_pattern = re.compile(
+              r"(\[medium\]|\[среднее\]|^medium\s*:|^среднее\s*:)",
+              re.IGNORECASE
+          )
+          boss_number_pattern = re.compile(
+              r"\b(\d+)\s*(?:boss(?:es)?|босс(?:а|ов|ы)?)\b|"
+              r"\b(?:four|четыре)\s+(?:boss(?:es)?|босс(?:а|ов|ы)?)\b",
+              re.IGNORECASE
+          )
+          attack_pattern = re.compile(r"attack|атак", re.IGNORECASE)
 
-              if not has_major and not has_two_medium and len(commits) < 5:
+          def medium_weight(subject):
+              if explicit_medium_pattern.search(subject):
+                  return 1.0
+              boss_match = boss_number_pattern.search(subject)
+              if boss_match and attack_pattern.search(subject):
+                  count_text = boss_match.group(1)
+                  boss_count = int(count_text) if count_text else 4
+                  if boss_count >= 4:
+                      return 1.5
+                  if boss_count >= 2:
+                      return 1.0
+                  return 0.5
+              return 0.0
+
+          medium_total = sum(medium_weight(subject) for _, subject in batch)
+          has_two_medium = medium_total >= 2.0
+
+          if not has_major and not has_two_medium and len(commits) < 5:
                   if state_initialized:
                       subprocess.run(
                           ["git", "push", "--force", "origin", f"{base}:refs/heads/telegram-news-state"],
                           check=True
                       )
                       print("Initialized the news cursor at " + base)
-                  print(f"Collected {len(commits)} changes, including {medium_count} medium updates; waiting for a publish threshold.")
+                  print(f"Collected {len(commits)} changes, weighted medium total: {medium_total:.1f}; waiting for a publish threshold.")
                   sys.exit(0)
 
               selected = commits if has_major else batch
@@ -169,7 +192,7 @@ jobs:
                   intro = "В этом обновлении:"
               elif has_two_medium:
                   heading = "📦 <b>НОВОСТИ РАЗРАБОТКИ SKYREALM</b>"
-                  intro = f"Подготовили выпуск из {medium_count} средних обновлений:"
+                  intro = f"Набралось {medium_total:.1f} условных средних обновлений:"
               else:
                   heading = "🛠 <b>ДАЙДЖЕСТ РАЗРАБОТКИ SKYREALM</b>"
                   intro = f"Собрали {len(selected)} небольших изменений:"
