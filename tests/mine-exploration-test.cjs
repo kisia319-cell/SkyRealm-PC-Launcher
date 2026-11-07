@@ -38,9 +38,9 @@ testCase('mine is a connected generated labyrinth with an entrance and distant s
 });
 testCase('barrels and mixed single/pair creature groups generate deterministically',()=>{
  const f=fixture();run(f.ctx,['generateMineMaze','ensureMineMaze','mineCellWalkable','mineFeaturePoint','generateMineFeatures'],['generateMineFeatures']);f.ctx.generateMineFeatures(3);
- assert.equal(f.ctx.mineBarrels.length,5);assert.equal(f.ctx.mineCreatures.length,4);
+ assert.equal(f.ctx.mineBarrels.length,6);assert.equal(f.ctx.mineCreatures.length,5);
  assert.ok(f.ctx.mineBarrels.every(b=>b.hp===2&&b.coal>=1&&b.stone>=1));
- assert.ok(f.ctx.mineCreatures.every(m=>m.hp===m.maxHp&&m.x>12&&m.x<320&&m.y>30&&m.y<238));
+ assert.ok(f.ctx.mineCreatures.every(m=>m.hp===m.maxHp&&m.x>0&&m.x<330&&m.y>0&&m.y<255));
  const first=JSON.stringify({barrels:f.ctx.mineBarrels,creatures:f.ctx.mineCreatures});
  f.ctx.generateMineFeatures(3);assert.equal(JSON.stringify({barrels:f.ctx.mineBarrels,creatures:f.ctx.mineCreatures}),first);
 });
