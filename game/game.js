@@ -755,7 +755,22 @@ let audioContext=null;
   let lastNemesisRaidDay=-1;
   const MAX_NEMESIS_EVENTS=36;
   const coopGuestMobAttackCooldowns=new Map();let coopGuestWolfAttackCooldown=0,coopWorldEntry=null;
-  function isCoopWorldSave(){return typeof saveKey==='string'&&saveKey.startsWith('skyrealm_coop_save_v1_');}
+  function autoResumeCoopRoomOnInput(){
+    const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
+    if(!room||room.status!=='paused'||!network.isRoomOwner||typeof network.resume!=='function')return false;
+    if(coopAutoResumePromise)return true;
+    const roomId=room.id;
+    coopAutoResumePromise=network.resume(roomId).then(result=>{
+      const current=network.getRoomState?.();
+      if(current?.id===roomId&&current.status==='running')toast('Общий мир автоматически возобновлён.');
+      return true;
+    }).catch(error=>{
+      toast(error?.message||'Не удалось автоматически возобновить общий мир.');
+      return false;
+    }).finally(()=>{coopAutoResumePromise=null;});
+    return true;
+  }
+    function isCoopWorldSave(){return typeof saveKey==='string'&&saveKey.startsWith('skyrealm_coop_save_v1_');}
   function isCoopWorldActive(){const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();return isCoopWorldSave()&&room?.status==='running';}
   function newCoopEntityId(){
     try{if(window.crypto?.randomUUID)return window.crypto.randomUUID();}catch(_){}
@@ -2185,6 +2200,21 @@ function setupVillageNpcs(){
     else toast((target.name||'Монстр')+' · здоровье '+target.hp+'/'+target.maxHp+'.');
     renderInventory();saveGame();return true;
   }
+  function attackMineCreature(target=null){
+    if(!mineMode)return false;
+    let chosen=target;
+    if(!chosen){
+      chosen=mineCreatures.filter(m=>m.hp>0).map(m=>({mob:m,distance:Math.hypot(mineFeatureWorldPosition(m).x-minePlayerX,mineFeatureWorldPosition(m).y-minePlayerY)})).sort((a,b)=>a.distance-b.distance)[0];
+      if(!chosen||chosen.distance>170){toast('Подойди ближе к пещерному монстру, чтобы атаковать.');return false;}
+      chosen=chosen.mob;
+    }
+    const point=mineFeatureWorldPosition(chosen);
+    if(Math.hypot(point.x-minePlayerX,point.y-minePlayerY)>170){toast('Подойди ближе, чтобы ударить пещерного монстра.');return false;}
+    if(minePlayerAttackCooldown>0){toast('Подожди завершения удара.');return false;}
+    minePlayerAttackCooldown=.32;
+    const damage=Math.max(10,Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.08)));
+    return strikeMineCreature(chosen,damage);
+  }
   function strikeMineBarrel(b){
     if(!mineMode||!b||b.hp<=0)return false;b.hp=Math.max(0,b.hp-1);playSound('wood');
     const p=mineRockScreenPosition(b);spawnVisualBurst(p.x,p.y,b.hp<=0?12:5,'dust','#bb8753');
@@ -2196,8 +2226,10 @@ function setupVillageNpcs(){
     for(const m of mineCreatures){if(m.hp<=0)continue;m.attackCooldown=Math.max(0,(m.attackCooldown||0)-dt);m.flash=Math.max(0,(m.flash||0)-dt);m.phase=(m.phase||0)+dt*2;
       const current=mineFeatureWorldPosition(m),dx=minePlayerX-current.x,dy=minePlayerY-current.y,dist=Math.hypot(dx,dy);
       if(dist>58&&dist<560){const next=mineNextStepTowardPlayer(current.cell);if(next){const tx=(next.x+.5)*MINE_CELL_SIZE,ty=(next.y+.5)*MINE_CELL_SIZE,dd=Math.hypot(tx-current.x,ty-current.y),step=Math.min(m.speed*dt,dd);const nx=current.x+(tx-current.x)/Math.max(1,dd)*step,ny=current.y+(ty-current.y)/Math.max(1,dd)*step;m.x=nx/(MINE_MAZE_COLS*MINE_CELL_SIZE)*330;m.y=ny/(MINE_MAZE_ROWS*MINE_CELL_SIZE)*255;}}
-      else if(dist<=58&&m.attackCooldown<=0&&!immortal){const reduction=typeof armorReduction==='function'?Math.max(0,Math.min(.9,armorReduction())):0,damage=Math.max(1,Math.round(m.damage*(1-reduction)));
-        player.hp=Math.max(0,player.hp-damage);m.attackCooldown=2.35;const screen=mineWorldToScreen(minePlayerX,minePlayerY);spawnVisualBurst(screen.x,screen.y,6,'spark','#f06f65');updateVitals();toast((m.name||'Пещерный монстр')+' атакует · −'+damage+' HP');saveGame();if(player.hp<=0)respawnPlayerAfterDefeat();}
+      else if(dist<=58&&m.attackCooldown<=0&&!immortal){
+        const damage=10;
+        player.hp=Math.max(0,player.hp-damage);m.attackCooldown=2.35;const screen=mineWorldToScreen(minePlayerX,minePlayerY);spawnVisualBurst(screen.x,screen.y,6,'spark','#f06f65');updateVitals();toast((m.name||'Пещерный монстр')+' атакует · −'+damage+' HP');saveGame();if(player.hp<=0)respawnPlayerAfterDefeat();
+      }
     }
   }
   function drawMineEntrance(camX,camY){
@@ -3262,8 +3294,8 @@ function setupVillageNpcs(){
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
     if(!saveKey.startsWith('skyrealm_coop_save_v1_')&&!room)return false;
     if(!room){toast('Нет соединения с комнатой. Рубка временно недоступна.');return true;}
-    if(room.status!=='running'){toast('Общий мир на паузе. Дождись возобновления игры.');return true;}
-    if(network.isRoomOwner)return false;
+    if(network.isRoomOwner){autoResumeCoopRoomOnInput();return false;}
+    if(room.status!=='running'){toast('Общий мир сейчас приостановлен владельцем. Ожидаем его автоматического возобновления.');return true;}
     const actionId=window.crypto?.randomUUID?.();
     if(!actionId){toast('Не удалось безопасно подготовить запрос.');return true;}
     const key=saveKey+'_coop_pending_world_actions';let pending=[];
@@ -3287,8 +3319,8 @@ function setupVillageNpcs(){
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
     if(!saveKey.startsWith('skyrealm_coop_save_v1_')&&!room)return false;
     if(!room){toast('Нет соединения с комнатой. Добыча временно недоступна.');return true;}
-    if(room.status!=='running'){toast('Общий мир на паузе. Дождись возобновления игры.');return true;}
-    if(network.isRoomOwner)return false;
+    if(network.isRoomOwner){autoResumeCoopRoomOnInput();return false;}
+    if(room.status!=='running'){toast('Общий мир сейчас приостановлен владельцем. Ожидаем его автоматического возобновления.');return true;}
     if(!Number.isSafeInteger(rockIndex)||!['Кирка','Улучшенная кирка','Кирка мастера'].includes(tool)){
       toast('Не удалось подготовить добычу.');return true;
     }
@@ -3783,7 +3815,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   // Top-level frame guard: an exception in simulation/update code must not stop RAF forever.
   // The previous guard covered draw() only, so an error earlier in tick could leave the canvas black.
 
-  let coopPositionSendTimer=0,coopClockSendTimer=0,coopSnapshotTimer=0,coopSnapshotSyncPending=false,coopSnapshotRoomId='',lastAppliedCoopSnapshotVersion=0,lastCoopSnapshotSignature='';
+  let coopPositionSendTimer=0,coopClockSendTimer=0,coopSnapshotTimer=0,coopSnapshotSyncPending=false,coopSnapshotRoomId='',lastAppliedCoopSnapshotVersion=0,lastCoopSnapshotSignature='',coopAutoResumePromise=null;
   let coopWorldActionPollTimer=0,coopWorldActionSyncPending=false,coopGuestReceiptTimer=0,coopGuestReceiptSyncPending=false;
   function applyCoopSnapshot(snapshot){
     const network=window.SkyRealmCoopClient;
@@ -4695,7 +4727,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const groupCount=Math.min(9,3+Math.floor((mineLevel-1)/2));let index=0;mineCreatures=[];
     for(let group=0;group<groupCount;group++){const members=group%3===1?2:1;for(let member=0;member<members;member++){
       const p=mineFeaturePoint(index+group*3,seed,211),kind=(index+group)%3===0?'bat':'crawler',maxHp=45+mineLevel*12+(kind==='crawler'?10:0);
-      mineCreatures.push({id:'mine-creature-'+seed+'-'+index,name:kind==='bat'?'Каменная летучая мышь':'Пещерный грызун',kind,x:p.x,y:p.y,hp:maxHp,maxHp,damage:Math.round(3+mineLevel*.8),speed:kind==='bat'?34+mineLevel*2:24+mineLevel*2,attackCooldown:1.1+hash(index+seed,47)*1.7,phase:hash(index+seed,49)*6.28,flash:0});index++;
+      mineCreatures.push({id:'mine-creature-'+seed+'-'+index,name:kind==='bat'?'Каменная летучая мышь':'Пещерный грызун',kind,x:p.x,y:p.y,hp:maxHp,maxHp,damage:10,speed:kind==='bat'?34+mineLevel*2:24+mineLevel*2,attackCooldown:1.1+hash(index+seed,47)*1.7,phase:hash(index+seed,49)*6.28,flash:0});index++;
     }}
     minePlayerAttackCooldown=0;
   }
@@ -4723,7 +4755,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
           id:String(v.id||'').slice(0,64),name:kind==='bat'?'Каменная летучая мышь':'Пещерный грызун',kind,
           x:Math.max(12,Math.min(320,v.x)),y:Math.max(30,Math.min(238,v.y)),
           hp:Math.max(0,Math.min(2000,Number(v.hp)||0)),maxHp:Math.max(1,Math.min(2000,Number(v.maxHp)||1)),
-          damage:Math.max(1,Math.min(80,Number(v.damage)||4)),speed:Math.max(1,Math.min(100,Number(v.speed)||30)),
+          damage:10,speed:Math.max(1,Math.min(100,Number(v.speed)||30)),
           attackCooldown:Math.max(0,Math.min(10,Number(v.attackCooldown)||0)),phase:Number(v.phase)||0,flash:0
         };
       });
@@ -5156,6 +5188,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if (editTarget && !formTarget && movementKey && !inMainMenu) {
       try { canvas.focus(); } catch (_) {}
     }
+    if(!inMainMenu&&!paused&&!formTarget)autoResumeCoopRoomOnInput();
     // Recover from a stale paused flag after first world entry. This can happen
     // when the character-entry overlay closes without completing its resume callback.
     const pauseShade = document.getElementById('pause-shade');
@@ -5174,6 +5207,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       last = performance.now();
       canvas.focus();
     }
+    if(k===' '&&mineMode&&!formTarget&&!inMainMenu&&!paused&&!blockingOverlay){e.preventDefault();attackMineCreature();return;}
     if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','o','q','j','r','t','f','g','1','2','3','4'].includes(k)) e.preventDefault();
     if(k==='l'&&!formTarget&&!inMainMenu){if(fullMapOpen)closeFullMap();else if(!paused&&!signDialogOpen&&!inventoryDialogOpen)openFullMap();return;}
     if(k==='o'&&bossRealmMode&&!paused&&!signDialogOpen&&!inventoryDialogOpen){bossRealmJournalOpen=!bossRealmJournalOpen;toast(bossRealmJournalOpen?'Журнал мира боссов открыт':'Журнал закрыт');return;}
@@ -5250,8 +5284,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   window.addEventListener('beforeunload',()=>{try{saveGame();}catch(_){}});
   window.addEventListener('resize', resize);
   window.addEventListener('fullscreenchange',()=>{gameSettings.windowMode=document.fullscreenElement?'fullscreen':'windowed';document.getElementById('game-window-mode-select').value=gameSettings.windowMode;localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));});
-  canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused)canvas.focus();},true);
-  canvas.addEventListener('pointermove', (ev) => {if(!mineMode)return;const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;let index=-1,bd=38;mineRocks.forEach((r,i)=>{if(r.hp<=0)return;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;index=i;}});mineHoverIndex=index;let over=index>=0;if(!over)over=mineBarrels.some(b=>b.hp>0&&Math.hypot(mineRockScreenPosition(b).x-x,mineRockScreenPosition(b).y-y)<30)||mineCreatures.some(m=>m.hp>0&&Math.hypot(mineCreatureScreenPosition(m).x-x,mineCreatureScreenPosition(m).y-y)<34);canvas.style.cursor=over?'crosshair':'default';});
+  canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused){autoResumeCoopRoomOnInput();canvas.focus();}},true);
+  canvas.addEventListener('pointermove', (ev) => {if(!mineMode)return;const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;let index=-1,bd=38;mineRocks.forEach((r,i)=>{if(r.hp<=0)return;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;index=i;}});mineHoverIndex=index;let over=index>=0;if(!over)over=mineBarrels.some(b=>b.hp>0&&Math.hypot(mineRockScreenPosition(b).x-x,mineRockScreenPosition(b).y-y)<30)||mineCreatures.some(m=>m.hp>0&&Math.hypot(mineCreatureScreenPosition(m).x-x,mineCreatureScreenPosition(m).y-y)<54);canvas.style.cursor=over?'crosshair':'default';});
   canvas.addEventListener('pointerleave',()=>{mineHoverIndex=-1;canvas.style.cursor='default';});
   function selectedInventoryItem(){return inventoryItems.filter(i=>i.count>0)[selectedSlot-1]||null;}
   function shovelSnowAt(x,y){
@@ -5278,13 +5312,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     }
     if(!mineMode&&placeSelectedStructure(ev))return;if(!mineMode)return;
     const mineHitRect=canvas.getBoundingClientRect(),mineHitX=ev.clientX-mineHitRect.left,mineHitY=ev.clientY-mineHitRect.top;
-    const clickedCreature=mineCreatures.find(m=>m.hp>0&&Math.hypot(mineCreatureScreenPosition(m).x-mineHitX,mineCreatureScreenPosition(m).y-mineHitY)<36);
-    if(clickedCreature){
-      const creatureWorld=mineFeatureWorldPosition(clickedCreature);if(Math.hypot(creatureWorld.x-minePlayerX,creatureWorld.y-minePlayerY)>112){toast('Подойди ближе, чтобы ударить пещерного монстра.');return;}
-      if(minePlayerAttackCooldown>0){toast('Подожди завершения удара.');return;}
-      minePlayerAttackCooldown=.32;const damage=Math.max(10,Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.08)));
-      strikeMineCreature(clickedCreature,damage);return;
-    }
+    const clickedCreature=mineCreatures.find(m=>m.hp>0&&Math.hypot(mineCreatureScreenPosition(m).x-mineHitX,mineCreatureScreenPosition(m).y-mineHitY)<54);
+    if(clickedCreature){attackMineCreature(clickedCreature);return;}
     const clickedBarrel=mineBarrels.find(b=>b.hp>0&&Math.hypot(mineRockScreenPosition(b).x-mineHitX,mineRockScreenPosition(b).y-mineHitY)<32);
     if(clickedBarrel){
       const barrelWorld=mineFeatureWorldPosition(clickedBarrel);if(Math.hypot(barrelWorld.x-minePlayerX,barrelWorld.y-minePlayerY)>112){toast('Подойди ближе к бочке.');return;}
