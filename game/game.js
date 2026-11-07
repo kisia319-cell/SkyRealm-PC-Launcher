@@ -1685,6 +1685,26 @@ function setupVillageNpcs(){
     ctx.fillStyle=equipment.helmet?'#d7dfe8':playerAppearance.accent||'#9cb9ff';if(equipment.helmet){ctx.fillRect(-9,-20,18,5);ctx.fillRect(-11,-16,22,3);if(equipment.helmet==='Шлем стража'){ctx.fillStyle='#536e84';ctx.fillRect(-10,-21,20,6);ctx.fillStyle='#b9d0df';ctx.fillRect(-12,-17,24,3);ctx.fillStyle='#e6bd6b';ctx.fillRect(-2,-19,4,5);}else if(equipment.helmet==='Корона мага'){ctx.fillStyle='#6a4c91';ctx.fillRect(-10,-21,20,4);ctx.fillStyle='#d7c3ff';ctx.beginPath();ctx.moveTo(-9,-20);ctx.lineTo(-7,-28);ctx.lineTo(-2,-22);ctx.lineTo(0,-31);ctx.lineTo(3,-22);ctx.lineTo(8,-28);ctx.lineTo(10,-20);ctx.closePath();ctx.fill();ctx.fillStyle='#8ce8ff';ctx.fillRect(-2,-25,4,4);}else if(equipment.helmet==='Шлем Бога'){ctx.fillStyle='#9b7024';ctx.fillRect(-10,-22,20,7);ctx.fillStyle='#ffe28a';ctx.fillRect(-12,-18,24,3);ctx.beginPath();ctx.moveTo(-8,-21);ctx.lineTo(-13,-28);ctx.lineTo(-3,-23);ctx.lineTo(0,-31);ctx.lineTo(3,-23);ctx.lineTo(13,-28);ctx.lineTo(8,-21);ctx.closePath();ctx.fill();ctx.fillStyle='#fff4c2';ctx.fillRect(-2,-25,4,4);}}
     if(equipment.armor==='Нагрудник Бога'){ctx.strokeStyle='#ffe18a';ctx.lineWidth=2;ctx.shadowColor='#ffd66b';ctx.shadowBlur=10;ctx.strokeRect(-10,-4,20,17);ctx.fillStyle='#f0c75d';ctx.fillRect(-3,-2,6,9);ctx.shadowBlur=0;}if(bossRealmMode&&bossRealmInvisibleTimer>0){ctx.globalAlpha=1;ctx.strokeStyle='#9deaff';ctx.lineWidth=2;ctx.shadowColor='#9deaff';ctx.shadowBlur=12;ctx.strokeRect(-13,-22,26,43);ctx.shadowBlur=0;ctx.globalAlpha=.32;}if(equipment.amulet){ctx.fillStyle='#ffe27c';ctx.beginPath();ctx.arc(0,2,3,0,Math.PI*2);ctx.fill();}
     if(['Огненный меч','Железный меч','Стальной меч','Молниеносное копьё','Меч титана','Меч дракона','Меч пустоты','Трезубец прилива','Гарпун бури','Клинок бездны'].includes(equipment.weapon)){ctx.strokeStyle=equipment.weapon==='Огненный меч'?'#ff9a42':equipment.weapon==='Молниеносное копьё'?'#cba4ff':'#dbe8f5';ctx.lineWidth=equipment.weapon==='Молниеносное копьё'?4:3;ctx.beginPath();ctx.moveTo(9,-5);ctx.lineTo(14,-18);ctx.stroke();}else if(equipment.weapon==='Ледяной посох'){ctx.strokeStyle='#8be9ff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(10,-2);ctx.lineTo(14,-22);ctx.stroke();ctx.fillStyle='#b8f4ff';ctx.beginPath();ctx.arc(14,-23,4,0,Math.PI*2);ctx.fill();}
+    if(combatCinematic?.active){
+      const cp=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
+      const wind=cp<.34?cp/.34:cp<.58?1-(cp-.34)/.24:Math.max(0,1-(cp-.58)/.42);
+      const slash=Math.max(0,Math.min(1,(cp-.34)/.24));
+      const facingAngle=player.face==='left'?-Math.PI/2:player.face==='right'?Math.PI/2:player.face==='up'?0:Math.PI;
+      const lunge=Math.sin(Math.min(1,cp/.58)*Math.PI)*10;
+      ctx.save();ctx.translate(0,-lunge);ctx.rotate((player.face==='left'?.05:player.face==='right'?-.05:0));
+      ctx.globalAlpha=.98;ctx.lineCap='round';ctx.lineJoin='round';
+      const weaponColor=combatCinematic.style,bladeLen=combatCinematic.weapon==='Молниеносное копьё'?61:combatCinematic.weapon==='Ледяной посох'?48:55;
+      ctx.save();ctx.translate(7,0);ctx.rotate(facingAngle+(wind*.95)-(slash*1.85));
+      ctx.strokeStyle='#bdc9d9';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,1);ctx.lineTo(0,-bladeLen*.35);ctx.stroke();
+      ctx.shadowColor=weaponColor;ctx.shadowBlur=gameSettings.graphicsQuality==='low'?2:18;
+      ctx.strokeStyle=weaponColor;ctx.lineWidth=combatCinematic.weapon==='Молниеносное копьё'?5:3.5;
+      ctx.beginPath();ctx.moveTo(0,-bladeLen*.25);ctx.lineTo(0,-bladeLen);ctx.stroke();
+      ctx.fillStyle='#eaf5ff';ctx.beginPath();ctx.moveTo(0,-bladeLen-9);ctx.lineTo(-5,-bladeLen+3);ctx.lineTo(5,-bladeLen+3);ctx.closePath();ctx.fill();
+      ctx.shadowBlur=0;ctx.strokeStyle='#f4d58b';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(8,0);ctx.stroke();
+      ctx.fillStyle='#6b4b37';ctx.fillRect(-2,2,4,12);ctx.restore();
+      if(slash>.05){ctx.save();ctx.rotate(facingAngle+wind*.95-slash*1.85);ctx.globalAlpha=(1-slash)*.8+.12;ctx.strokeStyle=weaponColor;ctx.shadowColor=weaponColor;ctx.shadowBlur=22;ctx.lineWidth=5+slash*5;ctx.beginPath();ctx.arc(0,0,bladeLen*.78,-1.18,1.18);ctx.stroke();ctx.restore();}
+      ctx.restore();ctx.restore();
+    }
     ctx.restore();
   }
   function drawFireflies(camX,camY,time){for(const f of world.fireflies){const x=f.x-camX,y=f.y-camY;if(x<-15||x>width+15||y<-15||y>height+15)continue;const a=.25+.65*(.5+.5*Math.sin(time/500+f.phase));ctx.fillStyle='rgba(255,231,136,'+a+')';ctx.beginPath();ctx.arc(x,y,1.5+a,0,Math.PI*2);ctx.fill();}}
@@ -2369,6 +2389,19 @@ function setupVillageNpcs(){
     if(inHouse){drawHouseInterior(dt,time);updateObjective();return;}
     const camX=Math.max(0,Math.min(COLS*TILE-width,player.x-width/2));
     const camY=Math.max(0,Math.min(ROWS*TILE-height,player.y-height/2));
+    ctx.save();
+    if(combatCinematic?.active){
+      const p=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
+      const easeIn=Math.min(1,p/.22),easeOut=Math.min(1,(1-p)/.34);
+      const zoom=1+Math.sin(Math.PI*p)*.72;
+      const focusX=combatCinematic.focusX-camX,focusY=combatCinematic.focusY-camY;
+      const shake=(combatCinematic.hitDone?combatCameraShake:1.2)*(gameSettings.graphicsQuality==='low'?.35:1);
+      const sx=Math.sin(time*.071)*shake,sy=Math.cos(time*.083)*shake*.65;
+      ctx.translate(width/2+sx,height/2+sy);
+      ctx.scale(zoom,zoom);
+      ctx.transform(1,Math.sin(p*Math.PI)*.035,Math.sin(p*Math.PI)*-.018,1,0,0);
+      ctx.translate(-focusX,-focusY);
+    }
     if(tradeWorldMode){drawTradeGround(camX,camY);}else if(bossRealmMode){drawBossRealmGround(camX,camY,time);drawBossRealmEnvironment(camX,camY,time);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
     if(bossRealmMode){drawMonsters(camX,camY,time);drawLootDrops(camX,camY,time);drawBossRealmPortal(camX,camY,time);}
     else if(tradeWorldMode){
@@ -2398,6 +2431,7 @@ function setupVillageNpcs(){
     if(gameSettings.graphicsQuality!=='low') drawFireflies(camX,camY,time);
     drawDayNightOverlay(camX,camY);
     updateObjective();
+    ctx.restore();
     ctx.restore();
   }
   function drawCombatCinematicOverlay(time){
@@ -3570,7 +3604,7 @@ function setupVillageNpcs(){
       if(mob.hp<mob.maxHp){ctx.fillStyle='#231c2b';ctx.fillRect(x-15,y-36,30,4);ctx.fillStyle=mob.isRebornBoss?'#ffc66d':'#fb6289';ctx.fillRect(x-15,y-36,30*Math.max(0,mob.hp/mob.maxHp),4);}if(mob.isRebornBoss){ctx.save();ctx.textAlign='center';ctx.font='900 9px Segoe UI';ctx.fillStyle='#ffe6ad';ctx.shadowColor='#321b0b';ctx.shadowBlur=5;ctx.fillText((mob.bossTitle||'БОСС').toUpperCase()+' · ВОЗРОЖДЁН',x,y-43);ctx.restore();}
     }
   }
-  function updateVitals(){const hp=document.querySelector('.hp i'),stamina=document.querySelector('.stamina i');if(hp)hp.style.width=Math.max(0,Math.min(100,player.hp))+'%';if(stamina)stamina.style.width=Math.max(0,Math.min(100,player.stamina))+'%';}
+  function updateVitals(){const hp=document.querySelector('.hp i'),stamina=document.querySelector('.stamina i'),energy=document.querySelector('.combat-energy i'),energyText=document.querySelector('.combat-energy-value');if(hp)hp.style.width=Math.max(0,Math.min(100,player.hp))+'%';if(stamina)stamina.style.width=Math.max(0,Math.min(100,player.stamina))+'%';if(energy)energy.style.width=Math.max(0,Math.min(100,combatEnergy))+'%';if(energyText)energyText.textContent=Math.floor(combatEnergy)+'%';}
   function useCombatAbility(){
     if(combatAbilityCooldown>0){toast('Способность перезаряжается: '+Math.ceil(combatAbilityCooldown)+' сек.');return;}
     if(player.stamina<22){toast('Не хватает выносливости для особой атаки.');return;}
