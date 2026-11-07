@@ -1688,7 +1688,7 @@ function setupVillageNpcs(){
     // Fine drifting dust in the lantern beams.
     for(let i=0;i<22;i++){
       const phase=t*.00012+i*2.31,x=(hash(i,29)*width+Math.sin(phase)*12)%width,y=(hash(i+9,31)*height+(t*.009+i*19)%(height+20))%(height+20);
-      ctx.fillStyle='rgba(231,220,190,'+(.12+.18*(.5+.5*Math.sin(phase*2))+')');
+      ctx.fillStyle='rgba(231,220,190,'+(.12+.18*(.5+.5*Math.sin(phase*2)))+')';
       ctx.beginPath();ctx.arc(x,y,1+(i%3)*.35,0,Math.PI*2);ctx.fill();
     }
     // The guardian and treasure occupy the far side of the same spacious chamber.
