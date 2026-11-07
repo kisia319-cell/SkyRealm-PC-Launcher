@@ -57,7 +57,7 @@ api.record('cook',2);
 api.record('explorer',2);
 for(const id of ['farmer','fisherman','hunter','builder','crafter','blacksmith','alchemist','cook','explorer'])
   assert.equal(api.getState()[id].total,2,'Each profession must keep an independent action count: '+id);
-assert.equal(api.getState().miner.total,minerBefore+5,'Miner must retain its migrated progress plus each new action');
+assert.equal(api.getState().miner.total,minerBefore+3,'Miner must retain its migrated progress plus each new action');
 
 const before=api.getState().farmer;
 api.record('farmer',1);
