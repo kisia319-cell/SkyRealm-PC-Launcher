@@ -769,6 +769,51 @@ class GameApi:
         # process so native profile sync continues working after the first read.
         return {"token": self._session_token}
 
+    def get_published_mods(self):
+        """Read locally published Studio mods without executing their source."""
+        directory = skyrealm_default_data_root() / "user-mods"
+        records = []
+        if not directory.is_dir() or directory.is_symlink():
+            return {"ok": True, "mods": []}
+        try:
+            files = sorted(directory.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True)
+        except OSError:
+            return {"ok": True, "mods": []}
+        for path in files:
+            if len(records) >= 20:
+                break
+            try:
+                if path.is_symlink() or not path.is_file() or path.stat().st_size > 65536:
+                    continue
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if not isinstance(data, dict) or data.get("format") != "skyrealm-studio-mod" or data.get("schemaVersion") != 1:
+                    continue
+                mod_id = data.get("id")
+                name = data.get("name")
+                language = data.get("language")
+                source = data.get("source")
+                description = data.get("description", "")
+                if not isinstance(mod_id, str) or not re.fullmatch(r"[a-z0-9_-]{6,48}", mod_id):
+                    continue
+                if not isinstance(name, str) or not name.strip() or len(name) > 32:
+                    continue
+                if language not in {"javascript", "python"} or not isinstance(source, str) or not 10 <= len(source) <= 14000:
+                    continue
+                if language == "javascript" and not re.search(r"function\\s+onTick\\s*\\(", source):
+                    continue
+                if language == "python" and not re.search(r"def\\s+on_tick\\s*\\(", source):
+                    continue
+                if not isinstance(description, str):
+                    description = ""
+                records.append({
+                    "id": mod_id, "name": name, "description": description[:140],
+                    "language": language, "source": source,
+                    "createdAt": int(path.stat().st_mtime * 1000),
+                })
+            except (OSError, UnicodeError, ValueError, TypeError):
+                continue
+        return {"ok": True, "mods": records}
+
     @staticmethod
     def _mod_studio_candidates():
         home = Path.home()
