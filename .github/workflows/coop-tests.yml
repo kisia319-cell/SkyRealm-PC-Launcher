@@ -26,6 +26,7 @@ jobs:
       - run: node --check tests/multiplayer-two-client-test.cjs
       - run: node tests/staff-authorization-test.cjs
       - run: node tests/gameplay-regression-test.cjs
+      - run: node tests/mine-exploration-test.cjs
       - run: node tests/quarry-system-test.cjs
       - run: node tests/multiplayer-two-client-test.cjs
       - run: node tests/staff-api-smoke.mjs
