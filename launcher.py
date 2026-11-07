@@ -799,9 +799,9 @@ class GameApi:
                     continue
                 if language not in {"javascript", "python"} or not isinstance(source, str) or not 10 <= len(source) <= 14000:
                     continue
-                if language == "javascript" and not re.search(r"function\\s+onTick\\s*\\(", source):
+                if language == "javascript" and not re.search(r"function\s+onTick\s*\(", source):
                     continue
-                if language == "python" and not re.search(r"def\\s+on_tick\\s*\\(", source):
+                if language == "python" and not re.search(r"def\s+on_tick\s*\(", source):
                     continue
                 if not isinstance(description, str):
                     description = ""
