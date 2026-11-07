@@ -2093,6 +2093,10 @@ function setupVillageNpcs(){
     const can=(x,y)=>{
       const a=mineCellFromWorld(x-r,y-r),b=mineCellFromWorld(x+r,y-r),c=mineCellFromWorld(x-r,y+r),d=mineCellFromWorld(x+r,y+r);
       if(!mineCellWalkable(a.x,a.y)||!mineCellWalkable(b.x,b.y)||!mineCellWalkable(c.x,c.y)||!mineCellWalkable(d.x,d.y))return false;
+      // Ore deposits are solid obstacles. The player must walk around a live vein.
+      if(typeof mineRocks!=='undefined'&&Array.isArray(mineRocks)){
+        for(const rock of mineRocks){if(!rock||rock.hp<=0)continue;const point=mineFeatureWorldPosition(rock);if(Math.hypot(x-point.x,y-point.y)<r+10)return false;}
+      }
       return true;
     };
     for(let i=0;i<steps;i++){
