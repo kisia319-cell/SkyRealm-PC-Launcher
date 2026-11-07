@@ -1347,6 +1347,15 @@ let audioContext=null;
     if(weatherMode==='storm'&&weatherFlash>0){ctx.save();ctx.fillStyle='rgba(204,225,255,'+Math.min(.22,weatherFlash*.8)+')';ctx.fillRect(0,0,width,height);ctx.restore();}
     // Occasional shooting star at night: a small ambient world event, not a gameplay requirement.
     if(isNightTime()){const cycle=(time%19000)/19000;if(cycle<.035){const x=width*(.22+cycle*13),y=30+cycle*900;ctx.save();ctx.globalAlpha=1-cycle/.035;ctx.strokeStyle='#dceeff';ctx.lineWidth=2;ctx.shadowColor='#b5d8ff';ctx.shadowBlur=9;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-38,y-18);ctx.stroke();ctx.restore();}}
+    if(!inMainMenu&&!paused){
+      const barW=154,bx=Math.max(12,width-barW-22),by=height-28,ratio=Math.max(0,Math.min(1,combatEnergy/100));
+      ctx.save();ctx.globalAlpha=.92;ctx.fillStyle='#07111dcc';ctx.fillRect(bx-8,by-16,barW+16,34);
+      ctx.fillStyle='#28384b';ctx.fillRect(bx,by,barW,7);ctx.fillStyle=ratio>=1?'#ffe27a':'#68d8ef';ctx.shadowColor=ratio>=1?'#ffe27a':'#68d8ef';ctx.shadowBlur=ratio>=1?14:6;ctx.fillRect(bx,by,barW*ratio,7);ctx.shadowBlur=0;
+      ctx.font='700 10px Segoe UI';ctx.textAlign='left';ctx.fillStyle='#eaf6ff';ctx.fillText('БОЕВАЯ ЭНЕРГИЯ '+Math.floor(combatEnergy)+'%',bx,by-4);
+      if(combatEnergy>=100){ctx.fillStyle='#ffe27a';ctx.textAlign='right';ctx.fillText('X · СУПЕРУДАР',bx+barW,by+20);}
+      else if(combatCombo>0){ctx.fillStyle='#d8edff';ctx.textAlign='right';ctx.fillText('КОМБО '+combatCombo+'/4',bx+barW,by+20);}
+      ctx.restore();
+    }
   }
   function drawExplorer(camX,camY,time){
     const x=41*TILE+16-camX,y=21*TILE+16-camY;
