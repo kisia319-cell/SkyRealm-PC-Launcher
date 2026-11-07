@@ -311,7 +311,7 @@ const movementDeclaration = game.indexOf('const movementKey =', keydownStart);
 const movementUse = game.indexOf('if (editTarget && !formTarget && movementKey', keydownStart);
 assert.ok(keydownStart >= 0 && movementDeclaration > keydownStart && movementUse > movementDeclaration,
   'movementKey must be declared before it is used; otherwise every keydown throws a temporal-dead-zone ReferenceError');
-assert.ok(game.includes("!editTarget.closest?.('[hidden], [aria-hidden=\"true\"]')"),
+assert.ok(game.includes("!editTargetNode.closest?.('[hidden], [aria-hidden=\"true\"]')"),
   'Hidden form controls must not swallow movement input after dialogs close');
 
 assert.ok(game.includes("window.addEventListener('keyup', e => {") && game.includes("keys.delete(released)"), 'Keyboard releases must clear movement keys at window level');
