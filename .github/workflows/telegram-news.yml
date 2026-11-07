@@ -1,0 +1,150 @@
+name: Telegram SkyRealm News
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: telegram-skyrealm-news
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish-news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare and publish Telegram news
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: "@SkyRealmGame"
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.sha }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import html
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          import urllib.request
+
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          if not token:
+              print("TELEGRAM_BOT_TOKEN is not configured; Telegram publishing is skipped.")
+              sys.exit(0)
+
+          def git(*args):
+              return subprocess.check_output(["git", *args], text=True).strip()
+
+          event = os.environ["EVENT_NAME"]
+          repo = os.environ["REPOSITORY"]
+          head = os.environ["HEAD_SHA"]
+
+          if event == "release":
+              title = os.environ.get("RELEASE_NAME") or os.environ.get("RELEASE_TAG") or "Новое обновление SkyRealm"
+              body = os.environ.get("RELEASE_BODY", "").strip()
+              text = (
+                  "🚀 <b>Вышло новое обновление SkyRealm!</b>\n\n"
+                  f"<b>{html.escape(title)}</b>"
+              )
+              if body:
+                  text += "\n\n" + html.escape(body[:2800])
+              tag = os.environ.get("RELEASE_TAG", "")
+              if tag:
+                  text += f"\n\n<a href=\"https://github.com/{repo}/releases/tag/{html.escape(tag, quote=True)}\">Открыть релиз</a>"
+              processed_sha = head
+          else:
+              try:
+                  subprocess.run(
+                      ["git", "fetch", "origin", "telegram-news-state:refs/remotes/origin/telegram-news-state"],
+                      check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                  )
+                  base = git("rev-parse", "origin/telegram-news-state")
+              except Exception:
+                  try:
+                      base = git("rev-parse", f"{head}^")
+                  except Exception:
+                      base = head
+
+              if base == head:
+                  print("No new commits to announce.")
+                  sys.exit(0)
+
+              raw = git("log", "--reverse", "--format=%H%x1f%s", f"{base}..{head}")
+              commits = []
+              for line in raw.splitlines():
+                  if "\x1f" in line:
+                      sha, subject = line.split("\x1f", 1)
+                      commits.append((sha, subject.strip()))
+
+              if not commits:
+                  print("No new commits to announce.")
+                  sys.exit(0)
+
+              major_pattern = re.compile(
+                  r"(\[major\]|\[важно\]|крупн\w* обновлен|^feat\s*:|^feature\s*:|^major\s*:|^release\s*:)",
+                  re.IGNORECASE
+              )
+              has_major = any(major_pattern.search(subject) for _, subject in commits)
+
+              if not has_major and len(commits) < 5:
+                  print(f"Collected {len(commits)} small changes; waiting for at least 5.")
+                  sys.exit(0)
+
+              selected = commits if has_major else commits[:7]
+              processed_sha = selected[-1][0]
+              lines = "\n".join("• " + html.escape(subject) for _, subject in selected)
+              heading = "✨ <b>Важное обновление SkyRealm</b>" if has_major else "🛠 <b>Дайджест разработки SkyRealm</b>"
+              intro = (
+                  "Вышло крупное изменение проекта:"
+                  if has_major else
+                  f"Собрали {len(selected)} небольших изменений в один выпуск:"
+              )
+              compare = f"https://github.com/{repo}/compare/{base}...{processed_sha}"
+              text = f"{heading}\n\n{intro}\n\n{lines}\n\n<a href=\"{compare}\">Посмотреть изменения</a>"
+
+          if len(text) > 3900:
+              text = text[:3850] + "\n\n…"
+
+          payload = json.dumps({
+              "chat_id": os.environ["TELEGRAM_CHAT_ID"],
+              "text": text,
+              "parse_mode": "HTML",
+              "disable_web_page_preview": True
+          }).encode("utf-8")
+          request = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data=payload,
+              headers={"Content-Type": "application/json"},
+              method="POST"
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              result = json.loads(response.read().decode("utf-8"))
+          if not result.get("ok"):
+              raise RuntimeError("Telegram API rejected the message: " + str(result))
+
+          print("Telegram message published successfully.")
+
+          subprocess.run(
+              ["git", "push", "--force", "origin", f"{processed_sha}:refs/heads/telegram-news-state"],
+              check=True
+          )
+          print("News cursor updated to " + processed_sha)
+          PY
