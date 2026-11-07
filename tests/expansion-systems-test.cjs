@@ -13,7 +13,8 @@ assert.ok(game.includes('window.SkyRealmExpansionSystems?.importState?.(d?.expan
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.update?.(dt)'),'Expansion systems must update with the game world');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.damageMultiplier?.()||1'),'Equipped relics must affect player weapon damage');
 assert.ok(game.includes('window.SkyRealmExpansionSystems?.defenseBonus?.()||0'),'Equipped relics must affect player defense');
-assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall','tech-guardpost','tech-trap'"),'Technology structures must load from world saves');
+assert.ok(game.includes("'tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall','tech-guardpost','tech-trap','tech-solar','tech-processor'"),'All technology structures must load from world saves');
+assert.ok(game.includes("s.type==='tech-solar'")&&game.includes("s.type==='tech-processor'"),'Solar and ore processor buildings must be visibly rendered');
 assert.ok(game.includes("s.type==='tech-generator'"),'Placed technology buildings must be drawn in the world');
 assert.ok(game.includes('placeExpansionStructure:type=>'),'Technology placement API must be connected to the game world');
 assert.ok(game.includes("'guardpost','trap','drill'"),'Guard barracks and electric traps must be accepted as real world structures');
@@ -43,10 +44,11 @@ const document={
   addEventListener(){}
 };
 const inventory={
-  'Древесина':500,'Камень':500,'Железо':500,'Медь':500,'Кристалл':100,'Уголь':100,'Мифрил':50,'Серебро':100
+  'Древесина':500,'Камень':500,'Железо':500,'Медь':500,'Кристалл':100,'Уголь':100,'Мифрил':50,'Серебро':100,'Алмаз':100,'Уран':100,'Рубин':100,'Сапфир':100
 };
 const rewards={gold:100000,items:{},damage:0,saves:0,toasts:[]};
 const worldStructures=[];
+const professionRecords=[];
 let allowPlacement=true;
 let failSpendName='';
 let failGold=false;
@@ -67,6 +69,8 @@ const bridge={
   clearEventEnemies:()=>{activeEventEnemies=0;},
   getChallengeSnapshot:()=>({...snapshot,items:{...inventory},level:20,hp:100}),
   getGameMinuteTotal:()=>gameMinuteTotal,
+  isModInstalled:()=>false,
+  recordProfession:(id,count=1)=>{professionRecords.push([id,count]);return true;},
   getDifficulty:()=>snapshot.difficulty,
   isNightTime:()=>night,
   getStats:()=>({level:20,hp:100,weaponDamage:2500,gold:Math.floor(rewards.gold/100),difficulty:snapshot.difficulty}),
@@ -126,12 +130,29 @@ assert.equal(api.research(),true,'Second technology research unlocks industrial 
 assert.equal(api.build('drill'),true,'Research II unlocks the automatic mining drill');
 assert.equal(api.research(),true,'Third technology research unlocks energy shields');
 assert.equal(api.build('shield'),true,'Research III unlocks the settlement power shield');
+assert.equal(api.build('solar'),true,'Research II unlocks real solar panels');
+assert.equal(api.getState().grid.solarPanels,1,'Solar panel count is saved in the technology grid');
+assert.ok(worldStructures.includes('solar'),'Solar panel must be placed in the world');
 api.update(30);
 assert.ok(api.getState().power>0,'Fueled generator must produce electricity');
 assert.ok(inventory['Уголь']<100,'Generator must consume actual fuel');
 const stoneBeforeDrill=inventory['Камень'];
 for(let i=0;i<30;i++)api.update(1);
 assert.ok(inventory['Камень']>stoneBeforeDrill,'Powered mining drill must add real stone to inventory');
+const powerBeforeSolar=api.getState().power;
+assert.equal(api.research(),true,'Research IV unlocks advanced industry');
+assert.equal(api.build('processor'),true,'Research IV unlocks the ore processor');
+assert.equal(api.getState().grid.processors,1,'Ore processor count is saved');
+assert.ok(worldStructures.includes('processor'),'Ore processor must be placed in the real world');
+assert.equal(api.research(),true,'Research V unlocks deeper industrial processing');
+assert.equal(api.research(),true,'Research VI completes the engineering tree');
+assert.equal(api.getState().research,6,'Research progression must reach level 6');
+const ironBeforeProcessor=inventory['Железо'],copperBeforeProcessor=inventory['Медь'];
+for(let i=0;i<55;i++)api.update(1);
+assert.ok(inventory['Железо']>ironBeforeProcessor,'Ore processor must convert stone and coal into iron');
+assert.ok(inventory['Медь']>copperBeforeProcessor,'Ore processor must also produce copper');
+assert.ok(professionRecords.some(v=>v[0]==='technologist'),'Research and technology work must advance the technologist profession');
+assert.ok(api.getState().power>0,'Solar and fuel generation must keep a working energy grid');
 
 assert.equal(api.startEvent('invasion',3),true,'A night siege event can start');
 assert.equal(api.getState().event.x,100,'World event must store a physical location');
