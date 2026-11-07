@@ -2225,6 +2225,8 @@ function setupVillageNpcs(){
     for(const m of mineCreatures){if(m.hp<=0)continue;const p=mineCreatureScreenPosition(m),x=p.x,y=p.y,bob=Math.sin(time/230+m.phase)*2.4;ctx.save();ctx.translate(x,y+bob);ctx.scale(p.zoom,p.zoom);
       ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,13,19,7,0,0,Math.PI*2);ctx.fill();
       if(m.kind==='bat'){const wing=Math.sin(time/95+m.phase)*8;ctx.fillStyle=m.flash>0?'#fff0dc':'#40364f';ctx.beginPath();ctx.moveTo(-4,-1);ctx.quadraticCurveTo(-18,-20-wing,-29,-8);ctx.quadraticCurveTo(-24,8,-8,7);ctx.lineTo(0,3);ctx.lineTo(8,7);ctx.quadraticCurveTo(24,8,29,-8);ctx.quadraticCurveTo(18,-20+wing,4,-1);ctx.closePath();ctx.fill();ctx.fillStyle='#a59ab5';ctx.beginPath();ctx.arc(0,-3,10,0,Math.PI*2);ctx.fill();}
+      else if(m.kind==='golem'){ctx.fillStyle=m.flash>0?'#fff0dc':'#626b70';ctx.beginPath();ctx.moveTo(-18,11);ctx.lineTo(-16,-11);ctx.lineTo(-8,-19);ctx.lineTo(10,-17);ctx.lineTo(20,-5);ctx.lineTo(17,13);ctx.lineTo(-12,16);ctx.closePath();ctx.fill();ctx.fillStyle='#929b9a';ctx.fillRect(-11,-12,22,9);ctx.fillStyle='#ff9c62';ctx.fillRect(-9,-5,5,4);ctx.fillRect(5,-5,5,4);ctx.fillStyle='#3d4549';ctx.fillRect(-13,12,8,9);ctx.fillRect(6,12,8,9);}
+      else if(m.kind==='spider'){ctx.strokeStyle='#8c70a8';ctx.lineWidth=3;for(let leg=0;leg<4;leg++){const side=leg<2?-1:1,dy=leg%2?8:-7;ctx.beginPath();ctx.moveTo(side*7,2);ctx.lineTo(side*(17+leg*2),dy-5);ctx.lineTo(side*(23+leg*2),dy+5);ctx.stroke();}ctx.fillStyle=m.flash>0?'#fff0dc':'#51405f';ctx.beginPath();ctx.ellipse(0,3,13,10,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9ef3ff';ctx.fillRect(-6,-2,4,3);ctx.fillRect(3,-2,4,3);}
       else{ctx.fillStyle=m.flash>0?'#fff0dc':'#59483c';ctx.beginPath();ctx.ellipse(0,2,19,13,-.08,0,Math.PI*2);ctx.fill();ctx.fillStyle='#76634f';ctx.beginPath();ctx.arc(-10,-8,7,0,Math.PI*2);ctx.arc(9,-8,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#42352e';ctx.fillRect(-13,8,5,8);ctx.fillRect(8,8,5,8);}
       ctx.fillStyle=m.kind==='bat'?'#ff8d69':'#ffbd65';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=9;ctx.beginPath();ctx.arc(-5,-3,2.5,0,Math.PI*2);ctx.arc(5,-3,2.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();
       if(m.hp<m.maxHp){ctx.fillStyle='#171b24';ctx.fillRect(x-17,y-27,34,4);ctx.fillStyle='#e46b59';ctx.fillRect(x-17,y-27,34*Math.max(0,m.hp/m.maxHp),4);}
@@ -4740,8 +4742,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const grants=document.getElementById('menu-privileges');if(grants)grants.hidden=!(publicStaffGrantsEnabled||staffBootstrapAvailable||admin);
   }
   function generateMineStock(dayIndex=0){
-    const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);ensureMineMaze();
-    // Deep mine levels add more deposits and unlock more valuable ores.
+    const seed=mineSeed+(dayIndex*7919)+(mineDepth*313)+(mineLevel*104729);ensureMineMaze();
+    // Floor depth changes the layout; valuable ore tiers still require manual mine upgrades.
+    const oreTier=Math.max(1,Math.min(8,mineLevel,mineDepth));
     const nodeCount=Math.min(52,24+(Math.max(1,mineLevel)-1)*4);
     mineRocks=Array.from({length:nodeCount},(_,i)=>{
       let ore;const roll=Math.min(.999,hash(i+seed,19)+(isModInstalled('geology_scanner')?.10:0));
@@ -4760,7 +4763,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     mineHoverIndex=-1;if(typeof generateMineFeatures==='function')generateMineFeatures(dayIndex);
   }
   function generateMineFeatures(dayIndex=0){
-    const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);
+    const seed=mineSeed+(dayIndex*7919)+(mineDepth*313)+(mineLevel*104729);
     const barrelCount=Math.min(11,5+Math.floor((mineLevel-1)/2));
     mineBarrels=Array.from({length:barrelCount},(_,i)=>{const p=mineFeaturePoint(i,seed,101);return {id:'barrel-'+seed+'-'+i,x:p.x,y:p.y,hp:2,maxHp:2,coal:1+Math.floor(hash(i+seed,61)*2),stone:1+Math.floor(hash(i+seed,67)*3)};});
     const groupCount=Math.min(9,3+Math.floor((mineLevel-1)/2));let index=0;mineCreatures=[];
