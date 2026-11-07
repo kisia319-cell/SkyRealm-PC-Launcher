@@ -2074,10 +2074,15 @@ function setupVillageNpcs(){
   function mineCreatureScreenPosition(m){const p=mineFeatureWorldPosition(m);return mineWorldToScreen(p.x,p.y);}
   function mineMovePlayer(mx,my,speed,dt){
     if(mx&&my){mx*=.7071;my*=.7071;}
-    const stepX=mx*speed*dt,stepY=my*speed*dt,r=10;
-    const can=(x,y)=>mineCellWalkable(...[mineCellFromWorld(x-r,y-r).x,mineCellFromWorld(x-r,y-r).y])&&mineCellWalkable(...[mineCellFromWorld(x+r,y-r).x,mineCellFromWorld(x+r,y-r).y])&&mineCellWalkable(...[mineCellFromWorld(x-r,y+r).x,mineCellFromWorld(x-r,y+r).y])&&mineCellWalkable(...[mineCellFromWorld(x+r,y+r).x,mineCellFromWorld(x+r,y+r).y]);
-    if(stepX&&can(minePlayerX+stepX,minePlayerY))minePlayerX+=stepX;
-    if(stepY&&can(minePlayerX,minePlayerY+stepY))minePlayerY+=stepY;
+    const totalX=mx*speed*dt,totalY=my*speed*dt,r=10,steps=Math.max(1,Math.ceil(Math.max(Math.abs(totalX),Math.abs(totalY))/6)),stepX=totalX/steps,stepY=totalY/steps;
+    const can=(x,y)=>{
+      const a=mineCellFromWorld(x-r,y-r),b=mineCellFromWorld(x+r,y-r),c=mineCellFromWorld(x-r,y+r),d=mineCellFromWorld(x+r,y+r);
+      return mineCellWalkable(a.x,a.y)&&mineCellWalkable(b.x,b.y)&&mineCellWalkable(c.x,c.y)&&mineCellWalkable(d.x,d.y);
+    };
+    for(let i=0;i<steps;i++){
+      if(stepX&&can(minePlayerX+stepX,minePlayerY))minePlayerX+=stepX;
+      if(stepY&&can(minePlayerX,minePlayerY+stepY))minePlayerY+=stepY;
+    }
   }
   function mineNextStepTowardPlayer(from){
     const goal=mineCellFromWorld(minePlayerX,minePlayerY),key=(x,y)=>y*MINE_MAZE_COLS+x;
