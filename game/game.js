@@ -4253,10 +4253,10 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     }
     const coopRoomState=window.SkyRealmCoopClient?.getRoomState?.();
     const coopRoomPaused=coopRoomState?.status==='paused';
-    // A paused world is static behind its DOM overlay: do not redraw the entire canvas.
-    if((paused||coopRoomPaused)&&currentWorldId&&!inMainMenu){requestAnimationFrame(tick);return;}
+    // Co-op room pause stops shared actions and the authoritative clock, but it must not freeze local player movement.
+    if(paused&&currentWorldId&&!inMainMenu){requestAnimationFrame(tick);return;}
     updateVisualEffects(dt);
-    if (!paused && !coopRoomPaused && !signDialogOpen && !inventoryDialogOpen && !fullMapOpen && !workbenchDialogOpen) {
+    if (!paused && !signDialogOpen && !inventoryDialogOpen && !fullMapOpen && !workbenchDialogOpen) {
       updateMagic(dt);bossRealmInvisibleTimer=Math.max(0,bossRealmInvisibleTimer-dt);bossRealmInvisibilityCooldown=Math.max(0,bossRealmInvisibilityCooldown-dt);bossRealmDamageBoostTimer=Math.max(0,bossRealmDamageBoostTimer-dt);bossRealmAbilityCooldown=Math.max(0,bossRealmAbilityCooldown-dt);bossRealmSprintTimer=Math.max(0,bossRealmSprintTimer-dt);bossRealmSprintCooldown=Math.max(0,bossRealmSprintCooldown-dt);playerAttackCooldown=Math.max(0,playerAttackCooldown-dt);combatAbilityCooldown=Math.max(0,combatAbilityCooldown-dt);dodgeCooldown=Math.max(0,dodgeCooldown-dt);dodgeTimer=Math.max(0,dodgeTimer-dt);
       if(sleeping){sleepSeconds+=dt;if(sleepSeconds>=5){sleeping=false;questStage=Math.max(questStage,4);const oldMinute=minuteOfDay(),oldDay=Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY);gameMinuteTotal=(oldMinute<DAWN_MINUTE?oldDay:oldDay+1)*GAME_MINUTES_PER_DAY+DAWN_MINUTE;if(oldMinute>=18*60&&oldMinute<NIGHT_MINUTE)survivedNights++;refreshMineDailyStock();lastDawnMarker=Math.floor((gameMinuteTotal-DAWN_MINUTE)/GAME_MINUTES_PER_DAY);wasNight=isNightTime();monsters.length=0;player.hp=100;updateVitals();updateClockDisplay(true);toast('Ты проспал 5 секунд. Наступил рассвет!');saveGame();}}
       updateWorldClock(dt);updateNemesisEvents();updateVillageNpcs(dt);updateVillageRaid(dt);strengthPotionTimer=Math.max(0,strengthPotionTimer-dt);wardPotionTimer=Math.max(0,wardPotionTimer-dt);speedPotionTimer=Math.max(0,speedPotionTimer-dt);if(healPotionTimer>0){const healNow=Math.min(healPotionRemaining,12*dt,Math.max(0,100-player.hp));if(healNow>0){player.hp=Math.min(100,player.hp+healNow);healPotionRemaining=Math.max(0,healPotionRemaining-healNow);updateVitals();}healPotionTimer=Math.max(0,healPotionTimer-dt);if(healPotionTimer<=0||healPotionRemaining<=0||player.hp>=100){healPotionTimer=0;healPotionRemaining=0;}}updateQuarrySystem(dt);updateWorldEvents(dt);updateFishing(dt);updateBiomeBosses(dt);
@@ -4658,7 +4658,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function returnToMainMenu(){
     if(currentWorldId){saveGame();recordAdventureHistory();}
     const network=window.SkyRealmCoopClient,room=network?.getRoomState?.();
-    if(saveKey.startsWith('skyrealm_coop_save_v1_')&&network?.isRoomOwner&&room?.status==='running')network.pauseRoom().catch(error=>console.warn('[SkyRealm co-op host pause]',error));
+    // Returning to the main menu is local navigation; it must not pause the shared room.
     inMainMenu=true;paused=true;keys.clear();pressedMovementCodes.clear();document.getElementById('main-menu-shade').hidden=false;document.getElementById('main-menu-shade').setAttribute('aria-hidden','false');document.getElementById('pause-shade').hidden=true;document.getElementById('pause-settings-view').hidden=true;document.getElementById('pause-main-view').hidden=false;renderWorldList();drawMinimap();
   }
   function openSettingsFromMainMenu(){
