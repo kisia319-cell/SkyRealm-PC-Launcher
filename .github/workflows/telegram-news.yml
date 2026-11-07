@@ -112,7 +112,7 @@ jobs:
               has_major = any(major_pattern.search(subject) for _, subject in commits)
 
               medium_pattern = re.compile(
-                  r"(\\[medium\\]|\\[среднее\\]|^medium\\s*:|^среднее\\s*:)",
+                  r"(\[medium\]|\[среднее\]|^medium\s*:|^среднее\s*:)",
                   re.IGNORECASE
               )
               batch = commits[:7]
