@@ -634,9 +634,49 @@
   let attackAnimTimer=0, combatAbilityCooldown=0, weatherMode='clear', weatherTimer=75, weatherFlash=0, ambientTime=0;
   // Combat Arts: separate combat state; player movement and collision logic remain unchanged.
   let combatCombo=0,combatComboTimer=0,combatEnergy=0,combatPerfectDodge=0,combatGuardTimer=0,combatParryTimer=0,combatGuardCooldown=0,combatCurrentDamage=1,combatWeaponTrail=0;
+  let combatCinematic=null,combatCinematicImpactFlash=0,combatCameraShake=0,combatUltimateCooldown=0;
   const COMBAT_STYLES={'Огненный меч':['#ff713d','Пламенный разрез'],'Ледяной посох':['#8beaff','Ледяной всплеск'],'Молниеносное копьё':['#ffe66d','Цепной разряд'],'Деревянный меч':['#d8c39b','Рубящий удар']};
   function combatStyle(){return COMBAT_STYLES[equipment.weapon]||['#e8f5ff','Удар оружием'];}
   function combatWeaponDamage(weapon){return weaponDamage(weapon)*combatCurrentDamage;}
+  function spawnCombatBurst(x,y,count,kind,color){
+    const quality=gameSettings.graphicsQuality||'medium';
+    const scale=quality==='low'?.38:quality==='medium'?.68:1;
+    spawnVisualBurst(x,y,Math.max(3,Math.round(count*scale)),kind,color);
+  }
+  function resolveCombatUltimate(){
+    const style=combatStyle(),reach=weaponRange()+135;let hits=0,kills=0;
+    const targets=[...monsters].filter(m=>m&&m.hp>0&&!m.exploding&&Math.hypot(m.x-player.x,m.y-player.y)<=reach);
+    for(const mob of targets){
+      const distance=Math.hypot(mob.x-player.x,mob.y-player.y),falloff=distance>reach*.72?.82:1;
+      const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.1)*2.7*falloff);
+      mob.hp=Math.max(0,mob.hp-damage);mob.flash=.42;hits++;
+      spawnCombatBurst(mob.x,mob.y,38,'spark',style[0]);spawnCombatBurst(mob.x,mob.y,18,'dust','#f6fbff');
+      if(mob.hp<=0){if(mob.bossRealmCreature)recordBossRealmDefeat(mob);const ix=monsters.indexOf(mob);if(ix>=0)monsters.splice(ix,1);dropMonsterLoot(mob);kills++;}
+    }
+    for(const def of biomeBossDefs()){
+      const boss=biomeBosses[def.id];if(!boss?.active||boss.defeated||Math.hypot(player.x-def.x,player.y-def.y)>reach)continue;
+      const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*2.7*(boss.combatPhase===3?1.18:1));
+      boss.hp=Math.max(0,boss.hp-damage);boss.flash=.48;hits++;
+      spawnCombatBurst(def.x,def.y,52,'spark',style[0]);spawnCombatBurst(def.x,def.y,24,'dust','#ffffff');
+      if(boss.hp<=0)defeatBiomeBoss(def,boss);
+    }
+    if(dungeonMode&&typeof dungeonBossHp==='number'&&dungeonBossHp>0){
+      const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*2.7);dungeonBossHp=Math.max(0,dungeonBossHp-damage);hits++;spawnCombatBurst(player.x,player.y-90,42,'spark',style[0]);
+    }
+    spawnCombatBurst(player.x,player.y,76,'spark',style[0]);spawnCombatBurst(player.x,player.y,42,'dust','#ffffff');
+    combatCinematicImpactFlash=.32;combatCameraShake=13;saveGame();
+    toast('СУПЕРУДАР · '+style[1]+' · поражено целей: '+hits+(kills?' · побеждено: '+kills:''));
+  }
+  function updateCombatCinematic(realDt){
+    combatCinematicImpactFlash=Math.max(0,combatCinematicImpactFlash-realDt);
+    combatCameraShake=Math.max(0,combatCameraShake-realDt*28);
+    combatUltimateCooldown=Math.max(0,combatUltimateCooldown-realDt);
+    if(!combatCinematic?.active)return;
+    combatCinematic.elapsed+=realDt;
+    if(!combatCinematic.hitDone&&combatCinematic.elapsed>=combatCinematic.hitAt){combatCinematic.hitDone=true;resolveCombatUltimate();}
+    if(combatCinematic.elapsed>=combatCinematic.duration){combatCinematic.active=false;combatCinematic=null;}
+  }
+
   function combatBeginStrike(){
     combatCombo=combatComboTimer>0?combatCombo%4+1:1;combatComboTimer=1.45;
     combatCurrentDamage=[1,1.08,1.18,1.38][combatCombo-1]*(combatPerfectDodge>0?1.65:1);
@@ -655,10 +695,15 @@
   function startCombatGuard(){if(paused||inMainMenu||combatGuardCooldown>0||mineMode)return;combatGuardTimer=.62;combatParryTimer=.2;combatGuardCooldown=1.05;spawnVisualBurst(player.x,player.y,10,'spark','#9bdcff');toast('БЛОК · точное нажатие C перед ударом парирует атаку.');}
   function useCombatUltimate(){
     if(combatEnergy<100){toast('Боевая энергия: '+Math.floor(combatEnergy)+'% · набирай её ударами, уклонениями и парированиями.');return;}
-    const style=combatStyle(),reach=weaponRange()+115;combatEnergy=0;let hits=0,kills=0;
-    for(const mob of [...monsters]){if(!mob||mob.hp<=0||Math.hypot(mob.x-player.x,mob.y-player.y)>reach)continue;mob.hp=Math.max(0,mob.hp-Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.1)*2.35));mob.flash=.25;hits++;spawnVisualBurst(mob.x,mob.y,28,'spark',style[0]);if(mob.hp<=0){if(mob.bossRealmCreature)recordBossRealmDefeat(mob);const ix=monsters.indexOf(mob);if(ix>=0)monsters.splice(ix,1);dropMonsterLoot(mob);kills++;}}
-    for(const def of biomeBossDefs()){const boss=biomeBosses[def.id];if(!boss?.active||boss.defeated||Math.hypot(player.x-def.x,player.y-def.y)>reach)continue;boss.hp=Math.max(0,boss.hp-Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*2.35));boss.flash=.3;spawnVisualBurst(def.x,def.y,36,'spark',style[0]);hits++;if(boss.hp<=0)defeatBiomeBoss(def,boss);}
-    spawnVisualBurst(player.x,player.y,58,'spark',style[0]);spawnVisualBurst(player.x,player.y,36,'dust','#ffffff');toast('СУПЕРУДАР · '+style[1]+' · целей: '+hits+(kills?' · побеждено: '+kills:''));saveGame();
+    if(combatUltimateCooldown>0||combatCinematic?.active)return;
+    const style=combatStyle(),reach=weaponRange()+135;
+    const candidates=[...monsters.filter(m=>m&&m.hp>0&&!m.exploding),...biomeBossDefs().map(d=>({x:d.x,y:d.y,hp:biomeBosses[d.id]?.hp||0,bossDef:d})).filter(m=>m.hp>0)];
+    const target=candidates.filter(m=>Math.hypot(m.x-player.x,m.y-player.y)<=reach).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
+    const forward={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]}[player.face]||[0,1];
+    const fx=target?(player.x+target.x)*.5:player.x+forward[0]*100,fy=target?(player.y+target.y)*.5:player.y+forward[1]*100;
+    combatEnergy=0;combatUltimateCooldown=2.8;combatCinematic={active:true,elapsed:0,duration:2.35,hitAt:1.28,hitDone:false,focusX:fx,focusY:fy,style:style[0],name:style[1]};
+    combatWeaponTrail=.75;attackAnimTimer=.75;spawnCombatBurst(player.x,player.y,28,'dust','#dceeff');spawnCombatBurst(player.x,player.y,18,'spark',style[0]);
+    toast('КИНОУДАР · '+style[1]+' · замедление 0.5×');
   }
 
   const GAME_VERSION = document.querySelector('meta[name="skyrealm-game-version"]')?.content || '0.20.50.52';
@@ -1631,6 +1676,16 @@ function setupVillageNpcs(){
     ctx.fillStyle='#285b43';ctx.fillRect(0,0,width,height);
     const camX=Math.max(0,Math.min(COLS*TILE-width,player.x-width/2));
     const camY=Math.max(0,Math.min(ROWS*TILE-height,player.y-height/2));
+    let cinematicZoom=1,cinematicShakeX=0,cinematicShakeY=0;
+    if(combatCinematic?.active){
+      const p=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
+      cinematicZoom=1+Math.sin(Math.PI*p)*.52;
+      const focusX=combatCinematic.focusX-camX,focusY=combatCinematic.focusY-camY;
+      const shake=combatCinematicImpactFlash>0?combatCameraShake:1.8;
+      cinematicShakeX=(Math.random()-.5)*shake;cinematicShakeY=(Math.random()-.5)*shake;
+      ctx.save();ctx.translate(width/2+cinematicShakeX,height/2+cinematicShakeY);ctx.scale(cinematicZoom,cinematicZoom);ctx.translate(-focusX,-focusY);
+    }else ctx.save();
+
     const x0=Math.max(0,Math.floor(camX/TILE)),x1=Math.min(COLS,Math.ceil((camX+width)/TILE));
     const y0=Math.max(0,Math.floor(camY/TILE)),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE));
     for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
@@ -2324,6 +2379,24 @@ function setupVillageNpcs(){
     if(gameSettings.graphicsQuality!=='low') drawFireflies(camX,camY,time);
     drawDayNightOverlay(camX,camY);
     updateObjective();
+    ctx.restore();
+    drawCombatCinematicOverlay(time);
+  }
+  function drawCombatCinematicOverlay(time){
+    if(!combatCinematic?.active&&!combatCinematicImpactFlash)return;
+    ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+    const p=combatCinematic?Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration)):1;
+    const intensity=combatCinematic?Math.sin(Math.PI*p):0;
+    if(combatCinematic){
+      const bar=Math.min(height*.12,34+intensity*24);
+      ctx.fillStyle='rgba(2,5,12,'+(0.68+intensity*.2)+')';ctx.fillRect(0,0,width,bar);ctx.fillRect(0,height-bar,width,bar);
+      const cx=width*.5,cy=height*.5,edge=ctx.createRadialGradient(cx,cy,Math.min(width,height)*.2,cx,cy,Math.max(width,height)*.72);
+      edge.addColorStop(0,'rgba(0,0,0,0)');edge.addColorStop(1,'rgba(0,0,0,'+(.12+intensity*.28)+')');ctx.fillStyle=edge;ctx.fillRect(0,0,width,height);
+      if(intensity>.15){ctx.save();ctx.globalAlpha=intensity*.24;ctx.strokeStyle=combatCinematic.style;ctx.lineWidth=2;for(let n=0;n<18;n++){const a=n*Math.PI/9+time*.0002,r=Math.max(width,height)*(.35+(n%3)*.1);ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r*.18,cy+Math.sin(a)*r*.18);ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);ctx.stroke();}ctx.restore();}
+      ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#ffffff';ctx.shadowColor=combatCinematic.style;ctx.shadowBlur=14;ctx.fillText(combatCinematic.hitDone?'УДАР!':combatCinematic.name.toUpperCase(),width/2,height-Math.min(height*.12,34+intensity*24)+22);ctx.shadowBlur=0;
+    }
+    if(combatCinematicImpactFlash>0){ctx.fillStyle='rgba(255,255,255,'+Math.min(.42,combatCinematicImpactFlash*1.25)+')';ctx.fillRect(0,0,width,height);}
+    ctx.restore();
   }
   const MINE_MAZE_COLS=21,MINE_MAZE_ROWS=15,MINE_CELL_SIZE=44;
   function generateMineMaze(){
@@ -4746,8 +4819,10 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     }
   }
   function tickFrame(now){
-    const dt = Math.min(.04, (now-last)/1000);
-    last = now;
+    const realDt=Math.min(.04,(now-last)/1000);
+    updateCombatCinematic(realDt);
+    const dt=realDt*(combatCinematic?.active?.5:1);
+    last=now;
     ambientTime=now;
     // The animated main menu is DOM/CSS-driven. Keep its visual scene responsive
     // without simulating an invisible world or redrawing the hidden game canvas.
