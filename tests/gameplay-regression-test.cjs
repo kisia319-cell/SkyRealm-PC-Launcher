@@ -57,7 +57,9 @@ assert.ok(day3.every(rock => rock.hp === 2 && rock.maxHp === 2));
 assert.equal(stock(3, 5, 5).length, 40, 'The highest mine upgrade must provide the expanded node count.');
 const deepOre = new Set(stock(3, 5, 5).map(rock => rock.ore));
 const lockedOre = new Set(stock(3, 1, 5).map(rock => rock.ore));
+const upgradedShallowOre = new Set(stock(3, 5, 1).map(rock => rock.ore));
 assert.ok(!lockedOre.has('Мифрил')&&!lockedOre.has('Уран')&&!lockedOre.has('Алмаз'),'Going deeper must not unlock high-tier ore without manually upgrading the mine.');
+assert.ok(upgradedShallowOre.has('Мифрил')&&upgradedShallowOre.has('Уран')&&upgradedShallowOre.has('Алмаз'),'Manual mine upgrades must unlock higher-tier ores even before descending.');
 assert.notDeepEqual(stock(3,5,5),stock(3,5,4),'Each floor depth must have different ore locations.');
 for (const ore of ['Мифрил','Уран','Алмаз']) assert.ok(deepOre.has(ore), 'Deep mines must include ' + ore + ' for the tested seed.');
 
