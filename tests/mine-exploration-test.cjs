@@ -108,7 +108,7 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.match(source,/Jagged host rock with a dark bevel/,'Ore deposits must have layered rock faces and mineral facets.');
  assert.match(source,/Occasional ceiling stalactites hang over the dark rock/,'Mine walls must include ceiling formations.');
  assert.match(source,/A handful of animated lantern pools and drifting dust motes/,'Mine atmosphere must include lantern lighting and dust.');assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));
- assert.match(source,/function drawMineSkyWindow\\(/,'Mine must show a visible moon or sun through a ceiling opening.');
+ assert.match(source,/function drawMineSkyWindow\(/,'Mine must show a visible moon or sun through a ceiling opening.');
  assert.ok(source.includes('mineDepth,mineLevel'),'Mine saves must keep floor depth separate from manual upgrade level.');
  assert.ok(source.includes('mineDepth++'),'Descending must change depth without automatically upgrading the mine.');
  assert.ok(source.includes('const oreTier=Math.max(1,Math.min(8,mineLevel,mineDepth))'),'Ore rarity must be limited by manual upgrade and current depth.');
