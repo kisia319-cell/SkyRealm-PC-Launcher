@@ -17,7 +17,7 @@ const tests=[];function testCase(name,fn){fn();tests.push(name);}
 function fixture(){
  const events={jobs:[],xp:[],bursts:[],sounds:[],saves:0,renders:0,toasts:[]},inventory={};
  const math=Object.create(Math);math.random=()=>.2;
- const ctx={Math:math,Number,width:800,height:600,mineSeed:917,mineLevel:4,mineBarrels:[],mineCreatures:[],minePlayerAttackCooldown:0,mineMode:true,
+ const ctx={Math:math,Number,width:800,height:600,mineSeed:917,mineLevel:4,mineBarrels:[],mineCreatures:[],minePlayerAttackCooldown:0,mineMode:true,mineMaze:null,MINE_MAZE_COLS:21,MINE_MAZE_ROWS:15,MINE_CELL_SIZE:44,
   mineRockScreenPosition:r=>({x:65+(r.x/330)*(ctx.width-130),y:85+(r.y/255)*(ctx.height-150)}),
   hash:(a,b)=>{const n=Math.sin(a*12.9898+b*78.233)*43758.5453;return n-Math.floor(n);},
   spawnVisualBurst:(...v)=>events.bursts.push(v),playSound:v=>events.sounds.push(v),
@@ -28,14 +28,17 @@ function fixture(){
   mineCreatureScreenPosition:m=>({x:65+(m.x/330)*(ctx.width-130),y:85+(m.y/255)*(ctx.height-150)})};
  return {ctx,events,inventory};
 }
-testCase('mine passage map has a main gallery and four branches',()=>{
- const f=fixture();run(f.ctx,['minePassagePaths'],['minePassagePaths']);
- const paths=f.ctx.minePassagePaths();assert.equal(paths.length,12);
- assert.ok(paths.every(p=>p.length>=4));assert.equal(JSON.stringify(paths[0][0]),JSON.stringify([8,220]));
+testCase('mine is a connected generated labyrinth with an entrance and distant stairs',()=>{
+ const f=fixture();f.ctx.MINE_MAZE_COLS=21;f.ctx.MINE_MAZE_ROWS=15;f.ctx.MINE_CELL_SIZE=44;
+ run(f.ctx,['generateMineMaze','mineCellWalkable','mineCellFromWorld'],['generateMineMaze','mineCellWalkable','mineCellFromWorld']);
+ const grid=f.ctx.generateMineMaze();assert.equal(grid.length,15);assert.equal(grid[0].length,21);
+ assert.equal(f.ctx.mineCellWalkable(1,13),true);assert.equal(f.ctx.mineCellWalkable(19,1),true);
+ const seen=new Set(['1,13']),queue=[[1,13]];for(let i=0;i<queue.length;i++){const [x,y]=queue[i];for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(f.ctx.mineCellWalkable(nx,ny)&&!seen.has(k)){seen.add(k);queue.push([nx,ny]);}}}
+ assert.ok(seen.has('19,1'),'stairs must be reachable from entrance');assert.ok(seen.size>70,'maze must contain a substantial network of walkable cells');
 });
 testCase('barrels and mixed single/pair creature groups generate deterministically',()=>{
  const f=fixture();run(f.ctx,['generateMineFeatures'],['generateMineFeatures']);f.ctx.generateMineFeatures(3);
- assert.equal(f.ctx.mineBarrels.length,6);assert.equal(f.ctx.mineCreatures.length,6);
+ assert.equal(f.ctx.mineBarrels.length,5);assert.equal(f.ctx.mineCreatures.length,4);
  assert.ok(f.ctx.mineBarrels.every(b=>b.hp===2&&b.coal>=1&&b.stone>=1));
  assert.ok(f.ctx.mineCreatures.every(m=>m.hp===m.maxHp&&m.x>12&&m.x<320&&m.y>30&&m.y<238));
  const first=JSON.stringify({barrels:f.ctx.mineBarrels,creatures:f.ctx.mineCreatures});
