@@ -17,7 +17,7 @@ const tests=[];function testCase(name,fn){fn();tests.push(name);}
 function fixture(){
  const events={jobs:[],xp:[],bursts:[],sounds:[],saves:0,renders:0,toasts:[]},inventory={};
  const math=Object.create(Math);math.random=()=>.2;
- const ctx={Math:math,Number,width:800,height:600,mineSeed:917,mineLevel:4,mineBarrels:[],mineCreatures:[],minePlayerAttackCooldown:0,mineMode:true,mineMaze:null,MINE_MAZE_COLS:21,MINE_MAZE_ROWS:15,MINE_CELL_SIZE:44,
+ const ctx={Math:math,Number,width:800,height:600,mineSeed:917,mineLevel:4,mineDepth:3,mineBarrels:[],mineCreatures:[],minePlayerAttackCooldown:0,mineMode:true,mineMaze:null,MINE_MAZE_COLS:21,MINE_MAZE_ROWS:15,MINE_CELL_SIZE:44,
   mineRockScreenPosition:r=>({x:65+(r.x/330)*(ctx.width-130),y:85+(r.y/255)*(ctx.height-150)}),
   hash:(a,b)=>{const n=Math.sin(a*12.9898+b*78.233)*43758.5453;return n-Math.floor(n);},
   spawnVisualBurst:(...v)=>events.bursts.push(v),playSound:v=>events.sounds.push(v),
