@@ -102,6 +102,8 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.ok(source.includes('if (!blocked(player.x, ny)) player.y = ny;'));
  assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,mineFeaturesVersion:1,mineMazeVersion:2,quarryProgress'));
  assert.ok(source.includes('drawMinePassages()'));assert.ok(source.includes('updateMineCreatures(dt)'));
+ assert.match(source,/function drawMineBackdrop\(/,'Mine must draw a full-screen cave background behind the maze.');
+ assert.ok(source.includes('drawMineBackdrop(time);'),'Mine passage rendering must paint the cave backdrop before corridor tiles.');
  assert.match(source,/drawPlayer\(player\.x-width\/2,player\.y-height\/2,dt\)/,'Mine must render the complete player appearance and equipment instead of a placeholder body.');
  assert.match(source,/Jagged host rock with a dark bevel/,'Ore deposits must have layered rock faces and mineral facets.');
  assert.match(source,/Occasional ceiling stalactites hang over the dark rock/,'Mine walls must include ceiling formations.');
@@ -111,15 +113,16 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.match(source,/damage:10/,'New mine creatures must use the fixed 10 HP attack value.');
  assert.match(source,/Math\.hypot\(mineCreatureScreenPosition\(m\)\.x-mineHitX,mineCreatureScreenPosition\(m\)\.y-mineHitY\)<54/,'Mine creature click targets must be forgiving.');
 });
-testCase('mine barrels block player movement until destroyed and have no floating label',()=>{
+testCase('players can walk through barrels and barrels have no floating label',()=>{
  const f=fixture();f.ctx.mineBarrels=[{x:120,y:90,hp:2}];
  f.ctx.mineFeatureWorldPosition=b=>({x:b.x,y:b.y});
  f.ctx.mineCellFromWorld=()=>({x:1,y:1});f.ctx.mineCellWalkable=()=>true;
  run(f.ctx,['mineMovePlayer'],['mineMovePlayer']);
  f.ctx.minePlayerX=80;f.ctx.minePlayerY=90;f.ctx.mineMovePlayer(1,0,100,1);
- assert.ok(f.ctx.minePlayerX<95,'player must stop before reaching the solid barrel');
+ assert.ok(f.ctx.minePlayerX>120,'living barrels must not block player movement');
  f.ctx.mineBarrels[0].hp=0;f.ctx.minePlayerX=80;f.ctx.mineMovePlayer(1,0,100,1);
- assert.ok(f.ctx.minePlayerX>120,'destroyed barrels must no longer block movement');
+ assert.ok(f.ctx.minePlayerX>120,'destroyed barrels must remain non-blocking');
  assert.ok(!source.includes("fillText('БОЧКА'"),'barrels must not display a floating name label');
+ assert.ok(!source.includes("fillText('Бочка'"),'barrels must not display a capitalized floating label');
 });
 console.log('PASS '+tests.length+' mine exploration tests: '+tests.join(' | '));
