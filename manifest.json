@@ -1,8 +1,8 @@
 {
-  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-c71db03/SkyRealm_Game.zip",
+  "game_download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/download/coop-preview-2f81379/SkyRealm_Game.zip",
   "notes": "SkyRealm 0.20.50.94: empowered enemy and boss rebirth raids at the home on the next night (1.7x power per return, capped at 8.35x); distinct monster special attacks and biome-boss elemental abilities; Neptune and Leviathan rebirth events; sheep drop raw meat, which can be cooked at a placed furnace into food restoring 15 hunger; cinematic rotating island, Neptune and Leviathan scenes in the main menu. Existing worlds and saves remain compatible. Co-op remains a preview.",
   "version": "1.2.25",
-  "game_sha256": "eb568794571cf161abdef0696bb4e0d8c4808a593da5b5c6307036f4fb8a7b9b",
+  "game_sha256": "959e4287ff82ce658f0ad089c6833bba0bd9e5767f04682c49bf0d29e531837a",
   "sha256": "a43bccee3e69eced4c7cc9ea7d0d7cc269eaff8da9abe42794cab9e5af30fc66",
   "download_url": "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Update.zip",
   "game_version": "0.20.50.94",
