@@ -182,6 +182,7 @@
     else if(skill==='summon'){m.action='cast';for(let i=0;i<2;i++)spawnBossRealmCreature(['shadow_hunter','cursed_skull','rift_wolf'][Math.floor(Math.random()*3)],m.x+(i?70:-70),m.y+60);toast('Генерал бездны призывает прислужников!');}
   }
   function updateBossRealmEnemies(dt){
+    ensureBossRealmDungeonSites();
     const step=Number.isFinite(dt)?Math.max(0,Math.min(.1,dt)):0;
     for(const site of (bossRealmState.dungeonSites||[])){if(site.active&&site.remaining===0&&!monsters.some(m=>m.realmDungeonFinal&&m.realmDungeonId===site.id&&m.hp>0)){if(spawnBossRealmDungeonFinal(site,1.2+Math.min(.35,site.rematches*.08)))toast(site.name+' · хранитель вышел на арену!');}}
     bossRealmState.elapsed+=step;bossRealmState.spawnTimer-=step;bossRealmState.eventTimer-=step;bossRealmState.eventRemaining=Math.max(0,bossRealmState.eventRemaining-step);bossRealmWaveBannerTimer=Math.max(0,bossRealmWaveBannerTimer-step);
@@ -3835,6 +3836,25 @@ function setupVillageNpcs(){
   }
   async function interact(){
     if(dungeonMode){interactDungeon();return;}
+    // Resolve a house doorway before portals, arena markers or signs so nearby props cannot steal E.
+    const placedHouse=placedStructures.find(s=>s.type==='house'&&Math.abs(player.x-s.x)<34&&Math.abs(player.y-(s.y+43))<42);
+    if(placedHouse){bedSpawn={x:placedHouse.x,y:placedHouse.y+55};enteredPlacedHouse={x:placedHouse.x,y:placedHouse.y};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в свой дом. E у кровати — спать, у верстака — использовать.');saveGame();return;}
+    const hx=36*TILE-120,hy=15*TILE-120;
+    if(!bossRealmMode&&Math.abs(player.x-(hx+160))<42&&Math.abs(player.y-(hy+274))<48){bedSpawn={x:36*TILE+40,y:15*TILE+154};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в дом. E у кровати — спать, у верстака — использовать.');if(questStage<2)questStage=2;saveGame();return;}
+    if(bossRealmMode){
+      const candidates=[];
+      const portal=bossRealmPortalPosition(),portalDistance=Math.hypot(player.x-portal.x,player.y-portal.y);
+      if(portalDistance<=76)candidates.push({kind:'portal',distance:portalDistance});
+      const nearestSite=ensureBossRealmDungeonSites().map(site=>({site,distance:Math.hypot(player.x-site.x,player.y-site.y)})).filter(v=>v.distance<=76).sort((a,b)=>a.distance-b.distance)[0];
+      if(nearestSite)candidates.push({kind:'site',distance:nearestSite.distance});
+      const nearestSign=(world.signs||[]).map(sign=>({sign,distance:Math.hypot(player.x-sign.x,player.y-sign.y)})).filter(v=>v.distance<=90).sort((a,b)=>a.distance-b.distance)[0];
+      if(nearestSign)candidates.push({kind:'sign',distance:nearestSign.distance});
+      candidates.sort((a,b)=>a.distance-b.distance);
+      if(candidates[0]?.kind==='portal'){await interactBossRealmPortal();return;}
+      if(candidates[0]?.kind==='site'){interactBossRealmDungeonSite();return;}
+      if(candidates[0]?.kind==='sign'){openSignDialog();questStage=Math.max(questStage,1);return;}
+    }else if(await interactBossRealmPortal())return;
+    if(interactBossRealmDungeonSite())return;
     if(!bossRealmMode&&window.SkyRealmExpansionSystems?.interactWorldEvent?.())return;
     if(collectMeteor())return;
     if(collectWorldEventCamp())return;
@@ -3872,25 +3892,6 @@ function setupVillageNpcs(){
     if(!tradeWorldMode&&Math.hypot(player.x-(74*TILE+16),player.y-(18*TILE+16))<112){caveReturn={x:player.x,y:player.y};caveMode=true;player.x=width*.35;player.y=height*.58;player.vx=player.vy=0;caveBossX=width*.72;caveBossY=height*.30;caveBossAttackTimer=difficultyConfig().bossInterval;caveBossFlash=0;toast(caveBossDefeated?'Ты вернулся в исследованную пещеру.':'В пещере Каменный страж! Победи его, чтобы открыть сокровищницу.');return;}
     if(Math.hypot(player.x-(tradeEntranceX*TILE+16),player.y-(tradeEntranceY*TILE+16))<112){transitionTradeWorld();return;}
     if(Math.hypot(player.x-(mineTileX*TILE+16),player.y-(mineTileY*TILE+16))<112){mineMode=true;mineHoverIndex=-1;minePlayerAttackCooldown=0;mineMaze=null;ensureMineMaze();minePlayerX=1.5*MINE_CELL_SIZE;minePlayerY=(MINE_MAZE_ROWS-1.5)*MINE_CELL_SIZE;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в шахту. Выбери кирку и нажми по залежи левой кнопкой 2 раза.');return;}
-    // Resolve a house doorway before portals, arena markers or signs so nearby props cannot steal E.
-    const placedHouse=placedStructures.find(s=>s.type==='house'&&Math.abs(player.x-s.x)<34&&Math.abs(player.y-(s.y+43))<42);
-    if(placedHouse){bedSpawn={x:placedHouse.x,y:placedHouse.y+55};enteredPlacedHouse={x:placedHouse.x,y:placedHouse.y};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в свой дом. E у кровати — спать, у верстака — использовать.');saveGame();return;}
-    const hx=36*TILE-120,hy=15*TILE-120;
-    if(Math.abs(player.x-(hx+160))<42&&Math.abs(player.y-(hy+274))<48){bedSpawn={x:36*TILE+40,y:15*TILE+154};inHouse=true;player.x=210;player.y=225;player.vx=player.vy=0;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в дом. E у кровати — спать, у верстака — использовать.');if(questStage<2)questStage=2;saveGame();return;}
-    if(bossRealmMode){
-      const candidates=[];
-      const portal=bossRealmPortalPosition(),portalDistance=Math.hypot(player.x-portal.x,player.y-portal.y);
-      if(portalDistance<=76)candidates.push({kind:'portal',distance:portalDistance});
-      const nearestSite=ensureBossRealmDungeonSites().map(site=>({site,distance:Math.hypot(player.x-site.x,player.y-site.y)})).filter(v=>v.distance<=76).sort((a,b)=>a.distance-b.distance)[0];
-      if(nearestSite)candidates.push({kind:'site',distance:nearestSite.distance});
-      const nearestSign=(world.signs||[]).map(sign=>({sign,distance:Math.hypot(player.x-sign.x,player.y-sign.y)})).filter(v=>v.distance<=90).sort((a,b)=>a.distance-b.distance)[0];
-      if(nearestSign)candidates.push({kind:'sign',distance:nearestSign.distance});
-      candidates.sort((a,b)=>a.distance-b.distance);
-      if(candidates[0]?.kind==='portal'){await interactBossRealmPortal();return;}
-      if(candidates[0]?.kind==='site'){interactBossRealmDungeonSite();return;}
-      if(candidates[0]?.kind==='sign'){openSignDialog();questStage=Math.max(questStage,1);return;}
-    }else if(await interactBossRealmPortal())return;
-    if(interactBossRealmDungeonSite())return;
     const chest=treasureChests.find(c=>Math.hypot(player.x-c.x,player.y-c.y)<100);if(chest){if(chest.opened)toast('Этот сундук уже открыт.');else openTreasureChest(chest);return;}
     const s=world.signs[0];if(Math.hypot(s.x-player.x,s.y-player.y)<118){openSignDialog();questStage=Math.max(questStage,1);}else toast('Подойди к дорожному знаку или двери дома.');
   }
