@@ -27,7 +27,7 @@ jobs:
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.12.10"
 
       - name: Check required source files
         shell: pwsh
@@ -101,7 +101,10 @@ jobs:
           node tests/armor-set-test.cjs
 
       - name: Install build tools
-        run: python -m pip install --upgrade pip pywebview pyinstaller psutil
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Record exact build dependency inventory
+        run: python -m pip freeze | Out-File -FilePath build-dependencies.txt -Encoding utf8
 
       - name: Build game window executable
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
@@ -112,7 +115,7 @@ jobs:
       - name: Build launcher executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" launcher.py
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" --add-data "THIRD_PARTY_NOTICES.txt;." --add-data "ASSET_AND_LICENSE_REGISTER.md;." launcher.py
           if (-not (Test-Path "dist/SkyRealm.exe")) { throw "SkyRealm.exe was not created" }
 
       - name: Prepare update archives and manifest
@@ -130,8 +133,14 @@ jobs:
           Copy-Item "dist/SkyRealm.exe" "update_release/SkyRealm.exe" -Force
           Copy-Item "launcher_version.txt" "update_release/launcher_version.txt" -Force
           Copy-Item "README.md" "update_release/README.txt" -Force
-          Compress-Archive -Path "update_release/SkyRealm.exe","update_release/launcher_version.txt","update_release/README.txt" -DestinationPath "update_release/SkyRealm_Windows.zip" -Force
+          Copy-Item "THIRD_PARTY_NOTICES.txt" "update_release/THIRD_PARTY_NOTICES.txt" -Force
+          Copy-Item "ASSET_AND_LICENSE_REGISTER.md" "update_release/ASSET_AND_LICENSE_REGISTER.md" -Force
+          Copy-Item "requirements-build.txt" "update_release/requirements-build.txt" -Force
+          Copy-Item "build-dependencies.txt" "update_release/build-dependencies.txt" -Force
+          Compress-Archive -Path "update_release/SkyRealm.exe","update_release/launcher_version.txt","update_release/README.txt","update_release/THIRD_PARTY_NOTICES.txt","update_release/ASSET_AND_LICENSE_REGISTER.md","update_release/requirements-build.txt","update_release/build-dependencies.txt" -DestinationPath "update_release/SkyRealm_Windows.zip" -Force
 
+          Copy-Item "ASSET_AND_LICENSE_REGISTER.md" "game/ASSET_AND_LICENSE_REGISTER.md" -Force
+          Copy-Item "THIRD_PARTY_NOTICES.txt" "game/THIRD_PARTY_NOTICES.txt" -Force
           $gameVersion = (Get-Content "game/version.txt" -Raw).Trim()
           if (-not $gameVersion) { throw "game/version.txt is empty" }
           Compress-Archive -Path "game\\*" -DestinationPath "update_release/SkyRealm_Game.zip" -Force
@@ -173,7 +182,11 @@ jobs:
             "update_release/SkyRealm_Windows.zip",
             "update_release/SkyRealm_Update.zip",
             "update_release/SkyRealm_Game.zip",
-            "update_release/manifest.json"
+            "update_release/manifest.json",
+            "update_release/THIRD_PARTY_NOTICES.txt",
+            "update_release/ASSET_AND_LICENSE_REGISTER.md",
+            "update_release/requirements-build.txt",
+            "update_release/build-dependencies.txt"
           )
           gh release view $tag *> $null
           if ($LASTEXITCODE -ne 0) {

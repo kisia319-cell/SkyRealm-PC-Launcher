@@ -1,0 +1,12 @@
+
+SKYREALM GAME SOURCE — THIRD-PARTY NOTICES
+Checked: 2026-11-07
+
+The inspected game source tree uses browser-provided APIs such as Canvas and
+Web Audio API. No separately bundled third-party game engine, CDN-hosted
+JavaScript library, font file, audio file, 3D model or texture package was
+identified in the inspected game source tree.
+
+This notice does not certify historical archives or user-created mods.
+The Windows launcher Python dependencies are listed separately in the
+launcher repository's root THIRD_PARTY_NOTICES.txt.

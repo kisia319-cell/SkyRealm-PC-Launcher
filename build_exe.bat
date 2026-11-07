@@ -9,9 +9,10 @@ if not exist "%VPY%" (
   if errorlevel 1 exit /b 1
 )
 echo [2/5] Installing launcher build dependencies...
-"%VPY%" -m pip install --upgrade pip
+"%VPY%" -m pip install -r requirements-build.txt
 if errorlevel 1 exit /b 1
-"%VPY%" -m pip install pywebview pyinstaller
+"%VPY%" -m pip freeze > build-dependencies.txt
+if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 if exist "game_runner_dist" rmdir /s /q "game_runner_dist"
 if exist "updater_dist" rmdir /s /q "updater_dist"
