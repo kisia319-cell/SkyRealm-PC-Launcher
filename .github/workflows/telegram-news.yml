@@ -47,8 +47,7 @@ jobs:
 
           token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
           if not token:
-              print("TELEGRAM_BOT_TOKEN is not configured; Telegram publishing is skipped.")
-              sys.exit(0)
+              raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured; refusing to report a successful publish.")
 
           def git(*args):
               return subprocess.check_output(["git", *args], text=True).strip()
@@ -111,25 +110,36 @@ jobs:
               )
               has_major = any(major_pattern.search(subject) for _, subject in commits)
 
-              if not has_major and len(commits) < 5:
+              medium_pattern = re.compile(
+                  r"(\\[medium\\]|\\[среднее\\]|^medium\\s*:|^среднее\\s*:)",
+                  re.IGNORECASE
+              )
+              batch = commits[:7]
+              medium_count = sum(1 for _, subject in batch if medium_pattern.search(subject))
+              has_two_medium = medium_count >= 2
+
+              if not has_major and not has_two_medium and len(commits) < 5:
                   if state_initialized:
                       subprocess.run(
                           ["git", "push", "--force", "origin", f"{base}:refs/heads/telegram-news-state"],
                           check=True
                       )
                       print("Initialized the news cursor at " + base)
-                  print(f"Collected {len(commits)} small changes; waiting for at least 5.")
+                  print(f"Collected {len(commits)} changes, including {medium_count} medium updates; waiting for a publish threshold.")
                   sys.exit(0)
 
-              selected = commits if has_major else commits[:7]
+              selected = commits if has_major else batch
               processed_sha = selected[-1][0]
-              lines = "\n".join("• " + html.escape(subject) for _, subject in selected)
-              heading = "✨ <b>Важное обновление SkyRealm</b>" if has_major else "🛠 <b>Дайджест разработки SkyRealm</b>"
-              intro = (
-                  "Вышло крупное изменение проекта:"
-                  if has_major else
-                  f"Собрали {len(selected)} небольших изменений в один выпуск:"
-              )
+              lines = "\\n".join("• " + html.escape(subject) for _, subject in selected)
+              if has_major:
+                  heading = "✨ <b>Важное обновление SkyRealm</b>"
+                  intro = "Вышло крупное изменение проекта:"
+              elif has_two_medium:
+                  heading = "📦 <b>Новые обновления SkyRealm</b>"
+                  intro = f"Вышло {medium_count} средних обновления — собрали их в одном выпуске:"
+              else:
+                  heading = "🛠 <b>Дайджест разработки SkyRealm</b>"
+                  intro = f"Собрали {len(selected)} небольших изменений в один выпуск:"
               compare = f"https://github.com/{repo}/compare/{base}...{processed_sha}"
               text = f"{heading}\n\n{intro}\n\n{lines}\n\n<a href=\"{compare}\">Посмотреть изменения</a>"
 
