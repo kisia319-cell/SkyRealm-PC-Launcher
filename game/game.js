@@ -1850,13 +1850,13 @@ function setupVillageNpcs(){
       const meleeRange=def.id==='jungle'?138:108;
       if(d<=meleeRange&&b.attackTimer<=0&&canBossHit){
         b.attackTimer=Math.max(.65,1.65-difficultyConfig().rank*.13);
-        const hit=Math.max(1,Math.round(def.damage*power*(isModInstalled('elemental_lords')?1.25:1)*(combatGuardTimer>0?.28:1)*(1-armorReduction())));if(combatParryTimer>0){combatTakeDamage(def.damage*power,def.name,def.color);b.attackTimer=.85;continue;}
+        const hit=Math.max(1,Math.round(def.damage*power*(b.combatPhase===3?1.55:b.combatPhase===2?1.2:1)*(isModInstalled('elemental_lords')?1.25:1)*(combatGuardTimer>0?.28:1)*(1-armorReduction())));if(combatParryTimer>0){combatTakeDamage(def.damage*power,def.name,def.color);b.attackTimer=.85;continue;}
         player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,9,'spark',def.color);updateVitals();toast(def.name+' атакует: −'+hit+' HP');
         if(player.hp<=0)respawnPlayerAfterDefeat();
       }
       if(b.specialTimer<=0&&b.attackWindup<=0&&b.attackVisual<=0){
         b.attackWindup=.92;b.attackHit=false;b.attackTargetX=player.x;b.attackTargetY=player.y;b.attackPhase=0;
-        b.specialTimer=Math.max(6.2,9-difficultyConfig().rank*.45);
+        b.specialTimer=Math.max(4.2,(9-difficultyConfig().rank*.45)*(b.combatPhase===3?.62:b.combatPhase===2?.8:1));
         const warning={frost:'ЛЕДЯНОЙ РАЗЛОМ',sand:'ПЕСЧАНАЯ ЗАСАДА',blight:'СПОРОВЫЙ ВЗРЫВ',jungle:'ПРОБУЖДЕНИЕ КОРНЕЙ'}[def.id];
         toast(def.name+' готовит атаку: '+warning+' — уклоняйся!');
       }
