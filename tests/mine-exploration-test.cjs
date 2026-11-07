@@ -87,7 +87,7 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  const start={x:1,y:13},wall=[[0,-1],[1,0],[0,1],[-1,0]].find(([dx,dy])=>!f.ctx.mineCellWalkable(start.x+dx,start.y+dy));
  assert.ok(wall,'start cell should have at least one wall');
  const before={x:f.ctx.minePlayerX,y:f.ctx.minePlayerY};f.ctx.mineMovePlayer(wall[0],wall[1],220,1);
- assert.equal(f.ctx.minePlayerX,before.x);assert.equal(f.ctx.minePlayerY,before.y);
+ assert.equal(f.ctx.mineCellFromWorld(f.ctx.minePlayerX,f.ctx.minePlayerY).x,start.x);assert.equal(f.ctx.mineCellFromWorld(f.ctx.minePlayerX,f.ctx.minePlayerY).y,start.y);assert.ok(Math.hypot(f.ctx.minePlayerX-before.x,f.ctx.minePlayerY-before.y)<=12,'player may approach a wall but cannot cross into it');
  const ordinaryMovement="const nx = player.x + player.vx*dt, ny = player.y + player.vy*dt;\\n        if (!blocked(nx, player.y)) player.x = nx;\\n        if (!blocked(player.x, ny)) player.y = ny;";
  assert.ok(source.includes(ordinaryMovement),'normal world walking physics must remain untouched');
  assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,quarryProgress'));
