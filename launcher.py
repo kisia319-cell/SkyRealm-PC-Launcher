@@ -793,7 +793,7 @@ class GameApi:
                 language = data.get("language")
                 source = data.get("source")
                 description = data.get("description", "")
-                if not isinstance(mod_id, str) or not re.fullmatch(r"[a-z0-9_-]{6,48}", mod_id):
+                if not isinstance(mod_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9._:-]{1,127}", mod_id):
                     continue
                 if not isinstance(name, str) or not name.strip() or len(name) > 32:
                     continue
