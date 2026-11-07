@@ -13,7 +13,7 @@
 
 ## Текущая версия игры
 
-Установленная и публикуемая сборка игры: **0.20.50.80**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
+Установленная и публикуемая сборка игры: **0.20.50.82**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
 
 ## 0.20.50.80 — Account Edition Preferences
 
@@ -22,6 +22,11 @@
 - When the checkbox is off, the account preference is cleared and the edition chooser appears on each game start.
 - Kept Premium activation validation and device-bound license checks intact.
 - Player movement and walking code were not changed.
+
+## 0.20.50.82 — Mine visuals and barrel collision
+- Players can now walk through mine barrels without changing the maze wall collision.
+- Added a full-screen cave rock backdrop with layered strata, ceiling silhouettes and subtle mineral glints behind the mine passages.
+- Kept barrels free of floating text labels.
 
 ## Обновление игры
 
