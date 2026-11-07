@@ -268,7 +268,7 @@ jobs:
                   heading = "🛠 <b>НЕБОЛЬШИЕ ИЗМЕНЕНИЯ SKYREALM</b>"
                   intro = f"Собрали {len(fix_commits)} исправлений и {len(minor_commits)} небольших игровых изменений:"
               compare = f"https://github.com/{repo}/compare/{base}...{processed_sha}"
-              text = f"{heading}\n\n{intro}\n\n{lines}\n\n🔗 <a href=\\"{compare}\\">Все изменения на GitHub</a>\n\n💚 Спасибо, что следите за SkyRealm!"
+              text = f'{heading}\n\n{intro}\n\n{lines}\n\n🔗 <a href="{compare}">Все изменения на GitHub</a>\n\n💚 Спасибо, что следите за SkyRealm!'
 
           if len(text) > 3900:
               text = text[:3850] + "\n\n…"
