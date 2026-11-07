@@ -645,6 +645,19 @@
   }
   function resolveCombatUltimate(){
     const style=combatStyle(),reach=weaponRange()+135;let hits=0,kills=0;
+    // Co-op guests request authoritative damage instead of mutating their local enemy copies.
+    if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
+      const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*2.7);
+      if(dungeonMode&&!dungeonRoomCleared()&&Math.hypot(player.x-dungeonEnemyX,player.y-dungeonEnemyY)<=reach+30){queueGuestEnemyHit('dungeon_boss','room-'+String(dungeonRoom),weapon,damage);hits++;}
+      else if(caveMode&&!caveBossDefeated&&Math.hypot(player.x-caveBossX,player.y-caveBossY)<=reach+30){queueGuestEnemyHit('cave_boss','stone',weapon,damage);hits++;}
+      else if(!mineMode&&!inHouse&&!tradeWorldMode){
+        for(const mob of monsters){if(!mob||mob.hp<=0||mob.exploding||Math.hypot(player.x-mob.x,player.y-mob.y)>reach)continue;queueGuestEnemyHit('monster',mob.id,weapon,damage);hits++;}
+        for(const def of biomeBossDefs()){const boss=biomeBosses[def.id];if(!boss?.active||boss.defeated||Math.hypot(player.x-def.x,player.y-def.y)>reach)continue;queueGuestEnemyHit('biome_boss',def.id,weapon,damage);hits++;}
+        if(wolfBossActive&&wolfBossHp>0&&Math.hypot(player.x-wolfBossX,player.y-wolfBossY)<=reach) {queueGuestEnemyHit('wolf_boss','wolf',weapon,damage);hits++;}
+      }
+      spawnCombatBurst(player.x,player.y,64,'spark',style[0]);combatCinematicImpactFlash=.3;combatCameraShake=12;playSound('hit');saveGame();
+      toast('КИНОУДАР · отправлено запросов урона: '+hits+' · владелец комнаты подтвердит попадания.');return;
+    }
     const targets=[...monsters].filter(m=>m&&m.hp>0&&!m.exploding&&Math.hypot(m.x-player.x,m.y-player.y)<=reach);
     for(const mob of targets){
       const distance=Math.hypot(mob.x-player.x,mob.y-player.y),falloff=distance>reach*.72?.82:1;
@@ -701,6 +714,9 @@
     if(combatUltimateCooldown>0||combatCinematic?.active)return;
     const style=combatStyle(),reach=weaponRange()+135;
     const candidates=[...monsters.filter(m=>m&&m.hp>0&&!m.exploding),...biomeBossDefs().map(d=>({x:d.x,y:d.y,hp:biomeBosses[d.id]?.hp||0,bossDef:d})).filter(m=>m.hp>0)];
+    if(wolfBossActive&&wolfBossHp>0)candidates.push({x:wolfBossX,y:wolfBossY,hp:wolfBossHp});
+    if(caveMode&&!caveBossDefeated&&caveBossHp>0)candidates.push({x:caveBossX,y:caveBossY,hp:caveBossHp});
+    if(dungeonMode&&!dungeonRoomCleared())candidates.push({x:dungeonEnemyX,y:dungeonEnemyY,hp:dungeonEnemyHp||1});
     const target=candidates.filter(m=>Math.hypot(m.x-player.x,m.y-player.y)<=reach).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
     const forward={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]}[player.face]||[0,1];
     const fx=target?(player.x+target.x)*.5:player.x+forward[0]*100,fy=target?(player.y+target.y)*.5:player.y+forward[1]*100;
