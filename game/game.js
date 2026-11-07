@@ -1990,7 +1990,7 @@ function setupVillageNpcs(){
   function draw(dt,time){
     if(dungeonMode){drawDungeonInterior(dt,time);updateObjective();return;}
     if(caveMode){drawCaveInterior(dt,time);updateObjective();return;}
-    if(mineMode){drawMineInterior();return;}
+    if(mineMode){drawMineInterior(dt,time);return;}
     if(inHouse){drawHouseInterior(dt,time);updateObjective();return;}
     const camX=Math.max(0,Math.min(COLS*TILE-width,player.x-width/2));
     const camY=Math.max(0,Math.min(ROWS*TILE-height,player.y-height/2));
