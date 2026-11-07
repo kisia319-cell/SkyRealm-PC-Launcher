@@ -2849,7 +2849,7 @@ function setupVillageNpcs(){
       const bind=(id,handler)=>{const el=document.getElementById(id);if(el){el.dataset.bound='1';el.addEventListener('click',handler);}};
       bind('mod-profile-save',saveCurrentModProfile);bind('mod-profile-apply',applyModProfile);bind('mod-profile-delete',deleteModProfile);
     }
-    const shade=document.getElementById('mods-catalog-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');loadCommunityMods();
+    const shade=document.getElementById('mods-catalog-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');window.dispatchEvent(new Event('skyrealm:sync-published-mods'));loadCommunityMods();
   }
   function closeModsCatalog(){
     const shade=document.getElementById('mods-catalog-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');
