@@ -131,7 +131,7 @@ Object.assign(bossContext,{
 });
 execute(bossContext,[updateBosses],['updateBiomeBosses']);
 bossContext.updateBiomeBosses(0.1);
-assert.equal(bossContext.player.hp,100-31, 'A reborn jungle boss must apply its 1.7x melee damage to the player.');
+assert.equal(bossContext.player.hp,100-37, 'A reborn jungle boss must apply its 1.7x melee damage and combat-phase scaling to the player.');
 assert.ok(bossMessages.some(message=>message.includes('атакует')));
 
 bossContext.biomeBosses.jungle.attackTimer=5;
