@@ -1841,10 +1841,7 @@ function setupVillageNpcs(){
           }else spawnVisualBurst(tx,ty,12,'spark',def.color);
           if(def.id==='jungle'&&b.teleportCooldown<=0){
             b.teleportCooldown=8;b.teleportFade=.8;
-            const angle=Math.atan2(player.y-def.y,player.x-def.x);
-            const nx=Math.max(TILE,Math.min(COLS*TILE-TILE,player.x-Math.cos(angle)*145));
-            const ny=Math.max(TILE,Math.min(ROWS*TILE-TILE,player.y-Math.sin(angle)*145));
-            b.attackTargetX=nx;b.attackTargetY=ny;
+            b.attackTargetX=player.x;b.attackTargetY=player.y;
           }
         }
       }
@@ -1879,7 +1876,7 @@ function setupVillageNpcs(){
         }
         ctx.restore();
       }
-      ctx.save();ctx.translate(x,y);const fade=Math.max(0,Math.min(1,1-(b.teleportFade||0)));
+      ctx.save();ctx.translate(x,y);const fade=1-Math.max(0,Math.min(1,(b.teleportFade||0)/.8));
       ctx.globalAlpha=fade;ctx.translate(0,Math.sin(time/160)*2);ctx.scale(1+Math.sin(time/170)*.035,1+Math.sin(time/170)*.035);
       ctx.fillStyle='#08101ba8';ctx.beginPath();ctx.ellipse(0,17,35,11,0,0,Math.PI*2);ctx.fill();
       ctx.shadowColor=def.color;ctx.shadowBlur=20;ctx.fillStyle=b.flash>0?'#fff':def.color;
@@ -1888,6 +1885,7 @@ function setupVillageNpcs(){
       else if(def.id==='jungle'){ctx.fillStyle='#6a432d';ctx.fillRect(-8,-5,16,26);ctx.fillStyle=b.flash>0?'#fff':'#73d45b';ctx.beginPath();ctx.ellipse(0,-14,23,18,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(-16,-22);ctx.lineTo(-30,-35);ctx.lineTo(-13,-31);ctx.moveTo(16,-22);ctx.lineTo(30,-35);ctx.lineTo(13,-31);ctx.strokeStyle=def.color;ctx.lineWidth=6;ctx.stroke();ctx.fillStyle='#fff3b0';ctx.fillRect(-9,-17,5,4);ctx.fillRect(4,-17,5,4);ctx.fillStyle='#284b25';ctx.fillRect(-5,-6,10,3);}
       else{ctx.beginPath();ctx.moveTo(-25,15);ctx.lineTo(-23,-10);ctx.lineTo(-9,-20);ctx.lineTo(0,-14);ctx.lineTo(12,-28);ctx.lineTo(24,-8);ctx.lineTo(28,15);ctx.closePath();ctx.fill();}
       ctx.shadowBlur=0;ctx.restore();
+      if(def.id==='jungle'&&b.teleportFade>0){ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,b.teleportFade/.8));ctx.translate((b.attackTargetX||player.x)-camX,(b.attackTargetY||player.y)-camY);ctx.shadowColor='#8dff62';ctx.shadowBlur=24;ctx.fillStyle='#6a432d';ctx.fillRect(-7,-3,14,23);ctx.fillStyle='#73d45b';ctx.beginPath();ctx.ellipse(0,-13,22,17,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#9cff67';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-13,-20);ctx.lineTo(-26,-34);ctx.moveTo(13,-20);ctx.lineTo(26,-34);ctx.stroke();ctx.fillStyle='#fff3b0';ctx.fillRect(-8,-16,4,4);ctx.fillRect(4,-16,4,4);ctx.restore();}
       ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#fff';ctx.fillText(def.name,x,y-40);ctx.fillStyle='#241a27';ctx.fillRect(x-39,y-32,78,6);ctx.fillStyle=def.color;ctx.fillRect(x-39,y-32,78*Math.max(0,(b.active?b.hp:bossHpMax(def))/bossHpMax(def)),6);ctx.restore();
     }
   }
