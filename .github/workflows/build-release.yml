@@ -88,6 +88,8 @@ jobs:
           node tests/supabase-migration-history-test.cjs
           node tests/time-mechanics-test.cjs
           node tests/gameplay-regression-test.cjs
+          node --check tests/quarry-system-test.cjs
+          node tests/quarry-system-test.cjs
           node tests/sea-world-regression-test.cjs
           node tests/challenge-staff-regression-test.cjs
           node tests/expansion-systems-test.cjs
