@@ -9,7 +9,7 @@ assert.equal(count(/tier:'elite'/g), 4);
 assert.equal(count(/tier:'boss'/g), 8);
 assert.equal(count(/tier:'god'/g), 2);
 for (const event of ['meteor','horde','blood_moon','awakening','rift','storm']) {
-  assert.ok(source.includes("['" + event + "'"), 'Missing Boss Realm event: ' + event);
+  assert.ok(source.includes("['" + event + "'") || source.includes('["' + event + '"'), 'Missing Boss Realm event: ' + event);
 }
 for (const type of ['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit','abyss_general','blood_berserker','rift_warden','soul_devourer','abyss_king','rift_dragon','ancient_devourer','end_knight','astral_god','chronos_god','magma_behemoth','frost_empress','void_mirror','worldbreaker_colossus']) {
   assert.ok(source.includes(type), 'Missing creature: ' + type);
