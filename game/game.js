@@ -3857,7 +3857,14 @@ function setupVillageNpcs(){
     }else if(await interactBossRealmPortal())return;
     if(interactBossRealmDungeonSite())return;
     }
-    if(!bossRealmMode&&window.SkyRealmExpansionSystems?.interactWorldEvent?.())return;
+    if(inHouse){
+      const nearBed=houseInteractionNear(player.x,player.y,[150,82,194,176]),nearBench=houseInteractionNear(player.x,player.y,[242,105,272,180]),nearDoor=houseInteractionNear(player.x,player.y,[174,286,246,324]);
+      if(nearDoor){inHouse=false;if(enteredPlacedHouse){player.x=enteredPlacedHouse.x;player.y=enteredPlacedHouse.y+55;enteredPlacedHouse=null;}else{player.x=36*TILE+40;player.y=15*TILE+154;}toast('Ты вышел из дома.');if(questStage<2)questStage=2;saveGame();return;}
+      if(nearBed){bedSpawn=enteredPlacedHouse?{x:enteredPlacedHouse.x,y:enteredPlacedHouse.y+55}:{x:36*TILE+40,y:15*TILE+154};saveGame();const nowMinute=minuteOfDay();if(nowMinute<18*60||nowMinute>=NIGHT_MINUTE){toast('Ложиться спать можно только вечером, с 18:00 до 20:00. Сейчас '+String(Math.floor(nowMinute/60)).padStart(2,'0')+':'+String(nowMinute%60).padStart(2,'0')+'.');return;}const houseX=36*TILE+40,houseY=15*TILE+154;const nearby=monsters.some(m=>Math.hypot(m.x-houseX,m.y-houseY)<10*TILE);if(nearby){toast('Нельзя спать: монстр обнаружен в радиусе 10 блоков от дома.');return;}if(sleeping)return;sleeping=true;sleepSeconds=0;toast('Ты лёг спать.');return;}
+      if(nearBench){workbenchUsed=true;questStage=Math.max(questStage,3);saveGame();openWorkbench();return;}
+      toast('Подойди к кровати, верстаку или двери.');return;
+    }
+    if(!inHouse&&!bossRealmMode&&window.SkyRealmExpansionSystems?.interactWorldEvent?.())return;
     if(collectMeteor())return;
     if(collectWorldEventCamp())return;
     if(collectWorldEventTraveler())return;
@@ -3874,13 +3881,6 @@ function setupVillageNpcs(){
       toast('Сокровищница открыта: '+gold+' золота и немного редкой добычи!');saveGame();
     }else toast('Сундук пуст.');return;}if(Math.hypot(player.x-width*.16,player.y-height*.8)<125){caveMode=false;player.x=caveReturn.x;player.y=caveReturn.y;player.vx=player.vy=0;toast('Ты вернулся в лесную долину.');saveGame();return;}toast('Подойди к сундуку или входу в пещеру.');return;}
     if(mineMode){const entranceX=1.5*MINE_CELL_SIZE,entranceY=(MINE_MAZE_ROWS-1.5)*MINE_CELL_SIZE,stairsX=(MINE_MAZE_COLS-1.5)*MINE_CELL_SIZE,stairsY=1.5*MINE_CELL_SIZE;if(Math.hypot(minePlayerX-entranceX,minePlayerY-entranceY)<34){mineMode=false;mineMaze=null;toast('Ты вышел из шахты.');saveGame();return;}if(Math.hypot(minePlayerX-stairsX,minePlayerY-stairsY)<34){if(mineDepth<8){mineDepth++;mineMaze=null;generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));minePlayerX=entranceX;minePlayerY=entranceY;toast('Ты спустился на глубину '+mineDepth+'. Новая схема шахты и новые места залежей. Улучшение шахты: '+mineLevel+'/8.');saveGame();}else{toast('Ты достиг восьмой глубины! Здесь спрятана древняя сокровищница.');}return;}toast('Найди лестницу в дальней части лабиринта или вернись ко входу.');return;}
-    if(inHouse){
-      const nearBed=houseInteractionNear(player.x,player.y,[150,82,194,176]),nearBench=houseInteractionNear(player.x,player.y,[242,105,272,180]),nearDoor=houseInteractionNear(player.x,player.y,[174,286,246,324]);
-      if(nearDoor){inHouse=false;if(enteredPlacedHouse){player.x=enteredPlacedHouse.x;player.y=enteredPlacedHouse.y+55;enteredPlacedHouse=null;}else{player.x=36*TILE+40;player.y=15*TILE+154;}toast('Ты вышел из дома.');if(questStage<2)questStage=2;saveGame();return;}
-      if(nearBed){bedSpawn=enteredPlacedHouse?{x:enteredPlacedHouse.x,y:enteredPlacedHouse.y+55}:{x:36*TILE+40,y:15*TILE+154};saveGame();const nowMinute=minuteOfDay();if(nowMinute<18*60||nowMinute>=NIGHT_MINUTE){toast('Ложиться спать можно только вечером, с 18:00 до 20:00. Сейчас '+String(Math.floor(nowMinute/60)).padStart(2,'0')+':'+String(nowMinute%60).padStart(2,'0')+'.');return;}const houseX=36*TILE+40,houseY=15*TILE+154;const nearby=monsters.some(m=>Math.hypot(m.x-houseX,m.y-houseY)<10*TILE);if(nearby){toast('Нельзя спать: монстр обнаружен в радиусе 10 блоков от дома.');return;}if(sleeping)return;sleeping=true;sleepSeconds=0;toast('Ты лёг спать.');return;}
-      if(nearBench){workbenchUsed=true;questStage=Math.max(questStage,3);saveGame();openWorkbench();return;}
-      toast('Подойди к кровати, верстаку или двери.');return;
-    }
     if(interactWolfCage())return;
     const quarryBroker=quarryBrokerPosition();if(!tradeWorldMode&&!bossRealmMode&&!inHouse&&!mineMode&&!caveMode&&!dungeonMode&&Math.hypot(player.x-quarryBroker.x,player.y-quarryBroker.y)<104){openNpcQuestDialog({id:'quarry'});return;}if(tryMineWorldRock())return;const nearbyNpc=nearestVillageNpc();if(nearbyNpc){talkToVillageNpc(nearbyNpc);return;}const nearbyCitizen=villageNpcs.filter(n=>n.id==='citizen').sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y))[0];if(tradeWorldMode&&nearbyCitizen&&Math.hypot(player.x-nearbyCitizen.x,player.y-nearbyCitizen.y)<76){const lines=['Сегодня на рынке много покупателей!','Хорошая погода для прогулки.','Я живу здесь уже много лет.','Будь осторожен ночью, за стенами опасно.','Говорят, в шахте нашли редкую руду.'];toast(nearbyCitizen.name+': «'+lines[Math.abs(Math.floor(nearbyCitizen.phase))%lines.length]+'»');return;}
     // The old starter-base blacksmith, elder and explorer were removed from this world.
