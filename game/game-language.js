@@ -5,6 +5,8 @@
   try { launchSettings = JSON.parse(PARAMS.get('settings') || '{}') || {}; } catch (_) {}
   const KEY = 'skyrealm_game_language';
   const translations = {
+    'Звук':'Audio','Громкость музыки':'Music volume','Громкость эффектов':'Effects volume','Фоновая музыка':'Background music','Звуки интерфейса':'Interface sounds',
+    'Включить оригинальную атмосферную музыку SkyRealm.':'Enable original SkyRealm ambient music.','Уровень фоновой музыки · 0–100%.':'Background music level · 0–100%.','Уровень звуков добычи, боя, крафта и взаимодействия.':'Volume of mining, combat, crafting and interaction sounds.','Звуковые сигналы при нажатии кнопок меню и настроек.':'Sound feedback when pressing menu and settings buttons.','Звуковые настройки сохраняются вместе с профилем игры и применяются сразу.':'Audio settings are saved with the game profile and applied immediately.',
     'SkyRealm — Первый рассвет':'SkyRealm — First Dawn',
     'ТВОЙ МИР · ТВОЯ ИСТОРИЯ':'YOUR WORLD · YOUR STORY',
     'Игра открыта в браузере — закрой это окно, чтобы выйти.':'The game is open in your browser — close this window to exit.',
