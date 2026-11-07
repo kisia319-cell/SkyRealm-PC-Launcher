@@ -97,7 +97,7 @@
     }
     if(!Number.isFinite(x)||!Number.isFinite(y)){const a=Math.random()*Math.PI*2,r=340+Math.random()*210;x=Math.max(64,Math.min(COLS*TILE-64,player.x+Math.cos(a)*r));y=Math.max(64,Math.min(ROWS*TILE-64,player.y+Math.sin(a)*r));}
     const hp=Math.round(d.hp*difficultyConfig().monsterHp);
-    const mob={id:newCoopEntityId(),type:'brute',realmType:type,bossRealmCreature:true,bossTitle:d.name,x,y,hp,maxHp:hp,speed:d.speed,damageScale:difficultyConfig().monsterDamage,phase:Math.random()*6.28,flash:0,attackCooldown:1,specialCooldown:3+Math.random()*3,telegraphTimer:0,telegraphActive:false,phaseStage:1,action:'idle',actionTimer:0,shield:0,rage:0,animation:Math.random()*6,raidCrystalCount:type==='worldbreaker_colossus'?3:0,territoryX:x,territoryY:y,territoryRadius:isMajorBoss?156:d.tier==='elite'?132:108,museumDamage:0};
+    const mob={id:newCoopEntityId(),type:'brute',realmType:type,bossRealmCreature:true,bossTitle:d.name,x,y,hp,maxHp:hp,speed:d.speed,damageScale:difficultyConfig().monsterDamage,phase:Math.random()*6.28,flash:0,attackCooldown:1,specialCooldown:3+Math.random()*3,telegraphTimer:0,telegraphActive:false,phaseStage:1,action:'idle',actionTimer:0,shield:0,rage:0,animation:Math.random()*6,raidCrystalCount:type==='worldbreaker_colossus'?3:0,territoryX:x,territoryY:y,territoryRadius:isMajorBoss?12*TILE:d.tier==='elite'?11*TILE:10*TILE,museumDamage:0};
     if(isMajorBoss&&arenaSite){mob.arenaId=arenaSite.id;mob.arenaX=arenaSite.x;mob.arenaY=arenaSite.y;mob.arenaRadius=160;mob.realmDungeonId=arenaSite.id;mob.realmDungeonFinal=true;toast('АРЕНА ПРОБУЖДЕНА: '+arenaSite.name+' · '+d.name+' ждёт тебя!');}
     monsters.push(mob);
     return true;
@@ -198,7 +198,7 @@
         arenaSite=ensureBossRealmDungeonSites().find(site=>site.id===bossRealmArenaIdFor(m.realmType))||null;
         if(arenaSite){
           if(m.arenaId!==arenaSite.id||!Number.isFinite(m.arenaX)||!Number.isFinite(m.arenaY)||Math.abs(m.arenaX-arenaSite.x)>1||Math.abs(m.arenaY-arenaSite.y)>1){
-            m.arenaId=arenaSite.id;m.arenaX=arenaSite.x;m.arenaY=arenaSite.y;m.arenaRadius=160;
+            m.arenaId=arenaSite.id;m.arenaX=arenaSite.x;m.arenaY=arenaSite.y;m.arenaRadius=12*TILE;
             m.realmDungeonId=arenaSite.id;m.realmDungeonFinal=true;
             m.x=arenaSite.x;m.y=arenaSite.y;
             m.telegraphActive=false;m.telegraphTimer=0;m.actionTimer=0;
@@ -208,7 +208,10 @@
         }
       }
       const hasArena=!!(isArenaBoss&&arenaSite&&Number.isFinite(m.arenaX)&&Number.isFinite(m.arenaY));
-      const arenaRadius=Math.max(110,Math.min(190,Number(m.arenaRadius)||160));
+      const arenaRadius=Math.max(10*TILE,Math.min(14*TILE,Number(m.arenaRadius)||12*TILE));
+      if(!Number.isFinite(m.territoryX))m.territoryX=hasArena?m.arenaX:m.x;
+      if(!Number.isFinite(m.territoryY))m.territoryY=hasArena?m.arenaY:m.y;
+      if(!Number.isFinite(m.territoryRadius)||m.territoryRadius<10*TILE)m.territoryRadius=12*TILE;
       m.flash=Math.max(0,(Number(m.flash)||0)-step);m.attackCooldown=Math.max(0,m.attackCooldown-step);m.specialCooldown=Math.max(0,m.specialCooldown-step);m.actionTimer=Math.max(0,m.actionTimer-step);m.telegraphTimer=Math.max(0,m.telegraphTimer-step);m.rage=Math.max(0,m.rage-step);m.animation=(Number(m.animation)||0)+step*8;
       if(m.hp<=0)continue;
       let dist=Math.hypot(player.x-m.x,player.y-m.y)||1;
@@ -225,7 +228,7 @@
       if(bossRealmInvisibleTimer<=0){if(dist>48&&m.actionTimer<=0){let sp=m.speed*(m.rage>0?1.25:1)*(bossRealmState.eventId==='blood_moon'?1.2:1);if(['ranged','volley','chronos'].includes(d.skill)&&dist<200)sp*=.3;const dx=(player.x-m.x)/dist,dy=(player.y-m.y)/dist;let nx=Math.max(TILE,Math.min(COLS*TILE-TILE,m.x+dx*sp*step)),ny=Math.max(TILE,Math.min(ROWS*TILE-TILE,m.y+dy*sp*step));const zoneX=Number.isFinite(m.territoryX)?m.territoryX:(hasArena?m.arenaX:m.x),zoneY=Number.isFinite(m.territoryY)?m.territoryY:(hasArena?m.arenaY:m.y),zoneRadius=hasArena?arenaRadius:Math.max(78,Math.min(156,Number(m.territoryRadius)||108));const ox=nx-zoneX,oy=ny-zoneY,fromCenter=Math.hypot(ox,oy)||1;if(fromCenter>zoneRadius){nx=zoneX+ox/fromCenter*zoneRadius;ny=zoneY+oy/fromCenter*zoneRadius;}m.x=nx;m.y=ny;}}
       const attackDistance=Math.hypot(player.x-m.x,player.y-m.y);
       if(attackDistance<58&&m.attackCooldown<=0&&bossRealmInvisibleTimer<=0){m.attackCooldown=d.tier==='god'?1:d.tier==='boss'?1.2:1.5;bossRealmHurtPlayer((Number(d.damage)||8)*(Number(m.damageScale)||1),d.name+' · атака',d.eyes);}
-      if(m.specialCooldown<=0&&bossRealmInvisibleTimer<=0){if(!m.telegraphActive){m.telegraphActive=true;m.telegraphTimer=.8;m.action='cast';m.actionTimer=.8;}else if(m.telegraphTimer<=0){m.telegraphActive=false;m.specialCooldown=(d.tier==='god'?8:d.tier==='boss'?9:d.tier==='elite'?10.5:12.5)+Math.random()*(d.tier==='mob'?2:1.5);bossRealmSpecial(m,d,attackDistance);}}else if(bossRealmInvisibleTimer>0&&m.telegraphActive){m.telegraphActive=false;m.telegraphTimer=0;}
+      if(m.specialCooldown<=0&&bossRealmInvisibleTimer<=0){if(!m.telegraphActive){m.telegraphActive=true;m.telegraphTimer=.8;m.action='cast';m.actionTimer=.8;}else if(m.telegraphTimer<=0){m.telegraphActive=false;m.specialCooldown=(d.tier==='god'?8:d.tier==='boss'?9:d.tier==='elite'?10.5:12.5)+Math.random()*(d.tier==='mob'?2:1.5);bossRealmSpecial(m,d,attackDistance);const cx=hasArena?m.arenaX:m.territoryX,cy=hasArena?m.arenaY:m.territoryY,limit=hasArena?arenaRadius:Math.max(10*TILE,Number(m.territoryRadius)||12*TILE),vx=m.x-cx,vy=m.y-cy,vd=Math.hypot(vx,vy)||1;if(vd>limit){m.x=cx+vx/vd*limit;m.y=cy+vy/vd*limit;}}}else if(bossRealmInvisibleTimer>0&&m.telegraphActive){m.telegraphActive=false;m.telegraphTimer=0;}
     }
     if(bossRealmState.kills>=5)bossRealmState.wave=Math.max(2,Math.floor(bossRealmState.kills/5)+1);
   }
@@ -1984,16 +1987,17 @@ function setupVillageNpcs(){
   function drawBossRealmCreatureMuseums(camX,camY,time){
     if(!bossRealmMode)return;
     const themes={shadow_hunter:['#302044','#ad72e8','#e56cae'],stone_guardian:['#414b58','#a9b7c7','#f3c878'],cursed_skull:['#4a4054','#c8b8d8','#b98cff'],rift_wolf:['#402333','#bd5974','#ff8292'],venom_beetle:['#243d2d','#79b77b','#d8ff76'],fallen_warrior:['#3d3c3a','#b5a78e','#f4d6a0'],rift_archer:['#263e50','#75b8d5','#a8f4ff'],ash_spirit:['#4c2d25','#c46b45','#ffd08a'],abyss_general:['#34233e','#9a6bc2','#ff9bea'],blood_berserker:['#49212d','#bd4964','#ff9aaf'],rift_warden:['#203c48','#5bb1c5','#9ef5ff'],soul_devourer:['#29243f','#8d78bd','#d5b6ff'],magma_behemoth:['#40231f','#d76b42','#ffb16d'],frost_empress:['#29485b','#8ed8ee','#d7fbff'],void_mirror:['#282039','#9876c9','#f0c2ff'],abyss_king:['#302044','#8c65c5','#ff7caf'],rift_dragon:['#432820','#c66b4c','#ffe18a'],ancient_devourer:['#2b3a27','#789d56','#d1f58b'],end_knight:['#303744','#8c9aaa','#f5f2ff'],astral_god:['#30265c','#9b83ef','#ffe18a'],chronos_god:['#203b4c','#70b9d4','#c3f7ff'],worldbreaker_colossus:['#343b46','#aab5c5','#ffd36d']};
-    for(const m of monsters){if(!m?.bossRealmCreature||m.hp<=0)continue;const x=(Number(m.territoryX)||m.x)-camX,y=(Number(m.territoryY)||m.y)-camY;if(x<-210||x>width+210||y<-190||y>height+190)continue;
-      const [stone,trim,glow]=themes[m.realmType]||themes.shadow_hunter,ratio=Math.max(0,Math.min(1,Number(m.hp)/Math.max(1,Number(m.maxHp)||1))),damage=1-ratio,pulse=.5+.5*Math.sin(time/360+(m.phase||0)),radius=Math.max(78,Math.min(156,Number(m.territoryRadius)||108));
-      ctx.save();ctx.translate(x,y+radius*.48);ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,8,radius*.82,22,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=stone;ctx.beginPath();ctx.moveTo(-radius*.78,0);ctx.lineTo(-radius*.68,-22);ctx.lineTo(-radius*.48,-30);ctx.lineTo(-radius*.32,-18);ctx.lineTo(-radius*.12,-34);ctx.lineTo(radius*.1,-20);ctx.lineTo(radius*.34,-31);ctx.lineTo(radius*.52,-17);ctx.lineTo(radius*.76,-26);ctx.lineTo(radius*.82,0);ctx.closePath();ctx.fill();
-      ctx.strokeStyle=trim;ctx.lineWidth=4;ctx.globalAlpha=.78;ctx.strokeRect(-radius*.58,-64,radius*1.16,58);ctx.globalAlpha=1;
-      for(let i=0;i<4;i++){const px=(-.42+i*.28)*radius,broken=damage>(.16+i*.13);ctx.fillStyle=stone;ctx.fillRect(px-7,broken?-24:-75,14,broken?24:52);ctx.fillStyle=trim;ctx.fillRect(px-10,broken?-27:-79,20,7);if(!broken){ctx.shadowColor=glow;ctx.shadowBlur=8+pulse*7;ctx.fillStyle=glow;ctx.globalAlpha=.4+pulse*.35;ctx.fillRect(px-1,-67,2,28);ctx.globalAlpha=1;ctx.shadowBlur=0;}}
-      ctx.strokeStyle=glow;ctx.lineWidth=2;ctx.globalAlpha=.6;ctx.beginPath();ctx.arc(0,-43,18+pulse*2,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
-      for(let i=0;i<Math.floor(damage*7);i++){const px=(-.5+(i%4)*.31)*radius,py=-57+(i%3)*13;ctx.strokeStyle='#211a24';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+7,py+8);ctx.lineTo(px+3,py+16);ctx.stroke();}
-      if(damage>.32){ctx.fillStyle=stone;for(let i=0;i<Math.min(8,Math.floor(damage*12));i++){const a=i*2.4+(m.phase||0),rr=radius*(.48+(i%3)*.08);ctx.save();ctx.translate(Math.cos(a)*rr,Math.sin(a)*8-5);ctx.rotate(a);ctx.fillRect(-5,-3,10,7);ctx.restore();}}
-      ctx.restore();
+    for(const m of monsters){if(!m?.bossRealmCreature||m.hp<=0)continue;const wx=Number.isFinite(m.territoryX)?m.territoryX:m.x,wy=Number.isFinite(m.territoryY)?m.territoryY:m.y,x=wx-camX,y=wy-camY,r=Math.max(10*TILE,Math.min(14*TILE,Number(m.territoryRadius)||12*TILE));if(x<-r-80||x>width+r+80||y<-r-80||y>height+r+80)continue;
+      const [stone,trim,glow]=themes[m.realmType]||themes.shadow_hunter,damage=1-Math.max(0,Math.min(1,Number(m.hp)/Math.max(1,Number(m.maxHp)||1))),pulse=.5+.5*Math.sin(time/360+(m.phase||0));ctx.save();ctx.translate(x,y);ctx.lineJoin='round';
+      ctx.fillStyle='rgba(0,0,0,.36)';ctx.beginPath();ctx.ellipse(0,8,r*.98,r*.62,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#171522';ctx.fillRect(-r*.92,-r*.58,r*1.84,r*1.16);ctx.fillStyle=stone;ctx.fillRect(-r*.86,-r*.52,r*1.72,r*1.04);ctx.strokeStyle=trim;ctx.lineWidth=5;ctx.strokeRect(-r*.86,-r*.52,r*1.72,r*1.04);
+      for(let side=0;side<4;side++){ctx.save();ctx.rotate(side*Math.PI/2);ctx.fillStyle='#211d2b';ctx.fillRect(-r*.86,-r*.56,r*1.72,12);ctx.fillStyle=trim;ctx.fillRect(-r*.86,-r*.56,r*1.72,5);for(let k=0;k<9;k++){const px=-r*.8+k*r*.2,broken=damage>.12+k%4*.12;ctx.fillStyle=stone;ctx.fillRect(px,-r*.56-(broken?3:14),12,broken?8:19);}ctx.restore();}
+      ctx.fillStyle='#171522';ctx.fillRect(-r*.25,r*.40,r*.5,r*.22);for(let n=0;n<5;n++){ctx.fillStyle=n%2?trim:stone;ctx.fillRect(-r*(.29-n*.025),r*(.40+n*.045),r*(.58-n*.05),Math.max(5,r*.035));}
+      ctx.fillStyle='#100f19';ctx.fillRect(-r*.13,r*.05,r*.26,r*.37);ctx.strokeStyle=glow;ctx.lineWidth=3;ctx.globalAlpha=.55+.3*pulse;ctx.strokeRect(-r*.13,r*.05,r*.26,r*.37);ctx.globalAlpha=1;ctx.fillStyle='#282236';ctx.fillRect(-r*.55,-r*.34,r*1.1,r*.68);
+      for(let k=0;k<6;k++){const px=(-.46+k*.184)*r,broken=damage>(.25+k%3*.16);ctx.fillStyle=stone;ctx.fillRect(px-7,-r*.34,14,broken?r*.12:r*.56);ctx.fillStyle=trim;ctx.fillRect(px-10,-r*.34,20,7);}
+      ctx.fillStyle='#171321';ctx.fillRect(-r*.19,-r*.17,r*.38,r*.34);ctx.fillStyle=trim;ctx.fillRect(-r*.13,-r*.12,r*.26,r*.24);ctx.shadowColor=glow;ctx.shadowBlur=10+pulse*12;ctx.fillStyle=glow;ctx.globalAlpha=.35+pulse*.45;ctx.beginPath();ctx.arc(0,-r*.02,Math.max(8,r*.075),0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.shadowBlur=0;
+      for(let k=0;k<4;k++){const sx=(k%2?1:-1)*r*.72,sy=(k<2?-1:1)*r*.40;ctx.fillStyle='#211d2b';ctx.fillRect(sx-15,sy-15,30,30);ctx.fillStyle=trim;ctx.fillRect(sx-11,sy-11,22,22);ctx.fillStyle=glow;ctx.globalAlpha=.45+.35*pulse;ctx.fillRect(sx-3,sy-3,6,6);ctx.globalAlpha=1;}
+      for(let i=0;i<Math.floor(damage*18);i++){const px=(-.78+i%6*.30)*r,py=(-.42+Math.floor(i/6)*.36)*r;ctx.strokeStyle='#17131d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+8,py+10);ctx.lineTo(px+3,py+19);ctx.stroke();ctx.fillStyle=stone;ctx.save();ctx.translate(px+14,py+8);ctx.rotate(i*1.7);ctx.fillRect(-5,-4,11,8);ctx.restore();}
+      for(let i=0;i<7;i++){const a=time/900+i*Math.PI*2/7,rr=r*(.72+i%3*.07);ctx.globalAlpha=.35+.4*pulse;ctx.fillStyle=glow;ctx.beginPath();ctx.arc(Math.cos(a)*rr,Math.sin(a)*rr*.55,2+pulse*2,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;ctx.restore();
     }
   }
   function drawBossRealmEnvironment(camX,camY,time){
