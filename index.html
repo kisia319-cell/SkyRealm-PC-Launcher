@@ -234,7 +234,17 @@
         <article class="launcher-mod-card"><div class="launcher-mod-icon">🏦</div><div class="launcher-mod-meta">ЭКОНОМИКА · v1.0.0</div><h2>Банковская система</h2><p>Накопительный счёт начисляет проценты от золота при наступлении нового игрового дня.</p><small>1% процентов от кошелька при каждом рассвете.</small><button class="secondary-btn" data-install-mod="banking" type="button">Добавить в игру →</button></article>
         <article class="launcher-mod-card"><div class="launcher-mod-icon">🌀</div><div class="launcher-mod-meta">НОВЫЕ МИРЫ · v1.0.0</div><h2>Параллельные измерения</h2><p>Межпространственные разломы иногда оставляют редкие кристаллы во время рассвета.</p><small>35% шанс получить межпространственный кристалл на рассвете.</small><button class="secondary-btn" data-install-mod="parallel_dimensions" type="button">Добавить в игру →</button></article>
         <article class="launcher-mod-card"><div class="launcher-mod-icon">🔮</div><div class="launcher-mod-meta">МАГИЯ · v1.0.0</div><h2>Полноценная магия</h2><p>Добавляет ману и четыре заклинания: Огненный шар, Ледяная буря, Цепная молния и Исцеляющий свет.</p><small>F — сменить заклинание · G — применить. Мана восстанавливается автоматически.</small><button class="secondary-btn" data-install-mod="full_magic" type="button">Добавить в игру →</button></article>
-      <div class="mods-launcher-community panel"><div><b>Моды игроков</b><p>Пользовательские моды и их публикация доступны в общем онлайн-каталоге внутри игры. Для публикации требуется подтверждённый аккаунт; лимит — 3 мода за 24 часа.</p></div><button class="secondary-btn" data-install-mod="__catalog__" type="button">Открыть общий каталог →</button></div>
+      <div class="mods-launcher-community panel"><div><b>Моды игроков</b><p>Загружай свои проверенные ZIP-релизы в общий каталог SkyRealm и скачивай работы других авторов. Публикация доступна после входа в аккаунт.</p></div><button class="secondary-btn" id="community-mods-refresh" type="button">Обновить каталог ↻</button></div>
+      <section class="community-mods-panel panel" id="community-mods-panel">
+        <div class="community-mods-heading"><div><div class="section-kicker">SKYREALM · СООБЩЕСТВО</div><h2>Общий каталог модов</h2><p>Моды доступны всем игрокам. Архивы проверяются перед публикацией; скачанный мод сначала распакуй и проверь в Studio.</p></div><span class="community-mods-count" id="community-mods-count">Загружаем…</span></div>
+        <div class="community-mods-toolbar"><input id="community-mods-search" type="search" placeholder="Найти мод по названию…" maxlength="80"><select id="community-mods-category"><option value="">Все категории</option><option value="adventure">Приключения</option><option value="building">Строительство</option><option value="combat">Битвы</option><option value="interface">Интерфейс</option><option value="resources">Ресурсы</option><option value="other">Другое</option></select></div>
+        <div class="community-mods-grid" id="community-mods-grid"><div class="community-mods-empty">Подключаемся к каталогу…</div></div>
+        <form class="community-mods-upload" id="community-mods-upload">
+          <div><b>Опубликовать свой мод</b><p>В Studio нажми «Экспорт проекта» и выбери ZIP. В архиве обязательно должны быть mod.json и главный файл скрипта.</p></div>
+          <div class="community-mods-upload-row"><input id="community-mods-file" type="file" accept=".zip,application/zip" required><select id="community-mods-upload-category"><option value="other">Другое</option><option value="adventure">Приключения</option><option value="building">Строительство</option><option value="combat">Битвы</option><option value="interface">Интерфейс</option><option value="resources">Ресурсы</option></select><button class="primary-btn" id="community-mods-publish" type="submit">Опубликовать в общий каталог</button></div>
+          <div class="community-mods-status" id="community-mods-status" role="status" aria-live="polite">Для публикации войди в аккаунт SkyRealm.</div>
+        </form>
+      </section>
     </section>
 
     <section class="page inner-page" id="page-news">
@@ -372,5 +382,6 @@
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script src="launcher-enhancements.js"></script>
+<script src="community-mods.js"></script>
 </body>
 </html>
