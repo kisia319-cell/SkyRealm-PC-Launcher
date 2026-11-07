@@ -188,7 +188,7 @@
   function step(){const bridge=host();if(!bridge?.canRun?.()){for(const id of Array.from(runners.keys()))cleanupRunner(id);return;}
     const now=Date.now();if(now-lastTick<2200)return;lastTick=now;let context;try{context=bridge.getContext();}catch(_){return;}
     mods.filter(m=>m.enabled).forEach(function(mod){let runner=runners.get(mod.id);if(!runner)runner=createRunner(mod);if(runner.ready&&!runner.busy)sendTick(runner,context);});}
-  function init(){mods=readMods();renderMods();syncPublishedMods();window.addEventListener?.('pywebviewready',syncPublishedMods);
+  function init(){mods=readMods();renderMods();syncPublishedMods();window.addEventListener?.('pywebviewready',syncPublishedMods);window.addEventListener?.('skyrealm:sync-published-mods',syncPublishedMods);
     $('script-mod-close')?.addEventListener('click',closeEditor);$('script-mod-test')?.addEventListener('click',testSource);$('script-mod-save')?.addEventListener('click',saveEditorMod);
     $('script-mod-language')?.addEventListener('change',function(){if($('script-mod-template').value==='starter')applyTemplate();});
     $('script-mod-template')?.addEventListener('change',applyTemplate);
