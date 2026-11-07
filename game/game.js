@@ -2392,9 +2392,25 @@ function setupVillageNpcs(){
   function drawTradeShop(shop,camX,camY,title,subtitle,accent){if(!tradeWorldMode)return;const x=shop.x*TILE+16-camX,y=shop.y*TILE+16-camY;if(x<-150||x>width+150||y<-150||y>height+150)return;ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(4,13,18,.35)';ctx.beginPath();ctx.ellipse(0,22,49,17,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#6f4a2d';ctx.fillRect(-42,-16,84,43);ctx.fillStyle='#c18b4d';ctx.fillRect(-37,-11,74,31);ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(-49,-17);ctx.lineTo(-35,-42);ctx.lineTo(35,-42);ctx.lineTo(49,-17);ctx.closePath();ctx.fill();ctx.fillStyle='#4b3024';ctx.fillRect(-13,-6,26,33);ctx.fillStyle='#ffedb0';ctx.fillRect(-31,-5,12,11);ctx.fillRect(19,-5,12,11);ctx.fillStyle='#fff0b8';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText(title,0,-50);ctx.shadowBlur=0;ctx.font='bold 10px Segoe UI';ctx.fillStyle='#fff8df';ctx.fillText(subtitle,0,42);ctx.textAlign='left';ctx.restore();
   }
   function updateWalletHud(){const el=document.getElementById('wallet-value');if(el)el.textContent=formatMoney(walletCents);const wrap=document.getElementById('wallet-hud');if(wrap)wrap.hidden=!currentWorldId;}
+  function drawMineSkyWindow(time=performance.now()){
+    // A narrow ceiling shaft gives the underground mine a visible view of the sky.
+    const x=width-78,y=112,rx=31,ry=23,night=isNightTime();
+    ctx.save();ctx.translate(x,y);
+    ctx.fillStyle='rgba(0,0,0,.62)';ctx.beginPath();ctx.ellipse(0,2,rx+7,ry+7,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);ctx.clip();
+    const sky=ctx.createLinearGradient(0,-ry,0,ry);sky.addColorStop(0,night?'#101d3b':'#79a9c5');sky.addColorStop(1,night?'#354a72':'#d9c78b');ctx.fillStyle=sky;ctx.fillRect(-rx,-ry,rx*2,ry*2);
+    if(night){
+      for(let i=0;i<9;i++){const sx=(hash(i+mineSeed,mineDepth*17)-.5)*rx*1.7,sy=(hash(i+mineDepth,mineSeed*3)-.5)*ry*1.5;ctx.fillStyle='rgba(245,248,255,.9)';ctx.fillRect(sx,sy,1.5,1.5);}
+      ctx.shadowColor='#e5edff';ctx.shadowBlur=13;ctx.fillStyle='#f3f0d7';ctx.beginPath();ctx.arc(4,-1,13,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      ctx.fillStyle='#263b61';ctx.beginPath();ctx.arc(10,-7,12,0,Math.PI*2);ctx.fill();
+    }else{ctx.shadowColor='#ffe6a0';ctx.shadowBlur=12;ctx.fillStyle='#ffe5a0';ctx.beginPath();ctx.arc(4,-1,10,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+    ctx.restore();
+    ctx.save();ctx.translate(x,y);ctx.strokeStyle='#647078';ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(0,0,rx+2,ry+2,0,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='rgba(194,205,194,.35)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(-1,-1,rx-2,ry-2,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+  }
   function drawMineInterior(dt=1/60,time=performance.now()){
     const grad=ctx.createLinearGradient(0,0,0,height);grad.addColorStop(0,'#0c141e');grad.addColorStop(1,'#202623');ctx.fillStyle=grad;ctx.fillRect(0,0,width,height);
     drawMinePassages();
+    drawMineSkyWindow(time);
     drawMineBarrels();drawMineCreatures();
     const oreColors={'Кристалл':'#276c91','Железо':'#777c8a','Уголь':'#252a32','Медь':'#a85e35','Олово':'#aab4bd','Серебро':'#d8e0eb','Золото':'#b68b20','Рубин':'#9c243f','Сапфир':'#245bc4','Обсидиан':'#302343','Мифрил':'#59bfc8','Уран':'#5a9a3e','Алмаз':'#6ee9f0'};
     const oreGlow={'Кристалл':'#8ae6ff','Железо':'#d4a29b','Уголь':'#858b96','Медь':'#ffc08a','Олово':'#eef4ff','Серебро':'#ffffff','Золото':'#ffe68a','Рубин':'#ff829a','Сапфир':'#9bc8ff','Обсидиан':'#ad8bdf','Мифрил':'#d1ffff','Уран':'#baff7d','Алмаз':'#ffffff'};
