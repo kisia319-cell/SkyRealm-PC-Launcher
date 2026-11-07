@@ -92,6 +92,10 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.ok(source.includes('if (!blocked(nx, player.y)) player.x = nx;'));
  assert.ok(source.includes('if (!blocked(player.x, ny)) player.y = ny;'));
  assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,mineFeaturesVersion:1,mineMazeVersion:2,quarryProgress'));
- assert.ok(source.includes('drawMinePassages()'));assert.ok(source.includes('updateMineCreatures(dt)'));assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));assert.ok(source.includes('mineMazeVersion:2'));
+ assert.ok(source.includes('drawMinePassages()'));assert.ok(source.includes('updateMineCreatures(dt)'));
+ assert.match(source,/drawPlayer\(player\.x-width\/2,player\.y-height\/2,dt\)/,'Mine must render the complete player appearance and equipment instead of a placeholder body.');
+ assert.match(source,/Jagged host rock with a dark bevel/,'Ore deposits must have layered rock faces and mineral facets.');
+ assert.match(source,/Occasional ceiling stalactites hang over the dark rock/,'Mine walls must include ceiling formations.');
+ assert.match(source,/A handful of animated lantern pools and drifting dust motes/,'Mine atmosphere must include lantern lighting and dust.');assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));assert.ok(source.includes('mineMazeVersion:2'));
 });
 console.log('PASS '+tests.length+' mine exploration tests: '+tests.join(' | '));
