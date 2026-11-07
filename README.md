@@ -13,7 +13,7 @@
 
 ## Текущая версия игры
 
-Установленная и публикуемая сборка игры: **0.20.50.86**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
+Установленная и публикуемая сборка игры: **0.20.50.89**. В ней доступны профессии лесоруба и рудокопа, четыре арены мира боссов, русский/английский интерфейс и новая каменоломня с добычей камня и руды, улучшением кирок, восстановлением залежей и оплачиваемыми заказами.
 
 ## 0.20.50.80 — Account Edition Preferences
 
@@ -51,6 +51,15 @@
 - Improved case-insensitive matching for dynamically rendered labels.
 - HUD positions now use proportional coordinates, clamp to the visible game area after resizing, and reset when changing layout presets.
 - Removed the nested vitals bar from independent HUD dragging and improved compact/mobile preset placement.
+
+## 0.20.50.89 — Studio script-mod publishing
+
+- Removed the built-in FaerTestMod entry, Faer Sword catalog item, automatic sword grant and its per-world save flag. The test mod is no longer preinstalled in the game.
+- Added a native launcher bridge that reads only validated, size-limited mod records published by SkyRealm Mod Studio.
+- Published JavaScript/Python mods synchronize into the in-game “Мои скриптовые моды” list. New mods are imported disabled; players enable them in the catalog.
+- Updated script mods with the same ID replace their prior code while preserving the in-game enabled state.
+- Existing isolated script runtime and bounded gameplay actions remain in use.
+- Player movement and walking code were not changed.
 
 ## Обновление игры
 
