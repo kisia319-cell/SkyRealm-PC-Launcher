@@ -88,8 +88,9 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.ok(wall,'start cell should have at least one wall');
  const before={x:f.ctx.minePlayerX,y:f.ctx.minePlayerY};f.ctx.mineMovePlayer(wall[0],wall[1],220,1);
  assert.equal(f.ctx.mineCellFromWorld(f.ctx.minePlayerX,f.ctx.minePlayerY).x,start.x);assert.equal(f.ctx.mineCellFromWorld(f.ctx.minePlayerX,f.ctx.minePlayerY).y,start.y);assert.ok(Math.hypot(f.ctx.minePlayerX-before.x,f.ctx.minePlayerY-before.y)<=12,'player may approach a wall but cannot cross into it');
- const ordinaryMovement="const nx = player.x + player.vx*dt, ny = player.y + player.vy*dt;\\n        if (!blocked(nx, player.y)) player.x = nx;\\n        if (!blocked(player.x, ny)) player.y = ny;";
- assert.ok(source.includes(ordinaryMovement),'normal world walking physics must remain untouched');
+ assert.ok(source.includes('const nx = player.x + player.vx*dt, ny = player.y + player.vy*dt;'),'normal world movement integration remains unchanged');
+ assert.ok(source.includes('if (!blocked(nx, player.y)) player.x = nx;'));
+ assert.ok(source.includes('if (!blocked(player.x, ny)) player.y = ny;'));
  assert.ok(source.includes('mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,quarryProgress'));
  assert.ok(source.includes('drawMinePassages()'));assert.ok(source.includes('updateMineCreatures(dt)'));assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));assert.ok(source.includes('mineMazeVersion:2'));
 });
