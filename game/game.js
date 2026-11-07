@@ -613,6 +613,7 @@
   let dogBehavior = 'follow';
   let workbenchUsed = false;
   let mineMode=false, mineLevel=1, mineRocks=[], mineSeed=0, mineTileX=62, mineTileY=43, worldEarlyMonsters=false, mineHoverIndex=-1, minePlayerX=86, minePlayerY=0;
+  let mineBarrels=[],mineCreatures=[],minePlayerAttackCooldown=0;
   let quarryProgress={mined:0,stone:0,rank:1},quarrySystemAccumulator=0,quarryAnchorCache=null;
   let caveMode=false, caveReturn={x:player.x,y:player.y}, caveChestOpened=false;
   let dungeonMode=false, dungeonReturn={x:player.x,y:player.y}, dungeonRoom=1, dungeonClearedRooms=[], dungeonEnemyHp=0, dungeonEnemyAttackTimer=1.35, dungeonEnemySpecialTimer=8, dungeonChestOpened=false, dungeonTrapCooldown=0, dungeonEnemyX=0, dungeonEnemyY=0;
@@ -2024,6 +2025,90 @@ function setupVillageNpcs(){
     updateObjective();
   }
   function mineRockScreenPosition(r){return {x:65+(r.x/330)*(width-130),y:85+(r.y/255)*(height-150)};}
+
+  function minePassagePaths(){
+    return [
+      [[8,220],[38,204],[70,188],[105,168],[145,153],[184,132],[220,108],[262,104],[305,122]],
+      [[105,168],[108,130],[88,98],[55,81],[30,86]],
+      [[184,132],[186,99],[205,72],[227,52]],
+      [[262,104],[278,130],[296,154],[315,172]],
+      [[145,153],[153,181],[178,202],[212,214],[250,205]]
+    ];
+  }
+  function drawMinePassages(){
+    const paths=minePassagePaths(),scale=Math.max(.58,Math.min(width/1280,height/720));
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+    for(const path of paths){
+      ctx.beginPath();path.forEach((p,i)=>{const q=mineRockScreenPosition({x:p[0],y:p[1]});if(i===0)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y);});
+      ctx.strokeStyle='#151c24';ctx.lineWidth=104*scale;ctx.stroke();ctx.strokeStyle='#39413f';ctx.lineWidth=91*scale;ctx.stroke();
+      ctx.strokeStyle='#665b4b';ctx.lineWidth=78*scale;ctx.stroke();ctx.strokeStyle='#89785f';ctx.lineWidth=45*scale;ctx.stroke();
+      ctx.strokeStyle='rgba(211,184,139,.16)';ctx.lineWidth=2*scale;ctx.stroke();
+    }
+    for(const [x,y,rx,ry] of [[30,86,27,22],[227,52,29,22],[315,172,25,23],[250,205,27,20]]){
+      const p=mineRockScreenPosition({x,y});ctx.fillStyle='#4a4b43';ctx.beginPath();ctx.ellipse(p.x,p.y,rx*scale,ry*scale,0,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#1c242b';ctx.lineWidth=5*scale;ctx.stroke();ctx.fillStyle='rgba(153,130,97,.28)';
+      ctx.beginPath();ctx.ellipse(p.x,p.y,rx*.62*scale,ry*.55*scale,0,0,Math.PI*2);ctx.fill();
+    }
+    const supports=[[38,204],[70,188],[105,168],[145,153],[184,132],[220,108],[262,104],[108,130],[88,98],[186,99],[153,181],[212,214],[278,130]];
+    supports.forEach(([x,y],i)=>{
+      const p=mineRockScreenPosition({x,y}),w=31*scale,h=35*scale;
+      ctx.fillStyle='#30271f';ctx.fillRect(p.x-w-3,p.y-h,7*scale,h*2);ctx.fillRect(p.x+w-4,p.y-h,7*scale,h*2);
+      ctx.fillStyle='#875d38';ctx.fillRect(p.x-w,p.y-h,6*scale,h*2);ctx.fillRect(p.x+w-3,p.y-h,6*scale,h*2);
+      ctx.fillStyle='#b0834e';ctx.fillRect(p.x-w-1,p.y-h,2*scale,h*2);ctx.fillRect(p.x+w-2,p.y-h,2*scale,h*2);
+      ctx.fillStyle='#65452e';ctx.fillRect(p.x-w-7*scale,p.y-h,2*w+14*scale,7*scale);
+      if(i%2===0){const flicker=.82+.18*Math.sin(performance.now()/95+i*2.1),lx=p.x+w-5*scale,ly=p.y-h+14*scale;
+        ctx.fillStyle='rgba(255,174,74,'+(0.13*flicker)+')';ctx.beginPath();ctx.arc(lx,ly,31*scale,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#f8bf70';ctx.shadowColor='#ffb45d';ctx.shadowBlur=12*scale;ctx.beginPath();ctx.arc(lx,ly,3.4*scale,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+    });
+    for(let i=0;i<38;i++){const x=24+hash(i+mineSeed,71)*285,y=35+hash(i+mineSeed,73)*190,p=mineRockScreenPosition({x,y});
+      ctx.fillStyle=i%3===0?'rgba(174,155,126,.34)':'rgba(12,19,25,.44)';ctx.beginPath();ctx.ellipse(p.x,p.y,2+hash(i,79)*4,1.5+hash(i,83)*3,hash(i,89)*3,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  }
+  function mineCreatureScreenPosition(m){return {x:m.x*width,y:m.y*height};}
+  function drawMineBarrels(){
+    for(const b of mineBarrels){if(b.hp<=0)continue;const p=mineRockScreenPosition(b);ctx.save();ctx.translate(p.x,p.y);
+      ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,13,19,7,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#4a2d20';ctx.beginPath();ctx.moveTo(-12,-16);ctx.quadraticCurveTo(-19,-3,-13,13);ctx.quadraticCurveTo(0,20,13,13);ctx.quadraticCurveTo(19,-3,12,-16);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#986037';ctx.beginPath();ctx.moveTo(-10,-14);ctx.quadraticCurveTo(-15,0,-10,12);ctx.quadraticCurveTo(0,16,10,12);ctx.quadraticCurveTo(15,0,10,-14);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#b67b45';ctx.fillRect(-12,-13,24,4);ctx.fillRect(-14,1,28,5);ctx.fillStyle='#6b452c';ctx.fillRect(-5,-12,3,24);ctx.fillRect(4,-11,3,23);
+      ctx.fillStyle='#c7955d';ctx.beginPath();ctx.ellipse(0,-14,11,4,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#593b2a';ctx.beginPath();ctx.ellipse(0,-14,7,2,0,0,Math.PI*2);ctx.fill();
+      if(b.hp<b.maxHp){ctx.strokeStyle='#ffe09a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.stroke();}
+      ctx.fillStyle='#e8d6b5';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('БОЧКА',0,29);ctx.textAlign='left';ctx.restore();
+    }
+  }
+  function drawMineCreatures(time=performance.now()){
+    for(const m of mineCreatures){if(m.hp<=0)continue;const p=mineCreatureScreenPosition(m),x=p.x,y=p.y,bob=Math.sin(time/230+m.phase)*2.4;ctx.save();ctx.translate(x,y+bob);
+      ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,13,19,7,0,0,Math.PI*2);ctx.fill();
+      if(m.kind==='bat'){const wing=Math.sin(time/95+m.phase)*8;ctx.fillStyle=m.flash>0?'#fff0dc':'#40364f';ctx.beginPath();ctx.moveTo(-4,-1);ctx.quadraticCurveTo(-18,-20-wing,-29,-8);ctx.quadraticCurveTo(-24,8,-8,7);ctx.lineTo(0,3);ctx.lineTo(8,7);ctx.quadraticCurveTo(24,8,29,-8);ctx.quadraticCurveTo(18,-20+wing,4,-1);ctx.closePath();ctx.fill();ctx.fillStyle='#a59ab5';ctx.beginPath();ctx.arc(0,-3,10,0,Math.PI*2);ctx.fill();}
+      else{ctx.fillStyle=m.flash>0?'#fff0dc':'#59483c';ctx.beginPath();ctx.ellipse(0,2,19,13,-.08,0,Math.PI*2);ctx.fill();ctx.fillStyle='#76634f';ctx.beginPath();ctx.arc(-10,-8,7,0,Math.PI*2);ctx.arc(9,-8,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#42352e';ctx.fillRect(-13,8,5,8);ctx.fillRect(8,8,5,8);}
+      ctx.fillStyle=m.kind==='bat'?'#ff8d69':'#ffbd65';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=9;ctx.beginPath();ctx.arc(-5,-3,2.5,0,Math.PI*2);ctx.arc(5,-3,2.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();
+      if(m.hp<m.maxHp){ctx.fillStyle='#171b24';ctx.fillRect(x-17,y-27,34,4);ctx.fillStyle='#e46b59';ctx.fillRect(x-17,y-27,34*Math.max(0,m.hp/m.maxHp),4);}
+      ctx.fillStyle='#f0dfc7';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText(m.name||'Пещерный монстр',x,y-31);ctx.textAlign='left';
+    }
+  }
+  function strikeMineCreature(target,damage){
+    if(!mineMode||!target||target.hp<=0)return false;target.hp=Math.max(0,target.hp-Math.max(1,Math.floor(Number(damage)||1)));target.flash=.2;
+    const p=mineCreatureScreenPosition(target);spawnVisualBurst(p.x,p.y,8,'spark',target.kind==='bat'?'#ff9875':'#d4b38c');playSound('hit');
+    if(target.hp<=0){const coal=1+(mineLevel>=5?1:0);changeItem('Уголь',coal);if(mineLevel>=4&&Math.random()<.35)changeItem('Железо',1);
+      window.SkyRealmJobs?.record?.('hunter',1);awardXP(22+mineLevel*4,'победа над шахтным монстром');toast('Пещерный монстр повержен · уголь ×'+coal+'.');}
+    else toast((target.name||'Монстр')+' · здоровье '+target.hp+'/'+target.maxHp+'.');
+    renderInventory();saveGame();return true;
+  }
+  function strikeMineBarrel(b){
+    if(!mineMode||!b||b.hp<=0)return false;b.hp=Math.max(0,b.hp-1);playSound('wood');
+    const p=mineRockScreenPosition(b);spawnVisualBurst(p.x,p.y,b.hp<=0?12:5,'dust','#bb8753');
+    if(b.hp<=0){changeItem('Уголь',b.coal);changeItem('Камень',b.stone);toast('Бочка разбита: уголь ×'+b.coal+', камень ×'+b.stone+'.');renderInventory();}
+    else toast('Бочка треснула · ещё один удар.');saveGame();return true;
+  }
+  function updateMineCreatures(dt){
+    if(!mineMode)return;minePlayerAttackCooldown=Math.max(0,minePlayerAttackCooldown-dt);
+    for(const m of mineCreatures){if(m.hp<=0)continue;m.attackCooldown=Math.max(0,(m.attackCooldown||0)-dt);m.flash=Math.max(0,(m.flash||0)-dt);m.phase=(m.phase||0)+dt*2;
+      const p=mineCreatureScreenPosition(m),dx=minePlayerX-p.x,dy=(minePlayerY||height-108)-p.y,dist=Math.hypot(dx,dy);
+      if(dist<260&&dist>58){const step=Math.min(m.speed*dt,dist-54);m.x=Math.max(.04,Math.min(.96,m.x+dx/dist*step/width));m.y=Math.max(.10,Math.min(.90,m.y+dy/dist*step/height));}
+      else if(dist<=58&&m.attackCooldown<=0&&!immortal){const reduction=typeof armorReduction==='function'?Math.max(0,Math.min(.9,armorReduction())):0,damage=Math.max(1,Math.round(m.damage*(1-reduction)));
+        player.hp=Math.max(0,player.hp-damage);m.attackCooldown=2.35;spawnVisualBurst(minePlayerX,minePlayerY,6,'spark','#f06f65');updateVitals();toast((m.name||'Пещерный монстр')+' атакует · −'+damage+' HP');saveGame();if(player.hp<=0)respawnPlayerAfterDefeat();}
+    }
+  }
   function drawMineEntrance(camX,camY){
     const mx=mineTileX*TILE+16-camX,my=mineTileY*TILE+16-camY;
     if(mx<-100||mx>width+100||my<-100||my>height+100)return;
@@ -2142,9 +2227,10 @@ function setupVillageNpcs(){
   function drawMineInterior(){
     const grad=ctx.createLinearGradient(0,0,0,height);grad.addColorStop(0,'#121c2b');grad.addColorStop(1,'#2a302e');ctx.fillStyle=grad;ctx.fillRect(0,0,width,height);
     ctx.fillStyle='#313a43';ctx.fillRect(20,20,width-40,height-40);ctx.fillStyle='#252e38';ctx.fillRect(28,28,width-56,height-56);
-    ctx.fillStyle='#5b4938';for(let x=42;x<width-35;x+=95){ctx.fillRect(x,28,8,height-56);ctx.fillRect(x-9,28,26,7);}
+    drawMinePassages();
     ctx.fillStyle='#e8d4a4';ctx.font='bold 18px Segoe UI';ctx.fillText('ШАХТА · УРОВЕНЬ '+mineLevel+' · E — выйти',38,52);
-    ctx.fillStyle='#a8bbd4';ctx.font='12px Segoe UI';ctx.fillText('Кирка: выбери её в быстром инвентаре. Нажми левой кнопкой по залежи 2 раза.',38,73);
+    ctx.fillStyle='#a8bbd4';ctx.font='12px Segoe UI';ctx.fillText('Ответвления шахты · ЛКМ: кирка по руде, оружие по монстрам, удар по бочкам.',38,73);
+    drawMineBarrels();drawMineCreatures();
     mineRocks.forEach((r,i)=>{if(r.hp<=0)return;const pos=mineRockScreenPosition(r),x=pos.x,y=pos.y;
       const oreColors={'Кристалл':'#276c91','Железо':'#777c8a','Уголь':'#252a32','Медь':'#a85e35','Олово':'#aab4bd','Серебро':'#d8e0eb','Золото':'#b68b20','Рубин':'#9c243f','Сапфир':'#245bc4','Обсидиан':'#302343','Мифрил':'#59bfc8','Уран':'#5a9a3e','Алмаз':'#6ee9f0'};ctx.fillStyle=i===mineHoverIndex?'#465a73':(oreColors[r.ore]||'#877967');
       ctx.beginPath();ctx.moveTo(x-21,y+9);ctx.lineTo(x-17,y-9);ctx.lineTo(x-6,y-18);ctx.lineTo(x+10,y-16);ctx.lineTo(x+20,y-4);ctx.lineTo(x+17,y+12);ctx.lineTo(x-2,y+18);ctx.closePath();ctx.fill();
@@ -2155,7 +2241,7 @@ function setupVillageNpcs(){
     // Keep the same player visible while inside the mine, so this is a location change, not a character swap.
     const px=minePlayerX,py=minePlayerY||height-108;ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(px,py+24,17,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f2c18f';ctx.fillRect(px-6,py-20,12,13);ctx.fillStyle='#526fba';ctx.fillRect(px-8,py-7,16,20);ctx.fillStyle='#2c3447';ctx.fillRect(px-7,py+12,5,10);ctx.fillRect(px+2,py+12,5,10);
     drawRemotePlayers(0,0);
-    ctx.fillStyle='#dce7ff';ctx.font='12px Segoe UI';ctx.fillText('Добыча: камень, уголь, железо; с 3-го уровня — редкие кристаллы.',38,height-28);
+    ctx.fillStyle='#dce7ff';ctx.font='12px Segoe UI';ctx.fillText('Главный тоннель · боковые залы · бочки с ресурсами · пещерные существа.',38,height-28);
   }
   function drawHouseInterior(dt,time){
     const night=isNightTime(),flicker=Math.sin(time/83)*1.5+Math.sin(time/137)*.8;
@@ -3474,7 +3560,7 @@ function setupVillageNpcs(){
     const gate=dungeonGatePosition();if(!tradeWorldMode&&Math.hypot(player.x-gate.x,player.y-gate.y)<112){enterDungeon();return;}
     if(!tradeWorldMode&&Math.hypot(player.x-(74*TILE+16),player.y-(18*TILE+16))<112){caveReturn={x:player.x,y:player.y};caveMode=true;player.x=width*.35;player.y=height*.58;player.vx=player.vy=0;caveBossX=width*.72;caveBossY=height*.30;caveBossAttackTimer=difficultyConfig().bossInterval;caveBossFlash=0;toast(caveBossDefeated?'Ты вернулся в исследованную пещеру.':'В пещере Каменный страж! Победи его, чтобы открыть сокровищницу.');return;}
     if(Math.hypot(player.x-(tradeEntranceX*TILE+16),player.y-(tradeEntranceY*TILE+16))<112){transitionTradeWorld();return;}
-    if(Math.hypot(player.x-(mineTileX*TILE+16),player.y-(mineTileY*TILE+16))<112){mineMode=true;mineHoverIndex=-1;minePlayerX=86;minePlayerY=height-108;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в шахту. Выбери кирку и нажми по залежи левой кнопкой 2 раза.');return;}
+    if(Math.hypot(player.x-(mineTileX*TILE+16),player.y-(mineTileY*TILE+16))<112){mineMode=true;mineHoverIndex=-1;minePlayerAttackCooldown=0;minePlayerX=86;minePlayerY=height-108;keys.clear();pressedMovementCodes.clear();toast('Ты вошёл в шахту. Выбери кирку и нажми по залежи левой кнопкой 2 раза.');return;}
     // Enter a house only when the player deliberately presses E at its doorway.
     // A broad proximity radius caused accidental transfers while walking past walls.
     const placedHouse=placedStructures.find(s=>s.type==='house'&&Math.abs(player.x-s.x)<34&&Math.abs(player.y-(s.y+43))<42);
@@ -4174,7 +4260,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       if(inHouse && !sleeping && player.hp<100){player.hp=Math.min(100,player.hp+dt*(1+(houseLevel-1)*.65+skillBonus('builder')*.4)*(isModInstalled('architect')?1.5:1)*(isModInstalled('restful_camp')?1.3:1));updateVitals();}
       pickUpLoot(dt);
       updateFarmPlots(dt);
-      updateCaveBoss(dt);
+      updateCaveBoss(dt);updateMineCreatures(dt);
       if(!dungeonMode)updateWolfAndDog(dt);
       updateDungeon(dt);
       updateMonsters(dt);
@@ -4254,7 +4340,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
   }
   function saveGame(){
     if(!currentWorldId)return false;
-    const serialized=JSON.stringify({bossRealmMode,bossReturnWorldId,bossReturnX,bossReturnY,bossRealmState,bossRealmCreatures:bossRealmMode?monsters.filter(m=>m.bossRealmCreature&&m.hp>0).map(m=>({...m})):[],seaWorldData,clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,quarryProgress,quarryRocks:world.rocks.map(r=>({x:r.x,y:r.y,hp:r.hp,maxHp:r.maxHp,ore:r.ore,quality:r.quality,regrowAt:r.regrowAt})),adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,specialCooldown:m.specialCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},nemesisEvents,lastNemesisRaidDay,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,totalGameMinutesPlayed,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,waterHelmetLevel,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay,expansionSystems:window.SkyRealmExpansionSystems?.exportState?.()||null});
+    const serialized=JSON.stringify({bossRealmMode,bossReturnWorldId,bossReturnX,bossReturnY,bossRealmState,bossRealmCreatures:bossRealmMode?monsters.filter(m=>m.bossRealmCreature&&m.hp>0).map(m=>({...m})):[],seaWorldData,clearedSnowTiles:Array.from(clearedSnowTiles),snowShovelHits,difficulty:currentDifficulty,coopWorldEntry:isCoopWorldSave()?coopWorldEntry:null,x:dungeonMode?dungeonReturn.x:caveMode?caveReturn.x:player.x,y:dungeonMode?dungeonReturn.y:caveMode?caveReturn.y:player.y,bedSpawn,worldEarlyMonsters,mineLevel,houseLevel,dungeonRoom,dungeonClearedRooms,dungeonEnemyHp,dungeonChestOpened,biomeBosses,playerLevel,playerXP,skillPoints,skills,playerClass,equipment,caveBossDefeated,caveBossHp,caveChestOpened,treasureChests:treasureChests.map(c=>({id:c.id,opened:c.opened})),mineTileX,mineTileY,mineRocks,mineBarrels,mineCreatures,quarryProgress,quarryRocks:world.rocks.map(r=>({x:r.x,y:r.y,hp:r.hp,maxHp:r.maxHp,ore:r.ore,quality:r.quality,regrowAt:r.regrowAt})),adventureQuestProgress:{...adventureQuestProgress,treeChops,felledTrees,coopMonsters:isCoopWorldSave()?monsters.map(m=>({id:m.id,type:m.type,x:m.x,y:m.y,hp:m.hp,maxHp:m.maxHp,speed:m.speed,damageScale:m.damageScale,attackCooldown:m.attackCooldown,specialCooldown:m.specialCooldown,phase:m.phase,fuseStarted:m.fuseStarted,fuseTime:m.fuseTime,exploding:m.exploding,explosionTimer:m.explosionTimer})):[]},nemesisEvents,lastNemesisRaidDay,tradeWorldMode,tradeEntranceX,tradeEntranceY,walletCents,furnaceCrafted,placedStructures:placedStructures.map(v=>({...v,contents:{...(v.contents||{})}})),lootDrops:lootDrops.map(d=>({...d})),farmCrops,playerAppearance,discovered,exploredCells:Array.from(exploredCells),selectedSlot,gameMinuteTotal,totalGameMinutesPlayed,survivedNights,hp:player.hp,stamina:player.stamina,hunger,hungerElapsedMinutes,skipDayRealSeconds,sheepSpawned,sheepSpawnTimer,questStage,workbenchUsed,sheep: sheep.map(a=>({...a})),resources:inventoryItems.map(i=>({name:i.name,count:i.count})),weaponUpgrades,armorUpgrade,anvilCrafted,weaponEnchantments,waterHelmetLevel,immortal,bloodMoonActive,bloodMoonRewardPending,lastBloodMoonNight,wolfBossActive,wolfBossHp,wolfBossX,wolfBossY,wolfBossKeyDropped,wolfCageOpen,wolfDogCaged,wolfBossDefeated,wolfCompanionUnlocked,wolfCompanionHp,wolfCompanionRevivals,wolfCompanionOffsetX,wolfCompanionOffsetY,dogBehavior,villageQuestStage,blacksmithQuestStage,explorerQuestStage,npcQuestState,villageReputation,lastVillageRaidDay,villageRaidActive,villageRaidKills,villageRaidTimer,weatherMode,weatherTimer,fishCaught,meteorPoint:meteorPoint?{x:meteorPoint.x,y:meteorPoint.y}:null,meteorShowerTimer,worldEventCamp:worldEventCamp?{...worldEventCamp}:null,worldEventTraveler:worldEventTraveler?{...worldEventTraveler}:null,lastWorldMeteorNight,lastWorldHordeNight,lastWorldCampDay,lastWorldTravelerDay,expansionSystems:window.SkyRealmExpansionSystems?.exportState?.()||null});
     try{
       localStorage.setItem(saveKey,serialized);
     }catch(error){
@@ -4310,7 +4396,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
         }
         if(Array.isArray(d.farmCrops))farmCrops=d.farmCrops.filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,60).map(v=>({...v,stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0),crop:FARM_CROPS.some(c=>c.id===v.crop)?v.crop:null,moisture:Math.max(0,Math.min(100,Number(v.moisture)||0)),fertilized:v.fertilized===true}));
         if(d.playerAppearance&&typeof d.playerAppearance==='object')applyAppearanceData(d.playerAppearance);
-if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerLevel));if(Number.isFinite(d.playerXP))playerXP=Math.max(0,d.playerXP);caveChestOpened=d.caveChestOpened===true;if(Array.isArray(d.treasureChests))for(const c of treasureChests){const saved=d.treasureChests.find(v=>v&&v.id===c.id);if(saved)c.opened=saved.opened===true;}if(Number.isFinite(d.walletCents))walletCents=Math.max(0,Math.floor(d.walletCents));if(Number.isInteger(d.tradeEntranceX))tradeEntranceX=d.tradeEntranceX;if(Number.isInteger(d.tradeEntranceY))tradeEntranceY=d.tradeEntranceY;mineLevel=Math.max(1,Math.min(8,Number(d.mineLevel)||1));houseLevel=Math.max(1,Math.min(3,Number(d.houseLevel)||1));// Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.if(Array.isArray(d.mineRocks)&&d.mineRocks.length){mineRocks=d.mineRocks.slice(0,60).map(r=>({x:Number(r.x)||100,y:Number(r.y)||100,ore:['Уголь','Железо','Камень','Кристалл','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(r.ore)?r.ore:'Камень',hp:Math.max(0,Math.min(2,Number(r.hp)||0)),maxHp:2}));}if(mineRocks.filter(r=>r.ore==='Камень'&&r.hp>0).length<8)generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));
+if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerLevel));if(Number.isFinite(d.playerXP))playerXP=Math.max(0,d.playerXP);caveChestOpened=d.caveChestOpened===true;if(Array.isArray(d.treasureChests))for(const c of treasureChests){const saved=d.treasureChests.find(v=>v&&v.id===c.id);if(saved)c.opened=saved.opened===true;}if(Number.isFinite(d.walletCents))walletCents=Math.max(0,Math.floor(d.walletCents));if(Number.isInteger(d.tradeEntranceX))tradeEntranceX=d.tradeEntranceX;if(Number.isInteger(d.tradeEntranceY))tradeEntranceY=d.tradeEntranceY;mineLevel=Math.max(1,Math.min(8,Number(d.mineLevel)||1));houseLevel=Math.max(1,Math.min(3,Number(d.houseLevel)||1));// Mine coordinates are deterministic from the world ID; do not restore stale pre-expansion coordinates.if(Array.isArray(d.mineRocks)&&d.mineRocks.length){mineRocks=d.mineRocks.slice(0,60).map(r=>({x:Number(r.x)||100,y:Number(r.y)||100,ore:['Уголь','Железо','Камень','Кристалл','Медь','Олово','Серебро','Золото','Рубин','Сапфир','Обсидиан','Мифрил','Уран','Алмаз'].includes(r.ore)?r.ore:'Камень',hp:Math.max(0,Math.min(2,Number(r.hp)||0)),maxHp:2}));}if(mineRocks.filter(r=>r.ore==='Камень'&&r.hp>0).length<8)generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));if(!Array.isArray(d.mineBarrels)||!Array.isArray(d.mineCreatures))generateMineFeatures(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));if(Array.isArray(d.mineBarrels))mineBarrels=d.mineBarrels.slice(0,12).filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)).map(v=>({id:String(v.id||'').slice(0,64),x:Math.max(0,Math.min(330,v.x)),y:Math.max(0,Math.min(255,v.y)),hp:Math.max(0,Math.min(2,Math.floor(Number(v.hp)||0))),maxHp:2,coal:Math.max(1,Math.min(2,Math.floor(Number(v.coal)||1))),stone:Math.max(1,Math.min(3,Math.floor(Number(v.stone)||1)))}));if(Array.isArray(d.mineCreatures))mineCreatures=d.mineCreatures.slice(0,12).filter(v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.hp)).map(v=>({id:String(v.id||'').slice(0,64),name:v.kind==='bat'?'Каменная летучая мышь':'Пещерный грызун',kind:v.kind==='bat'?'bat':'crawler',x:Math.max(.04,Math.min(.96,v.x)),y:Math.max(.1,Math.min(.9,v.y)),hp:Math.max(0,Math.min(2000,Number(v.hp)||0)),maxHp:Math.max(1,Math.min(2000,Number(v.maxHp)||1)),damage:Math.max(1,Math.min(80,Number(v.damage)||4)),speed:Math.max(1,Math.min(100,Number(v.speed)||30)),attackCooldown:Math.max(0,Math.min(10,Number(v.attackCooldown)||0)),phase:Number(v.phase)||0,flash:0}));
         for(const felled of felledTrees){const idx=world.trees.findIndex(tree=>Math.round(tree.x)===felled.x&&Math.round(tree.y)===felled.y);if(idx>=0)world.trees.splice(idx,1);}
         for(const tree of world.trees){const progress=treeChops.find(v=>v.x===Math.round(tree.x)&&v.y===Math.round(tree.y));if(progress)tree.chops=progress.chops;}
         furnaceCrafted=!!d.furnaceCrafted;if(Array.isArray(d.placedStructures))placedStructures=d.placedStructures.filter(v=>v&&['furnace','house','torch','coal','storage','farmplot','tech-generator','tech-battery','tech-lamp','tech-turret','tech-drill','tech-shield','tech-wall','tech-guardpost','tech-trap','tech-solar','tech-processor'].includes(v.type)&&Number.isFinite(v.x)&&Number.isFinite(v.y)).slice(0,250).map(v=>({...v,contents:v.type==='storage'&&v.contents&&typeof v.contents==='object'?{...v.contents}:{},stage:Math.max(0,Math.min(3,Number(v.stage)||0)),growSeconds:Math.max(0,Number(v.growSeconds)||0)}));lootDrops.length=0;if(Array.isArray(d.lootDrops))d.lootDrops.slice(0,80).forEach(v=>{if(v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&inventoryItems.some(i=>i.name===v.name)&&Number.isFinite(v.count))lootDrops.push({id:typeof v.id==='string'?v.id:'',shared:v.shared===true,x:v.x,y:v.y,name:v.name,count:Math.max(1,Math.min(99,Math.floor(v.count))),life:Math.max(0,Math.min(240,Number(v.life)||240)),phase:Number(v.phase)||0,world_mode:['surface','cave','dungeon'].includes(v.world_mode)?v.world_mode:'surface'});});
@@ -4487,9 +4573,24 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       else if(mineLevel===6){ore=roll<.10?'Серебро':roll<.20?'Золото':roll<.32?'Рубин':roll<.44?'Сапфир':roll<.56?'Обсидиан':roll<.74?'Мифрил':roll<.86?'Уран':roll<.97?'Алмаз':'Кристалл';}
       else if(mineLevel===7){ore=roll<.08?'Золото':roll<.20?'Рубин':roll<.32?'Сапфир':roll<.43?'Обсидиан':roll<.66?'Мифрил':roll<.82?'Уран':roll<.96?'Алмаз':'Кристалл';}
       else{ore=roll<.07?'Рубин':roll<.17?'Сапфир':roll<.28?'Обсидиан':roll<.53?'Мифрил':roll<.68?'Уран':roll<.93?'Алмаз':'Кристалл';}
-      return {x:76+hash(i+seed,7)*270,y:58+hash(i+seed,13)*195,ore,hp:2,maxHp:2};
+      const veinAnchors=[[34,202],[54,193],[72,185],[103,168],[107,136],[91,103],[61,84],[145,154],[153,181],[177,201],[212,213],[249,205],[185,132],[187,100],[205,72],[227,52],[262,104],[278,130],[296,154],[315,172],[237,109],[127,143],[170,145],[225,117]];
+      const anchor=veinAnchors[i%veinAnchors.length],layer=Math.floor(i/veinAnchors.length);
+      const jitterX=(hash(i+seed,7)-.5)*(13+layer*8),jitterY=(hash(i+seed,13)-.5)*(11+layer*7);
+      return {x:Math.max(12,Math.min(320,anchor[0]+jitterX)),y:Math.max(30,Math.min(238,anchor[1]+jitterY)),ore,hp:2,maxHp:2};
     });
-    mineHoverIndex=-1;
+    mineHoverIndex=-1;generateMineFeatures(dayIndex);
+  }
+  function generateMineFeatures(dayIndex=0){
+    const seed=mineSeed+(dayIndex*7919)+(mineLevel*313);
+    const barrelSpots=[[48,196],[124,150],[194,130],[279,133],[220,207],[64,84]],barrelCount=Math.min(6,4+Math.floor((mineLevel-1)/3));
+    mineBarrels=barrelSpots.slice(0,barrelCount).map(([x,y],i)=>({id:'barrel-'+seed+'-'+i,x:x+(hash(i+seed,53)-.5)*8,y:y+(hash(i+seed,59)-.5)*7,hp:2,maxHp:2,coal:1+Math.floor(hash(i+seed,61)*2),stone:1+Math.floor(hash(i+seed,67)*3)}));
+    const packs=[[{x:101,y:168,kind:'crawler'}],[{x:277,y:130,kind:'crawler'},{x:292,y:143,kind:'bat'}],[{x:61,y:84,kind:'bat'}],[{x:212,y:211,kind:'crawler'},{x:231,y:205,kind:'bat'}]];
+    const groupCount=Math.min(packs.length,2+Math.floor((mineLevel-1)/2));let index=0;mineCreatures=[];
+    packs.slice(0,groupCount).forEach(pack=>pack.forEach(spot=>{
+      const jitterX=(hash(index+seed,41)-.5)*7,jitterY=(hash(index+seed,43)-.5)*6,p=mineRockScreenPosition({x:spot.x+jitterX,y:spot.y+jitterY}),kind=spot.kind==='bat'?'bat':'crawler',maxHp=45+mineLevel*12+(kind==='crawler'?10:0);
+      mineCreatures.push({id:'mine-creature-'+seed+'-'+index,name:kind==='bat'?'Каменная летучая мышь':'Пещерный грызун',kind,x:p.x/width,y:p.y/height,hp:maxHp,maxHp,damage:Math.round(3+mineLevel*.8),speed:kind==='bat'?34+mineLevel*2:24+mineLevel*2,attackCooldown:1.1+hash(index+seed,47)*1.7,phase:hash(index+seed,49)*6.28,flash:0});index++;
+    }));
+    minePlayerAttackCooldown=0;
   }
   function createMineForWorld(recordId){
     mineSeed=Array.from(String(recordId)).reduce((a,c)=>a+c.charCodeAt(0),0);
@@ -5012,7 +5113,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   window.addEventListener('resize', resize);
   window.addEventListener('fullscreenchange',()=>{gameSettings.windowMode=document.fullscreenElement?'fullscreen':'windowed';document.getElementById('game-window-mode-select').value=gameSettings.windowMode;localStorage.setItem('skyrealm_game_preferences',JSON.stringify(gameSettings));});
   canvas.addEventListener('pointerdown',()=>{if(!inMainMenu&&!paused)canvas.focus();},true);
-  canvas.addEventListener('pointermove', (ev) => {if(!mineMode)return;const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;let index=-1,bd=38;mineRocks.forEach((r,i)=>{if(r.hp<=0)return;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;index=i;}});mineHoverIndex=index;canvas.style.cursor=index>=0?'crosshair':'default';});
+  canvas.addEventListener('pointermove', (ev) => {if(!mineMode)return;const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;let index=-1,bd=38;mineRocks.forEach((r,i)=>{if(r.hp<=0)return;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;index=i;}});mineHoverIndex=index;let over=index>=0;if(!over)over=mineBarrels.some(b=>b.hp>0&&Math.hypot(mineRockScreenPosition(b).x-x,mineRockScreenPosition(b).y-y)<30)||mineCreatures.some(m=>m.hp>0&&Math.hypot(mineCreatureScreenPosition(m).x-x,mineCreatureScreenPosition(m).y-y)<34);canvas.style.cursor=over?'crosshair':'default';});
   canvas.addEventListener('pointerleave',()=>{mineHoverIndex=-1;canvas.style.cursor='default';});
   function selectedInventoryItem(){return inventoryItems.filter(i=>i.count>0)[selectedSlot-1]||null;}
   function shovelSnowAt(x,y){
@@ -5038,6 +5139,20 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       shovelSnowAt(screenX+camX,screenY+camY);return;
     }
     if(!mineMode&&placeSelectedStructure(ev))return;if(!mineMode)return;
+    const mineHitRect=canvas.getBoundingClientRect(),mineHitX=ev.clientX-mineHitRect.left,mineHitY=ev.clientY-mineHitRect.top,minePlayerScreenY=minePlayerY||height-108;
+    const clickedCreature=mineCreatures.find(m=>m.hp>0&&Math.hypot(mineCreatureScreenPosition(m).x-mineHitX,mineCreatureScreenPosition(m).y-mineHitY)<36);
+    if(clickedCreature){
+      if(Math.hypot(mineCreatureScreenPosition(clickedCreature).x-minePlayerX,mineCreatureScreenPosition(clickedCreature).y-minePlayerScreenY)>112){toast('Подойди ближе, чтобы ударить пещерного монстра.');return;}
+      if(minePlayerAttackCooldown>0){toast('Подожди завершения удара.');return;}
+      minePlayerAttackCooldown=.32;const damage=Math.max(10,Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.08)));
+      strikeMineCreature(clickedCreature,damage);return;
+    }
+    const clickedBarrel=mineBarrels.find(b=>b.hp>0&&Math.hypot(mineRockScreenPosition(b).x-mineHitX,mineRockScreenPosition(b).y-mineHitY)<32);
+    if(clickedBarrel){
+      if(Math.hypot(mineRockScreenPosition(clickedBarrel).x-minePlayerX,mineRockScreenPosition(clickedBarrel).y-minePlayerScreenY)>112){toast('Подойди ближе к бочке.');return;}
+      if(minePlayerAttackCooldown>0){toast('Подожди завершения удара.');return;}
+      minePlayerAttackCooldown=.28;strikeMineBarrel(clickedBarrel);return;
+    }
     if(!selectedItem||!['Кирка','Улучшенная кирка','Кирка мастера'].includes(selectedItem.name)){toast('Для добычи выбери кирку в инвентаре.');return;}
     const rect=canvas.getBoundingClientRect(),x=ev.clientX-rect.left,y=ev.clientY-rect.top;let target=null,bd=38;
     for(const r of mineRocks){if(r.hp<=0)continue;const pos=mineRockScreenPosition(r),d=Math.hypot(pos.x-x,pos.y-y);if(d<bd){bd=d;target=r;}}
