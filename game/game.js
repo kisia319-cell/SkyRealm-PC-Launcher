@@ -667,7 +667,7 @@
       const damage=Math.round(weaponDamage(equipment.weapon||'Деревянный меч')*2.7);caveBossHp=Math.max(0,caveBossHp-damage);caveBossFlash=.5;hits++;spawnCombatBurst(caveBossX,caveBossY,48,'spark',style[0]);if(caveBossHp<=0)defeatCaveBoss();
     }
     spawnCombatBurst(player.x,player.y,76,'spark',style[0]);spawnCombatBurst(player.x,player.y,42,'dust','#ffffff');
-    combatCinematicImpactFlash=.32;combatCameraShake=13;saveGame();
+    combatCinematicImpactFlash=.32;combatCameraShake=13;playSound('hit');saveGame();
     toast('СУПЕРУДАР · '+style[1]+' · поражено целей: '+hits+(kills?' · побеждено: '+kills:''));
   }
   function updateCombatCinematic(realDt){
@@ -2398,6 +2398,22 @@ function setupVillageNpcs(){
       // A foreground weapon sweep sells the close, over-the-shoulder impact shot.
       if(intensity>.2){ctx.save();const swing=(1-p)*1.9-.55;ctx.translate(width*.78,height*.86);ctx.rotate(swing);ctx.globalAlpha=Math.min(.95,intensity*1.15);ctx.strokeStyle=combatCinematic.style;ctx.fillStyle='#c8d5e6';ctx.shadowColor=combatCinematic.style;ctx.shadowBlur=gameSettings.graphicsQuality==='low'?2:16;ctx.lineWidth=combatCinematic.weapon==='Молниеносное копьё'?11:7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,48);ctx.lineTo(-10,-72);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#526174';ctx.beginPath();ctx.moveTo(-17,52);ctx.lineTo(17,52);ctx.lineTo(11,37);ctx.lineTo(-11,37);ctx.closePath();ctx.fill();ctx.strokeStyle='#f4f8ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-5,-62);ctx.lineTo(-9,25);ctx.stroke();ctx.restore();}
       ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#ffffff';ctx.shadowColor=combatCinematic.style;ctx.shadowBlur=14;ctx.fillText(combatCinematic.hitDone?'УДАР!':combatCinematic.name.toUpperCase(),width/2,height-Math.min(height*.12,34+intensity*24)+22);ctx.shadowBlur=0;
+    }
+    if(combatCinematic?.hitDone){
+      const pulse=Math.max(0,1-(combatCinematic.elapsed-combatCinematic.hitAt)/.72),cx=width*.5,cy=height*.5;
+      ctx.save();ctx.globalAlpha=pulse*.78;ctx.strokeStyle=combatCinematic.style;ctx.fillStyle=combatCinematic.style;ctx.shadowColor=combatCinematic.style;ctx.shadowBlur=gameSettings.graphicsQuality==='low'?0:18;ctx.lineWidth=3;
+      if(combatCinematic.weapon==='Огненный меч'){
+        for(let ring=0;ring<3;ring++){ctx.beginPath();ctx.ellipse(cx,cy,55+ring*32+pulse*22,22+ring*16+pulse*13,-.18,0,Math.PI*2);ctx.stroke();}
+        for(let n=0;n<8;n++){const a=n*Math.PI/4+time*.004;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*24,cy+Math.sin(a)*16);ctx.lineTo(cx+Math.cos(a)*90,cy+Math.sin(a)*65);ctx.stroke();}
+      }else if(combatCinematic.weapon==='Ледяной посох'){
+        for(let ring=0;ring<2;ring++){const r=54+ring*36+pulse*18;ctx.beginPath();for(let n=0;n<=6;n++){const a=n*Math.PI/3-Math.PI/2;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r*.62;if(n===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();ctx.stroke();}
+        for(let n=0;n<8;n++){const a=n*Math.PI/4;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*38,cy+Math.sin(a)*26);ctx.lineTo(cx+Math.cos(a)*115,cy+Math.sin(a)*76);ctx.stroke();}
+      }else if(combatCinematic.weapon==='Молниеносное копьё'){
+        for(let n=0;n<5;n++){const x=cx-105+n*52;ctx.beginPath();ctx.moveTo(x,cy-95);ctx.lineTo(x+((n%2)?18:-16),cy-38);ctx.lineTo(x-10,cy+4);ctx.lineTo(x+22,cy+55);ctx.lineTo(x+7,cy+94);ctx.stroke();}
+      }else{
+        for(let ring=0;ring<3;ring++){ctx.beginPath();ctx.ellipse(cx,cy,42+ring*38+pulse*24,22+ring*18+pulse*14,0,0,Math.PI*2);ctx.stroke();}
+      }
+      ctx.restore();
     }
     if(combatCinematicImpactFlash>0){ctx.fillStyle='rgba(255,255,255,'+Math.min(.42,combatCinematicImpactFlash*1.25)+')';ctx.fillRect(0,0,width,height);}
     ctx.restore();
