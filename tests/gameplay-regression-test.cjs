@@ -119,7 +119,7 @@ bossContext.biomeBosses = {
   frost:{active:false,defeated:false,hp:0,attackTimer:1.35,specialTimer:7,flash:0,rebirthMultiplier:1,rebirthCount:0},
   sand:{active:false,defeated:false,hp:0,attackTimer:1.5,specialTimer:8,flash:0,rebirthMultiplier:1,rebirthCount:0},
   blight:{active:false,defeated:false,hp:0,attackTimer:1.7,specialTimer:9,flash:0,rebirthMultiplier:1,rebirthCount:0},
-  jungle:{active:true,defeated:false,hp:900,attackTimer:0.01,specialTimer:100,flash:0,rebirthMultiplier:1.7,rebirthCount:1}
+  jungle:{active:true,defeated:false,hp:900,attackTimer:0.01,specialTimer:100,attackWindup:0,attackVisual:0,flash:0,rebirthMultiplier:1.7,rebirthCount:1}
 };
 bossContext.player = {x:jungleDef.x,y:jungleDef.y,hp:100};
 Object.assign(bossContext,{
