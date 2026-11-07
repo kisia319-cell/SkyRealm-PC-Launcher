@@ -61,11 +61,20 @@ testCase('creatures move toward the player and attack on cooldown',()=>{
  f.ctx.mineCreatures=[{x:7,y:3,hp:30,maxHp:30,damage:3,speed:30,attackCooldown:0,phase:0,flash:0,name:'Пещерный грызун'}];const mobPos=f.ctx.mineFeatureWorldPosition(f.ctx.mineCreatures[0]);f.ctx.minePlayerX=mobPos.x;f.ctx.minePlayerY=mobPos.y;
  f.ctx.updateMineCreatures(.1);assert.equal(f.ctx.player.hp,90,'Mine creatures must deal exactly 10 HP per hit.');assert.ok(f.ctx.mineCreatures[0].attackCooldown>2);assert.equal(f.events.saves,1);
 });
+testCase('player can reliably attack a nearby cave creature with the spacebar target helper',()=>{
+ const f=fixture();f.ctx.mineMode=true;f.ctx.minePlayerX=0;f.ctx.minePlayerY=0;f.ctx.minePlayerAttackCooldown=0;
+ f.ctx.mineCreatures=[{x:30,y:0,hp:100,maxHp:100,kind:'crawler',name:'Пещерный грызун'}];
+ f.ctx.mineFeatureWorldPosition=m=>({x:m.x,y:m.y});f.ctx.mineCreatureScreenPosition=m=>({x:m.x,y:m.y});
+ f.ctx.weaponDamage=()=>15;f.ctx.equipment={weapon:'Деревянный меч'};f.ctx.skills={warrior:0};
+ run(f.ctx,['strikeMineCreature','attackMineCreature'],['attackMineCreature']);
+ assert.equal(f.ctx.attackMineCreature(),true);assert.equal(f.ctx.mineCreatures[0].hp,85);
+ assert.equal(f.ctx.attackMineCreature(),false,'Attack cooldown must prevent repeated hits.');
+});
 testCase('legacy worlds with empty mine feature arrays are backfilled',()=>{
  const f=fixture();run(f.ctx,['generateMineMaze','ensureMineMaze','mineCellWalkable','mineFeaturePoint','generateMineFeatures','restoreMineFeaturesFromSave'],['restoreMineFeaturesFromSave']);
  const result=f.ctx.restoreMineFeaturesFromSave({mineBarrels:[],mineCreatures:[]},3);
  assert.equal(result.backfilledBarrels,true);assert.equal(result.backfilledCreatures,true);
- assert.ok(f.ctx.mineBarrels.length>=5);assert.ok(f.ctx.mineCreatures.length>=4);
+ assert.ok(f.ctx.mineBarrels.length>=5);assert.ok(f.ctx.mineCreatures.length>=4);assert.ok(f.ctx.mineCreatures.every(m=>m.damage===10),'Migrated mine monsters must receive the new 10 HP damage value.');
 });
 testCase('mine migration preserves already-broken barrels while filling missing creatures',()=>{
  const f=fixture();run(f.ctx,['generateMineMaze','ensureMineMaze','mineCellWalkable','mineFeaturePoint','generateMineFeatures','restoreMineFeaturesFromSave'],['restoreMineFeaturesFromSave']);
@@ -98,7 +107,7 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.match(source,/Occasional ceiling stalactites hang over the dark rock/,'Mine walls must include ceiling formations.');
  assert.match(source,/A handful of animated lantern pools and drifting dust motes/,'Mine atmosphere must include lantern lighting and dust.');assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));assert.ok(source.includes('mineMazeVersion:2'));
  assert.match(source,/function autoResumeCoopRoomOnInput\(\)/,'Owner input must automatically resume a paused shared world.');
- assert.match(source,/if\(k===' '&&mineMode[\\s\\S]*?attackMineCreature\(\)/,'Spacebar must provide a reliable mine creature attack.');
+ assert.ok(source.includes("if(k===' '&&mineMode&&!formTarget&&!inMainMenu&&!paused&&!blockingOverlay){e.preventDefault();attackMineCreature();return;}"),'Spacebar must provide a reliable mine creature attack.');
  assert.match(source,/damage:10/,'New mine creatures must use the fixed 10 HP attack value.');
  assert.match(source,/Math\.hypot\(mineCreatureScreenPosition\(m\)\.x-mineHitX,mineCreatureScreenPosition\(m\)\.y-mineHitY\)<54/,'Mine creature click targets must be forgiving.');
 });
