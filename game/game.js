@@ -4675,7 +4675,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
         };
       });
     }else if(!savedCreatures&&!backfillCreatures)mineCreatures=[];
-    return {backfilledBarrels,backfilledCreatures};
+    return {backfilledBarrels:backfillBarrels,backfilledCreatures:backfillCreatures};
   }
   function createMineForWorld(recordId){
     mineSeed=Array.from(String(recordId)).reduce((a,c)=>a+c.charCodeAt(0),0);
