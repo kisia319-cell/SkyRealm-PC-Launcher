@@ -58,8 +58,8 @@ testCase('barrels break in two hits and award their stored resources',()=>{
 });
 testCase('creatures move toward the player and attack on cooldown',()=>{
  const f=fixture();run(f.ctx,['generateMineMaze','ensureMineMaze','mineCellWalkable','mineCellFromWorld','mineNearestFloorCell','mineFeatureWorldPosition','mineNextStepTowardPlayer','mineWorldToScreen','updateMineCreatures'],['updateMineCreatures']);
- f.ctx.mineCreatures=[{x:7,y:3,hp:30,maxHp:30,damage:7,speed:30,attackCooldown:0,phase:0,flash:0,name:'Пещерный грызун'}];const mobPos=f.ctx.mineFeatureWorldPosition(f.ctx.mineCreatures[0]);f.ctx.minePlayerX=mobPos.x;f.ctx.minePlayerY=mobPos.y;
- f.ctx.updateMineCreatures(.1);assert.equal(f.ctx.player.hp,93);assert.ok(f.ctx.mineCreatures[0].attackCooldown>2);assert.equal(f.events.saves,1);
+ f.ctx.mineCreatures=[{x:7,y:3,hp:30,maxHp:30,damage:3,speed:30,attackCooldown:0,phase:0,flash:0,name:'Пещерный грызун'}];const mobPos=f.ctx.mineFeatureWorldPosition(f.ctx.mineCreatures[0]);f.ctx.minePlayerX=mobPos.x;f.ctx.minePlayerY=mobPos.y;
+ f.ctx.updateMineCreatures(.1);assert.equal(f.ctx.player.hp,90,'Mine creatures must deal exactly 10 HP per hit.');assert.ok(f.ctx.mineCreatures[0].attackCooldown>2);assert.equal(f.events.saves,1);
 });
 testCase('legacy worlds with empty mine feature arrays are backfilled',()=>{
  const f=fixture();run(f.ctx,['generateMineMaze','ensureMineMaze','mineCellWalkable','mineFeaturePoint','generateMineFeatures','restoreMineFeaturesFromSave'],['restoreMineFeaturesFromSave']);
@@ -97,5 +97,9 @@ testCase('maze walls block mine-only movement while ordinary world movement rema
  assert.match(source,/Jagged host rock with a dark bevel/,'Ore deposits must have layered rock faces and mineral facets.');
  assert.match(source,/Occasional ceiling stalactites hang over the dark rock/,'Mine walls must include ceiling formations.');
  assert.match(source,/A handful of animated lantern pools and drifting dust motes/,'Mine atmosphere must include lantern lighting and dust.');assert.ok(source.includes('mineMovePlayer(mx,my,speed,dt)'));assert.ok(source.includes('mineMazeVersion:2'));
+ assert.match(source,/function autoResumeCoopRoomOnInput\(\)/,'Owner input must automatically resume a paused shared world.');
+ assert.match(source,/if\(k===' '&&mineMode[\\s\\S]*?attackMineCreature\(\)/,'Spacebar must provide a reliable mine creature attack.');
+ assert.match(source,/damage:10/,'New mine creatures must use the fixed 10 HP attack value.');
+ assert.match(source,/Math\.hypot\(mineCreatureScreenPosition\(m\)\.x-mineHitX,mineCreatureScreenPosition\(m\)\.y-mineHitY\)<54/,'Mine creature click targets must be forgiving.');
 });
 console.log('PASS '+tests.length+' mine exploration tests: '+tests.join(' | '));
