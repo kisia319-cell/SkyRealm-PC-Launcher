@@ -341,7 +341,7 @@ const biomeBossUpdateEnd = game.indexOf('function defeatBiomeBoss', biomeBossUpd
 const biomeBossUpdate = game.slice(biomeBossUpdateStart, biomeBossUpdateEnd);
 assert.ok(biomeBossUpdate.includes('Number.isFinite(b.attackTimer)') && biomeBossUpdate.includes('Number.isFinite(b.specialTimer)') && biomeBossUpdate.includes('Number.isFinite(b.hp)'), 'Biome boss HP and attack timers must recover from invalid save/runtime values');
 assert.ok(biomeBossUpdate.includes("def.id==='jungle'?138:108"), 'The vine guardian must have a reliable melee hit range');
-assert.ok(biomeBossUpdate.includes('b.specialTimer=.2') && biomeBossUpdate.includes('ready special attack queued'), 'A missed special attack must remain queued until the player enters its hit radius');
+assert.ok(biomeBossUpdate.includes('b.attackWindup=.92') && biomeBossUpdate.includes('b.attackTargetX=player.x') && biomeBossUpdate.includes('const windupWasActive=(b.attackWindup||0)>0'), 'Biome boss special attacks must telegraph a timed windup and snapshot the target position');
 assert.ok(game.includes('Number.isFinite(rawHp)') && game.includes('Number.isFinite(rawAttackTimer)') && game.includes('Number.isFinite(rawSpecialTimer)'), 'Saved biome boss values must be normalized before they are restored');
 
 assert.ok(game.includes('const movementDirections = new Set()'), 'Movement input must be tracked independently from action keys');
