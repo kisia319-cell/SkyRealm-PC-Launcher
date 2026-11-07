@@ -61,10 +61,10 @@ assert.match(version, /^\d+\.\d+\.\d+\.\d+$/, 'game/version.txt must include the
 assert.ok(gameHtml.includes(version), 'game/index.html version label must match game/version.txt');
 
 const gameLanguage = fs.readFileSync('game/game-language.js', 'utf8');
-assert.ok(gameLanguage.includes("'ТВОЙ БУДУЩИЙ МИР':'YOUR FUTURE WORLD'"), 'English locale must cover the world menu heading');
-assert.ok(gameLanguage.includes("'Облачные сохранения доступны в установленной Windows-версии игры.':'Cloud saves are available in the installed Windows version of the game.'"), 'English locale must cover cloud-save messages');
-assert.ok(gameLanguage.includes("'Краб-страж':'Guardian Crab'"), 'English locale must cover sea-world creature names');
-assert.ok(gameLanguage.includes("translations[trimmed.toLocaleLowerCase('ru')]"), 'Locale lookup must tolerate capitalization differences');
+assert.ok(gameLanguage.includes('"ТВОЙ БУДУЩИЙ МИР": "YOUR FUTURE WORLD"'), 'English locale must cover the world menu heading');
+assert.ok(gameLanguage.includes('"Облачные сохранения доступны в установленной Windows-версии игры.": "Cloud saves are available in the installed Windows version of the game."'), 'English locale must cover cloud-save messages');
+assert.ok(gameLanguage.includes('"Краб-страж": "Guardian Crab"'), 'English locale must cover sea-world creature names');
+assert.ok(gameLanguage.includes("normalizedTranslations[trimmed.toLocaleLowerCase('ru')]"), 'Locale lookup must tolerate capitalization differences');
 assert.ok(game.includes("const HUD_DRAG_IDS=['top-hud','world-clock','minimap-panel'"), 'Nested vitals must not be independently positioned outside their parent HUD');
 assert.ok(game.includes('xRatio:maxX?') && game.includes('yRatio:maxY?'), 'HUD positions must be saved proportionally so they survive window resizing');
 assert.ok(game.includes('function resetHudPositions()') && game.includes('if(previousHudLayout!==gameSettings.hudLayout)resetHudPositions()'), 'Changing a layout preset must clear conflicting custom coordinates');
