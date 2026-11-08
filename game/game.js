@@ -2819,6 +2819,12 @@ function setupVillageNpcs(){
       if(g[row][col]){
         const floorTones=['#665d50','#5d554a','#716655','#62594e','#585247'];
         ctx.fillStyle=floorTones[tone];ctx.fillRect(p.x-half,p.y-half,size,size);
+        // Soft directional light and a narrow bevel make each existing floor plate feel raised.
+        const floorLight=ctx.createLinearGradient(p.x-half,p.y-half,p.x+half,p.y+half);
+        floorLight.addColorStop(0,'rgba(239,218,177,.13)');floorLight.addColorStop(.48,'rgba(184,163,132,.025)');floorLight.addColorStop(1,'rgba(5,7,8,.22)');
+        ctx.fillStyle=floorLight;ctx.fillRect(p.x-half,p.y-half,size,size);
+        ctx.strokeStyle='rgba(224,204,169,.16)';ctx.lineWidth=Math.max(.7,p.zoom*.55);
+        ctx.beginPath();ctx.moveTo(p.x-half+size*.08,p.y-half+size*.1);ctx.lineTo(p.x+half-size*.12,p.y-half+size*.08);ctx.stroke();
         ctx.fillStyle='rgba(20,17,14,.22)';ctx.fillRect(p.x-half,p.y+half-size*.12,size,size*.12);
         ctx.strokeStyle='rgba(27,24,21,.45)';ctx.lineWidth=Math.max(1,p.zoom*.8);ctx.strokeRect(p.x-half,p.y-half,size,size);
         // Irregular floor plates, chips and thin mineral seams.
@@ -2832,7 +2838,10 @@ function setupVillageNpcs(){
       }else{
         // Deep, layered rock wall with a raised top lip and dark lower face.
         ctx.fillStyle='#111a22';ctx.fillRect(p.x-half,p.y-half,size,size);
-        ctx.fillStyle=['#303a40','#394247','#333d42','#41484a','#2e383d'][tone];ctx.beginPath();
+        const wallShade=ctx.createLinearGradient(p.x-half,p.y-half,p.x+half,p.y+half);
+        wallShade.addColorStop(0,['#485258','#505b60','#465257','#596064','#424c51'][tone]);
+        wallShade.addColorStop(.55,['#303a40','#394247','#333d42','#41484a','#2e383d'][tone]);
+        wallShade.addColorStop(1,'#151e24');ctx.fillStyle=wallShade;ctx.beginPath();
         ctx.moveTo(p.x-half,p.y-half+size*.12);ctx.lineTo(p.x-half+size*.12,p.y-half+size*.02);ctx.lineTo(p.x-half+size*.35,p.y-half+size*.07);ctx.lineTo(p.x+half-size*.1,p.y-half+size*.03);ctx.lineTo(p.x+half,p.y-half+size*.16);ctx.lineTo(p.x+half,p.y+half-size*.08);ctx.lineTo(p.x+half-size*.18,p.y+half);ctx.lineTo(p.x-half+size*.08,p.y+half-size*.02);ctx.closePath();ctx.fill();
         ctx.fillStyle='rgba(125,139,139,.24)';ctx.beginPath();ctx.moveTo(p.x-half+size*.08,p.y-half+size*.1);ctx.lineTo(p.x-half+size*.32,p.y-half+size*.06);ctx.lineTo(p.x+size*.08,p.y-half+size*.14);ctx.lineTo(p.x-size*.06,p.y-half+size*.22);ctx.closePath();ctx.fill();
         ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(p.x-half,p.y+half-size*.18,size,size*.18);
@@ -2840,6 +2849,11 @@ function setupVillageNpcs(){
         // Faceted boulders and cracks on exposed wall faces.
         for(let k=0;k<2;k++){const v=hash(col*17+k*9+mineSeed,row*23+k*7+mineLevel);const bx=p.x+(v-.5)*size*.48,by=p.y+(hash(row*11+k,col*29+mineSeed)-.5)*size*.36,r=size*(.12+v*.1);ctx.fillStyle=k?'rgba(10,15,19,.36)':'rgba(119,128,126,.22)';ctx.beginPath();ctx.moveTo(bx-r,by);ctx.lineTo(bx-r*.35,by-r*.8);ctx.lineTo(bx+r*.65,by-r*.45);ctx.lineTo(bx+r,by+r*.2);ctx.lineTo(bx-r*.25,by+r*.65);ctx.closePath();ctx.fill();}
         if(seed>.48){ctx.strokeStyle='rgba(8,13,17,.72)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(p.x-size*.22,p.y-size*.22);ctx.lineTo(p.x-size*.08,p.y-size*.03);ctx.lineTo(p.x-size*.17,p.y+size*.1);ctx.lineTo(p.x+size*.02,p.y+size*.28);ctx.stroke();}
+        if(seed>.63){
+          const seamY=p.y-size*(.12+hash(col+mineDepth,row+mineSeed)*.34);
+          ctx.strokeStyle='rgba(165,180,174,.15)';ctx.lineWidth=Math.max(.7,p.zoom*.45);
+          ctx.beginPath();ctx.moveTo(p.x-half+size*.16,seamY);ctx.lineTo(p.x-size*.08,seamY-size*.035);ctx.lineTo(p.x+half-size*.2,seamY+size*.02);ctx.stroke();
+        }
         // Occasional ceiling stalactites hang over the dark rock.
         if(seed>.88){ctx.fillStyle='#1b252b';ctx.beginPath();ctx.moveTo(p.x-size*.16,p.y-half);ctx.lineTo(p.x+size*.12,p.y-half);ctx.lineTo(p.x+size*.02,p.y-half+size*.34);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(142,151,143,.32)';ctx.beginPath();ctx.moveTo(p.x-size*.11,p.y-half+2);ctx.lineTo(p.x-size*.01,p.y-half+size*.17);ctx.lineTo(p.x-size*.02,p.y-half+2);ctx.fill();}
       }
@@ -2860,8 +2874,14 @@ function setupVillageNpcs(){
       if(!g[row][col]||hash(col+mineSeed*11,row+mineDepth*41)<.985)continue;
       const p=mineWorldToScreen((col+.5)*cell,(row+.5)*cell),z=p.zoom;if(p.x<-120||p.x>width+120||p.y<-120||p.y>height+120)continue;
       const pulse=.78+.22*Math.sin(time/180+col*2+row);
-      const glow=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,58*z);glow.addColorStop(0,'rgba(255,185,91,'+(.2*pulse)+')');glow.addColorStop(1,'rgba(255,150,55,0)');ctx.fillStyle=glow;ctx.fillRect(p.x-60*z,p.y-60*z,120*z,120*z);
-      ctx.fillStyle='#ffc66f';ctx.shadowColor='#ffad50';ctx.shadowBlur=8*z;ctx.beginPath();ctx.arc(p.x,p.y,2.5*z,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      // Existing lanterns now cast layered amber light with a softer outer falloff.
+      const outerGlow=ctx.createRadialGradient(p.x,p.y,3,p.x,p.y,92*z);
+      outerGlow.addColorStop(0,'rgba(255,177,91,'+(.12*pulse)+')');outerGlow.addColorStop(.42,'rgba(235,142,70,'+(.055*pulse)+')');outerGlow.addColorStop(1,'rgba(255,150,55,0)');
+      ctx.fillStyle=outerGlow;ctx.fillRect(p.x-94*z,p.y-94*z,188*z,188*z);
+      const glow=ctx.createRadialGradient(p.x,p.y,1,p.x,p.y,48*z);
+      glow.addColorStop(0,'rgba(255,221,151,'+(.27*pulse)+')');glow.addColorStop(.32,'rgba(255,185,91,'+(.16*pulse)+')');glow.addColorStop(1,'rgba(255,150,55,0)');
+      ctx.fillStyle=glow;ctx.fillRect(p.x-50*z,p.y-50*z,100*z,100*z);
+      ctx.fillStyle='#ffc66f';ctx.shadowColor='#ffad50';ctx.shadowBlur=10*z;ctx.beginPath();ctx.arc(p.x,p.y,2.7*z,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
     }
     for(let i=0;i<9;i++){const phase=time*.00018+i*1.73,dx=Math.sin(phase)*width*.42,dy=((time*.012+i*71)%(height+30))-15;const a=.12+.18*(.5+.5*Math.sin(phase*2));ctx.fillStyle='rgba(220,211,190,'+a+')';ctx.beginPath();ctx.arc(width/2+dx,dy,1+(i%3)*.45,0,Math.PI*2);ctx.fill();}
     const entrance=mineWorldToScreen(1.5*cell,(MINE_MAZE_ROWS-1.5)*cell),exit=mineWorldToScreen((MINE_MAZE_COLS-1.5)*cell,1.5*cell);

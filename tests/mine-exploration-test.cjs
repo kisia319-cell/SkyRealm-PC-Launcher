@@ -152,3 +152,9 @@ testCase('admin and moderator gold grants update the persistent world wallet',()
  assert.equal(hud,1);assert.equal(adminStats,1);assert.equal(f.events.saves,1);
 });
 console.log('PASS '+tests.length+' mine exploration tests: '+tests.join(' | '));
+
+testCase('mine passages have layered floor bevels, shaded rock walls and soft lantern spill',()=>{
+ assert.ok(source.includes('const floorLight=ctx.createLinearGradient'), 'Mine floor plates must have directional bevel lighting.');
+ assert.ok(source.includes('const wallShade=ctx.createLinearGradient'), 'Mine rock walls must use layered depth shading.');
+ assert.ok(source.includes('const outerGlow=ctx.createRadialGradient')&&source.includes('rgba(255,221,151,'), 'Existing mine lanterns must cast layered warm light.');
+});
