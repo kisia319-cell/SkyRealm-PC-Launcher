@@ -5,7 +5,7 @@ const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../game/game.js'), 'utf8');
 const count = (pattern) => (source.match(pattern) || []).length;
 assert.equal(count(/tier:'mob'/g), 8);
-assert.equal(count(/tier:'elite'/g), 4);
+assert.equal(count(/tier:'elite'/g), 5);
 assert.equal(count(/tier:'boss'/g), 8);
 assert.equal(count(/tier:'god'/g), 2);
 for (const event of ['meteor','horde','blood_moon','awakening','rift','storm']) {
