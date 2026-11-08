@@ -70,3 +70,6 @@ assert.ok(forestModule.includes('Лесной олень')&&forestModule.include
 assert.ok(forestModule.includes('ЗАБРОШЕННОЕ ПОСЕЛЕНИЕ')&&forestModule.includes('НОЧНОЙ НАЛЁТ')&&forestModule.includes('СКЛЕП КОРНЕЙ'),'Forest settlement, bandit and crypt events must be present.');
 assert.ok(forestModule.includes('function interact()')&&forestModule.includes('Лесные ягоды')&&forestModule.includes('Артефакт древнего селения'),'Wildlife feeding and ruin reward interactions must be implemented.');
 assert.ok(forestModule.includes('window.SkyRealmForestEcosystem=Object.freeze({update,draw,interact'),'Forest ecosystem module must export update, draw and interaction hooks.');
+
+assert.ok(forestModule.includes('ПЕЩЕРА ШЁПОТА')&&forestModule.includes('Сердце Пещеры Шёпота'),'The hidden Whispering Cave encounter and reward must be implemented.');
+assert.ok(forestModule.includes('function drawSecretCave')&&forestModule.includes('function startCave'),'The secret cave must have a visible entrance and enemy encounter.');
