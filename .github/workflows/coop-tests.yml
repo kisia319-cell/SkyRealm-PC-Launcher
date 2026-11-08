@@ -44,6 +44,19 @@ jobs:
       - run: node tests/cosmetic-collection-test.cjs
       - run: node tests/adventure-history-test.cjs
       - run: node tests/mod-workshop-test.cjs
+      # Full mechanics coverage: admin tools, staff privileges, economy, mods and careers.
+      - run: node tests/admin-gear-regression-test.cjs
+      - run: node tests/admin-time-item-regression-test.cjs
+      - run: node tests/challenge-staff-regression-test.cjs
+      - run: node tests/cloud-save-api-test.cjs
+      - run: node tests/cloud-save-ui-test.cjs
+      - run: node tests/custom-mod-runtime-test.cjs
+      - run: node tests/farm-economy-test.cjs
+      - run: node tests/launcher-enhancements-test.cjs
+      - run: node tests/launcher-staff-admin-test.cjs
+      - run: node tests/mod-studio-handoff-test.cjs
+      - run: node tests/professions-system-test.cjs
+      - run: node tests/auth-smoke.mjs
       - run: node --check game/multiplayer-core.js
       - run: node --check game/multiplayer-client.js
       - run: node --check game/multiplayer-ui.js

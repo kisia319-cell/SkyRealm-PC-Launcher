@@ -8,6 +8,7 @@ const enhancements=fs.readFileSync('launcher-enhancements.js','utf8');
 const ui=fs.readFileSync('launcher-enhancements.js','utf8');
 const css=fs.readFileSync('launcher-enhancements.css','utf8');
 const html=fs.readFileSync('index.html','utf8');
+const game=fs.readFileSync('game/game.js','utf8');
 assert.match(launcher,/def get_update_status/);
 assert.match(launcher,/def install_game_update/);
 assert.match(launcher,/def repair_game_files/);
@@ -82,7 +83,8 @@ assert.ok(html.includes('id="vsync-toggle"'),'Settings must expose a VSync toggl
 assert.ok(css.includes('body.reduce-motion')&&css.includes('body.high-contrast')&&css.includes('body.performance-saver'),'Accessibility and resource-saving toggles must have working styles');
 
 assert.match(enhancements,/function bindLauncherNavigation\(\)/,'Launcher navigation must route dynamic tabs through a delegated handler');
-assert.ok(enhancements.includes('event.stopImmediatePropagation()') && enhancements.includes('routes={calendar:openCalendarPage,system:openSystemPage,screenshots:openScreenshotsPage,support:openSupportPage}'),'All dynamic launcher sections must have working navigation');
+assert.ok(enhancements.includes('event.stopImmediatePropagation()'),'Dynamic launcher navigation must stop the legacy click handler');
+assert.match(enhancements,/routes=\{calendar:openCalendarPage,system:openSystemPage,screenshots:openScreenshotsPage,support:openSupportPage,roadmap:openRoadmapPage\}/,'Calendar, system, screenshots, support and roadmap routes must all be wired');
 assert.ok(enhancements.includes('system-open-screenshots')&&enhancements.includes('system-open-support'),'Control center must link directly to screenshots and support');
 assert.ok(enhancements.includes('href="mailto:kisia319@gmail.com"')&&enhancements.includes('href="tel:+79962819878"'),'Support must show the configured email and telephone contacts');
 assert.ok(enhancements.includes('screenshot-thumbnail')&&enhancements.includes('get_screenshot_data(item.name)'),'Screenshot gallery must render saved image previews');

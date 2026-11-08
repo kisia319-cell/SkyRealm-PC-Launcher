@@ -10,7 +10,7 @@ const challenge = fs.readFileSync(path.join(__dirname, '../game/challenge-mode.j
 const staffApi = fs.readFileSync(path.join(__dirname, '../supabase/functions/skyrealm-staff/index.ts'), 'utf8');
 
 assert.ok(game.includes("window.SkyRealmChallengeHooks?.onItemGained?.(name,delta)"));
-assert.ok(game.includes("changeItem('Древесина',7)"));
+assert.match(game,/changeItem\('Древесина',7\+jobWoodBonus\)/,'Tree harvest must award base wood plus profession/mod bonuses');
 assert.ok(game.includes("changeItem(target.ore,1)"));
 assert.ok(html.includes('id="menu-privileges"'));
 assert.ok(html.includes('id="admin-privileges-shade"'));
