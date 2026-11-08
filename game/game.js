@@ -46,6 +46,7 @@
   function bossRealmPortalPosition(){return {x:28*TILE+16,y:26*TILE+16};}
 
   let bossRealmState={kills:0,wave:1,elapsed:0,spawnTimer:0,eventTimer:65,eventName:'',eventId:'',eventRemaining:0,introSeen:false,defeatedBosses:[],defeatedGods:[],dungeonSites:[]};
+  let deathScreenOpen=false,deathScreenContext=null;
   let bossRealmInvisibleTimer=0,bossRealmInvisibilityCooldown=0,bossRealmDamageBoostTimer=0,bossRealmAbilityCooldown=0,bossRealmSprintTimer=0,bossRealmSprintCooldown=0;
   let bossRealmHazard=null,bossRealmHazardCooldown=0,bossRealmJournalOpen=false,bossRealmWaveBannerTimer=0,bossRealmWaveBannerText='';
   const BOSS_REALM_CREATURES=Object.freeze({
@@ -2333,44 +2334,159 @@ function setupVillageNpcs(){
     const pulse=.5+.5*Math.sin(time/420);ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(4,8,24,.52)';ctx.beginPath();ctx.ellipse(0,18,43,17,0,0,Math.PI*2);ctx.fill();ctx.shadowColor=bossRealmMode?'#6be9ff':'#9a68ff';ctx.shadowBlur=22+pulse*12;ctx.strokeStyle=bossRealmMode?'#8cecff':'#b48cff';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(0,-7,27,39,0,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#10152b';ctx.beginPath();ctx.ellipse(0,-7,21,33,0,0,Math.PI*2);ctx.fill();const grad=ctx.createLinearGradient(-17,-35,18,25);grad.addColorStop(0,'rgba(104,118,255,.35)');grad.addColorStop(.5,'rgba(80,218,232,.55)');grad.addColorStop(1,'rgba(142,85,225,.28)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(0,-7,18,29,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff0c5';ctx.font='900 11px Segoe UI';ctx.textAlign='center';ctx.fillText(bossRealmMode?'ВОЗВРАТ':'МИР БОССОВ',0,-58);ctx.font='bold 10px Segoe UI';ctx.fillStyle='#e5eaff';ctx.fillText('E · '+(bossRealmMode?'ВЫЙТИ':'ВОЙТИ'),0,51);ctx.restore();
   }
   function drawBossRealmGround(camX,camY,time){
-    ctx.fillStyle='#171326';ctx.fillRect(0,0,width,height);
+    const ground=ctx.createLinearGradient(0,0,width,height);
+    ground.addColorStop(0,'#11131d');ground.addColorStop(.48,'#1b1722');ground.addColorStop(1,'#100f19');
+    ctx.fillStyle=ground;ctx.fillRect(0,0,width,height);
     const left=Math.max(0,Math.floor(camX/TILE)-1),top=Math.max(0,Math.floor(camY/TILE)-1);
     const right=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),bottom=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
+    const slabs=['#292832','#302d35','#25252f','#37303a','#292b34','#322b34'];
     for(let ty=top;ty<bottom;ty++)for(let tx=left;tx<right;tx++){
-      const x=tx*TILE-camX,y=ty*TILE-camY,r=hash(tx*71+ty*19,113);
-      ctx.fillStyle=r<.22?'#211a35':r<.48?'#29213d':r<.76?'#30263e':'#382940';ctx.fillRect(x,y,TILE,TILE);
-      ctx.strokeStyle='rgba(142,112,180,.12)';ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,TILE-1,TILE-1);
-      if(r>.72){ctx.strokeStyle='rgba(182,103,194,.34)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+5,y+7);ctx.lineTo(x+13,y+14);ctx.lineTo(x+10,y+24);ctx.lineTo(x+25,y+28);ctx.stroke();}
-      if(r>.91){ctx.fillStyle='#8e5caa';ctx.globalAlpha=.35;ctx.beginPath();ctx.arc(x+16,y+16,2+Math.sin(time/190+tx)*1.2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+      const x=tx*TILE-camX,y=ty*TILE-camY;
+      const seed=tx*71+ty*19,r=hash(seed,113),edge=2+hash(seed,317)*3;
+      const tone=slabs[Math.min(slabs.length-1,Math.floor(r*slabs.length))];
+      const bx=edge,by=edge*.7,w=TILE-edge*1.3,h=TILE-edge*1.2;
+      ctx.fillStyle='#11121a';ctx.fillRect(x,y,TILE,TILE);
+      ctx.fillStyle=tone;ctx.beginPath();
+      ctx.moveTo(x+bx,y+by+hash(seed,411)*3);
+      ctx.lineTo(x+w+bx*.25,y+by+hash(seed,412)*2);
+      ctx.lineTo(x+w+bx,y+h+by*.15);
+      ctx.lineTo(x+bx*.45,y+h+by);
+      ctx.closePath();ctx.fill();
+      ctx.strokeStyle='rgba(111,106,123,.22)';ctx.lineWidth=1;ctx.stroke();
+      ctx.strokeStyle='rgba(6,8,14,.62)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(x+bx+3,y+by+5);ctx.lineTo(x+TILE-bx-4,y+by+5);ctx.stroke();
+      const crack=hash(seed,521);
+      if(crack>.37){
+        const cx=x+8+hash(seed,522)*(TILE-16),cy=y+7+hash(seed,523)*(TILE-14);
+        ctx.strokeStyle='rgba(8,7,14,.86)';ctx.lineWidth=2.3;ctx.beginPath();
+        ctx.moveTo(cx,cy);ctx.lineTo(cx-4,cy+7);ctx.lineTo(cx+3,cy+13);ctx.lineTo(cx-2,cy+20);ctx.stroke();
+        ctx.strokeStyle=crack>.91?'rgba(206,85,104,.72)':'rgba(120,102,130,.46)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(cx,cy+1);ctx.lineTo(cx-3,cy+7);ctx.lineTo(cx+3,cy+13);ctx.stroke();
+        if(crack>.91){ctx.shadowColor='#d94b65';ctx.shadowBlur=8;ctx.strokeStyle='rgba(255,103,119,.55)';ctx.beginPath();ctx.moveTo(cx+3,cy+13);ctx.lineTo(cx+9,cy+17);ctx.lineTo(cx+7,cy+24);ctx.stroke();ctx.shadowBlur=0;}
+      }
+      const rubble=hash(seed,631);
+      if(rubble>.68){
+        ctx.fillStyle=rubble>.9?'#65606a':'#4b4852';ctx.beginPath();
+        ctx.moveTo(x+6+hash(seed,632)*16,y+TILE-5);ctx.lineTo(x+10+hash(seed,633)*18,y+TILE-13-hash(seed,634)*5);ctx.lineTo(x+18+hash(seed,635)*12,y+TILE-6);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='rgba(8,8,13,.65)';ctx.lineWidth=1;ctx.stroke();
+      }
+      if(r>.935){
+        const sx=x+5+hash(seed,701)*(TILE-10),sy=y+5+hash(seed,702)*(TILE-10);
+        ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(sx,sy,8,4,.3,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=r>.985?'#a84d5f':'#675060';ctx.beginPath();ctx.moveTo(sx-5,sy+2);ctx.lineTo(sx-2,sy-5);ctx.lineTo(sx+1,sy-2);ctx.lineTo(sx+5,sy-7);ctx.lineTo(sx+6,sy+3);ctx.closePath();ctx.fill();
+        if(r>.985){ctx.fillStyle='rgba(246,91,111,.5)';ctx.fillRect(sx-1,sy-2,2,4);}
+      }
+      if(r>.78){ctx.fillStyle='rgba(183,162,171,.18)';ctx.fillRect(x+4+hash(seed,733)*21,y+5+hash(seed,734)*19,1.5,1.5);}
     }
-    const pulse=.5+.5*Math.sin(time/520);
-    ctx.save();ctx.globalAlpha=.13+.06*pulse;const haze=ctx.createRadialGradient(width*.5,height*.45,10,width*.5,height*.45,Math.max(width,height)*.72);haze.addColorStop(0,'#9b54cb');haze.addColorStop(1,'rgba(22,12,43,0)');ctx.fillStyle=haze;ctx.fillRect(0,0,width,height);ctx.restore();
+    // Broad, low-contrast ash banks soften the old square-tile look and make the ruined land read as one landscape.
+    ctx.save();
+    const haze=ctx.createRadialGradient(width*.48,height*.43,Math.min(width,height)*.08,width*.48,height*.43,Math.max(width,height)*.82);
+    haze.addColorStop(0,'rgba(126,65,86,.10)');haze.addColorStop(.48,'rgba(80,57,79,.07)');haze.addColorStop(1,'rgba(5,7,13,.5)');
+    ctx.fillStyle=haze;ctx.fillRect(0,0,width,height);
+    const fog=ctx.createLinearGradient(0,height*.52,0,height);
+    fog.addColorStop(0,'rgba(96,73,91,0)');fog.addColorStop(1,'rgba(9,10,17,.22)');
+    ctx.fillStyle=fog;ctx.fillRect(0,height*.5,width,height*.5);
+    ctx.restore();
   }
   function drawBossRealmCreatureMuseums(camX,camY,time){
     if(!bossRealmMode)return;
     const themes={shadow_hunter:['#302044','#ad72e8','#e56cae'],stone_guardian:['#414b58','#a9b7c7','#f3c878'],cursed_skull:['#4a4054','#c8b8d8','#b98cff'],rift_wolf:['#402333','#bd5974','#ff8292'],venom_beetle:['#243d2d','#79b77b','#d8ff76'],fallen_warrior:['#3d3c3a','#b5a78e','#f4d6a0'],rift_archer:['#263e50','#75b8d5','#a8f4ff'],ash_spirit:['#4c2d25','#c46b45','#ffd08a'],abyss_general:['#34233e','#9a6bc2','#ff9bea'],blood_berserker:['#49212d','#bd4964','#ff9aaf'],rift_warden:['#203c48','#5bb1c5','#9ef5ff'],soul_devourer:['#29243f','#8d78bd','#d5b6ff'],magma_behemoth:['#40231f','#d76b42','#ffb16d'],frost_empress:['#29485b','#8ed8ee','#d7fbff'],void_mirror:['#282039','#9876c9','#f0c2ff'],abyss_king:['#302044','#8c65c5','#ff7caf'],rift_dragon:['#432820','#c66b4c','#ffe18a'],ancient_devourer:['#2b3a27','#789d56','#d1f58b'],end_knight:['#303744','#8c9aaa','#f5f2ff'],astral_god:['#30265c','#9b83ef','#ffe18a'],chronos_god:['#203b4c','#70b9d4','#c3f7ff'],worldbreaker_colossus:['#343b46','#aab5c5','#ffd36d']};
-    for(const m of monsters){if(!m?.bossRealmCreature||m.hp<=0)continue;const wx=Number.isFinite(m.territoryX)?m.territoryX:m.x,wy=Number.isFinite(m.territoryY)?m.territoryY:m.y,x=wx-camX,y=wy-camY,r=Math.max(10*TILE,Math.min(14*TILE,Number(m.territoryRadius)||12*TILE));if(x<-r-80||x>width+r+80||y<-r-80||y>height+r+80)continue;
-      const [stone,trim,glow]=themes[m.realmType]||themes.shadow_hunter,damage=1-Math.max(0,Math.min(1,Number(m.hp)/Math.max(1,Number(m.maxHp)||1))),pulse=.5+.5*Math.sin(time/360+(m.phase||0));ctx.save();ctx.translate(x,y);ctx.lineJoin='round';
-      ctx.fillStyle='rgba(0,0,0,.36)';ctx.beginPath();ctx.ellipse(0,8,r*.98,r*.62,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#171522';ctx.fillRect(-r*.92,-r*.58,r*1.84,r*1.16);ctx.fillStyle=stone;ctx.fillRect(-r*.86,-r*.52,r*1.72,r*1.04);ctx.strokeStyle=trim;ctx.lineWidth=5;ctx.strokeRect(-r*.86,-r*.52,r*1.72,r*1.04);
-      for(let side=0;side<4;side++){ctx.save();ctx.rotate(side*Math.PI/2);ctx.fillStyle='#211d2b';ctx.fillRect(-r*.86,-r*.56,r*1.72,12);ctx.fillStyle=trim;ctx.fillRect(-r*.86,-r*.56,r*1.72,5);for(let k=0;k<9;k++){const px=-r*.8+k*r*.2,broken=damage>.12+k%4*.12;ctx.fillStyle=stone;ctx.fillRect(px,-r*.56-(broken?3:14),12,broken?8:19);}ctx.restore();}
-      ctx.fillStyle='#171522';ctx.fillRect(-r*.25,r*.40,r*.5,r*.22);for(let n=0;n<5;n++){ctx.fillStyle=n%2?trim:stone;ctx.fillRect(-r*(.29-n*.025),r*(.40+n*.045),r*(.58-n*.05),Math.max(5,r*.035));}
-      ctx.fillStyle='#100f19';ctx.fillRect(-r*.13,r*.05,r*.26,r*.37);ctx.strokeStyle=glow;ctx.lineWidth=3;ctx.globalAlpha=.55+.3*pulse;ctx.strokeRect(-r*.13,r*.05,r*.26,r*.37);ctx.globalAlpha=1;ctx.fillStyle='#282236';ctx.fillRect(-r*.55,-r*.34,r*1.1,r*.68);
-      for(let k=0;k<6;k++){const px=(-.46+k*.184)*r,broken=damage>(.25+k%3*.16);ctx.fillStyle=stone;ctx.fillRect(px-7,-r*.34,14,broken?r*.12:r*.56);ctx.fillStyle=trim;ctx.fillRect(px-10,-r*.34,20,7);}
-      ctx.fillStyle='#171321';ctx.fillRect(-r*.19,-r*.17,r*.38,r*.34);ctx.fillStyle=trim;ctx.fillRect(-r*.13,-r*.12,r*.26,r*.24);ctx.shadowColor=glow;ctx.shadowBlur=10+pulse*12;ctx.fillStyle=glow;ctx.globalAlpha=.35+pulse*.45;ctx.beginPath();ctx.arc(0,-r*.02,Math.max(8,r*.075),0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.shadowBlur=0;
-      for(let k=0;k<4;k++){const sx=(k%2?1:-1)*r*.72,sy=(k<2?-1:1)*r*.40;ctx.fillStyle='#211d2b';ctx.fillRect(sx-15,sy-15,30,30);ctx.fillStyle=trim;ctx.fillRect(sx-11,sy-11,22,22);ctx.fillStyle=glow;ctx.globalAlpha=.45+.35*pulse;ctx.fillRect(sx-3,sy-3,6,6);ctx.globalAlpha=1;}
-      for(let i=0;i<Math.floor(damage*18);i++){const px=(-.78+i%6*.30)*r,py=(-.42+Math.floor(i/6)*.36)*r;ctx.strokeStyle='#17131d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+8,py+10);ctx.lineTo(px+3,py+19);ctx.stroke();ctx.fillStyle=stone;ctx.save();ctx.translate(px+14,py+8);ctx.rotate(i*1.7);ctx.fillRect(-5,-4,11,8);ctx.restore();}
-      for(let i=0;i<7;i++){const a=time/900+i*Math.PI*2/7,rr=r*(.72+i%3*.07);ctx.globalAlpha=.35+.4*pulse;ctx.fillStyle=glow;ctx.beginPath();ctx.arc(Math.cos(a)*rr,Math.sin(a)*rr*.55,2+pulse*2,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;ctx.restore();
+    for(const m of monsters){
+      if(!m?.bossRealmCreature||m.hp<=0)continue;
+      const x=m.x-camX,y=m.y-camY,d=BOSS_REALM_CREATURES[m.realmType],tier=d?.tier||'mob';
+      if(x<-210||x>width+210||y<-190||y>height+190)continue;
+      const [stone,trim,glow]=themes[m.realmType]||themes.shadow_hunter;
+      const radius=tier==='god'?112:tier==='boss'?88:tier==='elite'?64:43;
+      const pulse=.5+.5*Math.sin(time/360+(m.phase||0)),damage=1-Math.max(0,Math.min(1,Number(m.hp)/Math.max(1,Number(m.maxHp)||1)));
+      ctx.save();ctx.translate(x,y);
+      const scorch=ctx.createRadialGradient(0,8,5,0,8,radius*1.42);
+      scorch.addColorStop(0,'rgba(8,7,13,.48)');scorch.addColorStop(.62,'rgba(16,12,22,.35)');scorch.addColorStop(1,'rgba(13,10,19,0)');
+      ctx.fillStyle=scorch;ctx.beginPath();ctx.ellipse(0,8,radius*1.42,radius*.72,0,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle=stone;ctx.globalAlpha=.38;ctx.lineWidth=tier==='boss'||tier==='god'?3:1.7;ctx.setLineDash([12,9,3,11]);
+      ctx.beginPath();ctx.ellipse(0,8,radius,radius*.48,Math.sin(m.phase||0)*.08,.08,Math.PI*1.94);ctx.stroke();ctx.setLineDash([]);
+      ctx.globalAlpha=.55+.18*pulse;ctx.strokeStyle=glow;ctx.lineWidth=1.4;ctx.beginPath();ctx.ellipse(0,8,radius*.68,radius*.31,-.08,Math.PI*.08,Math.PI*1.12);ctx.stroke();
+      for(let k=0;k<7;k++){
+        const a=k*Math.PI*2/7+(m.phase||0)*.13,inner=radius*.42,outer=radius*(.72+(k%3)*.09),sx=Math.cos(a)*inner,sy=8+Math.sin(a)*inner*.5,ex=Math.cos(a)*outer,ey=8+Math.sin(a)*outer*.5;
+        ctx.strokeStyle='rgba(6,5,12,.95)';ctx.lineWidth=2.8;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo((sx+ex)*.5+Math.sin(k*9)*4,(sy+ey)*.5+Math.cos(k*5)*4);ctx.lineTo(ex,ey);ctx.stroke();
+        if(k%2===0){ctx.fillStyle=stone;ctx.beginPath();ctx.moveTo(ex-5,ey+3);ctx.lineTo(ex-2,ey-8);ctx.lineTo(ex+4,ey-2);ctx.lineTo(ex+8,ey+5);ctx.closePath();ctx.fill();}
+      }
+      for(let k=0;k<4;k++){
+        const a=k*Math.PI/2+(m.phase||0),sx=Math.cos(a)*radius*.82,sy=8+Math.sin(a)*radius*.37;
+        ctx.save();ctx.translate(sx,sy);ctx.rotate(a+.5);
+        ctx.fillStyle='#191821';ctx.beginPath();ctx.moveTo(-10,4);ctx.lineTo(-5,-7);ctx.lineTo(2,-12);ctx.lineTo(11,-1);ctx.lineTo(7,7);ctx.closePath();ctx.fill();
+        ctx.fillStyle=stone;ctx.globalAlpha=.72;ctx.fillRect(-4,-3,10,5);ctx.globalAlpha=1;ctx.restore();
+      }
+      if(damage>.12){
+        for(let n=0;n<Math.min(8,Math.ceil(damage*8));n++){
+          const a=n*2.399+(m.phase||0),rr=radius*(.35+(n%3)*.16),sx=Math.cos(a)*rr,sy=8+Math.sin(a)*rr*.46;
+          ctx.strokeStyle='rgba(5,4,10,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+7,sy+6);ctx.lineTo(sx+4,sy+13);ctx.stroke();
+        }
+      }
+      if(tier==='boss'||tier==='god'){
+        ctx.globalAlpha=.25+.23*pulse;ctx.strokeStyle=glow;ctx.shadowColor=glow;ctx.shadowBlur=12;ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(0,8,radius*.56,time/1100,time/1100+Math.PI*.7);ctx.stroke();ctx.shadowBlur=0;
+      }
+      ctx.restore();
     }
   }
-  function drawBossRealmEnvironment(camX,camY,time){
-    for(let i=0;i<14;i++){
-      const wx=hash(i+41,701)*COLS*TILE,wy=hash(i+41,911)*ROWS*TILE,x=wx-camX,y=wy-camY;
-      if(x<-65||x>width+65||y<-80||y>height+80)continue;
-      const h=24+hash(i+7,331)*42,pulse=.65+.35*Math.sin(time/240+i);
-      ctx.save();ctx.translate(x,y);ctx.globalAlpha=.55+.25*pulse;ctx.shadowColor='#ad72d5';ctx.shadowBlur=12;
-      ctx.fillStyle=i%3===0?'#77518d':'#4c4169';ctx.beginPath();ctx.moveTo(-h*.35,12);ctx.lineTo(-h*.22,-h*.55);ctx.lineTo(0,-h);ctx.lineTo(h*.24,-h*.48);ctx.lineTo(h*.4,12);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#d5a5ff';ctx.beginPath();ctx.moveTo(0,-h*.76);ctx.lineTo(h*.13,-h*.24);ctx.lineTo(0,2);ctx.lineTo(-h*.13,-h*.24);ctx.closePath();ctx.fill();ctx.restore();
+
+  function drawBossRealmWreckage(camX,camY,time){
+    const worldW=COLS*TILE,worldH=ROWS*TILE;
+    for(let i=0;i<148;i++){
+      const wx=hash(i+741,1701)*worldW,wy=hash(i+741,1911)*worldH,x=wx-camX,y=wy-camY;
+      const size=.62+hash(i+17,1331)*.82,kind=i%6;
+      if(x<-115||x>width+115||y<-110||y>height+110)continue;
+      const pulse=.5+.5*Math.sin(time/550+i*1.7),stone=i%3===0?'#49434d':i%3===1?'#353541':'#5a5057';
+      ctx.save();ctx.translate(x,y);ctx.rotate((hash(i+9,333)-.5)*.7);ctx.scale(size,size);
+      ctx.fillStyle='rgba(0,0,0,.34)';ctx.beginPath();ctx.ellipse(0,8,38,12,0,0,Math.PI*2);ctx.fill();
+      if(kind===0){
+        // Fallen, fractured columns with broken stone rings.
+        ctx.rotate(-.35+hash(i,55)*.7);ctx.fillStyle='#25242d';ctx.fillRect(-43,-7,86,18);
+        ctx.fillStyle=stone;ctx.beginPath();ctx.moveTo(-42,-7);ctx.lineTo(27,-11);ctx.lineTo(42,-5);ctx.lineTo(37,8);ctx.lineTo(-36,10);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='#79717c';ctx.lineWidth=3;for(let k=0;k<4;k++){const px=-28+k*18;ctx.beginPath();ctx.moveTo(px,-8);ctx.lineTo(px+2,8);ctx.stroke();}
+        ctx.fillStyle='#1c1c25';ctx.beginPath();ctx.moveTo(38,-6);ctx.lineTo(52,-11);ctx.lineTo(48,7);ctx.lineTo(35,9);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='#a36c7a';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(36,-3);ctx.lineTo(44,1);ctx.lineTo(40,7);ctx.stroke();
+      }else if(kind===1){
+        // Dead, wind-torn trees; asymmetrical branches keep the silhouette natural.
+        ctx.strokeStyle='#211b22';ctx.lineCap='round';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(0,12);ctx.lineTo(-4,-18);ctx.lineTo(-1,-39);ctx.lineTo(-12,-55);ctx.stroke();
+        ctx.strokeStyle='#514047';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-3,-17);ctx.lineTo(-24,-31);ctx.lineTo(-33,-48);ctx.moveTo(-4,-26);ctx.lineTo(16,-38);ctx.lineTo(24,-54);ctx.moveTo(-10,-37);ctx.lineTo(-20,-43);ctx.moveTo(12,-35);ctx.lineTo(31,-37);ctx.stroke();
+        ctx.strokeStyle='#90606a';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-2,-19);ctx.lineTo(-5,-37);ctx.lineTo(-12,-54);ctx.moveTo(-4,-26);ctx.lineTo(14,-38);ctx.stroke();
+        ctx.fillStyle='#1b1720';ctx.beginPath();ctx.ellipse(0,13,23,6,0,0,Math.PI*2);ctx.fill();
+      }else if(kind===2){
+        // Collapsed gate: broken side piers and a fractured overhead arch.
+        ctx.fillStyle='#25242c';ctx.fillRect(-34,-28,13,48);ctx.fillRect(22,-17,13,38);
+        ctx.fillStyle=stone;ctx.fillRect(-31,-32,8,48);ctx.fillRect(25,-21,8,40);
+        ctx.fillStyle='#746b75';ctx.fillRect(-36,-34,17,6);ctx.fillRect(20,-23,17,6);
+        ctx.strokeStyle='#504653';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(-26,-29);ctx.quadraticCurveTo(-17,-65,3,-63);ctx.quadraticCurveTo(21,-64,28,-40);ctx.stroke();
+        ctx.strokeStyle='#1b1822';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(4,-63);ctx.lineTo(11,-49);ctx.lineTo(4,-42);ctx.stroke();
+        ctx.fillStyle='#17151d';ctx.fillRect(-8,-4,16,25);
+        ctx.strokeStyle='#d15c70';ctx.globalAlpha=.42+.25*pulse;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-2,1);ctx.lineTo(3,10);ctx.lineTo(-1,18);ctx.stroke();
+      }else if(kind===3){
+        // Broken statue and fallen head.
+        ctx.fillStyle='#26232d';ctx.fillRect(-15,-29,30,45);ctx.fillStyle=stone;ctx.fillRect(-12,-26,24,39);
+        ctx.fillStyle='#48414a';ctx.beginPath();ctx.moveTo(-17,-27);ctx.lineTo(-10,-44);ctx.lineTo(3,-48);ctx.lineTo(17,-39);ctx.lineTo(13,-23);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#17151e';ctx.fillRect(-9,-34,6,3);ctx.fillRect(4,-34,6,3);
+        ctx.strokeStyle='#b55d70';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-2,-22);ctx.lineTo(2,-14);ctx.stroke();
+        ctx.fillStyle='#5b535d';ctx.beginPath();ctx.arc(28,12,9,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#17151d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(22,8);ctx.lineTo(32,15);ctx.stroke();
+      }else if(kind===4){
+        // Scattered barricade, splintered spears and broken shield.
+        ctx.fillStyle='#25202a';ctx.fillRect(-34,-4,67,9);ctx.fillStyle='#63535b';ctx.fillRect(-33,-8,64,5);
+        for(let k=0;k<4;k++){ctx.save();ctx.translate(-24+k*16,-4);ctx.rotate(-.5+k*.31);ctx.fillStyle='#3e3034';ctx.fillRect(-2,-29,4,30);ctx.fillStyle='#9b7d76';ctx.beginPath();ctx.moveTo(-4,-28);ctx.lineTo(0,-39);ctx.lineTo(4,-28);ctx.closePath();ctx.fill();ctx.restore();}
+        ctx.strokeStyle='#a66b78';ctx.lineWidth=2;ctx.beginPath();ctx.arc(25,5,13,-.6,2.9);ctx.stroke();
+      }else{
+        // Small rubble field and a few dimly glowing mineral splinters.
+        for(let k=0;k<7;k++){const rx=(hash(i*9+k,21)-.5)*55,ry=(hash(i*9+k,22)-.5)*24;
+          ctx.fillStyle=k%2?'#4c4652':'#302b36';ctx.beginPath();ctx.moveTo(rx-7,ry+4);ctx.lineTo(rx-2,ry-6-hash(i+k,23)*5);ctx.lineTo(rx+7,ry-2);ctx.lineTo(rx+8,ry+5);ctx.closePath();ctx.fill();}
+        if(i%4===0){ctx.globalAlpha=.35+.35*pulse;ctx.shadowColor='#b85c78';ctx.shadowBlur=10;ctx.fillStyle='#aa6579';ctx.beginPath();ctx.moveTo(-7,1);ctx.lineTo(-2,-16);ctx.lineTo(2,-5);ctx.lineTo(7,-19);ctx.lineTo(8,2);ctx.closePath();ctx.fill();ctx.shadowBlur=0;}
+      }
+      ctx.restore();
     }
+    // Slow ash motes add depth without turning the scene into a particle storm.
+    ctx.save();for(let i=0;i<35;i++){const px=(hash(i+87,177)*width+time*(.006+(i%5)*.002))%(width+8)-4,py=(hash(i+87,277)*height+Math.sin(time/1600+i)*7)%(height+8)-4;ctx.globalAlpha=.12+.2*(i%4)/4;ctx.fillStyle=i%6===0?'#ef9b9a':'#d7cbd4';ctx.fillRect(px,py,1.5,1.5);}ctx.restore();
+  }
+  function drawBossRealmEnvironment(camX,camY,time){
+    drawBossRealmWreckage(camX,camY,time);
     // Visible ancient structures replace the legacy valley-house collision remnants in Boss Realm.
     if(bossRealmMode){
       const sites=ensureBossRealmDungeonSites();
@@ -3501,7 +3617,47 @@ function setupVillageNpcs(){
     const event=network.getSharedDeathEvent?.();
     if(event)applyCoopSharedDeathEvent(event);
   }
+  function showDeathScreen(context){
+    deathScreenOpen=true;deathScreenContext=context;paused=true;inMainMenu=false;
+    keys.clear();pressedMovementCodes.clear();movementDirections.clear();
+    document.getElementById('skyrealm-death-screen')?.remove();
+    const root=document.createElement('div');root.id='skyrealm-death-screen';root.className='shade death-screen-shade';
+    root.style.cssText='position:fixed;inset:0;z-index:110000;display:grid;place-items:center;padding:22px;background:radial-gradient(ellipse at 50% 25%,rgba(130,28,45,.30),transparent 48%),linear-gradient(180deg,rgba(4,6,12,.88),rgba(2,4,9,.97));backdrop-filter:blur(10px);font-family:Segoe UI,Arial,sans-serif;color:#f3f5ff;box-sizing:border-box;';
+    root.innerHTML='<section style="width:min(560px,100%);padding:36px 34px 30px;border:1px solid rgba(232,103,117,.65);border-radius:22px;background:linear-gradient(145deg,rgba(35,19,31,.98),rgba(9,13,24,.99) 72%);box-shadow:0 30px 110px rgba(0,0,0,.72),inset 0 1px rgba(255,255,255,.08);text-align:center;box-sizing:border-box"><div style="width:78px;height:78px;margin:0 auto 18px;border:1px solid rgba(255,120,137,.56);border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#8a3048,#351c31 70%);box-shadow:0 0 38px rgba(234,72,102,.28);font-size:38px;color:#ffd7dd">✕</div><div style="font-size:10px;font-weight:900;letter-spacing:4px;color:#e69aa6">SKYREALM · ПУТЕШЕСТВИЕ ПРЕРВАНО</div><h1 style="margin:10px 0 8px;font-size:clamp(32px,7vw,48px);line-height:1.05;letter-spacing:1px;color:#fff">ВЫ УМЕРЛИ</h1><p data-death-details style="margin:14px auto 25px;max-width:420px;font-size:13px;line-height:1.65;color:#c6c2ce"></p><div style="display:grid;gap:11px"><button type="button" data-death-respawn style="min-height:52px;border:1px solid #e49c70;border-radius:11px;background:linear-gradient(135deg,#a94c42,#653044);color:#fff;font-size:15px;font-weight:900;letter-spacing:.4px;cursor:pointer;box-shadow:0 8px 24px rgba(164,58,67,.25)">↻  ВОЗРОДИТЬСЯ</button><button type="button" data-death-menu style="min-height:48px;border:1px solid #63718c;border-radius:11px;background:linear-gradient(135deg,#26354d,#172236);color:#eaf0ff;font-size:13px;font-weight:800;cursor:pointer">⌂  В ГЛАВНОЕ МЕНЮ</button></div><div style="margin-top:17px;font-size:10px;letter-spacing:1px;color:#77849e">МИР СОХРАНЁН · ВЫБЕРИ ДАЛЬНЕЙШЕЕ ДЕЙСТВИЕ</div></section>';
+    root.querySelector('[data-death-details]').textContent=context.message+(context.dropped?' Часть вещей выпала возле места гибели.':'')+(context.inBossRealm?' Ты погиб в Мире боссов. После возрождения продолжишь испытание.':'');
+    root.querySelector('[data-death-respawn]').addEventListener('click',completeDeathRespawn);
+    root.querySelector('[data-death-menu]').addEventListener('click',leaveDeathToMainMenu);
+    document.body.appendChild(root);
+  }
+  function closeDeathScreen(){
+    document.getElementById('skyrealm-death-screen')?.remove();
+    deathScreenOpen=false;deathScreenContext=null;
+  }
+  function completeDeathRespawn(){
+    if(!deathScreenOpen||!deathScreenContext)return;
+    const inBossRealm=deathScreenContext.inBossRealm;
+    closeDeathScreen();player.hp=100;player.vx=player.vy=0;dodgeTimer=0;
+    if(inBossRealm){
+      const portal=bossRealmPortalPosition();player.x=Math.max(TILE,portal.x-3*TILE);player.y=Math.min(ROWS*TILE-TILE,portal.y+2*TILE);
+      inHouse=false;mineMode=false;caveMode=false;dungeonMode=false;tradeWorldMode=false;bossRealmMode=true;
+      toast('Ты возродился у разломного портала. Испытание продолжается.');
+    }else{
+      player.x=bedSpawn.x;player.y=bedSpawn.y;monsters.length=0;
+      toast('Ты возродился у кровати. Будь осторожнее!');
+    }
+    paused=false;inMainMenu=false;keys.clear();pressedMovementCodes.clear();movementDirections.clear();
+    updateVitals();renderInventory();updateWalletHud();saveGame();last=performance.now();
+  }
+  function leaveDeathToMainMenu(){
+    if(!deathScreenOpen)return;
+    const inBossRealm=!!deathScreenContext?.inBossRealm;closeDeathScreen();
+    player.hp=100;player.vx=player.vy=0;
+    if(inBossRealm){const portal=bossRealmPortalPosition();player.x=Math.max(TILE,portal.x-3*TILE);player.y=Math.min(ROWS*TILE-TILE,portal.y+2*TILE);}
+    else{player.x=bedSpawn.x;player.y=bedSpawn.y;}
+    updateVitals();saveGame();returnToMainMenu();
+  }
   function respawnPlayerAfterDefeat(sharedCoopEvent=false){
+    if(deathScreenOpen)return;
     if(!sharedCoopEvent){
       const network=window.SkyRealmCoopClient;
       if(network?.getWorldSession?.()&&typeof network.reportSharedDeath==='function'){
@@ -3521,27 +3677,27 @@ function setupVillageNpcs(){
     walletCents=Math.max(0,walletCents-cfg.gold);hunger=Math.max(0,hunger-cfg.hunger);
     const candidates=inventoryItems.filter(i=>i.count>0&&!['Деревянный меч','Топор','Кирка'].includes(i.name)).sort(()=>Math.random()-.5);
     let remaining=cfg.items;
-    for(const item of candidates){if(remaining<=0)break;const wanted=(currentDifficulty==='hell'||currentDifficulty==='impossible')?Math.max(1,Math.ceil(item.count*((currentDifficulty==='impossible'?.55:.35)+Math.random()*(currentDifficulty==='impossible'?.35:.4)))):Math.min(item.count,1+Math.floor(Math.random()*2));const amount=Math.min(item.count,wanted,remaining);if(amount<=0)continue;item.count-=amount;remaining-=amount;if(Math.random()<cfg.dropChance&&lootDrops.length<76){lootDrops.push({x:deathX+(Math.random()-.5)*48,y:deathY+(Math.random()-.5)*42,name:item.name,count:amount,life:240,phase:Math.random()*6.28});dropped+=amount;}}
-    if(dungeonMode){dungeonMode=false;player.x=dungeonReturn.x;player.y=dungeonReturn.y;}if(caveMode){caveMode=false;player.x=caveReturn.x;player.y=caveReturn.y;}
-    const diedInBossRealm=bossRealmMode;
-    inHouse=false;mineMode=false;tradeWorldMode=false;player.hp=100;player.vx=player.vy=0;dodgeTimer=0;
-    const message=currentDifficulty==='easy'?'Ты погиб, но вещи сохранены. Потеряно до 2 золота и 10 голода.':currentDifficulty==='medium'?'Ты погиб и возродился у кровати. Потеряно до 5 золота и 20 голода.':currentDifficulty==='hard'?'Ты погиб. Потеряно до 15 золота, часть вещей и 35 голода.':currentDifficulty==='impossible'?'НЕВОЗМОЖНО: потеряно до 50 золота, почти все переносимые ресурсы и 70 голода. Враги не прощают ошибок.':'Ты погиб на жаре. Потеряно до 30 золота, часть ресурсов и 55 голода.';
-    if(diedInBossRealm){
-      for(const mob of monsters){if(!mob.bossRealmCreature)continue;mob.hp=Math.max(1,Number(mob.maxHp)||1);mob.flash=0;mob.attackCooldown=1.25;mob.specialCooldown=3+Math.random()*2;mob.telegraphTimer=0;mob.telegraphActive=false;mob.action='idle';mob.actionTimer=0;mob.shield=0;}
-      bossRealmState.spawnTimer=Math.max(4,Number(bossRealmState.spawnTimer)||0);spawnVisualBurst(deathX,deathY,48,'spark','#9deaff');
-      updateVitals();renderInventory();updateWalletHud();toast(message+(dropped?' Выпавшие вещи остались на месте смерти.':'')+' Возвращаемся в исходный мир.');
-      saveGame();
-      void leaveBossRealm().then(returned=>{
-        if(!returned||bossRealmMode){toast('Не удалось загрузить исходный мир. Вернись через меню миров.');return;}
-        inHouse=false;mineMode=false;caveMode=false;tradeWorldMode=false;player.hp=100;
-        player.x=Number.isFinite(bedSpawn?.x)?bedSpawn.x:36*TILE+40;player.y=Number.isFinite(bedSpawn?.y)?bedSpawn.y:15*TILE+154;
-        player.vx=player.vy=0;dodgeTimer=0;updateVitals();saveGame();
-        toast('Ты возродился у кровати в исходном мире. Мир боссов сохранён отдельно.');
-      }).catch(error=>{console.warn('[SkyRealm Boss Realm death return]',error);toast('Ошибка возврата после смерти. Попробуй вернуться через портал.');});
-      return;
+    for(const item of candidates){
+      if(remaining<=0)break;
+      const wanted=(currentDifficulty==='hell'||currentDifficulty==='impossible')?Math.max(1,Math.ceil(item.count*((currentDifficulty==='impossible'?.55:.35)+Math.random()*(currentDifficulty==='impossible'?.35:.4)))):Math.min(item.count,1+Math.floor(Math.random()*2));
+      const amount=Math.min(item.count,wanted,remaining);if(amount<=0)continue;
+      item.count-=amount;remaining-=amount;
+      if(Math.random()<cfg.dropChance&&lootDrops.length<76){lootDrops.push({x:deathX+(Math.random()-.5)*48,y:deathY+(Math.random()-.5)*42,name:item.name,count:amount,life:240,phase:Math.random()*6.28});dropped+=amount;}
     }
-    player.x=bedSpawn.x;player.y=bedSpawn.y;monsters.length=0;
-    updateVitals();renderInventory();updateWalletHud();toast(message+(dropped?' Выпавшие вещи остались на месте смерти.':''));saveGame();
+    if(dungeonMode){dungeonMode=false;player.x=dungeonReturn.x;player.y=dungeonReturn.y;}
+    if(caveMode){caveMode=false;player.x=caveReturn.x;player.y=caveReturn.y;}
+    const inBossRealm=bossRealmMode;
+    inHouse=false;mineMode=false;tradeWorldMode=false;player.hp=100;player.vx=player.vy=0;dodgeTimer=0;
+    const message=currentDifficulty==='easy'?'Штраф: потеряно до 2 золота и 10 голода.':currentDifficulty==='medium'?'Штраф: потеряно до 5 золота и 20 голода.':currentDifficulty==='hard'?'Штраф: потеряно до 15 золота, часть вещей и 35 голода.':currentDifficulty==='impossible'?'Штраф: потеряно до 50 золота, большая часть переносимых ресурсов и 70 голода.':'Штраф: потеряно до 30 золота, часть ресурсов и 55 голода.';
+    if(inBossRealm){
+      for(const mob of monsters){if(!mob.bossRealmCreature)continue;mob.hp=Math.max(1,Number(mob.maxHp)||1);mob.flash=0;mob.attackCooldown=1.25;mob.specialCooldown=3+Math.random()*2;mob.telegraphTimer=0;mob.telegraphActive=false;mob.action='idle';mob.actionTimer=0;mob.shield=0;}
+      bossRealmState.spawnTimer=Math.max(4,Number(bossRealmState.spawnTimer)||0);
+      const portal=bossRealmPortalPosition();player.x=Math.max(TILE,portal.x-3*TILE);player.y=Math.min(ROWS*TILE-TILE,portal.y+2*TILE);
+    }else{
+      player.x=bedSpawn.x;player.y=bedSpawn.y;monsters.length=0;
+    }
+    player.hp=100;updateVitals();renderInventory();updateWalletHud();saveGame();
+    showDeathScreen({message,dropped,inBossRealm,deathX,deathY});
   }
   function interactWolfCage(){const p=wolfCagePosition();if(Math.hypot(player.x-p.x,player.y-p.y)>92)return false;if(!wolfCageOpen){if(!wolfBossKeyDropped||itemCount('Ключ от клетки')<1){toast('Клетка заперта. Победи Оборотня и забери ключ!');return true;}changeItem('Ключ от клетки',-1);wolfCageOpen=true;playWolfSound('howl');toast('Клетка открыта! Нажми E рядом с собакой, чтобы приручить её.');saveGame();return true;}if(wolfDogCaged){wolfDogCaged=false;wolfCompanionUnlocked=true;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;playSound('sheep');toast('Собака приручена! Она будет ходить за тобой. У неё 300 HP.');saveGame();return true;}return true;}
   function clampWolfBossToForest(x,y){
@@ -4988,7 +5144,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       shopDialogOpen||npcQuestDialogOpen||storageDialogOpen||fullMapOpen;
     const seaOverlayOpen=!!window.SkyRealmSea?.isOpen?.();
     if(!inMainMenu&&currentWorldId&&paused&&pauseShade?.hidden===true&&
-       !hasBlockingShade&&!hasBlockingDialog&&!document.getElementById('boss-realm-welcome')&&!seaOverlayOpen&&!sleeping&&!hudMoveMode){
+       !hasBlockingShade&&!hasBlockingDialog&&!document.getElementById('boss-realm-welcome')&&!seaOverlayOpen&&!sleeping&&!hudMoveMode&&!deathScreenOpen){
       paused=false;
       keys.clear();pressedMovementCodes.clear();
       last=now;
