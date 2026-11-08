@@ -1670,7 +1670,16 @@ function setupVillageNpcs(){
   function drawPlayer(camX,camY,dt){
     const x=player.x-camX,y=player.y-camY;player.frame += dt*(Math.abs(player.vx)+Math.abs(player.vy)>.01?11:3);const step=Math.sin(player.frame)*2.2;
     ctx.save();ctx.translate(Math.round(x),Math.round(y));
-    if(combatCinematic?.active){const cp=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration)),charge=Math.sin(Math.min(1,cp/.58)*Math.PI)*8,dir={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]}[player.face]||[0,1];ctx.translate(dir[0]*charge,dir[1]*charge);ctx.scale(1+charge*.003,1-charge*.002);}
+    if(combatCinematic?.active){
+      const cp=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
+      const charge=Math.sin(Math.min(1,cp/.58)*Math.PI)*11;
+      const strike=Math.max(0,Math.min(1,(cp-.30)/.24));
+      const recover=Math.max(0,Math.min(1,(cp-.70)/.30));
+      const dir={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]}[player.face]||[0,1];
+      ctx.translate(dir[0]*(charge+strike*5),dir[1]*(charge+strike*5));
+      ctx.rotate(Math.sin(cp*Math.PI*2)*.10-strike*.075+recover*.08);
+      ctx.scale(1+charge*.004+strike*.025,1-charge*.003+strike*.012);
+    }
     if(bossRealmMode&&bossRealmInvisibleTimer>0)ctx.globalAlpha=.32;
     const moving=Math.hypot(player.vx,player.vy)>2,bodyBob=moving?Math.abs(Math.sin(player.frame*1.7))*1.7:Math.sin(player.frame*.7)*.35;
     ctx.translate(0,bodyBob);
@@ -1704,7 +1713,14 @@ function setupVillageNpcs(){
       ctx.fillStyle='#eaf5ff';ctx.beginPath();ctx.moveTo(0,-bladeLen-9);ctx.lineTo(-5,-bladeLen+3);ctx.lineTo(5,-bladeLen+3);ctx.closePath();ctx.fill();
       ctx.shadowBlur=0;ctx.strokeStyle='#f4d58b';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(8,0);ctx.stroke();
       ctx.fillStyle='#6b4b37';ctx.fillRect(-2,2,4,12);ctx.restore();
-      if(slash>.05){ctx.save();ctx.rotate(facingAngle+wind*.95-slash*1.85);ctx.globalAlpha=(1-slash)*.8+.12;ctx.strokeStyle=weaponColor;ctx.shadowColor=weaponColor;ctx.shadowBlur=22;ctx.lineWidth=5+slash*5;ctx.beginPath();ctx.arc(0,0,bladeLen*.78,-1.18,1.18);ctx.stroke();ctx.restore();}
+      if(slash>.05){
+        ctx.save();ctx.rotate(facingAngle+wind*.95-slash*1.85);
+        ctx.globalAlpha=(1-slash)*.8+.12;ctx.strokeStyle=weaponColor;ctx.shadowColor=weaponColor;ctx.shadowBlur=gameSettings.graphicsQuality==='low'?7:25;ctx.lineCap='round';
+        // Layered elliptical blade trails create depth and a visible, directional weapon sweep.
+        ctx.lineWidth=5+slash*6;ctx.beginPath();ctx.ellipse(0,0,bladeLen*.88,bladeLen*.48,-.18,-1.22,1.22);ctx.stroke();
+        ctx.globalAlpha*=.62;ctx.lineWidth=2.2;ctx.beginPath();ctx.ellipse(0,0,bladeLen*1.04,bladeLen*.34,-.18,-1.12,1.12);ctx.stroke();
+        ctx.restore();
+      }
       ctx.restore();ctx.restore();
     }
     ctx.restore();
