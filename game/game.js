@@ -275,7 +275,7 @@
         continue;
       }
       const ratio=m.hp/m.maxHp;
-      if(['boss','god'].includes(d.tier)&&ratio<.66&&m.phaseStage<2){m.phaseStage=2;m.speed*=1.15;spawnVisualBurst(m.x,m.y,30,'spark',d.eyes);const adds=m.realmType==='frost_empress'?['cursed_skull','rift_archer']:m.realmType==='astral_god'?['shadow_hunter','ash_spirit']:['rift_wolf','cursed_skull'];for(const add of adds)spawnBossRealmCreature(add,m.x+(add==='rift_wolf'?-72:72),m.y+58);toast(d.name+' переходит во вторую фазу и призывает подкрепление!');}
+      if(['boss','god'].includes(d.tier)&&ratio<.66&&m.phaseStage<2){m.phaseStage=2;m.speed*=1.15;spawnVisualBurst(m.x,m.y,30,'spark',d.eyes);const adds=m.realmType==='frost_empress'?['cursed_skull','rift_archer']:m.realmType==='astral_god'?['shadow_hunter','ash_spirit']:['rift_wolf','cursed_skull'];adds.forEach((add,index)=>{if(spawnBossRealmCreature(add,m.x+(index?72:-72),m.y+54)){const summoned=monsters[monsters.length-1];summoned.x=m.x+(index?72:-72);summoned.y=m.y+54;summoned.territoryX=m.x;summoned.territoryY=m.y;summoned.territoryRadius=10*TILE;}});toast(d.name+' переходит во вторую фазу и призывает подкрепление!');}
       if(['boss','god'].includes(d.tier)&&ratio<.32&&m.phaseStage<3){m.phaseStage=3;m.speed*=1.2;m.rage=12;m.specialCooldown=Math.min(m.specialCooldown,2.5);spawnVisualBurst(m.x,m.y,42,'spark',d.eyes);if(dist<150)bossRealmHurtPlayer((Number(d.damage)||8)*.72,d.name+' · удар ярости',d.eyes);toast(d.name+' впадает в ярость и выпускает ударную волну!');}
       if(bossRealmInvisibleTimer<=0){if(dist>48&&m.actionTimer<=0){let sp=m.speed*(m.rage>0?1.25:1)*(bossRealmState.eventId==='blood_moon'?1.2:1);if(['ranged','volley','chronos'].includes(d.skill)&&dist<200)sp*=.3;const dx=(player.x-m.x)/dist,dy=(player.y-m.y)/dist;let nx=Math.max(TILE,Math.min(COLS*TILE-TILE,m.x+dx*sp*step)),ny=Math.max(TILE,Math.min(ROWS*TILE-TILE,m.y+dy*sp*step));const zoneX=Number.isFinite(m.territoryX)?m.territoryX:(hasArena?m.arenaX:m.x),zoneY=Number.isFinite(m.territoryY)?m.territoryY:(hasArena?m.arenaY:m.y),zoneRadius=hasArena?arenaRadius:Math.max(10*TILE,Math.min(14*TILE,Number(m.territoryRadius)||12*TILE));const ox=nx-zoneX,oy=ny-zoneY,fromCenter=Math.hypot(ox,oy)||1;if(fromCenter>zoneRadius){nx=zoneX+ox/fromCenter*zoneRadius;ny=zoneY+oy/fromCenter*zoneRadius;}m.x=nx;m.y=ny;}}
       const attackDistance=Math.hypot(player.x-m.x,player.y-m.y);
@@ -2389,7 +2389,7 @@ function setupVillageNpcs(){
     ctx.globalAlpha=alpha;ctx.fillStyle='#fff4c9';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('СВЯТИЛИЩЕ · E',x,y-43);ctx.restore();
   }
   function collectWorldEventShrine(){
-    if(!worldEventShrine||mineMode||caveMode||dungeonMode||inHouse||tradeWorldMode||Math.hypot(player.x-worldEventShrine.x,player.y-worldEventShrine.y)>112)return false;
+    if(!worldEventShrine||bossRealmMode||mineMode||caveMode||dungeonMode||inHouse||tradeWorldMode||Math.hypot(player.x-worldEventShrine.x,player.y-worldEventShrine.y)>112)return false;
     const shrine=worldEventShrine;worldEventShrine=null;const blessing=Math.floor(Math.random()*3);let message='';
     if(blessing===0){const healed=Math.min(55,100-player.hp);player.hp=Math.min(100,player.hp+55);hunger=Math.min(100,hunger+20);updateVitals();message='БЛАГОСЛОВЕНИЕ ЖИЗНИ · восстановлено '+Math.max(0,healed)+' HP и 20 сытости';}
     else if(blessing===1){changeItem('Кристалл',3);changeItem('Малое зелье',1);message='БЛАГОСЛОВЕНИЕ ИЗОБИЛИЯ · кристаллы ×3 и малое зелье';}
