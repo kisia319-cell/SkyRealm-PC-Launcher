@@ -213,6 +213,18 @@
     }
     if(bossRealmState.spawnTimer<=0&&bossRealmCreatureCount()<12){const pool=['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit'];spawnBossRealmCreature(pool[Math.floor(Math.random()*pool.length)]);if(bossRealmState.kills>=5&&Math.random()<.3)spawnBossRealmCreature(['abyss_general','blood_berserker','rift_warden','soul_devourer'][Math.floor(Math.random()*4)]);bossRealmState.spawnTimer=10+Math.random()*5;}
     for(const m of monsters){if(!m.bossRealmCreature)continue;const d=BOSS_REALM_CREATURES[m.realmType];if(!d)continue;
+      // Boss Realm simulation LOD: keep distant creatures dormant instead of running
+      // their full AI/animation every frame. The active bubble follows the player,
+      // with a small forward prediction so approaching enemies wake before entering view.
+      const moveX=Number(player.vx)||0,moveY=Number(player.vy)||0,moveLen=Math.hypot(moveX,moveY);
+      const faceVector={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]}[player.face]||[0,1];
+      const predictX=moveLen>1?moveX/moveLen:faceVector[0],predictY=moveLen>1?moveY/moveLen:faceVector[1];
+      const lookAhead=TILE*3;
+      const predictedX=player.x+predictX*lookAhead,predictedY=player.y+predictY*lookAhead;
+      const activeRadius=Math.hypot(width,height)*.58+lookAhead;
+      const nearPlayer=Math.hypot(m.x-player.x,m.y-player.y)<=activeRadius;
+      const nearPredicted=Math.hypot(m.x-predictedX,m.y-predictedY)<=activeRadius;
+      if(!nearPlayer&&!nearPredicted)continue;
       // Repair incomplete/legacy enemy records before any combat calculations.
       const baseHp=Math.max(1,Number(d.hp)||100);
       if(!Number.isFinite(m.maxHp)||m.maxHp<1)m.maxHp=Math.round(baseHp*difficultyConfig().monsterHp);
