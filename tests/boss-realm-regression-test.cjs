@@ -5,7 +5,7 @@ const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../game/game.js'), 'utf8');
 const count = (pattern) => (source.match(pattern) || []).length;
 assert.equal(count(/tier:'mob'/g), 8);
-assert.equal(count(/tier:'elite'/g), 4);
+assert.equal(count(/tier:'elite'/g), 5);
 assert.equal(count(/tier:'boss'/g), 8);
 assert.equal(count(/tier:'god'/g), 2);
 for (const event of ['meteor','horde','blood_moon','awakening','rift','storm']) {
@@ -56,3 +56,6 @@ console.log('SkyRealm Boss Realm roster, ruined environment, death screen, respa
 assert.ok(source.includes('function drawWorldEventShrine(camX,camY,time)')&&source.includes('function collectWorldEventShrine()'), 'Ordinary world must include a collectible ancient shrine event');
 assert.ok(source.includes('worldEventShrine:worldEventShrine?')&&source.includes('lastWorldShrineDay'), 'Ancient shrine event must persist across saves');
 assert.ok(source.includes('переходит во вторую фазу и призывает подкрепление')&&source.includes('выпускает ударную волну'), 'Boss Realm bosses must gain new phase mechanics');
+assert.ok(source.includes("awakened_tree:{name:'Пробуждённый древень'")&&source.includes('function awakenBossTree(tree)'), 'Chopping a Boss Realm tree must awaken a tree monster');
+assert.ok(source.includes("m.realmType==='awakened_tree'")&&source.includes('Сердцевина древня'), 'Awakened tree must have a distinct model and guaranteed trophy');
+assert.ok(source.includes('fruitful: hash(x + 701, y + 313) > .94')&&source.includes('Лесные ягоды'), 'Ordinary world must generate animated fruit trees with a harvest reward');

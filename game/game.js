@@ -75,7 +75,8 @@
     magma_behemoth:{name:"\u041f\u0435\u043f\u0435\u043b\u044c\u043d\u044b\u0439 \u0422\u0438\u0442\u0430\u043d",tier:'boss',hp:9800,damage:82,speed:32,color:'#873d26',eyes:'#ff7b35',size:2.9,skill:'slam'},
     frost_empress:{name:"\u041b\u0435\u0434\u044f\u043d\u0430\u044f \u0418\u043c\u043f\u0435\u0440\u0430\u0442\u0440\u0438\u0446\u0430",tier:'boss',hp:10200,damage:74,speed:43,color:'#5d9fb9',eyes:'#baf8ff',size:2.75,skill:'volley'},
     void_mirror:{name:"\u0417\u0435\u0440\u043a\u0430\u043b\u043e \u0411\u0435\u0437\u0434\u043d\u044b",tier:'boss',hp:11200,damage:88,speed:51,color:'#34234f',eyes:'#e9a7ff',size:2.8,skill:'teleport'},
-    worldbreaker_colossus:{name:"\u041a\u043e\u043b\u043e\u0441\u0441 \u0420\u0430\u0437\u0440\u0443\u0448\u0435\u043d\u043d\u043e\u0433\u043e \u041c\u0438\u0440\u0430",tier:'boss',hp:36000,damage:112,speed:24,color:'#626d80',eyes:'#ffd36d',size:4.15,skill:'roots'}
+    worldbreaker_colossus:{name:"\u041a\u043e\u043b\u043e\u0441\u0441 \u0420\u0430\u0437\u0440\u0443\u0448\u0435\u043d\u043d\u043e\u0433\u043e \u041c\u0438\u0440\u0430",tier:'boss',hp:36000,damage:112,speed:24,color:'#626d80',eyes:'#ffd36d',size:4.15,skill:'roots'},
+    awakened_tree:{name:'Пробуждённый древень',tier:'elite',hp:1450,damage:38,speed:27,color:'#69462e',eyes:'#ffdc72',size:1.85,skill:'roots'}
   });
   const BOSS_REALM_EVENTS=[["meteor","\u041c\u0435\u0442\u0435\u043e\u0440\u0438\u0442\u043d\u044b\u0439 \u0434\u043e\u0436\u0434\u044c"],["horde","\u0412\u0442\u043e\u0440\u0436\u0435\u043d\u0438\u0435 \u0447\u0443\u0434\u043e\u0432\u0438\u0449"],["blood_moon","\u041a\u0440\u043e\u0432\u0430\u0432\u0430\u044f \u043b\u0443\u043d\u0430"],["awakening","\u041f\u0440\u043e\u0431\u0443\u0436\u0434\u0435\u043d\u0438\u0435 \u0434\u0440\u0435\u0432\u043d\u0435\u0433\u043e"],["rift","\u0420\u0430\u0437\u043b\u043e\u043c \u0438\u0437\u043c\u0435\u0440\u0435\u043d\u0438\u0439"],["storm","\u0428\u0442\u043e\u0440\u043c \u0431\u043e\u0433\u043e\u0432"],["volcano","\u0418\u0437\u0432\u0435\u0440\u0436\u0435\u043d\u0438\u0435 \u043b\u0430\u0432\u043e\u0432\u043e\u0433\u043e \u0440\u0430\u0437\u043b\u043e\u043c\u0430"],["blizzard","\u041b\u0435\u0434\u044f\u043d\u0430\u044f \u0431\u0443\u0440\u044f"],["eclipse","\u0417\u0430\u0442\u043c\u0435\u043d\u0438\u0435 \u0431\u0435\u0437\u0434\u043d\u044b"],["time_rift","\u0420\u0430\u0437\u0440\u044b\u0432 \u0432\u0440\u0435\u043c\u0435\u043d\u0438"]];
   function bossRealmCreatureCount(){return monsters.filter(m=>m.bossRealmCreature&&m.hp>0).length;}
@@ -158,6 +159,7 @@
       if(crystals>0){if(coop)spawnSharedLoot(m.x,m.y,[{name:'Кристалл',count:crystals}],'surface');else if(lootDrops.length<80)lootDrops.push({x:m.x+(Math.random()-.5)*42,y:m.y+(Math.random()-.5)*40,name:'Кристалл',count:crystals,life:240,phase:Math.random()*6.28});}
       const trophies=[];
       if(tier==='elite'&&Math.random()<.3)trophies.push({name:'Осколок Бездны',count:1});
+      if(m.realmType==='awakened_tree')trophies.push({name:'Сердцевина древня',count:1});
       if(tier==='boss'){
         trophies.push({name:'Печать главаря',count:1});
         if(m.realmType==='rift_dragon'&&Math.random()<.55)trophies.push({name:'Чешуя Разлома',count:1});
@@ -545,10 +547,30 @@
     else if(m.realmType==='fallen_warrior'||m.realmType==='end_knight'){ctx.fillStyle='#aeb9c8';ctx.fillRect(-11,-27,22,7);ctx.fillStyle='#344052';ctx.fillRect(-7,-20,14,5);ctx.strokeStyle='#dce6f0';ctx.lineWidth=3;ctx.strokeRect(-12,-7,24,15);}
     else if(m.realmType==='ash_spirit'){ctx.strokeStyle='#ffb45d';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-13,10);ctx.quadraticCurveTo(-24,-4,-11,-20);ctx.moveTo(13,10);ctx.quadraticCurveTo(24,-4,11,-20);ctx.stroke();ctx.fillStyle='#ffe6a4';ctx.beginPath();ctx.arc(0,-1,4,0,Math.PI*2);ctx.fill();}
     else if(['abyss_king','astral_god','chronos_god'].includes(m.realmType)){ctx.strokeStyle=d.eyes;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-16,-29);ctx.lineTo(-12,-41);ctx.lineTo(-4,-31);ctx.lineTo(0,-44);ctx.lineTo(5,-31);ctx.lineTo(13,-41);ctx.lineTo(17,-29);ctx.stroke();ctx.fillStyle=d.eyes;ctx.beginPath();ctx.arc(0,-4,3,0,Math.PI*2);ctx.fill();}
+    else if(m.realmType==='awakened_tree'){
+      const sway=Math.sin(time/185+m.phase)*5,step=Math.sin(time/125+m.phase)*4;
+      ctx.fillStyle='#3b2a20';ctx.beginPath();ctx.moveTo(-11,-5);ctx.lineTo(-13,17);ctx.lineTo(-8,25);ctx.lineTo(8,25);ctx.lineTo(13,17);ctx.lineTo(11,-5);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#5c3b27';ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-7,18);ctx.lineTo(-12-step,29);ctx.lineTo(-18-step,31);ctx.moveTo(7,18);ctx.lineTo(12+step,29);ctx.lineTo(18+step,31);ctx.stroke();
+      ctx.strokeStyle='#61402a';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(-9,-2);ctx.lineTo(-22+sway,7);ctx.lineTo(-29+sway,1);ctx.moveTo(9,-2);ctx.lineTo(22-sway,7);ctx.lineTo(29-sway,1);ctx.stroke();
+      ctx.fillStyle='#24553a';ctx.beginPath();ctx.arc(0,-15,17,0,Math.PI*2);ctx.arc(-13,-12,10,0,Math.PI*2);ctx.arc(13,-12,10,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#8a6038';ctx.beginPath();ctx.arc(0,-18,10,0,Math.PI*2);ctx.fill();
+      ctx.shadowColor=d.eyes;ctx.shadowBlur=14;ctx.fillStyle='#ffdf76';ctx.beginPath();ctx.ellipse(-4,-19,3,4,0,0,Math.PI*2);ctx.ellipse(5,-19,3,4,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      ctx.fillStyle='#211b17';ctx.fillRect(-1,-10,3,2);
+      for(let i=0;i<4;i++){const a=time/390+i*Math.PI/2,px=Math.cos(a)*23,py=-17+Math.sin(a)*12;ctx.fillStyle=i%2?'#ffd36d':'#9be28b';ctx.globalAlpha=.6+.35*Math.sin(time/150+i);ctx.beginPath();ctx.arc(px,py,2,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+      if(m.action==='slam'||m.action==='cast'){ctx.strokeStyle='#9edb80';ctx.globalAlpha=.55+.35*Math.sin(time/70);ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,12,30+Math.sin(time/60)*5,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+    }
     else if(m.realmType==='rift_dragon'){ctx.fillStyle=d.color;ctx.beginPath();ctx.moveTo(-10,-3);ctx.lineTo(-34,-25);ctx.lineTo(-25,8);ctx.lineTo(-10,12);ctx.moveTo(10,-3);ctx.lineTo(34,-25);ctx.lineTo(25,8);ctx.lineTo(10,12);ctx.fill();ctx.strokeStyle='#f0a17a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-5,-23);ctx.lineTo(-13,-36);ctx.moveTo(5,-23);ctx.lineTo(13,-36);ctx.stroke();}
     if(m.action==='dash'&&m.actionTimer>0){ctx.strokeStyle=d.eyes;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-25,0);ctx.lineTo(-43,9);ctx.moveTo(25,0);ctx.lineTo(43,9);ctx.stroke();}
     drawBossRealmAwakeningCreature(m,x,y,time,d,z);
     ctx.restore();ctx.save();ctx.textAlign='center';ctx.font='900 '+(d.tier==='god'?12:10)+'px Segoe UI';ctx.fillStyle=d.tier==='god'?'#ffe8a3':d.tier==='boss'?'#f5c6ff':'#f4edff';ctx.shadowColor='#080812';ctx.shadowBlur=5;ctx.fillText(d.name,x,y-42*z);ctx.fillStyle='#1b1528';ctx.fillRect(x-24*z,y-34*z,48*z,4);ctx.fillStyle=d.eyes;ctx.fillRect(x-24*z,y-34*z,48*z*Math.max(0,m.hp/m.maxHp),4);ctx.restore();
+  }
+  function awakenBossTree(tree){
+    if(!bossRealmMode||!tree||tree.awakened)return false;
+    if(!spawnBossRealmCreature('awakened_tree',tree.x,tree.y)){toast('Древний лес шевельнулся, но разлом пока переполнен.');return false;}
+    const mob=monsters[monsters.length-1];if(!mob)return false;
+    mob.x=tree.x;mob.y=tree.y;mob.territoryX=tree.x;mob.territoryY=tree.y;mob.territoryRadius=11*TILE;mob.awakenedFromTree=true;mob.specialCooldown=1.8;mob.attackCooldown=.8;
+    spawnVisualBurst(tree.x,tree.y-14,34,'leaf','#a4df7a');spawnVisualBurst(tree.x,tree.y-18,16,'spark','#ffdf76');playSound('portal');
+    toast('ПРОБУЖДЁННЫЙ ДРЕВЕНЬ! Срубленное дерево ожило — уворачивайся от корней!');return true;
   }
   function bossRealmAbilityDamageMultiplier(){return bossRealmDamageBoostTimer>0?1.5:1;}
   function useBossRealmInvisibility(){if(!bossRealmMode){toast('Способность доступна в Мире боссов.');return;}if(bossRealmInvisibleTimer>0||bossRealmInvisibilityCooldown>0){toast('Невидимость перезаряжается: '+Math.ceil(bossRealmInvisibilityCooldown)+' сек.');return;}bossRealmInvisibleTimer=4.5;bossRealmInvisibilityCooldown=10;spawnVisualBurst(player.x,player.y,28,'spark','#9deaff');toast('НЕВИДИМОСТЬ · 4,5 секунды · враги теряют цель');}
@@ -630,7 +652,9 @@
     {name:'Зелье',icon:'🧪',count:0,description:'Зелье, выданное администратором.'},
     {name:'Монеты',icon:'🪙',count:0,description:'Монеты для будущей экономики.'},
     {name:'Уголь',icon:'⚫',count:0,description:'Руда из шахты.'},
-    {name:'Железо',icon:'⛓️',count:0,description:'Руда из шахты.'}
+    {name:'Железо',icon:'⛓️',count:0,description:'Руда из шахты.'},
+    {name:'Лесные ягоды',icon:'🫐',count:0,description:'Редкий урожай с плодовых деревьев обычного мира.'},
+    {name:'Сердцевина древня',icon:'🌳',count:0,description:'Редкий трофей пробуждённого дерева из Мира боссов.'}
   ];
   let exploredCells = new Set();
   let clearedSnowTiles=new Set(),snowShovelHits={};
@@ -1185,12 +1209,12 @@ let audioContext=null;
     world.trees.length=0;world.rocks.length=0;world.flowers.length=0;world.fireflies.length=0;world.signs.length=0;world.fences.length=0;quarryAnchorCache=null;
     for (let y = 2; y < ROWS - 2; y++) for (let x = 2; x < COLS - 2; x++) {
       const h = hash(x, y);
-      if (h > (biomeAt(x,y)==='jungle'?.988:.995) && !nearPath(x, y) && !nearVillage(x, y)) world.trees.push({ x: x * TILE + 16, y: y * TILE + 17, size: 0.85 + hash(y, x) * .42, tint: Math.floor(hash(x + 44, y) * 3) });
+      if (h > (biomeAt(x,y)==='jungle'?.988:.995) && !nearPath(x, y) && !nearVillage(x, y)) world.trees.push({ x: x * TILE + 16, y: y * TILE + 17, size: 0.85 + hash(y, x) * .42, tint: Math.floor(hash(x + 44, y) * 3), fruitful: hash(x + 701, y + 313) > .94 });
       if (h < .013 && !nearPath(x, y) && !nearVillage(x,y)) { const rockSize=0.7+hash(y,x+4)*0.65, vein=hash(x+107,y+811); const ore=vein<.028?'Кристалл':vein<.09?'Железо':vein<.145?'Уголь':vein<.205?'Медь':'Камень'; const hits=Math.max(2,Math.min(4,Math.round(rockSize*2.4)+1)); world.rocks.push({x:x*TILE+16,y:y*TILE+21,s:rockSize,ore,quality:1+Math.floor(hash(x+19,y+83)*3),hp:hits,maxHp:hits,regrowAt:0,hitFlash:0}); }
       if (h > .53 && h < .552) world.flowers.push({x:x*TILE+hash(x,y+10)*25+3,y:y*TILE+hash(x+3,y)*26+3,c:Math.floor(hash(y+7,x)*4)});
       if (h > .79 && h < .792) world.fireflies.push({x:x*TILE+hash(x+19,y)*TILE,y:y*TILE+hash(x,y+19)*TILE,phase:hash(x+1,y+3)*6.28});
     }
-    for(let fy=Math.max(ROWS-26,3);fy<ROWS-3;fy+=6)for(let fx=Math.max(COLS-31,3);fx<COLS-3;fx+=6){if(!nearPath(fx,fy)&&!waterAt(fx+.5,fy+.5)&&Math.abs(fy-(ROWS-13))>2&&Math.hypot(fx-(COLS-14),fy-(ROWS-13))>5&&hash(fx+401,fy+809)>.82)world.trees.push({x:fx*TILE+16,y:fy*TILE+17,size:.85+hash(fy+90,fx+70)*.35,tint:Math.floor(hash(fx+44,fy+99)*3)});}
+    for(let fy=Math.max(ROWS-26,3);fy<ROWS-3;fy+=6)for(let fx=Math.max(COLS-31,3);fx<COLS-3;fx+=6){if(!nearPath(fx,fy)&&!waterAt(fx+.5,fy+.5)&&Math.abs(fy-(ROWS-13))>2&&Math.hypot(fx-(COLS-14),fy-(ROWS-13))>5&&hash(fx+401,fy+809)>.82)world.trees.push({x:fx*TILE+16,y:fy*TILE+17,size:.85+hash(fy+90,fx+70)*.35,tint:Math.floor(hash(fx+44,fy+99)*3),fruitful:hash(fx+701,fy+313)>.94});}
     setupVillageNpcs();
     world.signs.push({ x: 34*TILE+16, y: 22*TILE+12 });
     // A tiny village fence around a cabin.
@@ -1277,6 +1301,7 @@ let audioContext=null;
     ctx.fillStyle=colors[0];ctx.beginPath();ctx.moveTo(0,-39);ctx.lineTo(-23,-2);ctx.lineTo(-15,2);ctx.lineTo(-28,12);ctx.lineTo(27,12);ctx.lineTo(15,-1);ctx.lineTo(23,-6);ctx.closePath();ctx.fill();
     ctx.fillStyle=colors[1];ctx.beginPath();ctx.moveTo(0,-35);ctx.lineTo(-17,-4);ctx.lineTo(-7,-4);ctx.lineTo(-17,6);ctx.lineTo(17,6);ctx.lineTo(7,-7);ctx.closePath();ctx.fill();
     ctx.fillStyle=colors[2];ctx.beginPath();ctx.moveTo(0,-29);ctx.lineTo(-7,-6);ctx.lineTo(3,-8);ctx.lineTo(12,0);ctx.lineTo(5,-16);ctx.closePath();ctx.fill();
+    if(t.fruitful){ctx.shadowColor='#ffcf70';ctx.shadowBlur=5;for(const [fx,fy] of [[-12,-12],[10,-20],[5,2]]){ctx.fillStyle='#f3a64e';ctx.beginPath();ctx.arc(fx,fy+Math.sin(ambientTime/260+t.x+fx)*1.2,2.7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b8e18a';ctx.fillRect(fx,fy-4,2,2);}ctx.shadowBlur=0;}
     ctx.restore();
   }
   function drawRock(r,camX,camY,time=ambientTime){
@@ -4196,6 +4221,8 @@ function setupVillageNpcs(){
         if(treeTarget.chops>=5){
           markTreeFelled(treeTarget);world.trees.splice(world.trees.indexOf(treeTarget),1);
           const jobWoodBonus=(window.SkyRealmJobs?.rollBonus?.('lumberjack')?1+Math.floor((window.SkyRealmJobs?.getLevel?.('lumberjack')||1)/4):0)+(isModInstalled('forest_guild')?2:0);
+          if(bossRealmMode)awakenBossTree(treeTarget);
+          else if(treeTarget.fruitful){const berries=3+Math.floor(Math.random()*3);changeItem('Лесные ягоды',berries);toast('ПЛОДОВОЕ ДЕРЕВО · собрано лесных ягод: '+berries+'.');}
           changeItem('Древесина',7+jobWoodBonus);changeItem('Листья',3);changeItem('Палка',1);
           window.SkyRealmJobs?.record?.('lumberjack',1);
           questStage=Math.max(questStage,2);
