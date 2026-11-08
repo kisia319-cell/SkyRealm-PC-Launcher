@@ -10,6 +10,8 @@
   // Canvas desynchronization is a browser hint; requestAnimationFrame remains display-paced when VSync is enabled.
   const ctx = canvas.getContext('2d', { alpha: false, desynchronized: !initialVsyncEnabled() });
   const TILE = 32; let COLS = 220, ROWS = 164;
+  // Reuse the deterministic Boss Realm floor between camera-tile changes.
+  let bossRealmGroundCache = null;
   let width = 0, height = 0, dpr = 1, last = performance.now(), paused = true;
   let inMainMenu = true;
   let settingsOpenedFromMainMenu = false;
@@ -184,9 +186,9 @@
     else if(skill==='summon'){m.action='cast';for(let i=0;i<2;i++)spawnBossRealmCreature(['shadow_hunter','cursed_skull','rift_wolf'][Math.floor(Math.random()*3)],m.x+(i?70:-70),m.y+60);toast('Генерал бездны призывает прислужников!');}
   }
   function updateBossRealmEnemies(dt){
-    ensureBossRealmDungeonSites();
+    const realmSites=ensureBossRealmDungeonSites();
     const step=Number.isFinite(dt)?Math.max(0,Math.min(.1,dt)):0;
-    for(const site of (bossRealmState.dungeonSites||[])){if(site.active&&site.remaining===0&&!monsters.some(m=>m.realmDungeonFinal&&m.realmDungeonId===site.id&&m.hp>0)){if(spawnBossRealmDungeonFinal(site,1.2+Math.min(.35,site.rematches*.08)))toast(site.name+' · хранитель вышел на арену!');}}
+    for(const site of realmSites){if(site.active&&site.remaining===0&&!monsters.some(m=>m.realmDungeonFinal&&m.realmDungeonId===site.id&&m.hp>0)){if(spawnBossRealmDungeonFinal(site,1.2+Math.min(.35,site.rematches*.08)))toast(site.name+' · хранитель вышел на арену!');}}
     bossRealmState.elapsed+=step;bossRealmState.spawnTimer-=step;bossRealmState.eventTimer-=step;bossRealmState.eventRemaining=Math.max(0,bossRealmState.eventRemaining-step);bossRealmWaveBannerTimer=Math.max(0,bossRealmWaveBannerTimer-step);
     if(bossRealmState.eventRemaining<=0){bossRealmState.eventName='';bossRealmState.eventId='';bossRealmHazard=null;}
     if(bossRealmState.eventTimer<=0){startBossRealmEvent();bossRealmState.eventTimer=110+Math.random()*50;}
@@ -212,19 +214,16 @@
       if(nextBoss)spawnBossRealmCreature(nextBoss);
     }
     if(bossRealmState.spawnTimer<=0&&bossRealmCreatureCount()<12){const pool=['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit'];spawnBossRealmCreature(pool[Math.floor(Math.random()*pool.length)]);if(bossRealmState.kills>=5&&Math.random()<.3)spawnBossRealmCreature(['abyss_general','blood_berserker','rift_warden','soul_devourer'][Math.floor(Math.random()*4)]);bossRealmState.spawnTimer=10+Math.random()*5;}
+    // Compute the predictive simulation window once per frame, not once per creature.
+    const moveX=Number(player.vx)||0,moveY=Number(player.vy)||0,moveLen=Math.hypot(moveX,moveY);
+    const faceVector=player.face==='left'?[-1,0]:player.face==='right'?[1,0]:player.face==='up'?[0,-1]:[0,1];
+    const predictX=moveLen>1?moveX/moveLen:faceVector[0],predictY=moveLen>1?moveY/moveLen:faceVector[1];
+    const lookAhead=TILE*3,predictedX=player.x+predictX*lookAhead,predictedY=player.y+predictY*lookAhead;
+    const activeRadius=Math.hypot(width,height)*.58+lookAhead,activeRadiusSq=activeRadius*activeRadius;
     for(const m of monsters){if(!m.bossRealmCreature)continue;const d=BOSS_REALM_CREATURES[m.realmType];if(!d)continue;
-      // Boss Realm simulation LOD: keep distant creatures dormant instead of running
-      // their full AI/animation every frame. The active bubble follows the player,
-      // with a small forward prediction so approaching enemies wake before entering view.
-      const moveX=Number(player.vx)||0,moveY=Number(player.vy)||0,moveLen=Math.hypot(moveX,moveY);
-      const faceVector={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]}[player.face]||[0,1];
-      const predictX=moveLen>1?moveX/moveLen:faceVector[0],predictY=moveLen>1?moveY/moveLen:faceVector[1];
-      const lookAhead=TILE*3;
-      const predictedX=player.x+predictX*lookAhead,predictedY=player.y+predictY*lookAhead;
-      const activeRadius=Math.hypot(width,height)*.58+lookAhead;
-      const nearPlayer=Math.hypot(m.x-player.x,m.y-player.y)<=activeRadius;
-      const nearPredicted=Math.hypot(m.x-predictedX,m.y-predictedY)<=activeRadius;
-      if(!nearPlayer&&!nearPredicted)continue;
+      // Distant enemies remain dormant; nearby and predicted-forward enemies wake before entering view.
+      const playerDx=m.x-player.x,playerDy=m.y-player.y,predictedDx=m.x-predictedX,predictedDy=m.y-predictedY;
+      if(playerDx*playerDx+playerDy*playerDy>activeRadiusSq&&predictedDx*predictedDx+predictedDy*predictedDy>activeRadiusSq)continue;
       // Repair incomplete/legacy enemy records before any combat calculations.
       const baseHp=Math.max(1,Number(d.hp)||100);
       if(!Number.isFinite(m.maxHp)||m.maxHp<1)m.maxHp=Math.round(baseHp*difficultyConfig().monsterHp);
@@ -242,7 +241,7 @@
       const isArenaBoss=['boss','god'].includes(d.tier);
       let arenaSite=null;
       if(isArenaBoss){
-        arenaSite=ensureBossRealmDungeonSites().find(site=>site.id===bossRealmArenaIdFor(m.realmType))||null;
+        arenaSite=realmSites.find(site=>site.id===bossRealmArenaIdFor(m.realmType))||null;
         if(arenaSite){
           if(m.arenaId!==arenaSite.id||!Number.isFinite(m.arenaX)||!Number.isFinite(m.arenaY)||Math.abs(m.arenaX-arenaSite.x)>1||Math.abs(m.arenaY-arenaSite.y)>1){
             m.arenaId=arenaSite.id;m.arenaX=arenaSite.x;m.arenaY=arenaSite.y;m.arenaRadius=12*TILE;
@@ -320,6 +319,15 @@
       {id:'temple',name:'Храм вечности',theme:'blood',bossId:'void_mirror',dx:-16,dy:-12},
       {id:'astral',name:'Астральный круг',theme:'astral',bossId:'astral_god',dx:16,dy:-12}
     ];
+    const alreadyReady=existing.length===specs.length&&specs.every(spec=>{
+      const site=existing.find(v=>v&&v.id===spec.id);
+      return !!site&&site.layoutVersion===2&&site.name===spec.name&&site.theme===spec.theme&&
+        BOSS_REALM_CREATURES[site.bossId]&&Number.isFinite(site.x)&&Number.isFinite(site.y)&&
+        typeof site.active==='boolean'&&typeof site.complete==='boolean'&&
+        Number.isInteger(site.remaining)&&site.remaining>=0&&site.remaining<=3&&
+        Number.isInteger(site.rematches)&&site.rematches>=0&&site.rematches<=50;
+    });
+    if(alreadyReady)return existing;
     const oldAnchors=existing.filter(v=>Number.isFinite(v?.x)&&Number.isFinite(v?.y));
     const anchorX=Math.max(24*TILE,Math.min((COLS-24)*TILE,oldAnchors.length?oldAnchors.reduce((sum,v)=>sum+v.x,0)/oldAnchors.length:player.x));
     const anchorY=Math.max(20*TILE,Math.min((ROWS-20)*TILE,oldAnchors.length?oldAnchors.reduce((sum,v)=>sum+v.y,0)/oldAnchors.length:player.y));
@@ -2417,59 +2425,73 @@ function setupVillageNpcs(){
     if(!bossRealmPortalUnlocked()||tradeWorldMode)return;const p=bossRealmPortalPosition(),x=p.x-camX,y=p.y-camY;if(x<-100||x>width+100||y<-110||y>height+110)return;
     const pulse=.5+.5*Math.sin(time/420);ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(4,8,24,.52)';ctx.beginPath();ctx.ellipse(0,18,43,17,0,0,Math.PI*2);ctx.fill();ctx.shadowColor=bossRealmMode?'#6be9ff':'#9a68ff';ctx.shadowBlur=22+pulse*12;ctx.strokeStyle=bossRealmMode?'#8cecff':'#b48cff';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(0,-7,27,39,0,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#10152b';ctx.beginPath();ctx.ellipse(0,-7,21,33,0,0,Math.PI*2);ctx.fill();const grad=ctx.createLinearGradient(-17,-35,18,25);grad.addColorStop(0,'rgba(104,118,255,.35)');grad.addColorStop(.5,'rgba(80,218,232,.55)');grad.addColorStop(1,'rgba(142,85,225,.28)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(0,-7,18,29,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff0c5';ctx.font='900 11px Segoe UI';ctx.textAlign='center';ctx.fillText(bossRealmMode?'ВОЗВРАТ':'МИР БОССОВ',0,-58);ctx.font='bold 10px Segoe UI';ctx.fillStyle='#e5eaff';ctx.fillText('E · '+(bossRealmMode?'ВЫЙТИ':'ВОЙТИ'),0,51);ctx.restore();
   }
+  function drawBossRealmGroundTile(target,tx,ty,time,left,top,etchColor){
+    const x=(tx-left)*TILE,y=(ty-top)*TILE,seed=tx*71+ty*19,r=hash(seed,113),edge=2+hash(seed,317)*3;
+    const slabs=['#292832','#302d35','#25252f','#37303a','#292b34','#322b34'];
+    const tone=slabs[Math.min(slabs.length-1,Math.floor(r*slabs.length))],bx=edge,by=edge*.7,w=TILE-edge*1.3,h=TILE-edge*1.2;
+    target.fillStyle='#11121a';target.fillRect(x,y,TILE,TILE);
+    target.fillStyle=tone;target.beginPath();
+    target.moveTo(x+bx,y+by+hash(seed,411)*3);
+    target.lineTo(x+w+bx*.25,y+by+hash(seed,412)*2);
+    target.lineTo(x+w+bx,y+h+by*.15);
+    target.lineTo(x+bx*.45,y+h+by);
+    target.closePath();target.fill();
+    target.strokeStyle='rgba(111,106,123,.22)';target.lineWidth=1;target.stroke();
+    target.strokeStyle='rgba(6,8,14,.62)';target.lineWidth=2;
+    target.beginPath();target.moveTo(x+bx+3,y+by+5);target.lineTo(x+TILE-bx-4,y+by+5);target.stroke();
+    const crack=hash(seed,521);
+    if(crack>.37){
+      const cx=x+8+hash(seed,522)*(TILE-16),cy=y+7+hash(seed,523)*(TILE-14);
+      target.strokeStyle='rgba(8,7,14,.86)';target.lineWidth=2.3;target.beginPath();
+      target.moveTo(cx,cy);target.lineTo(cx-4,cy+7);target.lineTo(cx+3,cy+13);target.lineTo(cx-2,cy+20);target.stroke();
+      target.strokeStyle=crack>.91?'rgba(206,85,104,.72)':'rgba(120,102,130,.46)';target.lineWidth=1;
+      target.beginPath();target.moveTo(cx,cy+1);target.lineTo(cx-3,cy+7);target.lineTo(cx+3,cy+13);target.stroke();
+      if(crack>.91){target.shadowColor='#d94b65';target.shadowBlur=8;target.strokeStyle='rgba(255,103,119,.55)';target.beginPath();target.moveTo(cx+3,cy+13);target.lineTo(cx+9,cy+17);target.lineTo(cx+7,cy+24);target.stroke();target.shadowBlur=0;}
+    }
+    const rubble=hash(seed,631);
+    if(rubble>.68){
+      target.fillStyle=rubble>.9?'#65606a':'#4b4852';target.beginPath();
+      target.moveTo(x+6+hash(seed,632)*16,y+TILE-5);target.lineTo(x+10+hash(seed,633)*18,y+TILE-13-hash(seed,634)*5);target.lineTo(x+18+hash(seed,635)*12,y+TILE-6);target.closePath();target.fill();
+      target.strokeStyle='rgba(8,8,13,.65)';target.lineWidth=1;target.stroke();
+    }
+    const arenaEtch=hash(seed,811);
+    if(gameSettings.graphicsQuality!=='low'&&arenaEtch>.84){
+      const ex=x+7+hash(seed,812)*(TILE-14),ey=y+7+hash(seed,813)*(TILE-14);
+      target.save();target.globalAlpha=.12+.08*(.5+.5*Math.sin(time/530+seed));target.strokeStyle=etchColor;target.lineWidth=1;
+      target.beginPath();target.moveTo(ex-4,ey-3);target.lineTo(ex+1,ey-1);target.lineTo(ex+4,ey+3);target.moveTo(ex-2,ey+4);target.lineTo(ex+2,ey+1);target.stroke();target.restore();
+    }
+    if(r>.935){
+      const sx=x+5+hash(seed,701)*(TILE-10),sy=y+5+hash(seed,702)*(TILE-10);
+      target.fillStyle='rgba(0,0,0,.35)';target.beginPath();target.ellipse(sx,sy,8,4,.3,0,Math.PI*2);target.fill();
+      target.fillStyle=r>.985?'#a84d5f':'#675060';target.beginPath();target.moveTo(sx-5,sy+2);target.lineTo(sx-2,sy-5);target.lineTo(sx+1,sy-2);target.lineTo(sx+5,sy-7);target.lineTo(sx+6,sy+3);target.closePath();target.fill();
+      if(r>.985){target.fillStyle='rgba(246,91,111,.5)';target.fillRect(sx-1,sy-2,2,4);}
+    }
+    if(r>.78){target.fillStyle='rgba(183,162,171,.18)';target.fillRect(x+4+hash(seed,733)*21,y+5+hash(seed,734)*19,1.5,1.5);}
+  }
   function drawBossRealmGround(camX,camY,time){
     const ground=ctx.createLinearGradient(0,0,width,height);
     ground.addColorStop(0,'#11131d');ground.addColorStop(.48,'#1b1722');ground.addColorStop(1,'#100f19');
     ctx.fillStyle=ground;ctx.fillRect(0,0,width,height);
     const left=Math.max(0,Math.floor(camX/TILE)-1),top=Math.max(0,Math.floor(camY/TILE)-1);
-    const right=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),bottom=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
-    const slabs=['#292832','#302d35','#25252f','#37303a','#292b34','#322b34'];
+    const cols=Math.max(0,Math.min(COLS-left,Math.ceil(width/TILE)+3)),rows=Math.max(0,Math.min(ROWS-top,Math.ceil(height/TILE)+3));
+    const right=left+cols,bottom=top+rows;
     const theme=bossRealmArenaTheme(),etchColor=theme==='glacier'?'#8deaff':theme==='infernal'?'#ff8750':theme==='blood'?'#d96a91':'#a99aff';
-    for(let ty=top;ty<bottom;ty++)for(let tx=left;tx<right;tx++){
-      const x=tx*TILE-camX,y=ty*TILE-camY;
-      const seed=tx*71+ty*19,r=hash(seed,113),edge=2+hash(seed,317)*3;
-      const tone=slabs[Math.min(slabs.length-1,Math.floor(r*slabs.length))];
-      const bx=edge,by=edge*.7,w=TILE-edge*1.3,h=TILE-edge*1.2;
-      ctx.fillStyle='#11121a';ctx.fillRect(x,y,TILE,TILE);
-      ctx.fillStyle=tone;ctx.beginPath();
-      ctx.moveTo(x+bx,y+by+hash(seed,411)*3);
-      ctx.lineTo(x+w+bx*.25,y+by+hash(seed,412)*2);
-      ctx.lineTo(x+w+bx,y+h+by*.15);
-      ctx.lineTo(x+bx*.45,y+h+by);
-      ctx.closePath();ctx.fill();
-      ctx.strokeStyle='rgba(111,106,123,.22)';ctx.lineWidth=1;ctx.stroke();
-      ctx.strokeStyle='rgba(6,8,14,.62)';ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(x+bx+3,y+by+5);ctx.lineTo(x+TILE-bx-4,y+by+5);ctx.stroke();
-      const crack=hash(seed,521);
-      if(crack>.37){
-        const cx=x+8+hash(seed,522)*(TILE-16),cy=y+7+hash(seed,523)*(TILE-14);
-        ctx.strokeStyle='rgba(8,7,14,.86)';ctx.lineWidth=2.3;ctx.beginPath();
-        ctx.moveTo(cx,cy);ctx.lineTo(cx-4,cy+7);ctx.lineTo(cx+3,cy+13);ctx.lineTo(cx-2,cy+20);ctx.stroke();
-        ctx.strokeStyle=crack>.91?'rgba(206,85,104,.72)':'rgba(120,102,130,.46)';ctx.lineWidth=1;
-        ctx.beginPath();ctx.moveTo(cx,cy+1);ctx.lineTo(cx-3,cy+7);ctx.lineTo(cx+3,cy+13);ctx.stroke();
-        if(crack>.91){ctx.shadowColor='#d94b65';ctx.shadowBlur=8;ctx.strokeStyle='rgba(255,103,119,.55)';ctx.beginPath();ctx.moveTo(cx+3,cy+13);ctx.lineTo(cx+9,cy+17);ctx.lineTo(cx+7,cy+24);ctx.stroke();ctx.shadowBlur=0;}
-      }
-      const rubble=hash(seed,631);
-      if(rubble>.68){
-        ctx.fillStyle=rubble>.9?'#65606a':'#4b4852';ctx.beginPath();
-        ctx.moveTo(x+6+hash(seed,632)*16,y+TILE-5);ctx.lineTo(x+10+hash(seed,633)*18,y+TILE-13-hash(seed,634)*5);ctx.lineTo(x+18+hash(seed,635)*12,y+TILE-6);ctx.closePath();ctx.fill();
-        ctx.strokeStyle='rgba(8,8,13,.65)';ctx.lineWidth=1;ctx.stroke();
-      }
-      const arenaEtch=hash(seed,811);
-      if(gameSettings.graphicsQuality!=='low'&&arenaEtch>.84){
-        const ex=x+7+hash(seed,812)*(TILE-14),ey=y+7+hash(seed,813)*(TILE-14);
-        ctx.save();ctx.globalAlpha=.12+.08*(.5+.5*Math.sin(time/530+seed));ctx.strokeStyle=etchColor;ctx.lineWidth=1;
-        ctx.beginPath();ctx.moveTo(ex-4,ey-3);ctx.lineTo(ex+1,ey-1);ctx.lineTo(ex+4,ey+3);ctx.moveTo(ex-2,ey+4);ctx.lineTo(ex+2,ey+1);ctx.stroke();ctx.restore();
-      }
-      if(r>.935){
-        const sx=x+5+hash(seed,701)*(TILE-10),sy=y+5+hash(seed,702)*(TILE-10);
-        ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(sx,sy,8,4,.3,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle=r>.985?'#a84d5f':'#675060';ctx.beginPath();ctx.moveTo(sx-5,sy+2);ctx.lineTo(sx-2,sy-5);ctx.lineTo(sx+1,sy-2);ctx.lineTo(sx+5,sy-7);ctx.lineTo(sx+6,sy+3);ctx.closePath();ctx.fill();
-        if(r>.985){ctx.fillStyle='rgba(246,91,111,.5)';ctx.fillRect(sx-1,sy-2,2,4);}
-      }
-      if(r>.78){ctx.fillStyle='rgba(183,162,171,.18)';ctx.fillRect(x+4+hash(seed,733)*21,y+5+hash(seed,734)*19,1.5,1.5);}
+    const cacheDpr=Math.max(1,Number(dpr)||1),quality=gameSettings.graphicsQuality,cache=bossRealmGroundCache;
+    const rebuild=!cache||cache.left!==left||cache.top!==top||cache.right!==right||cache.bottom!==bottom||
+      cache.dpr!==cacheDpr||cache.theme!==theme||cache.quality!==quality||cache.width!==width||cache.height!==height;
+    if(rebuild&&cols>0&&rows>0){
+      const tileCanvas=document.createElement('canvas'),logicalWidth=cols*TILE,logicalHeight=rows*TILE;
+      tileCanvas.width=Math.max(1,Math.ceil(logicalWidth*cacheDpr));tileCanvas.height=Math.max(1,Math.ceil(logicalHeight*cacheDpr));
+      const tileContext=tileCanvas.getContext('2d');tileContext.setTransform(cacheDpr,0,0,cacheDpr,0,0);
+      for(let ty=top;ty<bottom;ty++)for(let tx=left;tx<right;tx++)drawBossRealmGroundTile(tileContext,tx,ty,time,left,top,etchColor);
+      bossRealmGroundCache={canvas:tileCanvas,left,top,right,bottom,dpr:cacheDpr,theme,quality,width,height};
     }
-    // Broad, low-contrast ash banks soften the old square-tile look and make the ruined land read as one landscape.
+    if(bossRealmGroundCache?.canvas){
+      const active=bossRealmGroundCache;
+      ctx.drawImage(active.canvas,active.left*TILE-camX,active.top*TILE-camY,
+        (active.right-active.left)*TILE,(active.bottom-active.top)*TILE);
+    }
+    // The atmospheric overlays remain live; only the unchanged stone artwork is cached.
     ctx.save();
     const haze=ctx.createRadialGradient(width*.48,height*.43,Math.min(width,height)*.08,width*.48,height*.43,Math.max(width,height)*.82);
     haze.addColorStop(0,'rgba(126,65,86,.10)');haze.addColorStop(.48,'rgba(80,57,79,.07)');haze.addColorStop(1,'rgba(5,7,13,.5)');
