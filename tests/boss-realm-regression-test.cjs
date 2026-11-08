@@ -53,3 +53,6 @@ assert.ok(source.includes('function completeDeathRespawn()') && source.includes(
 assert.ok(source.includes('Ты возродился у разломного портала') && source.includes('Ты возродился у кровати'), 'Respawn must return the player safely to the current realm or bed');
 
 console.log('SkyRealm Boss Realm roster, ruined environment, death screen, respawn, events and abilities tests passed.');
+assert.ok(source.includes('function drawWorldEventShrine(camX,camY,time)')&&source.includes('function collectWorldEventShrine()'), 'Ordinary world must include a collectible ancient shrine event');
+assert.ok(source.includes('worldEventShrine:worldEventShrine?')&&source.includes('lastWorldShrineDay'), 'Ancient shrine event must persist across saves');
+assert.ok(source.includes('переходит во вторую фазу и призывает подкрепление')&&source.includes('выпускает ударную волну'), 'Boss Realm bosses must gain new phase mechanics');
