@@ -310,7 +310,7 @@ console.log('SkyRealm boss realm portal unlock, separate save slot and return fl
 // Boss Realm creature roster, combat progression, abilities, presentation and first-entry onboarding.
 assert.equal((source.match(/tier:'mob'/g)||[]).length,8,'Boss Realm must define eight regular creatures.');
 assert.equal((source.match(/tier:'elite'/g)||[]).length,5,'Boss Realm must define five elite creatures, including the awakened tree.');
-assert.equal((source.match(/tier:'boss'/g)||[]).length,8,'Boss Realm must define eight bosses including the new secret and raid bosses.');
+assert.equal((source.match(/tier:'boss'/g)||[]).length,9,'Boss Realm must define nine bosses including the Forest King.');
 assert.equal((source.match(/tier:'god'/g)||[]).length,2,'Boss Realm must define two gods.');
 for(const event of ['meteor','horde','blood_moon','awakening','rift','storm'])assert.ok(source.includes("['"+event+"'")||source.includes('["'+event+'"'),'Missing Boss Realm event '+event);
 for(const type of ['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit','abyss_general','blood_berserker','rift_warden','soul_devourer','abyss_king','rift_dragon','ancient_devourer','end_knight','astral_god','chronos_god'])assert.ok(source.includes(type),'Missing Boss Realm creature '+type);
