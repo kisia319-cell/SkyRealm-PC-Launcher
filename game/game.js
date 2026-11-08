@@ -144,6 +144,7 @@
     const d=BOSS_REALM_CREATURES[m.realmType];if(!d)return true;
     handleBossRealmDungeonDefeat(m);
     const tier=d.tier;
+    if(tier==='boss'||tier==='god')triggerBossVictory(d.name,m.x,m.y,d.eyes||d.color);
     if(tier==='boss'&&!bossRealmState.defeatedBosses.includes(m.realmType)){bossRealmState.defeatedBosses.push(m.realmType);toast('ГЛАВАРЬ ПОБЕЖДЁН: '+d.name+'!');}
     if(tier==='god'&&!bossRealmState.defeatedGods.includes(m.realmType)){bossRealmState.defeatedGods.push(m.realmType);toast('БОГ ПОВЕРЖЕН: '+d.name+'!');}
     const coop=isCoopWorldActive(),canReward=!coop||window.SkyRealmCoopClient?.isRoomOwner;
@@ -634,7 +635,7 @@
   let attackAnimTimer=0, combatAbilityCooldown=0, weatherMode='clear', weatherTimer=75, weatherFlash=0, ambientTime=0;
   // Combat Arts: separate combat state; player movement and collision logic remain unchanged.
   let combatCombo=0,combatComboTimer=0,combatEnergy=0,combatPerfectDodge=0,combatGuardTimer=0,combatParryTimer=0,combatGuardCooldown=0,combatCurrentDamage=1,combatWeaponTrail=0;
-  let combatCinematic=null,combatCinematicImpactFlash=0,combatCameraShake=0,combatUltimateCooldown=0;
+  let combatCinematic=null,combatCinematicImpactFlash=0,combatCameraShake=0,combatUltimateCooldown=0,bossVictoryCue=null;
   const COMBAT_STYLES={'Огненный меч':['#ff713d','Пламенный разрез'],'Ледяной посох':['#8beaff','Ледяной всплеск'],'Молниеносное копьё':['#ffe66d','Цепной разряд'],'Деревянный меч':['#d8c39b','Рубящий удар']};
   function combatStyle(){return COMBAT_STYLES[equipment.weapon]||['#e8f5ff','Удар оружием'];}
   function combatWeaponDamage(weapon){return weaponDamage(weapon)*combatCurrentDamage;}
@@ -693,11 +694,24 @@
     if(combatCinematic.elapsed>=combatCinematic.duration){combatCinematic.active=false;combatCinematic=null;}
   }
 
+  function awardCombatEnergyForHit(damage){
+    if(!Number.isFinite(damage)||damage<=0)return;
+    // Energy is awarded only after enemy HP was actually reduced, never on a swing into empty space.
+    combatEnergy=Math.min(100,combatEnergy+8);
+    updateVitals();
+  }
+  function triggerBossVictory(name,x=player.x,y=player.y,color='#ffe27a'){
+    bossVictoryCue={name:String(name||'Главарь'),color,started:performance.now(),duration:3600};
+    spawnVisualBurst(x,y,76,'spark',color);
+    spawnVisualBurst(x,y,34,'dust','#ffffff');
+    combatCameraShake=Math.max(combatCameraShake,14);
+    combatCinematicImpactFlash=Math.max(combatCinematicImpactFlash,.34);
+  }
   function combatBeginStrike(){
     combatCombo=combatComboTimer>0?combatCombo%4+1:1;combatComboTimer=1.45;
     combatCurrentDamage=[1,1.08,1.18,1.38][combatCombo-1]*(combatPerfectDodge>0?1.65:1);
     if(combatPerfectDodge>0){combatPerfectDodge=0;toast('ИДЕАЛЬНОЕ УКЛОНЕНИЕ · КОНТРАТАКА ×1.65!');}
-    combatEnergy=Math.min(100,combatEnergy+8+(combatCombo===4?9:0));updateVitals();combatWeaponTrail=.34;
+    combatWeaponTrail=.34;
     const style=combatStyle(),x=player.x+(player.face==='left'?-25:player.face==='right'?25:0),y=player.y+(player.face==='up'?-25:player.face==='down'?18:0);
     spawnVisualBurst(x,y,combatCombo===4?24:12,'spark',style[0]);if(combatCombo===4){spawnVisualBurst(x,y,18,'dust','#ffffff');toast('ФИНИШЕР · '+style[1]+'!');}
   }
@@ -1764,7 +1778,7 @@ function setupVillageNpcs(){
   function defeatCaveBoss(){
     if(caveBossDefeated)return;
     scheduleNemesis('boss','cave','Каменный страж','brute',1.7);
-    caveBossDefeated=true;caveBossHp=0;
+    caveBossDefeated=true;caveBossHp=0;triggerBossVictory('Каменный страж',caveBossX,caveBossY,'#8ef5ff');
     if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner){
       spawnSharedLoot(caveBossX,caveBossY,[{name:'Кристалл',count:5},{name:'Железо',count:8},{name:'Малое зелье',count:3},{name:'Золото',count:100}],'cave');
     }else{
@@ -2005,7 +2019,7 @@ function setupVillageNpcs(){
       }
     }
   }
-  function defeatBiomeBoss(def,b){if(!def||!b||b.defeated)return;scheduleNemesis('boss',def.id,def.name,'brute',Math.min(8.35,(b.rebirthMultiplier||1)*1.7));b.defeated=true;if(isModInstalled('elemental_lords')){walletCents+=5000;changeItem('Кристалл',2);updateWalletHud();toast('Повелитель стихий: дополнительная награда +50 золота и 2 кристалла!');}b.active=false;b.hp=0;
+  function defeatBiomeBoss(def,b){if(!def||!b||b.defeated)return;scheduleNemesis('boss',def.id,def.name,'brute',Math.min(8.35,(b.rebirthMultiplier||1)*1.7));b.defeated=true;triggerBossVictory(def.name,def.x,def.y,def.color);if(isModInstalled('elemental_lords')){walletCents+=5000;changeItem('Кристалл',2);updateWalletHud();toast('Повелитель стихий: дополнительная награда +50 золота и 2 кристалла!');}b.active=false;b.hp=0;
     if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner){
       spawnSharedLoot(def.x,def.y,[{name:def.reward,count:1},{name:'Кристалл',count:3},{name:'Малое зелье',count:2},{name:'Золото',count:75}],'surface');
     }else{walletCents+=7500;changeItem(def.reward,1);changeItem('Кристалл',3);changeItem('Малое зелье',2);renderInventory();}
@@ -2085,7 +2099,7 @@ function setupVillageNpcs(){
       }
     }
   }
-  function attackDungeonEnemy(){if(playerAttackCooldown>0)return;playerAttackCooldown=.58;attackAnimTimer=.2;playSound('hit');if(dungeonRoomCleared()){toast(dungeonRoom===5?'Страж побеждён. Найди сундук справа.':'Комната очищена. Иди к двери справа.');return;}const ex=dungeonEnemyX>0?dungeonEnemyX:width*.65,ey=dungeonEnemyY>0?dungeonEnemyY:height*.47;if(Math.hypot(player.x-ex,player.y-ey)>Math.max(145,weaponRange()+30)){toast('Подойди к стражу комнаты ближе.');return;}const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));dungeonEnemyHp=Math.max(0,dungeonEnemyHp-damage);spawnVisualBurst(ex,ey,10,'spark',dungeonRoom===5?'#dca4ff':'#a9b5d7');toast((dungeonRoom===5?'Архонт':'Страж')+' получил '+damage+' урона · '+Math.ceil(dungeonEnemyHp)+' HP');if(dungeonEnemyHp<=0){scheduleNemesis('boss','dungeon-'+dungeonRoom,dungeonRoom===5?'Архонт руин':'Страж руин '+dungeonRoom,'shadow',1.7);dungeonClearedRooms=Array.from(new Set(dungeonClearedRooms.concat([dungeonRoom])));if(dungeonRoom<5){changeItem('Эссенция глубин',1);if(Math.random()<.6)changeItem('Кристалл',1);toast('Комната '+dungeonRoom+' очищена!');}else{changeItem('Эссенция глубин',4);walletCents+=15000;toast('Архонт руин повержен! Сундук открыт.');}spawnVisualBurst(ex,ey,30,'spark','#b99cff');awardXP(dungeonRoom===5?300:70,'зачистка комнаты руин');renderInventory();saveGame();}else saveGame();}
+  function attackDungeonEnemy(){if(playerAttackCooldown>0)return;playerAttackCooldown=.58;attackAnimTimer=.2;playSound('hit');if(dungeonRoomCleared()){toast(dungeonRoom===5?'Страж побеждён. Найди сундук справа.':'Комната очищена. Иди к двери справа.');return;}const ex=dungeonEnemyX>0?dungeonEnemyX:width*.65,ey=dungeonEnemyY>0?dungeonEnemyY:height*.47;if(Math.hypot(player.x-ex,player.y-ey)>Math.max(145,weaponRange()+30)){toast('Подойди к стражу комнаты ближе.');return;}const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(weaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));dungeonEnemyHp=Math.max(0,dungeonEnemyHp-damage);awardCombatEnergyForHit(damage);spawnVisualBurst(ex,ey,10,'spark',dungeonRoom===5?'#dca4ff':'#a9b5d7');toast((dungeonRoom===5?'Архонт':'Страж')+' получил '+damage+' урона · '+Math.ceil(dungeonEnemyHp)+' HP');if(dungeonEnemyHp<=0){scheduleNemesis('boss','dungeon-'+dungeonRoom,dungeonRoom===5?'Архонт руин':'Страж руин '+dungeonRoom,'shadow',1.7);dungeonClearedRooms=Array.from(new Set(dungeonClearedRooms.concat([dungeonRoom])));triggerBossVictory(dungeonRoom===5?'Архонт руин':'Страж руин '+dungeonRoom,ex,ey,'#b99cff');if(dungeonRoom<5){changeItem('Эссенция глубин',1);if(Math.random()<.6)changeItem('Кристалл',1);toast('Комната '+dungeonRoom+' очищена!');}else{changeItem('Эссенция глубин',4);walletCents+=15000;toast('Архонт руин повержен! Сундук открыт.');}spawnVisualBurst(ex,ey,30,'spark','#b99cff');awardXP(dungeonRoom===5?300:70,'зачистка комнаты руин');renderInventory();saveGame();}else saveGame();}
   async function interactDungeon(){
     const exitX=width*.12,midY=height*.52;
     if(Math.hypot(player.x-exitX,player.y-midY)<95){leaveDungeon();return;}
@@ -2485,7 +2499,7 @@ function setupVillageNpcs(){
     ctx.restore();
   }
   function drawCombatCinematicOverlay(time){
-    if(!combatCinematic?.active&&!combatCinematicImpactFlash)return;
+    if(!combatCinematic?.active&&!combatCinematicImpactFlash&&!bossVictoryCue)return;
     ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
     const p=combatCinematic?Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration)):1;
     const intensity=combatCinematic?Math.sin(Math.PI*p):0;
@@ -2516,6 +2530,26 @@ function setupVillageNpcs(){
       ctx.restore();
     }
     if(combatCinematicImpactFlash>0){ctx.fillStyle='rgba(255,255,255,'+Math.min(.42,combatCinematicImpactFlash*1.25)+')';ctx.fillRect(0,0,width,height);}
+    if(bossVictoryCue){
+      const age=Math.max(0,performance.now()-bossVictoryCue.started);
+      if(age>=bossVictoryCue.duration)bossVictoryCue=null;
+      else{
+        const life=age/bossVictoryCue.duration,fade=Math.min(1,age/220,(bossVictoryCue.duration-age)/680);
+        const panelW=Math.min(width-28,680),panelH=106,panelX=(width-panelW)/2;
+        const panelY=Math.max(42,height*.22-Math.sin(Math.min(1,age/280)*Math.PI)*12);
+        ctx.save();ctx.globalAlpha=Math.max(0,fade);
+        const gradient=ctx.createLinearGradient(panelX,panelY,panelX+panelW,panelY+panelH);
+        gradient.addColorStop(0,'rgba(8,16,30,.94)');gradient.addColorStop(.5,'rgba(26,30,46,.96)');gradient.addColorStop(1,'rgba(8,16,30,.94)');
+        ctx.fillStyle=gradient;ctx.fillRect(panelX,panelY,panelW,panelH);
+        ctx.strokeStyle=bossVictoryCue.color;ctx.lineWidth=2;ctx.shadowColor=bossVictoryCue.color;ctx.shadowBlur=18;ctx.strokeRect(panelX,panelY,panelW,panelH);
+        ctx.shadowBlur=0;ctx.textAlign='center';ctx.fillStyle='#ffe79a';ctx.font='900 13px Segoe UI';ctx.fillText('БОСС ПОВЕРЖЕН',width/2,panelY+26);
+        ctx.fillStyle='#ffffff';ctx.shadowColor=bossVictoryCue.color;ctx.shadowBlur=10;ctx.font='900 '+Math.max(17,Math.min(27,26-(panelW<430?6:0)))+'px Segoe UI';
+        const title= bossVictoryCue.name.length>48?bossVictoryCue.name.slice(0,45)+'…':bossVictoryCue.name;
+        ctx.fillText(title,width/2,panelY+59);
+        ctx.shadowBlur=0;ctx.fillStyle='#cbd8e8';ctx.font='700 11px Segoe UI';ctx.fillText('АРЕНА ОЧИЩЕНА · ДОБЫЧА И ОПЫТ ОБРАБОТАНЫ',width/2,panelY+82);
+        ctx.restore();
+      }
+    }
     ctx.restore();
   }
   const MINE_MAZE_COLS=21,MINE_MAZE_ROWS=15,MINE_CELL_SIZE=44;
@@ -3550,7 +3584,7 @@ function setupVillageNpcs(){
   function onWolfDogDeath(){if(wolfDogDeathHandled)return;wolfDogDeathHandled=true;wolfCompanionUnlocked=false;wolfCompanionHp=0;if(wolfCompanionRevivals<3){wolfCompanionRevivals++;wolfBossDefeated=false;wolfBossActive=true;wolfBossHp=1000+difficultyConfig().rank*500;const den=wolfDenPosition();wolfBossX=den.x;wolfBossY=den.y;toast('Собака погибла. Оборотень вернулся в лес — победи его снова ('+wolfCompanionRevivals+'/3 возрождений).');}else toast('Собака погибла окончательно: лимит возрождений босса исчерпан.');saveGame();}
   function defeatWolfBoss(){
     scheduleNemesis('boss','wolf','Оборотень','shadow',1.7);
-    wolfBossActive=false;wolfBossDefeated=true;wolfBossKeyDropped=true;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;
+    wolfBossActive=false;wolfBossDefeated=true;triggerBossVictory('Оборотень',wolfBossX,wolfBossY,'#b6d6ff');wolfBossKeyDropped=true;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;
     if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner)spawnSharedLoot(wolfBossX,wolfBossY,[{name:'Ключ от клетки',count:1},{name:'Кристалл',count:2},{name:'Золото',count:50}],'surface');
     else{changeItem('Ключ от клетки',1);walletCents+=5000;changeItem('Кристалл',2);renderInventory();}
     spawnVisualBurst(wolfBossX,wolfBossY,34,'spark','#b6d6ff');playWolfSound('howl');toast('ОБОРОТЕН ПОБЕЖДЁН! Награда появилась в общей добыче леса.');awardXP(180,'победа над Оборотнем');saveGame();
@@ -3774,12 +3808,12 @@ function setupVillageNpcs(){
       else toast('Рядом нет цели общего мира.');
       return;
     }
-    if(!caveMode&&!dungeonMode&&!mineMode){for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||!b.active||b.defeated)continue;const d=Math.hypot(player.x-def.x,player.y-def.y);if(d<Math.max(weaponRange()+35,130)){const damage=Math.round(combatWeaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.1)*(Math.random()<.14?2:1));b.hp=Math.max(0,b.hp-damage);spawnVisualBurst(def.x,def.y,9,'spark',def.color);toast(def.name+' получил '+damage+' урона · '+Math.ceil(b.hp)+' HP');if(b.hp<=0)defeatBiomeBoss(def,b);else saveGame();return;}}}
-    if(!caveMode&&!dungeonMode&&wolfBossActive){const bossDistance=Math.hypot(player.x-wolfBossX,player.y-wolfBossY);if(bossDistance<Math.max(125,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(combatWeaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));wolfBossHp=Math.max(0,wolfBossHp-damage);wolfBossFlash=.18;spawnVisualBurst(wolfBossX,wolfBossY,10,'spark','#ff5267');toast('Оборотень получил '+damage+' урона · '+Math.ceil(wolfBossHp)+' HP');if(wolfBossHp<=0)defeatWolfBoss();else saveGame();return;}}
-    if(caveMode&&!caveBossDefeated){const bossDistance=Math.hypot(player.x-caveBossX,player.y-caveBossY);if(bossDistance<Math.max(115,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч';const base=combatWeaponDamage(weapon);const damage=Math.round(base*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1)*(Math.random()<.14?2:1));caveBossHp=Math.max(0,caveBossHp-damage);caveBossFlash=.18;spawnVisualBurst(caveBossX,caveBossY,12,'spark',weapon==='Огненный меч'?'#ff9a42':'#b6e7ff');toast('Страж получил '+damage+' урона ('+Math.ceil(caveBossHp)+'/'+bossMaxHp()+').');if(caveBossHp<=0)defeatCaveBoss();else saveGame();return;}toast('Подойди к Каменному стражу ближе.');return;}
+    if(!caveMode&&!dungeonMode&&!mineMode){for(const def of biomeBossDefs()){const b=biomeBosses[def.id];if(!b||!b.active||b.defeated)continue;const d=Math.hypot(player.x-def.x,player.y-def.y);if(d<Math.max(weaponRange()+35,130)){const damage=Math.round(combatWeaponDamage(equipment.weapon||'Деревянный меч')*(1+skills.warrior*.1)*(Math.random()<.14?2:1));b.hp=Math.max(0,b.hp-damage);awardCombatEnergyForHit(damage);spawnVisualBurst(def.x,def.y,9,'spark',def.color);toast(def.name+' получил '+damage+' урона · '+Math.ceil(b.hp)+' HP');if(b.hp<=0)defeatBiomeBoss(def,b);else saveGame();return;}}}
+    if(!caveMode&&!dungeonMode&&wolfBossActive){const bossDistance=Math.hypot(player.x-wolfBossX,player.y-wolfBossY);if(bossDistance<Math.max(125,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(combatWeaponDamage(weapon)*(1+skills.warrior*.1)*(Math.random()<.14?2:1));wolfBossHp=Math.max(0,wolfBossHp-damage);awardCombatEnergyForHit(damage);wolfBossFlash=.18;spawnVisualBurst(wolfBossX,wolfBossY,10,'spark','#ff5267');toast('Оборотень получил '+damage+' урона · '+Math.ceil(wolfBossHp)+' HP');if(wolfBossHp<=0)defeatWolfBoss();else saveGame();return;}}
+    if(caveMode&&!caveBossDefeated){const bossDistance=Math.hypot(player.x-caveBossX,player.y-caveBossY);if(bossDistance<Math.max(115,weaponRange()+30)){const weapon=equipment.weapon||'Деревянный меч';const base=combatWeaponDamage(weapon);const damage=Math.round(base*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1)*(Math.random()<.14?2:1));caveBossHp=Math.max(0,caveBossHp-damage);awardCombatEnergyForHit(damage);caveBossFlash=.18;spawnVisualBurst(caveBossX,caveBossY,12,'spark',weapon==='Огненный меч'?'#ff9a42':'#b6e7ff');toast('Страж получил '+damage+' урона ('+Math.ceil(caveBossHp)+'/'+bossMaxHp()+').');if(caveBossHp<=0)defeatCaveBoss();else saveGame();return;}toast('Подойди к Каменному стражу ближе.');return;}
     if(caveMode){toast(caveBossDefeated?'Сокровищница уже доступна. Подойди к сундуку и нажми E.':'Подойди к Каменному стражу ближе.');return;}
     let target=null,best=weaponRange();for(const mob of monsters){const d=Math.hypot(mob.x-player.x,mob.y-player.y);if(d<best){best=d;target=mob;}}
-    if(target){if(target.bossRealmCreature&&target.raidCrystalCount>0){target.raidCrystalCount--;target.flash=.18;spawnVisualBurst(target.x,target.y,24,'spark','#ffe49a');toast('КРИСТАЛЛ ЗАЩИТЫ РАЗБИТ · осталось '+target.raidCrystalCount);saveGame();return;}if(target.bossRealmCreature&&target.shield>0){target.shield=Math.max(0,target.shield-1);target.flash=.12;spawnVisualBurst(target.x,target.y,14,'spark','#8deaff');toast((BOSS_REALM_CREATURES[target.realmType]?.name||'Враг')+' блокирует удар щитом!');return;}const weapon=equipment.weapon||'Деревянный меч',baseDamage=combatWeaponDamage(weapon)*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1)*bossRealmAbilityDamageMultiplier(),critical=Math.random()<Math.min(.35,.14+bossRealmRelicTotals().crit),swordDamage=Math.round(critical?baseDamage*2:baseDamage);target.hp-=swordDamage;target.flash=.2;spawnVisualBurst(target.x,target.y,critical?16:8,'spark',weapon==='Огненный меч'?'#ff8738':weapon==='Ледяной посох'?'#8be9ff':weapon==='Молниеносное копьё'?'#d8a4ff':critical?'#ffe16b':'#ff9aa9');if(critical)toast('КРИТИЧЕСКИЙ УДАР! ×2 урона!');if(target.hp<=0){if(target.bossRealmCreature)recordBossRealmDefeat(target);else scheduleNemesis(target.isRebornBoss?'boss':'monster',target.id,target.bossTitle||monsterLabel(target.type),target.type,Math.min(8.35,(target.rebirthMultiplier||1)*1.7));const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);notifyExpansionEnemyDefeated(target);spawnVisualBurst(target.x,target.y,20,'spark',target.type==='skeleton'?'#e5e1d0':'#ff7b9b');dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);if(isModInstalled('bounty_hunter')){walletCents+=100+Math.floor(Math.random()*301);updateWalletHud();}awardXP(Math.round((target.bossRealmCreature?(BOSS_REALM_CREATURES[target.realmType]?.tier==='god'?1200:BOSS_REALM_CREATURES[target.realmType]?.tier==='boss'?450:BOSS_REALM_CREATURES[target.realmType]?.tier==='elite'?110:35):(target.type==='brute'?35:target.type==='skeleton'?28:target.type==='wisp'?24:target.type==='bomb'?20:target.type==='ice'?38:target.type==='scorpion'?32:18))*(isModInstalled('bounty_hunter')?1.2:1)),'победа над '+(target.bossRealmCreature?BOSS_REALM_CREATURES[target.realmType].name:'монстром'));questStage=Math.max(questStage,4);toast((target.bossRealmCreature?BOSS_REALM_CREATURES[target.realmType].name:monsterLabel(target.type))+' побеждён! На земле осталась добыча.');}else toast('Удар на '+swordDamage+' урона! У монстра осталось '+target.hp+' здоровья.');drawMinimap();return;}
+    if(target){if(target.bossRealmCreature&&target.raidCrystalCount>0){target.raidCrystalCount--;target.flash=.18;spawnVisualBurst(target.x,target.y,24,'spark','#ffe49a');toast('КРИСТАЛЛ ЗАЩИТЫ РАЗБИТ · осталось '+target.raidCrystalCount);saveGame();return;}if(target.bossRealmCreature&&target.shield>0){target.shield=Math.max(0,target.shield-1);target.flash=.12;spawnVisualBurst(target.x,target.y,14,'spark','#8deaff');toast((BOSS_REALM_CREATURES[target.realmType]?.name||'Враг')+' блокирует удар щитом!');return;}const weapon=equipment.weapon||'Деревянный меч',baseDamage=combatWeaponDamage(weapon)*(1+skills.warrior*.1)*(weapon==='Ледяной посох'&&equipment.armor==='Мантия мага'?1.15:1)*bossRealmAbilityDamageMultiplier(),critical=Math.random()<Math.min(.35,.14+bossRealmRelicTotals().crit),swordDamage=Math.round(critical?baseDamage*2:baseDamage);target.hp-=swordDamage;awardCombatEnergyForHit(swordDamage);target.flash=.2;spawnVisualBurst(target.x,target.y,critical?16:8,'spark',weapon==='Огненный меч'?'#ff8738':weapon==='Ледяной посох'?'#8be9ff':weapon==='Молниеносное копьё'?'#d8a4ff':critical?'#ffe16b':'#ff9aa9');if(critical)toast('КРИТИЧЕСКИЙ УДАР! ×2 урона!');if(target.hp<=0){if(target.bossRealmCreature)recordBossRealmDefeat(target);else scheduleNemesis(target.isRebornBoss?'boss':'monster',target.id,target.bossTitle||monsterLabel(target.type),target.type,Math.min(8.35,(target.rebirthMultiplier||1)*1.7));const i=monsters.indexOf(target);if(i>=0)monsters.splice(i,1);notifyExpansionEnemyDefeated(target);spawnVisualBurst(target.x,target.y,20,'spark',target.type==='skeleton'?'#e5e1d0':'#ff7b9b');dropMonsterLoot(target);trackAdventureQuest('hunt',1,!!target.villageRaid);if(isModInstalled('bounty_hunter')){walletCents+=100+Math.floor(Math.random()*301);updateWalletHud();}awardXP(Math.round((target.bossRealmCreature?(BOSS_REALM_CREATURES[target.realmType]?.tier==='god'?1200:BOSS_REALM_CREATURES[target.realmType]?.tier==='boss'?450:BOSS_REALM_CREATURES[target.realmType]?.tier==='elite'?110:35):(target.type==='brute'?35:target.type==='skeleton'?28:target.type==='wisp'?24:target.type==='bomb'?20:target.type==='ice'?38:target.type==='scorpion'?32:18))*(isModInstalled('bounty_hunter')?1.2:1)),'победа над '+(target.bossRealmCreature?BOSS_REALM_CREATURES[target.realmType].name:'монстром'));questStage=Math.max(questStage,4);toast((target.bossRealmCreature?BOSS_REALM_CREATURES[target.realmType].name:monsterLabel(target.type))+' побеждён! На земле осталась добыча.');}else toast('Удар на '+swordDamage+' урона! У монстра осталось '+target.hp+' здоровья.');drawMinimap();return;}
     const selectedItem=inventoryItems.filter(entry=>entry.count>0)[selectedSlot-1];
     if(selectedItem&&selectedItem.name==='Топор'){
       let treeTarget=null;best=86;for(const tree of world.trees){const d=Math.hypot(tree.x-player.x,tree.y-player.y);if(d<best){best=d;treeTarget=tree;}}
