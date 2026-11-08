@@ -35,7 +35,7 @@ assert.ok(bossUpdate.includes('m.x=nx;m.y=ny'), 'Boss Realm mobs must be able to
 
 assert.ok(source.includes('function drawBossRealmWreckage(camX,camY,time)') && source.includes('drawBossRealmWreckage(camX,camY,time);'), 'Boss Realm must render deterministic ruined-world landmarks and scattered wreckage');
 assert.ok(source.includes('const crack=hash(seed,521)') && source.includes('Slow ash motes add depth'), 'Boss Realm ground must include cracked slabs, rubble and atmospheric ash');
-assert.ok(source.includes('const theme=bossRealmArenaTheme(),etchColor=')&&source.includes('const arenaEtch=hash(seed,811)'), 'Boss Realm stone floor must have deterministic theme-matched engravings.');
+assert.ok(source.includes('const theme=bossRealmArenaTheme(),etchColor=')&&source.includes('hash(seed,811)<=.84'), 'Boss Realm stone floor must retain deterministic theme-matched animated engravings.');
 assert.ok(source.includes('const ringPulse=.5+.5*Math.sin(time/430)')&&source.includes('ctx.setLineDash([12,9,3,11])'), 'All four existing boss arenas must have layered animated perimeter engravings.');
 assert.ok(source.includes('function drawBossRealmGroundTile(')&&source.includes('let bossRealmGroundCache = null;')&&source.includes('cache.chunks=new Map()')&&source.includes('let buildBudget=4;')&&source.includes('ctx.drawImage(chunk.canvas'), 'Boss Realm stone floor must use a bounded, incrementally warmed chunk cache without removing its detailed tile artwork');
 assert.ok(source.includes('function ensureBossRealmDungeonSites()')&&source.includes('if(alreadyReady)return existing;'), 'Boss Realm arena records must be reused instead of rebuilt on every update');
