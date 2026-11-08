@@ -355,3 +355,6 @@ assert.ok(game.includes('const movementHeld=direction=>{') &&
 
 assert.ok(game.includes('desynchronized: !initialVsyncEnabled()'),'VSync preference must be passed to the canvas low-latency hint when disabled');
 assert.ok(game.includes('s.vsync = s.vsync !== false'),'Game settings must normalize VSync to enabled by default');
+
+assert.ok(game.includes('function drawBossRealmWreckage(camX,camY,time)') && game.includes('drawBossRealmWreckage(camX,camY,time);'), 'Boss Realm must render the detailed ruined environment');
+assert.ok(game.includes('function showDeathScreen(context)') && game.includes('ВЫ УМЕРЛИ') && game.includes('data-death-respawn') && game.includes('data-death-menu'), 'Death must display working respawn and main-menu actions');
