@@ -309,7 +309,7 @@ console.log('SkyRealm boss realm portal unlock, separate save slot and return fl
 
 // Boss Realm creature roster, combat progression, abilities, presentation and first-entry onboarding.
 assert.equal((source.match(/tier:'mob'/g)||[]).length,8,'Boss Realm must define eight regular creatures.');
-assert.equal((source.match(/tier:'elite'/g)||[]).length,4,'Boss Realm must define four elite creatures.');
+assert.equal((source.match(/tier:'elite'/g)||[]).length,5,'Boss Realm must define five elite creatures, including the awakened tree.');
 assert.equal((source.match(/tier:'boss'/g)||[]).length,8,'Boss Realm must define eight bosses including the new secret and raid bosses.');
 assert.equal((source.match(/tier:'god'/g)||[]).length,2,'Boss Realm must define two gods.');
 for(const event of ['meteor','horde','blood_moon','awakening','rift','storm'])assert.ok(source.includes("['"+event+"'")||source.includes('["'+event+'"'),'Missing Boss Realm event '+event);
