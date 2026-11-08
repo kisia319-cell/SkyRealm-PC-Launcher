@@ -2402,11 +2402,29 @@ function setupVillageNpcs(){
     drawBossRealmAwakeningArena(camX,camY,time);
   }
 
+  function beginCombatInteriorCamera(time){
+    if(!combatCinematic?.active)return false;
+    const p=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
+    const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
+    const strike=smooth((p-.30)/.24),recover=smooth((p-.70)/.30);
+    const impact=Math.max(0,1-Math.abs(p-(combatCinematic.hitAt/combatCinematic.duration))/.19);
+    const quality=gameSettings.graphicsQuality==='low'?.3:gameSettings.graphicsQuality==='medium'?.65:1;
+    const zoom=1+Math.sin(Math.PI*p)*.68+impact*.08;
+    const roll=(player.face==='left'||player.face==='up'?-1:1)*(.07+strike*.08-recover*.12);
+    const panX=Math.sin(p*Math.PI*2)*12+strike*10;
+    const panY=Math.cos(p*Math.PI*2)*8-strike*8;
+    ctx.save();
+    ctx.translate(width/2+Math.sin(time*.07)*impact*3*quality,height/2+Math.cos(time*.08)*impact*2*quality);
+    ctx.rotate(roll);ctx.scale(zoom,zoom);
+    ctx.transform(1,Math.sin(p*Math.PI)*.055,Math.sin(p*Math.PI)*-.035,1,0,0);
+    ctx.translate(-width/2+panX,-height/2+panY);
+    return true;
+  }
   function draw(dt,time){
-    if(dungeonMode){drawDungeonInterior(dt,time);updateObjective();return;}
-    if(caveMode){drawCaveInterior(dt,time);updateObjective();return;}
-    if(mineMode){drawMineInterior(dt,time);return;}
-    if(inHouse){drawHouseInterior(dt,time);updateObjective();return;}
+    if(dungeonMode){const cinematic=beginCombatInteriorCamera(time);drawDungeonInterior(dt,time);if(cinematic)ctx.restore();updateObjective();return;}
+    if(caveMode){const cinematic=beginCombatInteriorCamera(time);drawCaveInterior(dt,time);if(cinematic)ctx.restore();updateObjective();return;}
+    if(mineMode){const cinematic=beginCombatInteriorCamera(time);drawMineInterior(dt,time);if(cinematic)ctx.restore();return;}
+    if(inHouse){const cinematic=beginCombatInteriorCamera(time);drawHouseInterior(dt,time);if(cinematic)ctx.restore();updateObjective();return;}
     const camX=Math.max(0,Math.min(COLS*TILE-width,player.x-width/2));
     const camY=Math.max(0,Math.min(ROWS*TILE-height,player.y-height/2));
     ctx.save();
