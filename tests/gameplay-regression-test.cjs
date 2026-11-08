@@ -310,7 +310,7 @@ console.log('SkyRealm boss realm portal unlock, separate save slot and return fl
 // Boss Realm creature roster, combat progression, abilities, presentation and first-entry onboarding.
 assert.equal((source.match(/tier:'mob'/g)||[]).length,8,'Boss Realm must define eight regular creatures.');
 assert.equal((source.match(/tier:'elite'/g)||[]).length,5,'Boss Realm must define five elite creatures, including the awakened tree.');
-assert.equal((source.match(/tier:'boss'/g)||[]).length,8,'Boss Realm must define eight bosses including the new secret and raid bosses.');
+assert.equal((source.match(/tier:'boss'/g)||[]).length,9,'Boss Realm must define nine bosses including the Forest King.');
 assert.equal((source.match(/tier:'god'/g)||[]).length,2,'Boss Realm must define two gods.');
 for(const event of ['meteor','horde','blood_moon','awakening','rift','storm'])assert.ok(source.includes("['"+event+"'")||source.includes('["'+event+'"'),'Missing Boss Realm event '+event);
 for(const type of ['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit','abyss_general','blood_berserker','rift_warden','soul_devourer','abyss_king','rift_dragon','ancient_devourer','end_knight','astral_god','chronos_god'])assert.ok(source.includes(type),'Missing Boss Realm creature '+type);
@@ -335,3 +335,5 @@ assert.match(source,/Deterministic drifting embers\/ice motes/,'Boss Realm atmos
 assert.match(source,/layered volumetric shafts reveal the height and scale of the existing cavern/i,'The ordinary-world cavern must have volumetric ceiling light shafts.');
 assert.match(source,/Soft reflected pools connect the existing lanterns to the cave floor/,'Existing cave lanterns must cast reflected light pools.');
 console.log('SkyRealm Boss Realm creatures, bosses, gods, abilities, events, visuals and onboarding tests passed.');
+
+assert.ok(source.includes("forest_king:{name:'Король Древнего Леса'")&&source.includes("name:'Сердце Древнего Леса'"),'Forest King must have a unique boss and passive relic.');
