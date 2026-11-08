@@ -409,6 +409,15 @@
         for(let i=0;i<9;i++){const a=time/900+i*Math.PI*2/9,px=Math.cos(a)*190,py=18+Math.sin(a)*68;ctx.fillStyle=i%2?'#c9c3ff':'#ffe6a6';ctx.beginPath();ctx.moveTo(px,py-15);ctx.lineTo(px+7,py);ctx.lineTo(px,py+15);ctx.lineTo(px-7,py);ctx.closePath();ctx.fill();}
         ctx.shadowBlur=0;
       }
+      // Shared engraved perimeter ties the four existing arenas together without adding new structures or gameplay objects.
+      const ringColor=theme==='infernal'?'#ff8b51':theme==='glacier'?'#9cecff':theme==='blood'?'#e979a6':'#b2a6ff';
+      const ringPulse=.5+.5*Math.sin(time/430);
+      ctx.save();ctx.translate(x,y+22);ctx.globalAlpha=.2+.11*ringPulse;ctx.strokeStyle=ringColor;ctx.lineWidth=2;
+      ctx.shadowColor=ringColor;ctx.shadowBlur=5+ringPulse*5;ctx.setLineDash([12,9,3,11]);
+      for(const scale of [1,.88,.73]){ctx.beginPath();ctx.ellipse(0,0,174*scale,58*scale,0,0,Math.PI*2);ctx.stroke();}
+      ctx.setLineDash([]);ctx.lineWidth=1.5;
+      for(let i=0;i<8;i++){const a=i*Math.PI/4+time/650,rx=Math.cos(a),ry=Math.sin(a);ctx.beginPath();ctx.moveTo(rx*132,ry*44);ctx.lineTo(rx*151,ry*50);ctx.stroke();}
+      ctx.restore();
     }
     ctx.restore();
     if(theme==='glacier'){
@@ -1186,28 +1195,38 @@ let audioContext=null;
   function pathAt(x,y){if(tradeWorldMode){const sx=tradeEntranceX,sy=tradeEntranceY;if(x>=sx-3&&x<=FARMER_SHOP.x+4&&Math.abs(y-sy)<=2.1)return true;for(const v of tradeVillageLayouts()){const dx=v.x-sx,dy=v.y-sy,t=dx?(x-sx)/dx:0;if(t>=0&&t<=1&&Math.abs(y-(sy+dy*t))<=1.6)return true;}return false;}if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y;if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;if(x>=35&&x<=40&&y>=17&&y<=21)return true;const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));if((y>=25&&y<=27&&x>=34&&x<=48)||(Math.abs(y-31)<=1&&x>=44&&x<=vx)||(Math.abs(x-vx)<=1&&y>=31&&y<=vy+3))return true;return false;}
   function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';return 'snow';}
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли',jungle:'Затерянные джунгли'})[biomeAt(x,y)]||'Лесная долина';}
-  function drawGrass(x,y,sx,sy){const h=hash(x,y),biome=clearedSnowTiles.has(tileKey(x,y))?'forest':biomeAt(x,y);const palettes={forest:['#285b43','#2a6047','#285840','#397451','#306849','#4d8254'],snow:['#b9cbd0','#a7bdc7','#c3d4d8','#d9e7e9','#afc8d1','#f0f6f6'],desert:['#b99a58','#c4a767','#ad8d4d','#d3b875','#b89a5d','#e2c981'],blight:['#3d493c','#354438','#46503a','#52603f','#43523b','#7f8a48'],jungle:['#164d35','#1c603d','#14502f','#2e8a4e','#267544','#8bcf62'],volcano:['#43352f','#594039','#332c31','#a64b2f','#7d6650','#ff9d4f']};const p=palettes[biome];ctx.fillStyle=h>.5?p[0]:h>.2?p[1]:p[2];ctx.fillRect(sx,sy,TILE,TILE);if(gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost'){ctx.fillStyle=p[3];ctx.fillRect(sx+3+(h*9|0),sy+5,TILE*.22,TILE*.12);if(h>.68){ctx.fillStyle=p[5];ctx.fillRect(sx+21,sy+19,2,5);}if(biome==='jungle'&&h>.32){ctx.fillStyle='#9fe07a';ctx.fillRect(sx+5+(h*13|0),sy+15,5,3);ctx.fillStyle='#0d3828';ctx.fillRect(sx+20,sy+5+(h*7|0),3,8);}else if(biome==='snow'&&h>.35){ctx.fillStyle='#f5fbff99';ctx.fillRect(sx+5+(h*16|0),sy+7+(h*11|0),3,2);}else if(biome==='desert'&&h>.55){ctx.fillStyle='#e9d49a';ctx.fillRect(sx+6,sy+23,7,2);}else if(biome==='blight'&&h>.72){ctx.fillStyle='#a3bf55';ctx.fillRect(sx+19,sy+8,3,3);}} }
-  function drawGround(camX,camY){const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
-    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const sx=Math.floor(x*TILE-camX),sy=Math.floor(y*TILE-camY);drawGrass(x,y,sx,sy);if(isForestTile(x,y)&&biomeAt(x,y)!=='snow'){ctx.fillStyle=(hash(x+81,y+39)>.55?'rgba(8,43,27,.44)':'rgba(10,54,32,.32)');ctx.fillRect(sx,sy,TILE,TILE);}if(pathAt(x,y)){ctx.fillStyle='#967c54';ctx.fillRect(sx,sy,TILE,TILE);ctx.fillStyle='#b0996d';const h=hash(x,y);ctx.fillRect(sx+4,sy+4,4,2);if(h>.3)ctx.fillRect(sx+20,sy+22,5,2);ctx.fillStyle='#806845';ctx.fillRect(sx+14,sy+12,2,2);}if(waterAt(x+.5,y+.5)){ctx.fillStyle='#246786';ctx.fillRect(sx,sy,TILE,TILE);ctx.fillStyle='#398ca0';let w=hash(x,y);if(w>.25)ctx.fillRect(sx+3,sy+7+Math.floor(w*11),10+Math.floor(w*9),2);if(w>.7)ctx.fillRect(sx+17,sy+23,8,2);}}}
-  function drawTradeGround(camX,camY){
-    const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1);
-    const y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
-    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
-      const sx=Math.floor(x*TILE-camX),sy=Math.floor(y*TILE-camY),h=hash(x+1701,y+2917);
-      const plaza=x>=SELL_SHOP.x-4&&x<=FARMER_SHOP.x+4&&Math.abs(y-tradeEntranceY)<=4;
-      ctx.fillStyle=plaza?(h>.5?'#78818a':'#6d7782'):(h>.5?'#536170':'#485665');
-      ctx.fillRect(sx,sy,TILE,TILE);
-      ctx.strokeStyle='rgba(198,215,226,.12)';ctx.lineWidth=1;ctx.strokeRect(sx+.5,sy+.5,TILE-1,TILE-1);
-      if(pathAt(x+.5,y+.5)){
-        ctx.fillStyle=plaza?'#a28c69':'#8c8068';ctx.fillRect(sx,sy,TILE,TILE);
-        ctx.fillStyle='rgba(244,224,180,.18)';ctx.fillRect(sx+5,sy+5,5,3);ctx.fillRect(sx+22,sy+22,4,3);
-      }else if(h>.94){
-        ctx.fillStyle='rgba(216,226,230,.16)';ctx.fillRect(sx+8,sy+10,3,3);
+  function drawGrass(x,y,sx,sy){
+    const h=hash(x,y),biome=clearedSnowTiles.has(tileKey(x,y))?'forest':biomeAt(x,y);
+    const palettes={forest:['#285b43','#2a6047','#285840','#397451','#306849','#4d8254'],snow:['#b9cbd0','#a7bdc7','#c3d4d8','#d9e7e9','#afc8d1','#f0f6f6'],desert:['#b99a58','#c4a767','#ad8d4d','#d3b875','#b89a5d','#e2c981'],blight:['#3d493c','#354438','#46503a','#52603f','#43523b','#7f8a48'],jungle:['#164d35','#1c603d','#14502f','#2e8a4e','#267544','#8bcf62'],volcano:['#43352f','#594039','#332c31','#a64b2f','#7d6650','#ff9d4f']};
+    const p=palettes[biome],quality=gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost';
+    ctx.fillStyle=h>.5?p[0]:h>.2?p[1]:p[2];ctx.fillRect(sx,sy,TILE,TILE);
+    // Soft bevels make the existing terrain read as continuous ground instead of flat color blocks.
+    ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(sx,sy,TILE,1);ctx.fillRect(sx,sy,1,TILE);
+    ctx.fillStyle='rgba(0,0,0,.075)';ctx.fillRect(sx,sy+TILE-2,TILE,2);ctx.fillRect(sx+TILE-2,sy,2,TILE);
+    if(quality){
+      // Stable, low-cost surface grain; coordinates are world-seeded so the pattern never flickers.
+      for(let i=0;i<3;i++){
+        const gx=sx+3+hash(x*17+i*13,y*19+i*7)*(TILE-7),gy=sy+3+hash(x*23+i*5,y*11+i*17)*(TILE-7);
+        ctx.fillStyle=i===0?'rgba(10,18,20,.12)':'rgba(235,232,205,.10)';
+        ctx.fillRect(gx,gy,1+(i%2),1);
       }
+      if(biome==='forest'||biome==='jungle'){
+        const tuft=hash(x+41,y+73);
+        if(tuft>.42){const gx=sx+5+tuft*13,gy=sy+9+hash(x+91,y+17)*15;ctx.strokeStyle=biome==='jungle'?'rgba(151,215,111,.42)':'rgba(145,190,126,.32)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gx-2,gy+3);ctx.lineTo(gx,gy);ctx.lineTo(gx+2,gy+3);ctx.stroke();}
+      }else if(biome==='snow'){
+        const glint=hash(x+63,y+29);if(glint>.38){ctx.fillStyle='rgba(255,255,255,.38)';ctx.fillRect(sx+4+glint*16,sy+5+hash(x+12,y+81)*18,2,1);}
+      }else if(biome==='desert'){
+        ctx.strokeStyle='rgba(255,229,166,.16)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx+4,sy+8+hash(x+7,y+9)*16);ctx.lineTo(sx+13,sy+7+hash(x+3,y+31)*16);ctx.stroke();
+      }else if(biome==='blight'||biome==='volcano'){
+        const fissure=hash(x+27,y+59);if(fissure>.76){ctx.strokeStyle=biome==='volcano'?'rgba(255,126,65,.25)':'rgba(157,180,91,.22)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx+7,sy+8);ctx.lineTo(sx+10,sy+12);ctx.lineTo(sx+8,sy+17);ctx.stroke();}
+      }
+      if(h>.68){ctx.fillStyle=p[5];ctx.fillRect(sx+21,sy+19,2,5);}
+      if(biome==='jungle'&&h>.32){ctx.fillStyle='#9fe07a';ctx.fillRect(sx+5+(h*13|0),sy+15,5,3);ctx.fillStyle='#0d3828';ctx.fillRect(sx+20,sy+5+(h*7|0),3,8);}
+      else if(biome==='snow'&&h>.35){ctx.fillStyle='#f5fbff99';ctx.fillRect(sx+5+(h*16|0),sy+7+(h*11|0),3,2);}
+      else if(biome==='desert'&&h>.55){ctx.fillStyle='#e9d49a';ctx.fillRect(sx+6,sy+23,7,2);}
+      else if(biome==='blight'&&h>.72){ctx.fillStyle='#a3bf55';ctx.fillRect(sx+19,sy+8,3,3);}
     }
   }
-  function drawPond(camX,camY){const px=52*TILE-camX,py=36*TILE-camY;const grad=ctx.createRadialGradient(px,py,30,px,py,260);grad.addColorStop(0,'#246b85');grad.addColorStop(.75,'#1a4f70');grad.addColorStop(1,'#153c5b');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(px,py,210,138,-.18,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#71bac0';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(px-8,py-5,209,135,-.18,0,Math.PI*2);ctx.stroke();ctx.lineWidth=1;if(gameSettings.graphicsQuality!=='low')for(let i=0;i<(gameSettings.graphicsQuality==='high'?30:18);i++){const x=px-140+hash(i,2)*280,y=py-95+hash(4,i)*190;if((x-px)**2/39000+(y-py)**2/19000<.72){ctx.strokeStyle='#69b6c5aa';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+12+hash(i,1)*18,y);ctx.stroke();}}}
-  function drawTree(t,camX,camY){const x=t.x-camX,y=t.y-camY,s=t.size;ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(ambientTime/1250+t.x*.013+t.y*.009)*.012);ctx.scale(s,s);const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow';ctx.fillStyle=snowy?'#756b61':'#61462f';ctx.fillRect(-5,-3,10,24);ctx.fillStyle=snowy?'#a9a39a':'#7b5937';ctx.fillRect(-2,1,3,15);const colors=snowy?[['#536f7b','#a9c5d0','#edf7fa'],['#617d89','#b9d0d8','#f5fbff'],['#4c6877','#9fbcc9','#e3f2f7']][t.tint]:[['#174536','#20583f','#2c704c'],['#23503b','#2b6645','#438050'],['#1d493b','#28664d','#367e5a']][t.tint];ctx.fillStyle=colors[0];ctx.beginPath();ctx.moveTo(0,-39);ctx.lineTo(-23,-2);ctx.lineTo(-15,2);ctx.lineTo(-28,12);ctx.lineTo(27,12);ctx.lineTo(15,-1);ctx.lineTo(23,-6);ctx.closePath();ctx.fill();ctx.fillStyle=colors[1];ctx.beginPath();ctx.moveTo(0,-35);ctx.lineTo(-17,-4);ctx.lineTo(-7,-4);ctx.lineTo(-17,6);ctx.lineTo(17,6);ctx.lineTo(7,-7);ctx.closePath();ctx.fill();ctx.fillStyle=colors[2];ctx.beginPath();ctx.moveTo(0,-29);ctx.lineTo(-7,-6);ctx.lineTo(3,-8);ctx.lineTo(12,0);ctx.lineTo(5,-16);ctx.closePath();ctx.fill();ctx.restore();}
     function drawRock(r,camX,camY,time=ambientTime){
     const depleted=r.hp===0,shake=r.hitFlash>0?Math.sin(time/18+r.x)*r.hitFlash*2.1:0,x=r.x-camX+shake,y=r.y-camY,s=r.s;
     ctx.save();
@@ -2340,6 +2359,7 @@ function setupVillageNpcs(){
     const left=Math.max(0,Math.floor(camX/TILE)-1),top=Math.max(0,Math.floor(camY/TILE)-1);
     const right=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),bottom=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
     const slabs=['#292832','#302d35','#25252f','#37303a','#292b34','#322b34'];
+    const theme=bossRealmArenaTheme(),etchColor=theme==='glacier'?'#8deaff':theme==='infernal'?'#ff8750':theme==='blood'?'#d96a91':'#a99aff';
     for(let ty=top;ty<bottom;ty++)for(let tx=left;tx<right;tx++){
       const x=tx*TILE-camX,y=ty*TILE-camY;
       const seed=tx*71+ty*19,r=hash(seed,113),edge=2+hash(seed,317)*3;
@@ -2369,6 +2389,12 @@ function setupVillageNpcs(){
         ctx.fillStyle=rubble>.9?'#65606a':'#4b4852';ctx.beginPath();
         ctx.moveTo(x+6+hash(seed,632)*16,y+TILE-5);ctx.lineTo(x+10+hash(seed,633)*18,y+TILE-13-hash(seed,634)*5);ctx.lineTo(x+18+hash(seed,635)*12,y+TILE-6);ctx.closePath();ctx.fill();
         ctx.strokeStyle='rgba(8,8,13,.65)';ctx.lineWidth=1;ctx.stroke();
+      }
+      const arenaEtch=hash(seed,811);
+      if(gameSettings.graphicsQuality!=='low'&&arenaEtch>.84){
+        const ex=x+7+hash(seed,812)*(TILE-14),ey=y+7+hash(seed,813)*(TILE-14);
+        ctx.save();ctx.globalAlpha=.12+.08*(.5+.5*Math.sin(time/530+seed));ctx.strokeStyle=etchColor;ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(ex-4,ey-3);ctx.lineTo(ex+1,ey-1);ctx.lineTo(ex+4,ey+3);ctx.moveTo(ex-2,ey+4);ctx.lineTo(ex+2,ey+1);ctx.stroke();ctx.restore();
       }
       if(r>.935){
         const sx=x+5+hash(seed,701)*(TILE-10),sy=y+5+hash(seed,702)*(TILE-10);

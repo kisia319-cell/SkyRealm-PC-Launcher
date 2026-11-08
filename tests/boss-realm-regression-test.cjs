@@ -35,6 +35,10 @@ assert.ok(bossUpdate.includes('m.x=nx;m.y=ny'), 'Boss Realm mobs must be able to
 
 assert.ok(source.includes('function drawBossRealmWreckage(camX,camY,time)') && source.includes('drawBossRealmWreckage(camX,camY,time);'), 'Boss Realm must render deterministic ruined-world landmarks and scattered wreckage');
 assert.ok(source.includes('const crack=hash(seed,521)') && source.includes('Slow ash motes add depth'), 'Boss Realm ground must include cracked slabs, rubble and atmospheric ash');
+assert.ok(source.includes('const theme=bossRealmArenaTheme(),etchColor=')&&source.includes('const arenaEtch=hash(seed,811)'), 'Boss Realm stone floor must have deterministic theme-matched engravings.');
+assert.ok(source.includes('const ringPulse=.5+.5*Math.sin(time/430)')&&source.includes('ctx.setLineDash([12,9,3,11])'), 'All four existing boss arenas must have layered animated perimeter engravings.');
+assert.ok(source.includes('const palettes={forest:')&&source.includes("const p=palettes[biome],quality=gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost'")&&source.includes('Stable, low-cost surface grain'), 'Ordinary-world biomes must have deterministic layered ground texture without extra entities.');
+
 const corruptionStart=source.indexOf('function drawBossRealmCreatureMuseums(camX,camY,time)');
 const corruptionEnd=source.indexOf('function drawBossRealmWreckage',corruptionStart);
 const corruption=source.slice(corruptionStart,corruptionEnd);
