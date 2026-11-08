@@ -1305,6 +1305,7 @@ let audioContext=null;
     ctx.fillStyle=colors[2];ctx.beginPath();ctx.moveTo(0,-29);ctx.lineTo(-7,-6);ctx.lineTo(3,-8);ctx.lineTo(12,0);ctx.lineTo(5,-16);ctx.closePath();ctx.fill();
     if(t.fruitful){ctx.shadowColor='#ffcf70';ctx.shadowBlur=5;for(const [fx,fy] of [[-12,-12],[10,-20],[5,2]]){ctx.fillStyle='#f3a64e';ctx.beginPath();ctx.arc(fx,fy+Math.sin(ambientTime/260+t.x+fx)*1.2,2.7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b8e18a';ctx.fillRect(fx,fy-4,2,2);}ctx.shadowBlur=0;}if(t.ancient){ctx.strokeStyle='#a8d66f';ctx.globalAlpha=.65+.2*Math.sin(ambientTime/190+t.x);ctx.lineWidth=1.8;ctx.shadowColor='#9bdf62';ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(-14,-10);ctx.lineTo(-7,-18);ctx.lineTo(0,-12);ctx.lineTo(8,-20);ctx.lineTo(14,-12);ctx.stroke();ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.fillStyle='#b5f76c';ctx.beginPath();ctx.arc(0,-18,2,0,6.28);ctx.fill();}
     ctx.restore();
+  }
   let bossRealmForestWorldId='';
   function bossRealmGrovePosition(){return {x:Math.min(COLS*TILE-12*TILE,38*TILE+16),y:Math.min(ROWS*TILE-12*TILE,38*TILE+16)};}
   function ensureBossRealmForest(){if(!bossRealmMode)return;const key=String(currentWorldId||'');if(bossRealmForestWorldId===key)return;bossRealmForestWorldId=key;const cx=38,cy=38;for(let gy=-9;gy<=9;gy+=2)for(let gx=-9;gx<=9;gx+=2){const tx=cx+gx,ty=cy+gy;if(tx<4||ty<4||tx>=COLS-4||ty>=ROWS-4||hash(tx+181,ty+991)<.26)continue;if(waterAt(tx+.5,ty+.5)||pathAt(tx+.5,ty+.5)||nearVillage(tx,ty))continue;const x=tx*TILE+16,y=ty*TILE+17;if(felledTrees.some(v=>v.x===Math.round(x)&&v.y===Math.round(y))||world.trees.some(v=>Math.hypot(v.x-x,v.y-y)<24))continue;world.trees.push({x,y,size:1.28+hash(tx+71,ty+33)*.78,tint:Math.floor(hash(tx+44,ty+99)*3),fruitful:false,ancient:true});}for(let i=0;i<18;i++){const tx=cx-10+Math.floor(hash(i+71,123)*21),ty=cy-10+Math.floor(hash(i+83,321)*21),x=tx*TILE+16,y=ty*TILE+21;if(waterAt(tx+.5,ty+.5)||world.rocks.some(r=>Math.hypot(r.x-x,r.y-y)<30))continue;const hits=2+Math.floor(hash(i+13,45)*2);world.rocks.push({x,y,s:.82+hash(i+23,52)*.65,ore:hash(i+34,67)>.76?'Кристалл':'Камень',quality:2,hp:hits,maxHp:hits,regrowAt:0,hitFlash:0,ancient:true});}}
@@ -1315,7 +1316,6 @@ let audioContext=null;
   function startBossRealmForestTrial(){if(!bossRealmMode)return 0;const active=monsters.filter(m=>m.forestTrialId==='root-crypt'&&m.hp>0).length;if(active)return active;const p=bossRealmGrovePosition(),types=['awakened_tree','venom_beetle','awakened_tree'];let spawned=0;for(let i=0;i<types.length;i++)if(spawnBossRealmCreature(types[i],p.x+(i-1)*76,p.y+140)){const mob=monsters[monsters.length-1];if(mob){mob.x=p.x+(i-1)*76;mob.y=p.y+140;mob.territoryX=p.x;mob.territoryY=p.y;mob.forestTrialId='root-crypt';mob.territoryRadius=13*TILE;spawned++;}}if(spawned)saveGame();return spawned;}
   function countBossRealmForestTrial(){return monsters.filter(m=>m.forestTrialId==='root-crypt'&&m.hp>0).length;}
 
-  }
   function drawRock(r,camX,camY,time=ambientTime){
     const depleted=r.hp===0,shake=r.hitFlash>0?Math.sin(time/18+r.x)*r.hitFlash*2.1:0,x=r.x-camX+shake,y=r.y-camY,s=r.s;
     ctx.save();
