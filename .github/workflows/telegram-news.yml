@@ -111,7 +111,7 @@ jobs:
               # implementation plumbing, not player-facing game updates.
               meta_pattern = re.compile(
                   r"(release manifest|preview manifest|telegram|news.*(threshold|classification|digest)|label detection|weighted update sizes|"
-                  r"workflow|readme|documentation|docs:|version bump)",
+                  r"workflow|readme|documentation|docs:|version bump|test:|tests|smoke coverage|assertion)",
                   re.IGNORECASE
               )
               game_commits = [(sha, subject) for sha, subject in commits if not meta_pattern.search(subject)]
@@ -128,14 +128,14 @@ jobs:
           # title keywords. The previous classifier missed verbs such as
           # Enhance/Restore/Polish and ignored code outside the game/ directory.
           major_pattern = re.compile(
-              r"(\\[major\\]|\\[big\\]|\\[large\\]|\\[важно\\]|\\[крупн(?:ое|ый)\\]|"
-              r"^major\\s*:|^release\\s*:|new world|нов(?:ый|ая) мир|new game mode|нов(?:ый|ая) режим|"
+              r"(\[major\]|\[big\]|\[large\]|\[важно\]|\[крупн(?:ое|ый)\]|"
+              r"^major\s*:|^release\s*:|new world|нов(?:ый|ая) мир|new game mode|нов(?:ый|ая) режим|"
               r"complete rework|полная переработка|новая боевая система|new combat system|"
               r"major expansion|крупное расширение|полная переделка)",
               re.IGNORECASE
           )
           explicit_medium_pattern = re.compile(
-              r"(\\[medium\\]|\\[среднее\\]|^medium\\s*:|^среднее\\s*:)",
+              r"(\[medium\]|\[среднее\]|^medium\s*:|^среднее\s*:)",
               re.IGNORECASE
           )
           fix_pattern = re.compile(
@@ -154,7 +154,7 @@ jobs:
           )
           ignored_path = re.compile(
               r"(^|/)(test|tests|__tests__|docs|documentation|\.github)(/|$)|"
-              r"(package-lock\\.json|pnpm-lock\\.yaml|yarn\\.lock|CHANGELOG|README)",
+              r"(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|CHANGELOG|README)",
               re.IGNORECASE
           )
 
@@ -166,7 +166,7 @@ jobs:
               lines = 0
               files = 0
               for row in output.splitlines():
-                  parts = row.split("\\t")
+                  parts = row.split("\t")
                   if len(parts) < 3:
                       continue
                   path = parts[2]
