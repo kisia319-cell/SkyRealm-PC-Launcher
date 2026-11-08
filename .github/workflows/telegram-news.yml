@@ -124,74 +124,94 @@ jobs:
                   print("Only repository/release metadata changed; news cursor advanced without a post.")
                   sys.exit(0)
 
-              major_pattern = re.compile(
-                  r"(\[major\]|\[важно\]|^major\s*:|^release\s*:|new world|нов(?:ый|ая) мир|"
-                  r"new game mode|нов(?:ый|ая) режим|complete rework|полная переработка|"
-                  r"новая боевая система|new combat system|major expansion|крупное расширение)",
-                  re.IGNORECASE
-              )
-              explicit_medium_pattern = re.compile(
-                  r"(\[medium\]|\[среднее\]|^medium\s*:|^среднее\s*:)",
-                  re.IGNORECASE
-              )
-              feature_pattern = re.compile(
-                  r"add|добав|introduc|введ|implement|реализ|upgrade|улучш|redesign|переработ|"
-                  r"rework|refine|доработ|scale|расшир|create|созда|new|нов",
-                  re.IGNORECASE
-              )
-              gameplay_pattern = re.compile(
-                  r"combat|бой|босс|boss|attack|атак|weapon|оруж|skill|навык|ability|способност|"
-                  r"biome|биом|world|мир|cave|пещер|mine|шахт|sea|море|island|остров|"
-                  r"enemy|враг|monster|монстр|animation|анимац|cinematic|кинемат|quest|задан|"
-                  r"craft|крафт|magic|маг|potion|зель|armor|брон|npc|mob|кооп|co-op|hud|интерфейс",
-                  re.IGNORECASE
-              )
-              fix_pattern = re.compile(
-                  r"fix|bug|исправ|почин|устран|resolve|correct|repair",
-                  re.IGNORECASE
-              )
-              minor_pattern = re.compile(
-                  r"barrel|бочк|animation|анимац|remove|removed|убрал|удалил|tweak|мелк|небольш|"
-                  r"polish|подправ|баланс|визуал|эффект|частиц|small change|мелкое изменение",
-                  re.IGNORECASE
-              )
+              # Classify actual source changes per commit, not just a narrow set of
+          # title keywords. The previous classifier missed verbs such as
+          # Enhance/Restore/Polish and ignored code outside the game/ directory.
+          major_pattern = re.compile(
+              r"(\\[major\\]|\\[big\\]|\\[large\\]|\\[важно\\]|\\[крупн(?:ое|ый)\\]|"
+              r"^major\\s*:|^release\\s*:|new world|нов(?:ый|ая) мир|new game mode|нов(?:ый|ая) режим|"
+              r"complete rework|полная переработка|новая боевая система|new combat system|"
+              r"major expansion|крупное расширение|полная переделка)",
+              re.IGNORECASE
+          )
+          explicit_medium_pattern = re.compile(
+              r"(\\[medium\\]|\\[среднее\\]|^medium\\s*:|^среднее\\s*:)",
+              re.IGNORECASE
+          )
+          fix_pattern = re.compile(
+              r"fix|bug|исправ|почин|устран|resolve|correct|repair",
+              re.IGNORECASE
+          )
+          minor_pattern = re.compile(
+              r"barrel|бочк|animation|анимац|remove|removed|убрал|удалил|tweak|мелк|небольш|"
+              r"polish|подправ|баланс|визуал|эффект|частиц|small change|мелкое изменение",
+              re.IGNORECASE
+          )
 
-              def medium_weight(subject):
-                  if explicit_medium_pattern.search(subject):
-                      return 1.5
-                  if not feature_pattern.search(subject) or not gameplay_pattern.search(subject):
-                      return 0.0
-                  # A substantial gameplay feature is worth 1.5 points. Visual,
-                  # animation and HUD-only additions count as 1 point.
-                  if re.search(r"animation|анимац|effect|эффект|particle|частиц|hud|interface|интерфейс",
-                               subject, re.IGNORECASE):
-                      return 1.0
-                  return 1.5
+          source_extensions = (
+              ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".html", ".css",
+              ".py", ".json", ".xml", ".svg", ".webmanifest"
+          )
+          ignored_path = re.compile(
+              r"(^|/)(test|tests|__tests__|docs|documentation|\.github)(/|$)|"
+              r"(package-lock\\.json|pnpm-lock\\.yaml|yarn\\.lock|CHANGELOG|README)",
+              re.IGNORECASE
+          )
 
-              medium_total = sum(medium_weight(subject) for _, subject in game_commits)
-              has_major = any(major_pattern.search(subject) for _, subject in game_commits)
-
-              # Large actual game-code diffs can qualify as major even if the
-              # commit title is vague. Count only files under the game directory.
+          def commit_source_diff(sha):
               try:
-                  game_diff = git("diff", "--numstat", base, head, "--", "game")
-                  changed_lines = 0
-                  changed_game_files = 0
-                  for row in game_diff.splitlines():
-                      parts = row.split("\t")
-                      if len(parts) >= 3:
-                          try:
-                              changed_lines += int(parts[0]) + int(parts[1])
-                              changed_game_files += 1
-                          except ValueError:
-                              pass
+                  output = git("show", "--format=", "--numstat", sha)
               except Exception:
-                  changed_lines = 0
-                  changed_game_files = 0
+                  return 0, 0
+              lines = 0
+              files = 0
+              for row in output.splitlines():
+                  parts = row.split("\\t")
+                  if len(parts) < 3:
+                      continue
+                  path = parts[2]
+                  if ignored_path.search(path) or not path.lower().endswith(source_extensions):
+                      continue
+                  try:
+                      added = int(parts[0])
+                      removed = int(parts[1])
+                  except ValueError:
+                      continue
+                  lines += added + removed
+                  files += 1
+              return lines, files
 
-              if medium_total >= 4.0 or (changed_lines >= 1200 and changed_game_files >= 3):
-                  has_major = True
-              has_medium = medium_total >= 2.0 and not has_major
+          medium_commits = []
+          explicit_major_count = 0
+          total_source_lines = 0
+          total_source_files = 0
+          for sha, subject in game_commits:
+              changed, files_changed = commit_source_diff(sha)
+              total_source_lines += changed
+              total_source_files += files_changed
+              if major_pattern.search(subject):
+                  explicit_major_count += 1
+              # A real source-code change to a gameplay commit counts even when
+              # its wording is "Enhance", "Restore", "Polish", "Protect", etc.
+              if files_changed and changed >= 20:
+                  medium_commits.append((sha, subject, changed))
+              elif explicit_medium_pattern.search(subject):
+                  medium_commits.append((sha, subject, changed))
+
+          medium_total = sum(
+              1.5 if explicit_medium_pattern.search(subject) or changed >= 100 else 1.0
+              for _, subject, changed in medium_commits
+          )
+          has_major = (
+              explicit_major_count >= 2
+              or total_source_lines >= 1200
+              or (len(medium_commits) >= 3 and total_source_lines >= 900)
+          )
+          has_medium = len(medium_commits) >= 3 and not has_major
+          if explicit_major_count >= 1 and total_source_lines >= 500:
+              has_major = True
+              has_medium = False
+
 
               fix_commits = [(sha, subject) for sha, subject in game_commits if fix_pattern.search(subject)]
               minor_commits = [
