@@ -5221,7 +5221,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     requestAnimationFrame(tick);
   }
   function resetWorldState(){
-    combatCinematic=null;combatCinematicImpactFlash=0;combatCameraShake=0;combatUltimateCooldown=0;
+    closeDeathScreen();combatCinematic=null;combatCinematicImpactFlash=0;combatCameraShake=0;combatUltimateCooldown=0;
     totalGameMinutesPlayed=0;
     bossRealmMode=false;bossReturnWorldId=null;bossReturnX=21*TILE+16;bossReturnY=26*TILE+16;bossRealmState={kills:0,wave:1,elapsed:0,spawnTimer:0,eventTimer:65,eventName:'',eventId:'',eventRemaining:0,introSeen:false,defeatedBosses:[],defeatedGods:[],dungeonSites:[]};bossRealmInvisibleTimer=0;bossRealmInvisibilityCooldown=0;bossRealmDamageBoostTimer=0;bossRealmAbilityCooldown=0;bossRealmSprintTimer=0;bossRealmSprintCooldown=0;bossRealmHazard=null;bossRealmHazardCooldown=0;bossRealmJournalOpen=false;
     dungeonMode=false;dungeonReturn={x:player.x,y:player.y};dungeonRoom=1;dungeonClearedRooms=[];dungeonEnemyHp=0;dungeonEnemyX=0;dungeonEnemyY=0;dungeonChestOpened=false;dungeonTrapCooldown=0;biomeBosses=makeBiomeBossState();strengthPotionTimer=0;wardPotionTimer=0;speedPotionTimer=0;healPotionTimer=0;healPotionRemaining=0;eventRollTimer=74;meteorShowerTimer=0;meteorPoint=null;worldEventCamp=null;worldEventTraveler=null;lastWorldMeteorNight=-1;lastWorldHordeNight=-1;lastWorldCampDay=-1;lastWorldTravelerDay=-2;
@@ -5959,6 +5959,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(editionShade && !editionShade.hidden) return;
     if(e.code==='F11'||e.key==='F11'){e.preventDefault();toggleFullscreen();return;}
     if(e.code==='F12'||e.key==='F12'){e.preventDefault();saveGameScreenshot();return;}
+    if(deathScreenOpen)return;
     const k = gameKey(e);
     const movementKey = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k) ||
       ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code);
