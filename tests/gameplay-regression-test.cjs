@@ -335,3 +335,5 @@ assert.match(source,/Deterministic drifting embers\/ice motes/,'Boss Realm atmos
 assert.match(source,/layered volumetric shafts reveal the height and scale of the existing cavern/i,'The ordinary-world cavern must have volumetric ceiling light shafts.');
 assert.match(source,/Soft reflected pools connect the existing lanterns to the cave floor/,'Existing cave lanterns must cast reflected light pools.');
 console.log('SkyRealm Boss Realm creatures, bosses, gods, abilities, events, visuals and onboarding tests passed.');
+
+assert.ok(source.includes("forest_king:{name:'Король Древнего Леса'")&&source.includes("name:'Сердце Древнего Леса'"),'Forest King must have a unique boss and passive relic.');
