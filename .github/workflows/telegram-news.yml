@@ -27,14 +27,14 @@ jobs:
 
       - name: Prepare and publish Telegram news
         env:
-          TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: "@SkyRealmGame"
-          EVENT_NAME: \${{ github.event_name }}
-          HEAD_SHA: \${{ github.sha }}
-          RELEASE_NAME: \${{ github.event.release.name }}
-          RELEASE_BODY: \${{ github.event.release.body }}
-          RELEASE_TAG: \${{ github.event.release.tag_name }}
-          REPOSITORY: \${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.sha }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           python - <<'PY'
           import html
