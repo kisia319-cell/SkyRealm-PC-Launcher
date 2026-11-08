@@ -64,3 +64,9 @@ assert.ok(source.includes("forest_king:{name:'Король Древнего Ле
 assert.ok(source.includes('function ensureBossRealmForest()')&&source.includes('function startBossRealmForestTrial()'),'Ancient Forest and Root Crypt must be present in Boss Realm.');
 assert.ok(source.includes('function updateTreeRegrowth()')&&source.includes('regrowAt'),'Felled trees must regrow after a world-time cooldown.');
 assert.ok(source.includes('SkyRealmForestEcosystem?.update?.(dt)')&&source.includes('SkyRealmLivingWorld?.update?.(dt)'),'Forest and living-world systems must be updated by the simulation.');
+
+const forestModule = fs.readFileSync(path.join(__dirname, '../game/forest-ecosystem.js'), 'utf8');
+assert.ok(forestModule.includes('Лесной олень')&&forestModule.includes('Рыжая лиса')&&forestModule.includes('Дикий кабан')&&forestModule.includes('Ночная сова')&&forestModule.includes('Снежный заяц'),'Forest wildlife roster must be present.');
+assert.ok(forestModule.includes('ЗАБРОШЕННОЕ ПОСЕЛЕНИЕ')&&forestModule.includes('НОЧНОЙ НАЛЁТ')&&forestModule.includes('СКЛЕП КОРНЕЙ'),'Forest settlement, bandit and crypt events must be present.');
+assert.ok(forestModule.includes('function interact()')&&forestModule.includes('Лесные ягоды')&&forestModule.includes('Артефакт древнего селения'),'Wildlife feeding and ruin reward interactions must be implemented.');
+assert.ok(forestModule.includes('window.SkyRealmForestEcosystem=Object.freeze({update,draw,interact'),'Forest ecosystem module must export update, draw and interaction hooks.');
