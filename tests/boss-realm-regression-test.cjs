@@ -32,4 +32,16 @@ assert.ok(bossUpdate.includes('if(!Number.isFinite(m.hp))m.hp=m.maxHp'), 'Repair
 assert.ok(bossUpdate.includes('if(attackDistance<58&&m.attackCooldown<=0'), 'Boss Realm mobs must have a working melee attack');
 assert.ok(bossUpdate.includes('bossRealmSpecial(m,d,attackDistance)'), 'Boss Realm mobs must use their special attacks');
 assert.ok(bossUpdate.includes('m.x=nx;m.y=ny'), 'Boss Realm mobs must be able to move toward the player in the arena');
-console.log('SkyRealm Boss Realm roster, events, abilities, visuals and onboarding tests passed.');
+
+assert.ok(source.includes('function drawBossRealmWreckage(camX,camY,time)') && source.includes('drawBossRealmWreckage(camX,camY,time);'), 'Boss Realm must render deterministic ruined-world landmarks and scattered wreckage');
+assert.ok(source.includes('const crack=hash(seed,521)') && source.includes('Slow ash motes add depth'), 'Boss Realm ground must include cracked slabs, rubble and atmospheric ash');
+const corruptionStart=source.indexOf('function drawBossRealmCreatureMuseums(camX,camY,time)');
+const corruptionEnd=source.indexOf('function drawBossRealmWreckage',corruptionStart);
+const corruption=source.slice(corruptionStart,corruptionEnd);
+assert.ok(corruption.includes('createRadialGradient') && corruption.includes('ctx.setLineDash([12,9,3,11])'), 'Mob arenas must use natural scorched ground and broken rune marks, not giant square display cages');
+assert.ok(source.includes('function showDeathScreen(context)') && source.includes('ВЫ УМЕРЛИ'), 'Death must show a full-screen YOU DIED panel');
+assert.ok(source.includes('data-death-respawn') && source.includes('data-death-menu'), 'Death panel must expose respawn and main-menu choices');
+assert.ok(source.includes('function completeDeathRespawn()') && source.includes('function leaveDeathToMainMenu()'), 'Death panel choices must have working handlers');
+assert.ok(source.includes('Ты возродился у разломного портала') && source.includes('Ты возродился у кровати'), 'Respawn must return the player safely to the current realm or bed');
+
+console.log('SkyRealm Boss Realm roster, ruined environment, death screen, respawn, events and abilities tests passed.');
