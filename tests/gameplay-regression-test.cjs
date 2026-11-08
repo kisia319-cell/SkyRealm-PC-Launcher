@@ -327,4 +327,11 @@ assert.match(source,/урон меча меньше 67/,'The first-entry warning
 assert.match(source,/setTimeout\(\(\)=>\{stage=1/,'The second intro panel must appear after the five-second first-panel pause.');
 assert.match(source,/bossRealmCreatures:bossRealmMode\?/,'Boss Realm creatures must be stored in its independent save.');
 assert.match(source,/document\.getElementById\('boss-realm-welcome'\)/,'The first-entry overlay must keep gameplay paused.');
+// Large visual-only upgrades: dynamic boss encounter atmosphere and volumetric cave lighting.
+assert.match(source,/const activeBoss=monsters\.find\(m=>m\.bossRealmCreature/,'Boss Realm must find the currently active major boss for the atmosphere pass.');
+assert.match(source,/const bossGlow=ctx\.createRadialGradient\(bx,by-8,10,bx,by,radius\)/,'The active boss must cast a large, soft theme-colored light into the arena.');
+assert.match(source,/Long, slow shafts make the boss silhouette readable/,'Boss Realm must draw layered light shafts through the ash.');
+assert.match(source,/Deterministic drifting embers\/ice motes/,'Boss Realm atmosphere must use lightweight deterministic particles.');
+assert.match(source,/Layered volumetric shafts reveal the height and scale of the existing cavern/,'The ordinary-world cavern must have volumetric ceiling light shafts.');
+assert.match(source,/Soft reflected pools connect the existing lanterns to the cave floor/,'Existing cave lanterns must cast reflected light pools.');
 console.log('SkyRealm Boss Realm creatures, bosses, gods, abilities, events, visuals and onboarding tests passed.');

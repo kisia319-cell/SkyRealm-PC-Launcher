@@ -1820,6 +1820,27 @@ function setupVillageNpcs(){
     const ambient=ctx.createRadialGradient(width*.48,height*.48,Math.min(width,height)*.08,width*.48,height*.48,Math.max(width,height)*.78);
     ambient.addColorStop(0,'rgba(115,139,126,.23)');ambient.addColorStop(.62,'rgba(57,77,74,.12)');ambient.addColorStop(1,'rgba(0,0,0,.68)');
     ctx.fillStyle=ambient;ctx.fillRect(0,0,width,height);
+    // Major visual pass: layered volumetric shafts reveal the height and scale of the existing cavern.
+    ctx.save();ctx.globalCompositeOperation='screen';
+    for(let i=0;i<7;i++){
+      const sx=width*(.09+i*.137),sway=Math.sin(t/1500+i*1.9)*width*.012;
+      const topWidth=width*(.012+(i%3)*.003),bottomWidth=width*(.055+(i%2)*.014);
+      const shaft=ctx.createLinearGradient(sx+sway,0,sx-sway,height*.78);
+      shaft.addColorStop(0,'rgba(190,211,190,0)');
+      shaft.addColorStop(.18,'rgba(180,210,190,'+(.025+(i%3)*.009)+')');
+      shaft.addColorStop(.68,'rgba(166,197,181,'+(.012+(i%2)*.008)+')');
+      shaft.addColorStop(1,'rgba(166,197,181,0)');
+      ctx.fillStyle=shaft;ctx.beginPath();ctx.moveTo(sx-topWidth,0);ctx.lineTo(sx+topWidth,0);
+      ctx.lineTo(sx+sway+bottomWidth,height*.78);ctx.lineTo(sx+sway-bottomWidth,height*.78);ctx.closePath();ctx.fill();
+    }
+    // Soft reflected pools connect the existing lanterns to the cave floor.
+    for(let i=0;i<6;i++){
+      const lx=width*(.12+i*.152),ly=height*(i%2?.22:.77),pulse=.78+.22*Math.sin(t/360+i*1.4);
+      const pool=ctx.createRadialGradient(lx,ly+24,2,lx,ly+24,92);
+      pool.addColorStop(0,'rgba(255,193,117,'+(.105*pulse)+')');pool.addColorStop(.38,'rgba(216,166,108,'+(.045*pulse)+')');pool.addColorStop(1,'rgba(216,166,108,0)');
+      ctx.fillStyle=pool;ctx.fillRect(lx-96,ly-68,192,192);
+    }
+    ctx.restore();
     // Irregular rock ceiling and walls frame a single large, connected floor.
     ctx.fillStyle='#111a1c';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(width,0);
     for(let i=16;i>=0;i--){const x=width*i/16;ctx.lineTo(x,18+hash(i,41)*height*.105+Math.sin(i*1.7+t*.00025)*5);}
@@ -2556,6 +2577,40 @@ function setupVillageNpcs(){
     if(bossRealmState.eventId==='blizzard'){ctx.save();for(let i=0;i<42;i++){const sx=(i*79+time*(.03+(i%5)*.006))%(width+20)-10,sy=(i*43+time*(.07+(i%4)*.01))%(height+20)-10;ctx.globalAlpha=.24+.28*(i%3)/3;ctx.strokeStyle='#d9faff';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx-4,sy+8);ctx.stroke();}ctx.restore();}
     drawBossRealmCreatureMuseums(camX,camY,time);
     drawBossRealmAwakeningArena(camX,camY,time);
+    // Major visual pass: the active encounter now lights the ruined landscape around it.
+    const activeBoss=monsters.find(m=>m.bossRealmCreature&&m.hp>0&&['boss','god'].includes(BOSS_REALM_CREATURES[m.realmType]?.tier));
+    if(activeBoss){
+      const bx=activeBoss.x-camX,by=activeBoss.y-camY;
+      if(bx>-420&&bx<width+420&&by>-360&&by<height+360){
+        const theme=bossRealmArenaTheme();
+        const aura=theme==='infernal'?'255,104,49':theme==='glacier'?'105,218,255':theme==='blood'?'226,77,123':'166,139,255';
+        const pulse=.5+.5*Math.sin(time/230+(activeBoss.phaseStage||0));
+        ctx.save();
+        const radius=Math.max(220,Math.min(width,height)*.72);
+        const bossGlow=ctx.createRadialGradient(bx,by-8,10,bx,by,radius);
+        bossGlow.addColorStop(0,'rgba('+aura+','+(.16+.08*pulse)+')');
+        bossGlow.addColorStop(.24,'rgba('+aura+','+(.075+.035*pulse)+')');
+        bossGlow.addColorStop(1,'rgba('+aura+',0)');
+        ctx.fillStyle=bossGlow;ctx.fillRect(0,0,width,height);
+        // Long, slow shafts make the boss silhouette readable through the existing ash haze.
+        ctx.globalCompositeOperation='screen';
+        for(let i=0;i<5;i++){
+          const drift=Math.sin(time/900+i*1.7)*24,spread=24+i*18;
+          const beam=ctx.createLinearGradient(bx+(i-2)*spread+drift,by-190,bx+(i-2)*spread-drift+30,by+210);
+          beam.addColorStop(0,'rgba('+aura+',0)');beam.addColorStop(.48,'rgba('+aura+','+(.025+.018*pulse)+')');beam.addColorStop(1,'rgba('+aura+',0)');
+          ctx.fillStyle=beam;ctx.beginPath();ctx.moveTo(bx+(i-2)*spread-7,by-190);ctx.lineTo(bx+(i-2)*spread+12,by-190);ctx.lineTo(bx+(i-2)*spread+spread+32,by+210);ctx.lineTo(bx+(i-2)*spread-spread+8,by+210);ctx.closePath();ctx.fill();
+        }
+        // Deterministic drifting embers/ice motes add depth without spawning gameplay entities.
+        for(let i=0;i<22;i++){
+          const phase=(time*.000035+i*.173)%1,orbit=42+(i%6)*17,angle=i*2.399+time*.00018*(i%2?1:-1);
+          const px=bx+Math.cos(angle)*orbit+(phase-.5)*36,py=by+Math.sin(angle)*orbit*.48-30+phase*84;
+          ctx.globalAlpha=.12+.22*(.5+.5*Math.sin(time/190+i));
+          ctx.fillStyle=theme==='glacier'?'#c9f6ff':theme==='infernal'?'#ffb16a':theme==='blood'?'#ff9bb8':'#d5caff';
+          ctx.beginPath();ctx.arc(px,py,1+(i%3)*.55,0,Math.PI*2);ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
   }
 
   function beginCombatInteriorCamera(time){
