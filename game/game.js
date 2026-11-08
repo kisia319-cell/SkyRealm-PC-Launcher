@@ -2396,15 +2396,27 @@ function setupVillageNpcs(){
     ctx.save();
     if(combatCinematic?.active){
       const p=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
-      const easeIn=Math.min(1,p/.22),easeOut=Math.min(1,(1-p)/.34);
-      const zoom=1+Math.sin(Math.PI*p)*.72;
+      const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
+      const wind=smooth(p/.34),strike=smooth((p-.30)/.24),recover=smooth((p-.70)/.30);
+      const impact=Math.max(0,1-Math.abs(p-(combatCinematic.hitAt/combatCinematic.duration))/.19);
+      const zoom=1+Math.sin(Math.PI*p)*.86+impact*.10;
+      const faceAngle=player.face==='left'?Math.PI:player.face==='up'?-Math.PI/2:player.face==='down'?Math.PI/2:0;
+      const rollDir=player.face==='left'||player.face==='up'?-1:1;
+      const roll=rollDir*((wind*(.095)+strike*(.15)-recover*(.19))+Math.sin(p*Math.PI)*.035);
       const focusX=combatCinematic.focusX-camX,focusY=combatCinematic.focusY-camY;
-      const shake=(combatCinematic.hitDone?combatCameraShake:1.2)*(gameSettings.graphicsQuality==='low'?.35:1);
-      const sx=Math.sin(time*.071)*shake,sy=Math.cos(time*.083)*shake*.65;
+      const orbit=Math.sin(p*Math.PI*2);
+      const panX=Math.cos(faceAngle)*(-18*wind+26*strike-8*recover)+Math.sin(faceAngle)*orbit*15;
+      const panY=Math.sin(faceAngle)*(-18*wind+28*strike-8*recover)-Math.cos(faceAngle)*orbit*12;
+      const qualityScale=gameSettings.graphicsQuality==='low'?.32:gameSettings.graphicsQuality==='medium'?.68:1;
+      const shake=(combatCinematic.hitDone?combatCameraShake:1.2)*qualityScale+impact*7*qualityScale;
+      const sx=Math.sin(time*.071)*shake+Math.sin(p*37)*impact*3*qualityScale;
+      const sy=Math.cos(time*.083)*shake*.65+Math.cos(p*31)*impact*2.5*qualityScale;
       ctx.translate(width/2+sx,height/2+sy);
-      ctx.scale(zoom,zoom);
-      ctx.transform(1,Math.sin(p*Math.PI)*.035,Math.sin(p*Math.PI)*-.018,1,0,0);
-      ctx.translate(-focusX,-focusY);
+      ctx.rotate(roll);
+      ctx.scale(zoom,zoom*(1+Math.sin(p*Math.PI)*.055));
+      // A moving oblique projection gives the 2D scene a punchy 2.5D camera tilt.
+      ctx.transform(1,Math.sin(p*Math.PI)*.075,Math.sin(p*Math.PI)*-.045,1,0,0);
+      ctx.translate(-focusX+panX,-focusY+panY);
     }
     if(tradeWorldMode){drawTradeGround(camX,camY);}else if(bossRealmMode){drawBossRealmGround(camX,camY,time);drawBossRealmEnvironment(camX,camY,time);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
     if(bossRealmMode){drawMonsters(camX,camY,time);drawLootDrops(camX,camY,time);drawBossRealmPortal(camX,camY,time);}
