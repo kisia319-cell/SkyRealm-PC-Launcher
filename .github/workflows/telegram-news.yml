@@ -56,6 +56,7 @@ jobs:
           event = os.environ["EVENT_NAME"]
           repo = os.environ["REPOSITORY"]
           head = os.environ["HEAD_SHA"]
+          text = ""  # Ensure a defined message in both release and commit paths.
 
           if event == "release":
               title = os.environ.get("RELEASE_NAME") or os.environ.get("RELEASE_TAG") or "Новое обновление SkyRealm"
