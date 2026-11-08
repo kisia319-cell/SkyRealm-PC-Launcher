@@ -6,12 +6,12 @@ const source = fs.readFileSync(path.join(__dirname, '../game/game.js'), 'utf8');
 const count = (pattern) => (source.match(pattern) || []).length;
 assert.equal(count(/tier:'mob'/g), 8);
 assert.equal(count(/tier:'elite'/g), 5);
-assert.equal(count(/tier:'boss'/g), 8);
+assert.equal(count(/tier:'boss'/g), 9);
 assert.equal(count(/tier:'god'/g), 2);
 for (const event of ['meteor','horde','blood_moon','awakening','rift','storm']) {
   assert.ok(source.includes("['" + event + "'") || source.includes('["' + event + '"'), 'Missing Boss Realm event: ' + event);
 }
-for (const type of ['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit','abyss_general','blood_berserker','rift_warden','soul_devourer','abyss_king','rift_dragon','ancient_devourer','end_knight','astral_god','chronos_god','magma_behemoth','frost_empress','void_mirror','worldbreaker_colossus']) {
+for (const type of ['shadow_hunter','stone_guardian','cursed_skull','rift_wolf','venom_beetle','fallen_warrior','rift_archer','ash_spirit','abyss_general','blood_berserker','rift_warden','soul_devourer','abyss_king','rift_dragon','ancient_devourer','end_knight','astral_god','chronos_god','magma_behemoth','frost_empress','void_mirror','worldbreaker_colossus','forest_king']) {
   assert.ok(source.includes(type), 'Missing creature: ' + type);
 }
 for (const required of ['function updateBossRealmEnemies(dt)','function drawBossRealmCreature(m,x,y,time)','bossRealmInvisibleTimer=4.5','bossRealmDamageBoostTimer=5;bossRealmAbilityCooldown=10',"equipment.armor==='Нагрудник Бога'?.90",'урон меча меньше 67','bossRealmCreatures:bossRealmMode?',"document.getElementById('boss-realm-welcome')"]) {
@@ -59,3 +59,8 @@ assert.ok(source.includes('переходит во вторую фазу и пр
 assert.ok(source.includes("awakened_tree:{name:'Пробуждённый древень'")&&source.includes('function awakenBossTree(tree)'), 'Chopping a Boss Realm tree must awaken a tree monster');
 assert.ok(source.includes("m.realmType==='awakened_tree'")&&source.includes('Сердцевина древня'), 'Awakened tree must have a distinct model and guaranteed trophy');
 assert.ok(source.includes('fruitful: hash(x + 701, y + 313) > .94')&&source.includes('Лесные ягоды'), 'Ordinary world must generate animated fruit trees with a harvest reward');
+
+assert.ok(source.includes("forest_king:{name:'Король Древнего Леса'")&&source.includes('bossRealmState.awakenedTrees>=5'),'Five awakened trees must unlock the Forest King.');
+assert.ok(source.includes('function ensureBossRealmForest()')&&source.includes('function startBossRealmForestTrial()'),'Ancient Forest and Root Crypt must be present in Boss Realm.');
+assert.ok(source.includes('function updateTreeRegrowth()')&&source.includes('regrowAt'),'Felled trees must regrow after a world-time cooldown.');
+assert.ok(source.includes('SkyRealmForestEcosystem?.update?.(dt)')&&source.includes('SkyRealmLivingWorld?.update?.(dt)'),'Forest and living-world systems must be updated by the simulation.');
