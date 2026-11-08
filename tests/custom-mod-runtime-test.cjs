@@ -10,7 +10,7 @@ for(const id of ['user-mods-list','open-script-mod-creator','import-user-mod','s
 assert.ok(!html.includes('id="script-mod-studio"')&&!html.includes('id="script-mod-code"'),'The embedded code editor must be removed from the game.');
 assert.ok(html.includes('Вы нажали кнопку «Создать мод»')&&html.includes('нет приложения для создания модов SkyRealmStudio'),'The install prompt must explain why Studio is needed.');
 assert.ok(html.includes('Открыть SkyRealmStudio'),'The game button must launch the external application.');
-assert.ok(game.includes("nativeApi.check_mod_studio")&&game.includes("nativeApi.install_mod_studio()"),'The game must check and install Studio through the native launcher API.');
+assert.ok(game.includes("nativeApi.check_mod_studio()")&&game.includes("window.pywebview.api.install_mod_studio()"),'The game must check and install Studio through the native PyWebView API.');
 assert.ok(runtime.includes("new CustomEvent('skyrealm:open-mod-studio')"),'Existing local mod editing must hand off to the external Studio.');
 assert.ok(html.includes('src="custom-mods-runtime.js"')&&html.includes('href="custom-mods.css"'));
 for(const fragment of ['sandbox','allow-scripts','worker-src blob:','onTick(context, state)','on_tick(context, state)','MAX_CODE=14000','MAX_ACTIVE=3','skyrealm-user-mod-host','event.source!==frame.contentWindow']) assert.ok(runtime.includes(fragment),'Missing runtime feature or isolation check: '+fragment);
