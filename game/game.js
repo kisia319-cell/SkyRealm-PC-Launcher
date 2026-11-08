@@ -2470,13 +2470,17 @@ function setupVillageNpcs(){
     const right=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),bottom=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
     const theme=bossRealmArenaTheme(),etchColor=theme==='glacier'?'#8deaff':theme==='infernal'?'#ff8750':theme==='blood'?'#d96a91':'#a99aff';
     const cacheDpr=Math.max(1,Number(dpr)||1),quality=gameSettings.graphicsQuality;
-    if(!bossRealmGroundCache||bossRealmGroundCache.dpr!==cacheDpr||bossRealmGroundCache.theme!==theme||bossRealmGroundCache.quality!==quality){
-      bossRealmGroundCache={chunks:new Map(),dpr:cacheDpr,theme,quality};
+    const chunkTiles=cacheDpr>=2.5?4:cacheDpr>=1.5?6:8,chunkPixels=chunkTiles*TILE;
+    if(!bossRealmGroundCache||bossRealmGroundCache.dpr!==cacheDpr||bossRealmGroundCache.theme!==theme||
+       bossRealmGroundCache.quality!==quality||bossRealmGroundCache.worldCols!==COLS||bossRealmGroundCache.worldRows!==ROWS||
+       bossRealmGroundCache.chunkTiles!==chunkTiles){
+      bossRealmGroundCache={chunks:new Map(),dpr:cacheDpr,theme,quality,worldCols:COLS,worldRows:ROWS,chunkTiles};
     }
-    const cache=bossRealmGroundCache,chunkTiles=8,chunkPixels=chunkTiles*TILE;
+    const cache=bossRealmGroundCache;
     const firstChunkX=Math.floor(left/chunkTiles),lastChunkX=Math.floor(Math.max(left,right-1)/chunkTiles);
     const firstChunkY=Math.floor(top/chunkTiles),lastChunkY=Math.floor(Math.max(top,bottom-1)/chunkTiles);
-    const maxChunks=Math.max(24,Math.min(96,Math.floor((64*1024*1024)/(chunkPixels*chunkPixels*4*cacheDpr*cacheDpr))));
+    const visibleChunks=(lastChunkX-firstChunkX+1)*(lastChunkY-firstChunkY+1);
+    const maxChunks=Math.max(visibleChunks+8,Math.min(128,Math.floor((96*1024*1024)/(chunkPixels*chunkPixels*4*cacheDpr*cacheDpr))));
     let buildBudget=4;
     for(let cy=firstChunkY;cy<=lastChunkY;cy++)for(let cx=firstChunkX;cx<=lastChunkX;cx++){
       const key=cx+':'+cy,chunkLeft=cx*chunkTiles,chunkTop=cy*chunkTiles;
