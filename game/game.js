@@ -2473,23 +2473,45 @@ function setupVillageNpcs(){
     ground.addColorStop(0,'#11131d');ground.addColorStop(.48,'#1b1722');ground.addColorStop(1,'#100f19');
     ctx.fillStyle=ground;ctx.fillRect(0,0,width,height);
     const left=Math.max(0,Math.floor(camX/TILE)-1),top=Math.max(0,Math.floor(camY/TILE)-1);
-    const cols=Math.max(0,Math.min(COLS-left,Math.ceil(width/TILE)+3)),rows=Math.max(0,Math.min(ROWS-top,Math.ceil(height/TILE)+3));
-    const right=left+cols,bottom=top+rows;
+    const cols=Math.ceil(width/TILE)+3,rows=Math.ceil(height/TILE)+3,right=left+cols,bottom=top+rows;
     const theme=bossRealmArenaTheme(),etchColor=theme==='glacier'?'#8deaff':theme==='infernal'?'#ff8750':theme==='blood'?'#d96a91':'#a99aff';
     const cacheDpr=Math.max(1,Number(dpr)||1),quality=gameSettings.graphicsQuality,cache=bossRealmGroundCache;
-    const rebuild=!cache||cache.left!==left||cache.top!==top||cache.right!==right||cache.bottom!==bottom||
-      cache.dpr!==cacheDpr||cache.theme!==theme||cache.quality!==quality||cache.width!==width||cache.height!==height;
-    if(rebuild&&cols>0&&rows>0){
-      const tileCanvas=document.createElement('canvas'),logicalWidth=cols*TILE,logicalHeight=rows*TILE;
+    const compatible=!!cache&&cache.dpr===cacheDpr&&cache.theme===theme&&cache.quality===quality&&
+      cache.width===width&&cache.height===height&&cache.cols===cols&&cache.rows===rows;
+    let active=cache;
+    if(!compatible){
+      const logicalWidth=cols*TILE,logicalHeight=rows*TILE,tileCanvas=document.createElement('canvas');
       tileCanvas.width=Math.max(1,Math.ceil(logicalWidth*cacheDpr));tileCanvas.height=Math.max(1,Math.ceil(logicalHeight*cacheDpr));
       const tileContext=tileCanvas.getContext('2d');tileContext.setTransform(cacheDpr,0,0,cacheDpr,0,0);
-      for(let ty=top;ty<bottom;ty++)for(let tx=left;tx<right;tx++)drawBossRealmGroundTile(tileContext,tx,ty,time,left,top,etchColor);
-      bossRealmGroundCache={canvas:tileCanvas,left,top,right,bottom,dpr:cacheDpr,theme,quality,width,height};
+      for(let ty=top;ty<bottom&&ty<ROWS;ty++)for(let tx=left;tx<right&&tx<COLS;tx++)drawBossRealmGroundTile(tileContext,tx,ty,time,left,top,etchColor);
+      active=bossRealmGroundCache={canvas:tileCanvas,left,top,right,bottom,cols,rows,dpr:cacheDpr,theme,quality,width,height};
+    }else{
+      const shiftX=left-cache.left,shiftY=top-cache.top;
+      if(shiftX!==0||shiftY!==0){
+        if(Math.abs(shiftX)>=cols||Math.abs(shiftY)>=rows){
+          const logicalWidth=cols*TILE,logicalHeight=rows*TILE,tileCanvas=document.createElement('canvas');
+          tileCanvas.width=Math.max(1,Math.ceil(logicalWidth*cacheDpr));tileCanvas.height=Math.max(1,Math.ceil(logicalHeight*cacheDpr));
+          const tileContext=tileCanvas.getContext('2d');tileContext.setTransform(cacheDpr,0,0,cacheDpr,0,0);
+          for(let ty=top;ty<bottom&&ty<ROWS;ty++)for(let tx=left;tx<right&&tx<COLS;tx++)drawBossRealmGroundTile(tileContext,tx,ty,time,left,top,etchColor);
+          active=bossRealmGroundCache={canvas:tileCanvas,left,top,right,bottom,cols,rows,dpr:cacheDpr,theme,quality,width,height};
+        }else{
+          const logicalWidth=cols*TILE,logicalHeight=rows*TILE,copy=document.createElement('canvas');
+          copy.width=cache.canvas.width;copy.height=cache.canvas.height;copy.getContext('2d').drawImage(cache.canvas,0,0);
+          const tileContext=cache.canvas.getContext('2d');tileContext.setTransform(cacheDpr,0,0,cacheDpr,0,0);
+          tileContext.clearRect(0,0,logicalWidth,logicalHeight);
+          tileContext.drawImage(copy,-shiftX*TILE,-shiftY*TILE,logicalWidth,logicalHeight);
+          const oldLeft=cache.left,oldTop=cache.top,oldRight=cache.right,oldBottom=cache.bottom;
+          cache.left=left;cache.top=top;cache.right=right;cache.bottom=bottom;
+          for(let ty=top;ty<bottom&&ty<ROWS;ty++)for(let tx=left;tx<right&&tx<COLS;tx++){
+            if(tx>=oldLeft&&tx<oldRight&&ty>=oldTop&&ty<oldBottom)continue;
+            drawBossRealmGroundTile(tileContext,tx,ty,time,left,top,etchColor);
+          }
+          active=cache;
+        }
+      }
     }
-    if(bossRealmGroundCache?.canvas){
-      const active=bossRealmGroundCache;
-      ctx.drawImage(active.canvas,active.left*TILE-camX,active.top*TILE-camY,
-        (active.right-active.left)*TILE,(active.bottom-active.top)*TILE);
+    if(active?.canvas){
+      ctx.drawImage(active.canvas,active.left*TILE-camX,active.top*TILE-camY,active.cols*TILE,active.rows*TILE);
     }
     // The atmospheric overlays remain live; only the unchanged stone artwork is cached.
     ctx.save();
