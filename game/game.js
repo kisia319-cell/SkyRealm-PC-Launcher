@@ -2425,7 +2425,7 @@ function setupVillageNpcs(){
     if(!bossRealmPortalUnlocked()||tradeWorldMode)return;const p=bossRealmPortalPosition(),x=p.x-camX,y=p.y-camY;if(x<-100||x>width+100||y<-110||y>height+110)return;
     const pulse=.5+.5*Math.sin(time/420);ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(4,8,24,.52)';ctx.beginPath();ctx.ellipse(0,18,43,17,0,0,Math.PI*2);ctx.fill();ctx.shadowColor=bossRealmMode?'#6be9ff':'#9a68ff';ctx.shadowBlur=22+pulse*12;ctx.strokeStyle=bossRealmMode?'#8cecff':'#b48cff';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(0,-7,27,39,0,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#10152b';ctx.beginPath();ctx.ellipse(0,-7,21,33,0,0,Math.PI*2);ctx.fill();const grad=ctx.createLinearGradient(-17,-35,18,25);grad.addColorStop(0,'rgba(104,118,255,.35)');grad.addColorStop(.5,'rgba(80,218,232,.55)');grad.addColorStop(1,'rgba(142,85,225,.28)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(0,-7,18,29,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff0c5';ctx.font='900 11px Segoe UI';ctx.textAlign='center';ctx.fillText(bossRealmMode?'ВОЗВРАТ':'МИР БОССОВ',0,-58);ctx.font='bold 10px Segoe UI';ctx.fillStyle='#e5eaff';ctx.fillText('E · '+(bossRealmMode?'ВЫЙТИ':'ВОЙТИ'),0,51);ctx.restore();
   }
-  function drawBossRealmGroundTile(target,tx,ty,time,left,top,etchColor){
+  function drawBossRealmGroundTile(target,tx,ty,time,left,top){
     const x=(tx-left)*TILE,y=(ty-top)*TILE,seed=tx*71+ty*19,r=hash(seed,113),edge=2+hash(seed,317)*3;
     const slabs=['#292832','#302d35','#25252f','#37303a','#292b34','#322b34'];
     const tone=slabs[Math.min(slabs.length-1,Math.floor(r*slabs.length))],bx=edge,by=edge*.7,w=TILE-edge*1.3,h=TILE-edge*1.2;
@@ -2454,12 +2454,6 @@ function setupVillageNpcs(){
       target.moveTo(x+6+hash(seed,632)*16,y+TILE-5);target.lineTo(x+10+hash(seed,633)*18,y+TILE-13-hash(seed,634)*5);target.lineTo(x+18+hash(seed,635)*12,y+TILE-6);target.closePath();target.fill();
       target.strokeStyle='rgba(8,8,13,.65)';target.lineWidth=1;target.stroke();
     }
-    const arenaEtch=hash(seed,811);
-    if(gameSettings.graphicsQuality!=='low'&&arenaEtch>.84){
-      const ex=x+7+hash(seed,812)*(TILE-14),ey=y+7+hash(seed,813)*(TILE-14);
-      target.save();target.globalAlpha=.12+.08*(.5+.5*Math.sin(time/530+seed));target.strokeStyle=etchColor;target.lineWidth=1;
-      target.beginPath();target.moveTo(ex-4,ey-3);target.lineTo(ex+1,ey-1);target.lineTo(ex+4,ey+3);target.moveTo(ex-2,ey+4);target.lineTo(ex+2,ey+1);target.stroke();target.restore();
-    }
     if(r>.935){
       const sx=x+5+hash(seed,701)*(TILE-10),sy=y+5+hash(seed,702)*(TILE-10);
       target.fillStyle='rgba(0,0,0,.35)';target.beginPath();target.ellipse(sx,sy,8,4,.3,0,Math.PI*2);target.fill();
@@ -2473,47 +2467,53 @@ function setupVillageNpcs(){
     ground.addColorStop(0,'#11131d');ground.addColorStop(.48,'#1b1722');ground.addColorStop(1,'#100f19');
     ctx.fillStyle=ground;ctx.fillRect(0,0,width,height);
     const left=Math.max(0,Math.floor(camX/TILE)-1),top=Math.max(0,Math.floor(camY/TILE)-1);
-    const cols=Math.ceil(width/TILE)+3,rows=Math.ceil(height/TILE)+3,right=left+cols,bottom=top+rows;
+    const right=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),bottom=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
     const theme=bossRealmArenaTheme(),etchColor=theme==='glacier'?'#8deaff':theme==='infernal'?'#ff8750':theme==='blood'?'#d96a91':'#a99aff';
-    const cacheDpr=Math.max(1,Number(dpr)||1),quality=gameSettings.graphicsQuality,cache=bossRealmGroundCache;
-    const compatible=!!cache&&cache.dpr===cacheDpr&&cache.theme===theme&&cache.quality===quality&&
-      cache.width===width&&cache.height===height&&cache.cols===cols&&cache.rows===rows;
-    let active=cache;
-    if(!compatible){
-      const logicalWidth=cols*TILE,logicalHeight=rows*TILE,tileCanvas=document.createElement('canvas');
-      tileCanvas.width=Math.max(1,Math.ceil(logicalWidth*cacheDpr));tileCanvas.height=Math.max(1,Math.ceil(logicalHeight*cacheDpr));
-      const tileContext=tileCanvas.getContext('2d');tileContext.setTransform(cacheDpr,0,0,cacheDpr,0,0);
-      for(let ty=top;ty<bottom&&ty<ROWS;ty++)for(let tx=left;tx<right&&tx<COLS;tx++)drawBossRealmGroundTile(tileContext,tx,ty,time,left,top,etchColor);
-      active=bossRealmGroundCache={canvas:tileCanvas,left,top,right,bottom,cols,rows,dpr:cacheDpr,theme,quality,width,height};
-    }else{
-      const shiftX=left-cache.left,shiftY=top-cache.top;
-      if(shiftX!==0||shiftY!==0){
-        if(Math.abs(shiftX)>=cols||Math.abs(shiftY)>=rows){
-          const logicalWidth=cols*TILE,logicalHeight=rows*TILE,tileCanvas=document.createElement('canvas');
-          tileCanvas.width=Math.max(1,Math.ceil(logicalWidth*cacheDpr));tileCanvas.height=Math.max(1,Math.ceil(logicalHeight*cacheDpr));
-          const tileContext=tileCanvas.getContext('2d');tileContext.setTransform(cacheDpr,0,0,cacheDpr,0,0);
-          for(let ty=top;ty<bottom&&ty<ROWS;ty++)for(let tx=left;tx<right&&tx<COLS;tx++)drawBossRealmGroundTile(tileContext,tx,ty,time,left,top,etchColor);
-          active=bossRealmGroundCache={canvas:tileCanvas,left,top,right,bottom,cols,rows,dpr:cacheDpr,theme,quality,width,height};
-        }else{
-          const logicalWidth=cols*TILE,logicalHeight=rows*TILE,copy=document.createElement('canvas');
-          copy.width=cache.canvas.width;copy.height=cache.canvas.height;copy.getContext('2d').drawImage(cache.canvas,0,0);
-          const tileContext=cache.canvas.getContext('2d');tileContext.setTransform(cacheDpr,0,0,cacheDpr,0,0);
-          tileContext.clearRect(0,0,logicalWidth,logicalHeight);
-          tileContext.drawImage(copy,-shiftX*TILE,-shiftY*TILE,logicalWidth,logicalHeight);
-          const oldLeft=cache.left,oldTop=cache.top,oldRight=cache.right,oldBottom=cache.bottom;
-          cache.left=left;cache.top=top;cache.right=right;cache.bottom=bottom;
-          for(let ty=top;ty<bottom&&ty<ROWS;ty++)for(let tx=left;tx<right&&tx<COLS;tx++){
-            if(tx>=oldLeft&&tx<oldRight&&ty>=oldTop&&ty<oldBottom)continue;
-            drawBossRealmGroundTile(tileContext,tx,ty,time,left,top,etchColor);
-          }
-          active=cache;
-        }
+    const cacheDpr=Math.max(1,Number(dpr)||1),quality=gameSettings.graphicsQuality;
+    if(!bossRealmGroundCache||bossRealmGroundCache.dpr!==cacheDpr||bossRealmGroundCache.theme!==theme||bossRealmGroundCache.quality!==quality){
+      bossRealmGroundCache={chunks:new Map(),dpr:cacheDpr,theme,quality};
+    }
+    const cache=bossRealmGroundCache,chunkTiles=8,chunkPixels=chunkTiles*TILE;
+    const firstChunkX=Math.floor(left/chunkTiles),lastChunkX=Math.floor(Math.max(left,right-1)/chunkTiles);
+    const firstChunkY=Math.floor(top/chunkTiles),lastChunkY=Math.floor(Math.max(top,bottom-1)/chunkTiles);
+    const maxChunks=Math.max(24,Math.min(96,Math.floor((64*1024*1024)/(chunkPixels*chunkPixels*4*cacheDpr*cacheDpr))));
+    let buildBudget=4;
+    for(let cy=firstChunkY;cy<=lastChunkY;cy++)for(let cx=firstChunkX;cx<=lastChunkX;cx++){
+      const key=cx+':'+cy,chunkLeft=cx*chunkTiles,chunkTop=cy*chunkTiles;
+      let chunk=cache.chunks.get(key);
+      if(chunk){
+        cache.chunks.delete(key);cache.chunks.set(key,chunk);
+      }else if(buildBudget>0&&chunkLeft<COLS&&chunkTop<ROWS){
+        const tileCols=Math.min(chunkTiles,COLS-chunkLeft),tileRows=Math.min(chunkTiles,ROWS-chunkTop);
+        const chunkCanvas=document.createElement('canvas'),logicalWidth=tileCols*TILE,logicalHeight=tileRows*TILE;
+        chunkCanvas.width=Math.max(1,Math.ceil(logicalWidth*cacheDpr));chunkCanvas.height=Math.max(1,Math.ceil(logicalHeight*cacheDpr));
+        const chunkContext=chunkCanvas.getContext('2d');chunkContext.setTransform(cacheDpr,0,0,cacheDpr,0,0);
+        for(let ty=chunkTop;ty<chunkTop+tileRows;ty++)for(let tx=chunkLeft;tx<chunkLeft+tileCols;tx++)drawBossRealmGroundTile(chunkContext,tx,ty,time,chunkLeft,chunkTop);
+        chunk={canvas:chunkCanvas,width:logicalWidth,height:logicalHeight,left:chunkLeft,top:chunkTop};
+        cache.chunks.set(key,chunk);buildBudget--;
+        while(cache.chunks.size>maxChunks)cache.chunks.delete(cache.chunks.keys().next().value);
+      }
+      if(chunk){
+        ctx.drawImage(chunk.canvas,chunk.left*TILE-camX,chunk.top*TILE-camY,chunk.width,chunk.height);
+      }else{
+        // Until a chunk is cached, draw its visible tiles normally; this spreads cache warm-up across frames.
+        const drawLeft=Math.max(left,chunkLeft),drawTop=Math.max(top,chunkTop);
+        const drawRight=Math.min(right,chunkLeft+chunkTiles),drawBottom=Math.min(bottom,chunkTop+chunkTiles);
+        ctx.save();ctx.translate(chunkLeft*TILE-camX,chunkTop*TILE-camY);
+        for(let ty=drawTop;ty<drawBottom;ty++)for(let tx=drawLeft;tx<drawRight;tx++)drawBossRealmGroundTile(ctx,tx,ty,time,chunkLeft,chunkTop);
+        ctx.restore();
       }
     }
-    if(active?.canvas){
-      ctx.drawImage(active.canvas,active.left*TILE-camX,active.top*TILE-camY,active.cols*TILE,active.rows*TILE);
+    // Keep the fine engraved runes animated even while the underlying stone chunks stay cached.
+    if(quality!=='low'){
+      for(let ty=top;ty<bottom;ty++)for(let tx=left;tx<right;tx++){
+        const seed=tx*71+ty*19;if(hash(seed,811)<=.84)continue;
+        const x=tx*TILE-camX+7+hash(seed,812)*(TILE-14),y=ty*TILE-camY+7+hash(seed,813)*(TILE-14);
+        ctx.save();ctx.globalAlpha=.12+.08*(.5+.5*Math.sin(time/530+seed));ctx.strokeStyle=etchColor;ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(x-4,y-3);ctx.lineTo(x+1,y-1);ctx.lineTo(x+4,y+3);ctx.moveTo(x-2,y+4);ctx.lineTo(x+2,y+1);ctx.stroke();ctx.restore();
+      }
     }
-    // The atmospheric overlays remain live; only the unchanged stone artwork is cached.
+    // Atmospheric haze and fog remain live; the detailed stone artwork is reused from cached chunks.
     ctx.save();
     const haze=ctx.createRadialGradient(width*.48,height*.43,Math.min(width,height)*.08,width*.48,height*.43,Math.max(width,height)*.82);
     haze.addColorStop(0,'rgba(126,65,86,.10)');haze.addColorStop(.48,'rgba(80,57,79,.07)');haze.addColorStop(1,'rgba(5,7,13,.5)');
