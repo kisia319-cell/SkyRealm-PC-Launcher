@@ -3299,9 +3299,25 @@ function setupVillageNpcs(){
     ctx.restore();
     ctx.save();ctx.translate(x,y);ctx.strokeStyle='#647078';ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(0,0,rx+2,ry+2,0,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='rgba(194,205,194,.35)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(-1,-1,rx-2,ry-2,0,0,Math.PI*2);ctx.stroke();ctx.restore();
   }
+  function drawMineElevator(time=performance.now()){
+    if(!mineMode||mineDepth<=1)return;
+    const entranceX=1.5*MINE_CELL_SIZE,entranceY=(MINE_MAZE_ROWS-1.5)*MINE_CELL_SIZE;
+    const p=mineWorldToScreen(entranceX,entranceY),x=p.x,y=p.y;
+    if(x<-90||x>width+90||y<-90||y>height+90)return;
+    const pulse=.5+.5*Math.sin(time/240);
+    ctx.save();ctx.translate(x,y);ctx.globalAlpha=.9;
+    ctx.fillStyle='rgba(5,10,15,.75)';ctx.fillRect(-29,-34,58,62);
+    ctx.strokeStyle='#a8b7bd';ctx.lineWidth=4;ctx.strokeRect(-25,-30,50,56);
+    ctx.fillStyle='#52636b';ctx.fillRect(-19,-24,38,45);
+    ctx.strokeStyle='#d4b477';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-18,-19);ctx.lineTo(18,-19);ctx.moveTo(-18,17);ctx.lineTo(18,17);ctx.stroke();
+    ctx.fillStyle='#ffe29a';ctx.shadowColor='#ffd36c';ctx.shadowBlur=8+pulse*5;ctx.beginPath();ctx.arc(0,-7,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle='#f6e4bb';ctx.font='900 11px Segoe UI';ctx.textAlign='center';ctx.fillText('ЛИФТ ↑',0,-43);
+    ctx.font='700 9px Segoe UI';ctx.fillStyle='#cbd7df';ctx.fillText('E · НА ПОВЕРХНОСТЬ',0,43);
+    ctx.restore();
+  }
   function drawMineInterior(dt=1/60,time=performance.now()){
     const grad=ctx.createLinearGradient(0,0,0,height);grad.addColorStop(0,'#0c141e');grad.addColorStop(1,'#202623');ctx.fillStyle=grad;ctx.fillRect(0,0,width,height);
-    drawMinePassages();
+    drawMinePassages();drawMineElevator(time);
     drawMineSkyWindow(time);
     drawMineBarrels();drawMineCreatures();
     const oreColors={'Кристалл':'#276c91','Железо':'#777c8a','Уголь':'#252a32','Медь':'#a85e35','Олово':'#aab4bd','Серебро':'#d8e0eb','Золото':'#b68b20','Рубин':'#9c243f','Сапфир':'#245bc4','Обсидиан':'#302343','Мифрил':'#59bfc8','Уран':'#5a9a3e','Алмаз':'#6ee9f0'};
@@ -4004,8 +4020,10 @@ function setupVillageNpcs(){
   function defeatWolfBoss(){
     scheduleNemesis('boss','wolf','Оборотень','shadow',1.7);
     wolfBossActive=false;wolfBossDefeated=true;triggerBossVictory('Оборотень',wolfBossX,wolfBossY,'#b6d6ff');wolfBossKeyDropped=true;wolfCompanionUnlocked=false;wolfCompanionHp=300;wolfDogDeathHandled=false;wolfCompanionOffsetX=28;wolfCompanionOffsetY=22;
-    if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner)spawnSharedLoot(wolfBossX,wolfBossY,[{name:'Ключ от клетки',count:1},{name:'Кристалл',count:2},{name:'Золото',count:50}],'surface');
-    else{changeItem('Ключ от клетки',1);walletCents+=5000;changeItem('Кристалл',2);renderInventory();}
+    // The cage key is a guaranteed direct reward, never a random ground drop.
+    changeItem('Ключ от клетки',1);
+    if(isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner)spawnSharedLoot(wolfBossX,wolfBossY,[{name:'Кристалл',count:2},{name:'Золото',count:50}],'surface');
+    else{walletCents+=5000;changeItem('Кристалл',2);renderInventory();}
     spawnVisualBurst(wolfBossX,wolfBossY,34,'spark','#b6d6ff');playWolfSound('howl');toast('ОБОРОТЕН ПОБЕЖДЁН! Награда появилась в общей добыче леса.');awardXP(180,'победа над Оборотнем');saveGame();
   }
   function updateMonsters(dt){
@@ -4051,9 +4069,9 @@ function setupVillageNpcs(){
       mob.age=(mob.age||0)+dt;
       if(!mob.expansionEventId&&!mob.reproduced&&['shadow','wisp','scorpion','skeleton','brute','ice','ember','yeti'].includes(mob.type)&&mob.age>=28&&monsters.length<8&&!mob.nemesis){mob.reproduced=true;const childHp=Math.max(20,Math.round(mob.maxHp*.55));monsters.push({id:newCoopEntityId(),type:mob.type,x:mob.x+24,y:mob.y+18,hp:childHp,maxHp:childHp,speed:(mob.speed||43)*1.08,damageScale:mob.damageScale||1,attackCooldown:0,specialCooldown:5,phase:Math.random()*6.28,flash:0,fuseStarted:false,fuseTime:1.45,exploding:false,explosionTimer:0,damageApplied:false});spawnVisualBurst(mob.x,mob.y,12,'spark','#b88aff');toast(monsterLabel(mob.type)+' размножился! Появился ещё один враг.');}
       mob.specialCooldown=Math.max(0,(mob.specialCooldown||0)-dt);
-      if(!mob.exploding&&mob.specialCooldown<=0&&currentDistance<=(mob.type==='skeleton'||mob.type==='wisp'?230:mob.type==='ember'?145:mob.type==='ice'?120:mob.type==='scorpion'?175:mob.type==='yeti'?110:105)){
+      if(!mob.exploding&&mob.specialCooldown<=0&&currentDistance<=(mob.type==='skeleton'||mob.type==='wisp'?230:mob.type==='ember'?145:mob.type==='ice'?120:mob.type==='scorpion'?96:mob.type==='yeti'?110:105)){
         mob.specialCooldown=mob.nemesis?4.2:7.5+Math.random()*2.5;
-        const reach=mob.type==='skeleton'||mob.type==='wisp'?230:mob.type==='scorpion'?175:mob.type==='ember'?145:mob.type==='ice'?120:mob.type==='yeti'?110:105;
+        const reach=mob.type==='skeleton'||mob.type==='wisp'?230:mob.type==='scorpion'?96:mob.type==='ember'?145:mob.type==='ice'?120:mob.type==='yeti'?110:105;
         const hitBase={shadow:9,brute:15,wisp:8,skeleton:9,ice:12,scorpion:8,ember:13,yeti:14,bomb:0}[mob.type]||8;
         if(currentDistance<=reach&&!immortal&&dodgeTimer<=0){const hit=Math.max(1,Math.round(hitBase*(mob.damageScale||1)*(1-armorReduction())));player.hp=Math.max(0,player.hp-hit);spawnVisualBurst(player.x,player.y,16,'spark',({shadow:'#bd8cff',brute:'#c5a37c',wisp:'#78f4cf',skeleton:'#e9e0c7',ice:'#83eaff',scorpion:'#d99a42',ember:'#ff7b39',yeti:'#d7f5ff'}[mob.type]||'#ff9b9b'));updateVitals();const attackName={shadow:'РЫВОК ИЗ ТЕНИ',brute:'РАЗРУШАЮЩИЙ УДАР',wisp:'ДУХОВНЫЙ ИМПУЛЬС',skeleton:'КОСТЯНОЙ ЗАЛП',ice:'ЛЕДЯНАЯ ВОЛНА',scorpion:'ЯДОВИТЫЙ ВЫПАД',ember:'ОГНЕННЫЙ ВЗРЫВ',yeti:'УДАР ЛАПОЙ'}[mob.type]||'ОСОБАЯ АТАКА';toast((mob.bossTitle||monsterLabel(mob.type))+' · '+attackName+': −'+hit+' HP'+(mob.nemesis?' · усиление ×'+Number(mob.rebirthMultiplier||1).toFixed(1):''));if(player.hp<=0)respawnPlayerAfterDefeat();}
       }
@@ -4722,7 +4740,15 @@ function setupVillageNpcs(){
       awardXP(120,'тайная сокровищница');
       toast('Сокровищница открыта: '+gold+' золота и немного редкой добычи!');saveGame();
     }else toast('Сундук пуст.');return;}if(Math.hypot(player.x-width*.16,player.y-height*.8)<125){caveMode=false;player.x=caveReturn.x;player.y=caveReturn.y;player.vx=player.vy=0;toast('Ты вернулся в лесную долину.');saveGame();return;}toast('Подойди к сундуку или входу в пещеру.');return;}
-    if(mineMode){const entranceX=1.5*MINE_CELL_SIZE,entranceY=(MINE_MAZE_ROWS-1.5)*MINE_CELL_SIZE,stairsX=(MINE_MAZE_COLS-1.5)*MINE_CELL_SIZE,stairsY=1.5*MINE_CELL_SIZE;if(Math.hypot(minePlayerX-entranceX,minePlayerY-entranceY)<34){mineMode=false;mineMaze=null;toast('Ты вышел из шахты.');saveGame();return;}if(Math.hypot(minePlayerX-stairsX,minePlayerY-stairsY)<34){if(mineDepth<8){mineDepth++;mineMaze=null;generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));minePlayerX=entranceX;minePlayerY=entranceY;toast('Ты спустился на глубину '+mineDepth+'. Новая схема шахты и новые места залежей. Улучшение шахты: '+mineLevel+'/8.');saveGame();}else{toast('Ты достиг восьмой глубины! Здесь спрятана древняя сокровищница.');}return;}toast('Найди лестницу в дальней части лабиринта или вернись ко входу.');return;}
+    if(mineMode){const entranceX=1.5*MINE_CELL_SIZE,entranceY=(MINE_MAZE_ROWS-1.5)*MINE_CELL_SIZE,stairsX=(MINE_MAZE_COLS-1.5)*MINE_CELL_SIZE,stairsY=1.5*MINE_CELL_SIZE;if(Math.hypot(minePlayerX-entranceX,minePlayerY-entranceY)<34){
+      if(mineDepth>1){
+        mineDepth=1;mineMaze=null;generateMineMaze();minePlayerX=entranceX;minePlayerY=entranceY;
+        mineCreatures=[];mineRocks=[];generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));
+        toast('Лифт поднял тебя к началу шахты. Нажми E ещё раз, чтобы выйти в обычный мир.');
+        saveGame();return;
+      }
+      mineMode=false;mineMaze=null;toast('Ты вышел из шахты.');saveGame();return;
+    }if(Math.hypot(minePlayerX-stairsX,minePlayerY-stairsY)<34){if(mineDepth<8){mineDepth++;mineMaze=null;generateMineStock(Math.floor(gameMinuteTotal/GAME_MINUTES_PER_DAY));minePlayerX=entranceX;minePlayerY=entranceY;toast('Ты спустился на глубину '+mineDepth+'. Новая схема шахты и новые места залежей. Улучшение шахты: '+mineLevel+'/8.');saveGame();}else{toast('Ты достиг восьмой глубины! Здесь спрятана древняя сокровищница.');}return;}toast('Найди лестницу в дальней части лабиринта или вернись ко входу.');return;}
     if(interactWolfCage())return;
     const quarryBroker=quarryBrokerPosition();if(!tradeWorldMode&&!bossRealmMode&&!inHouse&&!mineMode&&!caveMode&&!dungeonMode&&Math.hypot(player.x-quarryBroker.x,player.y-quarryBroker.y)<104){openNpcQuestDialog({id:'quarry'});return;}if(tryMineWorldRock())return;const nearbyNpc=nearestVillageNpc();if(nearbyNpc){talkToVillageNpc(nearbyNpc);return;}const nearbyCitizen=villageNpcs.filter(n=>n.id==='citizen').sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y))[0];if(tradeWorldMode&&nearbyCitizen&&Math.hypot(player.x-nearbyCitizen.x,player.y-nearbyCitizen.y)<76){const lines=['Сегодня на рынке много покупателей!','Хорошая погода для прогулки.','Я живу здесь уже много лет.','Будь осторожен ночью, за стенами опасно.','Говорят, в шахте нашли редкую руду.'];toast(nearbyCitizen.name+': «'+lines[Math.abs(Math.floor(nearbyCitizen.phase))%lines.length]+'»');return;}
     // The old starter-base blacksmith, elder and explorer were removed from this world.
