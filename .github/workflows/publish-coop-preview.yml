@@ -51,7 +51,7 @@ jobs:
           token: ${{ github.token }}
           generate_release_notes: true
           files: SkyRealm_Game.zip
-      - name: Point launcher manifest to this verified package
+      - name: Publish isolated preview manifest
         env:
           GAME_SHA256: ${{ steps.package.outputs.sha256 }}
           RELEASE_TAG: ${{ steps.package.outputs.tag }}
@@ -71,8 +71,10 @@ jobs:
             python - <<'PY'
           import json, os
           from pathlib import Path
-          path = Path("manifest.json")
-          manifest = json.loads(path.read_text(encoding="utf-8"))
+          stable_path = Path("manifest.json")
+          path = Path("preview-manifest.json")
+          source_path = path if path.exists() else stable_path
+          manifest = json.loads(source_path.read_text(encoding="utf-8"))
           version = os.environ["GAME_VERSION"]
           manifest["game_version"] = version
           manifest["game_download_url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
@@ -80,9 +82,9 @@ jobs:
           manifest["notes"] = f"SkyRealm {version}: empowered enemy and boss rebirth raids at the home on the next night (1.7x power per return, capped at 8.35x); distinct monster special attacks and biome-boss elemental abilities; Neptune and Leviathan rebirth events; sheep drop raw meat, which can be cooked at a placed furnace into food restoring 15 hunger; cinematic rotating island, Neptune and Leviathan scenes in the main menu. Existing worlds and saves remain compatible. Co-op remains a preview."
           path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
-            git add manifest.json
+            git add preview-manifest.json
             if git diff --cached --quiet; then
-              echo "Manifest already points to this verified package."
+              echo "Preview manifest already points to this verified package."
               pushed=true
               break
             fi
