@@ -241,6 +241,7 @@
       if(state.lastGranaryDay<0)state.lastGranaryDay=day;
       else if(day>state.lastGranaryDay){const elapsed=Math.min(3,day-state.lastGranaryDay);b?.addGold?.(elapsed*350);state.lastGranaryDay=day;save();notify('\u0417\u0435\u0440\u043d\u043e\u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0435 \u043f\u0440\u0438\u043d\u0435\u0441\u043b\u043e \u043f\u0440\u0438\u043f\u0430\u0441\u044b \u0438 \u0434\u043e\u0445\u043e\u0434.');}
     }
+    if(state.projects.greenhouse&&state.town.lastIncomeDay<day){state.town.lastIncomeDay=day;b?.addItem?.('Лечебная трава',2,'Свежий сбор из городской оранжереи.');b?.addGold?.(150);save();notify('Оранжерея принесла припасы и немного дохода.');}
     if(state.contractsDay!==day){
       const offset=((day*3)%CONTRACTS.length+CONTRACTS.length)%CONTRACTS.length;
       state.contracts=[0,1,2].map(i=>({id:CONTRACTS[(offset+i*2)%CONTRACTS.length].id,completed:false}));
