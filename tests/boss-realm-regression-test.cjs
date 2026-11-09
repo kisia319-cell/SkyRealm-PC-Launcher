@@ -14,6 +14,9 @@ assert.ok(source.includes("changeItem('Око архивариуса',1)") && so
 assert.ok(source.includes("changeItem('Клык титана',1)") && source.includes("changeItem('Сфера жизни',1)"), 'Both one-time secret chests must grant their new exclusive artifacts.');
 assert.equal((source.match(/applyArtifactKillEffects\(\);/g)||[]).length,2,'Player and companion kills must both trigger equipped artifact healing.');
 assert.ok(source.includes("equipment.artifact==='Око архивариуса'&&equipment.armor==='Мантия архивариуса'")&&source.includes("equipment.artifact==='Камень эха'&&equipment.helmet==='Корона живого корня'"), 'Matching relic armor must activate artifact set bonuses.');
+for (const feature of ['ARTIFACT_EVOLUTION_COSTS','function artifactEvolutionLevel','function upgradeEquippedArtifact','Осколок пробуждения','artifactProgression,','normalizeArtifactProgression(d.artifactProgression)','artifactProgression.awakeningCooldownUntil','artifactProgression.wardUntil','artifactProgression.berserkUntil','ЭВОЛЮЦИЯ АРТЕФАКТА','ПРОБУЖДЕНИЕ ·','set.archive','set.root','set.echo']) assert.ok(source.includes(feature),'Missing artifact progression feature: '+feature);
+assert.ok(source.includes("trophies.push({name:'Осколок пробуждения',count:4})")&&source.includes("trophies.push({name:'Осколок пробуждения',count:2})"),'Bosses and gods must drop artifact evolution materials.');
+assert.ok(source.includes('player.hp=awakened?Math.max(1,player.hp-hit):Math.max(0,player.hp-hit)'),'Without an evolved artifact awakening, ordinary lethal damage must still kill the player.');
 for (const event of ['meteor','horde','blood_moon','awakening','rift','storm']) {
   assert.ok(source.includes("['" + event + "'") || source.includes('["' + event + '"'), 'Missing Boss Realm event: ' + event);
 }

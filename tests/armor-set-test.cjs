@@ -12,7 +12,13 @@ context.equipment={weapon:'Меч титана',armor:'Броня стража',
 assert.deepEqual(JSON.parse(JSON.stringify(context.resolve())),{name:'Страж',god:false,guardian:true,mage:false,damage:1.10,defense:.10});
 context.equipment={weapon:'Ледяной посох',armor:'Мантия мага',helmet:'Корона мага',boots:'Сапоги мага',amulet:'Амулет мага'};
 assert.deepEqual(JSON.parse(JSON.stringify(context.resolve())),{name:'Маг',god:false,guardian:false,mage:true,damage:1.20,defense:.06});
-context.equipment.weapon='Меч дракона';
+context.equipment={weapon:'Меч титана',armor:'Мантия архивариуса',helmet:'Диадема эха',artifact:'Око архивариуса'};
+assert.deepEqual(JSON.parse(JSON.stringify(context.resolve())),{name:'Архивариуса',god:false,guardian:false,mage:false,damage:1.14,defense:.09,archive:true});
+context.equipment={weapon:'Меч титана',armor:'Доспехи корневого стража',helmet:'Корона живого корня',artifact:'Сердце корней'};
+assert.deepEqual(JSON.parse(JSON.stringify(context.resolve())),{name:'Корневого стража',god:false,guardian:false,mage:false,damage:1.17,defense:.13,root:true});
+context.equipment={weapon:'Меч титана',armor:'Доспехи древнего корня',helmet:'Диадема эха',artifact:'Печать времени'};
+assert.deepEqual(JSON.parse(JSON.stringify(context.resolve())),{name:'Эха',god:false,guardian:false,mage:false,damage:1.12,defense:.11,echo:true});
+context.equipment={weapon:'Меч дракона',armor:'Мантия мага',helmet:'Корона мага',boots:'Сапоги мага',amulet:'Амулет мага'};
 assert.equal(context.resolve().damage,1,'Mage set bonus only applies to the ice staff');
 for(const name of ['Шлем стража','Сапоги стража','Корона мага','Сапоги мага','Амулет мага'])assert.ok(source.includes("name: '"+name+"'"),'Missing real inventory item '+name);
 assert.ok(source.includes("'Шлем стража','Корона мага'"),'New headgear must survive save/load validation');
@@ -22,5 +28,5 @@ assert.ok(source.includes("guardianHelmet:{name:'Шлем стража'"),'Guard
 assert.ok(source.includes("mageAmulet:{name:'Амулет мага'"),'Mage amulet must have a recipe');
 assert.ok(source.includes("function armorReduction(){")&&source.includes('armorSetBonuses().defense'),'Set defense must affect real incoming damage');
 assert.ok(source.includes('armorSetBonuses(name).damage'),'Set damage must affect real weapon damage');
-assert.ok(source.includes("Комплект: '+armorSetBonuses().name"),'The equipment panel must explain the active set bonus');
+assert.ok(source.includes("Комплект: '+set.name"),'The equipment panel must explain the active set bonus');
 console.log('Guardian and Mage armor set bonuses, real item catalog, recipes, save compatibility and UI checks passed.');
