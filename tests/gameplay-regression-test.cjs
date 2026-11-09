@@ -394,3 +394,14 @@ assert.ok(ancientForestContext.world.trees.filter(tree=>tree.ancient).length>=20
 assert.ok(ancientForestContext.world.rocks.filter(rock=>rock.ancient).length>0,
   'The Ancient Forest must generate mineable stone and crystal deposits.');
 console.log('SkyRealm Ancient Forest seeding regression tests passed.');
+
+
+// Regression: Forest King is a grove encounter, not a Forge-arena boss.
+const bossArenaRouteFn = extractFunction('bossRealmArenaIdFor');
+const bossArenaRouteContext = {};
+execute(bossArenaRouteContext, [bossArenaRouteFn], ['bossRealmArenaIdFor']);
+assert.equal(bossArenaRouteContext.bossRealmArenaIdFor('forest_king'), 'forest',
+  'Forest King must remain in the Ancient Forest instead of being routed to the Ashen Forge.');
+assert.equal(bossArenaRouteContext.bossRealmArenaIdFor('magma_behemoth'), 'forge',
+  'The Ashen Titan must remain assigned to the Forge arena.');
+console.log('SkyRealm Forest King arena-routing regression tests passed.');
