@@ -28,5 +28,5 @@ assert.ok(source.includes("guardianHelmet:{name:'Шлем стража'"),'Guard
 assert.ok(source.includes("mageAmulet:{name:'Амулет мага'"),'Mage amulet must have a recipe');
 assert.ok(source.includes("function armorReduction(){")&&source.includes('armorSetBonuses().defense'),'Set defense must affect real incoming damage');
 assert.ok(source.includes('armorSetBonuses(name).damage'),'Set damage must affect real weapon damage');
-assert.ok(source.includes("Комплект: '+armorSetBonuses().name"),'The equipment panel must explain the active set bonus');
+assert.ok(source.includes("Комплект: '+set.name"),'The equipment panel must explain the active set bonus');
 console.log('Guardian and Mage armor set bonuses, real item catalog, recipes, save compatibility and UI checks passed.');
