@@ -3,6 +3,9 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const source=fs.readFileSync('game/world-events.js','utf8');
+const gameSource=fs.readFileSync('game/game.js','utf8');
+assert.ok(gameSource.includes('Печать разведчика')&&gameSource.includes('Фрагмент карты пещер')&&gameSource.includes('caveSecretRoomsOpened'),'Two secret cave rooms and their persistent rewards must be implemented in the game runtime.');
+
 const rewards={items:{},gold:0,damage:0,toasts:[]};
 const inventory={'Древесина':20,'Железо':10,'Листья':8};
 const events=new Map();
@@ -64,6 +67,13 @@ events.get(miniId).count=0;api.update(.1);
 assert.equal(api.getState().activeMiniBossId,'','Miniboss encounter clears on victory');
 assert.ok(inventory['Трофей биомного охотника']>=1,'Miniboss grants its trophy');
 assert.ok(rewards.gold>=18000,'Miniboss grants a gold reward');
+assert.equal(api.getExpeditionStage(),1,'Reading the scout note starts a persistent expedition quest');
+player={x:camp.x,y:camp.y};
+assert.equal(api.interact(),true,'Returning to the camp completes the scout expedition');
+assert.equal(api.getExpeditionStage(),2,'Scout expedition advances to its completed state');
+assert.equal(inventory['Печать разведчика'],1,'Scout expedition grants the cave seal');
+assert.equal(inventory['Фрагмент карты пещер'],1,'Scout expedition grants the cave map fragment');
+
 // A process restart must not award loot for a missing in-progress enemy.
 localStorage.setItem('skyrealm_world_events_v1_world-events-test',JSON.stringify({camps:api.getState().camps,activeTreeId:'stale-tree',activeMiniBossId:'stale-mini',lastMiniBossDay:snapshot.day,caravan:null}));
 const restartedWindow={SkyRealmSeaBridge:bridge};

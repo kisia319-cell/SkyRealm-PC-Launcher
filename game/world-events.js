@@ -4,7 +4,7 @@
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const hash=s=>{let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
   const rnd=(s,n)=>{let x=(s+Math.imul(n+1,0x9e3779b9))|0;x^=x>>>16;x=Math.imul(x,0x7feb352d);x^=x>>>15;x=Math.imul(x,0x846ca68b);x^=x>>>16;return (x>>>0)/4294967295;};
-  const fresh=()=>({camps:[],activeTreeId:'',activeMiniBossId:'',lastMiniBossDay:-99,caravan:null});
+  const fresh=()=>({camps:[],activeTreeId:'',activeMiniBossId:'',lastMiniBossDay:-99,caravan:null,expeditionStage:0});
   let state=fresh(),world='',seed=0,savedAt=0;
   const worldId=()=>String(B()?.getWorldId?.()||'');
   const storageKey=()=> 'skyrealm_world_events_v1_'+encodeURIComponent(worldId());
@@ -32,6 +32,7 @@
         state.lastMiniBossDay=Number.isFinite(raw.lastMiniBossDay)?Math.floor(raw.lastMiniBossDay):-99;
         if(raw.caravan&&Number.isFinite(raw.caravan.day)&&Number.isFinite(raw.caravan.x)&&Number.isFinite(raw.caravan.y))
           state.caravan={day:Math.floor(raw.caravan.day),x:clamp(raw.caravan.x,0,1e7),y:clamp(raw.caravan.y,0,1e7),traded:raw.caravan.traded===true};
+        state.expeditionStage=Math.max(0,Math.min(2,Math.floor(Number(raw.expeditionStage)||0)));
         if(Array.isArray(raw.camps))state.camps=raw.camps.filter(c=>c&&typeof c.id==='string'&&Number.isFinite(c.x)&&Number.isFinite(c.y)).slice(0,4).map(c=>({...c,x:clamp(c.x,0,1e7),y:clamp(c.y,0,1e7),chestOpened:c.chestOpened===true,trapTriggered:c.trapTriggered===true,noteRead:c.noteRead===true}));
       }
     }catch(e){console.warn('[SkyRealm world events load]',e);}
@@ -69,12 +70,14 @@
       B()?.addItem?.('Кора древня',2,'Плотная кора ожившего дерева.');
       B()?.addItem?.('Сердцевина древня',1,'Трофей за победу над Древодемоном.');
       say('ДРЕВОДЕМОН ПОВЕРЖЕН! Получены живой корень, кора и сердцевина древня.');
+      if(state.expeditionStage===1)say('ЦЕПОЧКА РАЗВЕДЧИКА · живой корень найден. Осталось добыть 2 пыльцы.');
     }else{
       state.activeMiniBossId='';
       B()?.addGold?.(18000);
       B()?.addItem?.('Трофей биомного охотника',1,'Знак победы над редким биомным мини-боссом.');
       B()?.addItem?.('Пыльца древнего леса',2,'Редкий алхимический материал.');
       say('МИНИ-БОСС ПОБЕЖДЁН! +180 золота, трофей охотника и редкая пыльца.');
+      if(state.expeditionStage===1)say('ЦЕПОЧКА РАЗВЕДЧИКА · пыльца добыта. Вернись в лагерь с 1 живым корнем и 2 пыльцой.');
     }
     persist(true);
   }
@@ -132,6 +135,10 @@
     const camp=state.camps.map(c=>({c,d:Math.hypot(p.x-c.x,p.y-c.y)})).filter(v=>v.d<92).sort((a,b)=>a.d-b.d)[0]?.c;
     if(camp){
       const dx=p.x-camp.x,dy=p.y-camp.y;
+      if(state.expeditionStage===1&&B()?.getItemCount?.('Живой корень')>=1&&B()?.getItemCount?.('Пыльца древнего леса')>=2){
+        if(!B()?.spendItem?.('Живой корень',1)||!B()?.spendItem?.('Пыльца древнего леса',2)){say('Не удалось сдать материалы разведчику.');return true;}
+        state.expeditionStage=2;B()?.addGold?.(12000);B()?.addItem?.('Печать разведчика',1,'Древняя печать открывает вторую тайную комнату большой пещеры.');B()?.addItem?.('Фрагмент карты пещер',1,'Карта указывает на две скрытые комнаты.');persist(true);say('ЦЕПОЧКА РАЗВЕДЧИКА ЗАВЕРШЕНА! +120 золота, Печать разведчика и карта двух тайных комнат.');return true;
+      }
       if(Math.hypot(dx+36,dy-15)<42&&!camp.trapTriggered){
         camp.trapTriggered=true;
         if(B()?.spendItem?.('Листья',2))say('ЛОВУШКА ОБЕЗВРЕЖЕНА! Ты потратил 2 листа и избежал урона.');
@@ -143,7 +150,7 @@
         camp.chestOpened=true;B()?.addGold?.(4500);B()?.addItem?.('Ключ древнего лагеря',1,'Редкая находка из сундука заброшенного лагеря.');B()?.addItem?.('Кора древня',2);
         persist(true);say('СУНДУК НАЙДЕН! +45 золота, ключ древнего лагеря и кора древня.');return true;
       }
-      if(!camp.noteRead){camp.noteRead=true;B()?.addItem?.('Записка разведчика',1,'Старая записка с подсказкой о биомных стражах.');persist(true);say('ЗАПИСКА: «Не руби деревья в одиночестве. Иногда лес отвечает». Получена записка разведчика.');return true;}
+      if(!camp.noteRead){camp.noteRead=true;state.expeditionStage=Math.max(1,state.expeditionStage);B()?.addItem?.('Записка разведчика',1,'Старая записка с подсказкой о биомных стражах.');persist(true);say('ЗАПИСКА: «Найди один живой корень и две пыльцы древнего леса. За старой печатью скрыты комнаты пещеры». Начата цепочка разведчика.');return true;}
       say('Лагерь давно покинут. Здесь больше ничего не осталось.');return true;
     }
     if(state.caravan&&Math.hypot(p.x-state.caravan.x,p.y-state.caravan.y)<92){
@@ -154,5 +161,5 @@
     }
     return false;
   }
-  window.SkyRealmWorldEvents=Object.freeze({update,draw,interact,onTreeChopped,getState:()=>JSON.parse(JSON.stringify(state))});
+  window.SkyRealmWorldEvents=Object.freeze({update,draw,interact,onTreeChopped,getState:()=>JSON.parse(JSON.stringify(state)),getExpeditionStage:()=>state.expeditionStage});
 })();
