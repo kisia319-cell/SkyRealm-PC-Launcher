@@ -136,7 +136,7 @@
     if(camp){
       const dx=p.x-camp.x,dy=p.y-camp.y;
       if(state.expeditionStage===1&&B()?.getItemCount?.('Живой корень')>=1&&B()?.getItemCount?.('Пыльца древнего леса')>=2){
-        if(!B()?.spendItem?.('Живой корень',2)||!B()?.spendItem?.('Пыльца древнего леса',2)){say('Не удалось сдать материалы разведчику.');return true;}
+        if(!B()?.spendItem?.('Живой корень',1)||!B()?.spendItem?.('Пыльца древнего леса',2)){say('Не удалось сдать материалы разведчику.');return true;}
         state.expeditionStage=2;B()?.addGold?.(12000);B()?.addItem?.('Печать разведчика',1,'Древняя печать открывает вторую тайную комнату большой пещеры.');B()?.addItem?.('Фрагмент карты пещер',1,'Карта указывает на две скрытые комнаты.');persist(true);say('ЦЕПОЧКА РАЗВЕДЧИКА ЗАВЕРШЕНА! +120 золота, Печать разведчика и карта двух тайных комнат.');return true;
       }
       if(Math.hypot(dx+36,dy-15)<42&&!camp.trapTriggered){
@@ -150,7 +150,7 @@
         camp.chestOpened=true;B()?.addGold?.(4500);B()?.addItem?.('Ключ древнего лагеря',1,'Редкая находка из сундука заброшенного лагеря.');B()?.addItem?.('Кора древня',2);
         persist(true);say('СУНДУК НАЙДЕН! +45 золота, ключ древнего лагеря и кора древня.');return true;
       }
-      if(!camp.noteRead){camp.noteRead=true;state.expeditionStage=Math.max(1,state.expeditionStage);B()?.addItem?.('Записка разведчика',1,'Старая записка с подсказкой о биомных стражах.');persist(true);say('ЗАПИСКА: «Найди два живых корня и две пыльцы древнего леса. За старой печатью скрыты комнаты пещеры». Начата цепочка разведчика.');return true;}
+      if(!camp.noteRead){camp.noteRead=true;state.expeditionStage=Math.max(1,state.expeditionStage);B()?.addItem?.('Записка разведчика',1,'Старая записка с подсказкой о биомных стражах.');persist(true);say('ЗАПИСКА: «Найди один живой корень и две пыльцы древнего леса. За старой печатью скрыты комнаты пещеры». Начата цепочка разведчика.');return true;}
       say('Лагерь давно покинут. Здесь больше ничего не осталось.');return true;
     }
     if(state.caravan&&Math.hypot(p.x-state.caravan.x,p.y-state.caravan.y)<92){
