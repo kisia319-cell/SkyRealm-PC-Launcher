@@ -8,9 +8,12 @@ assert.equal(count(/tier:'mob'/g), 8);
 assert.equal(count(/tier:'elite'/g), 6);
 assert.equal(count(/tier:'boss'/g), 9);
 assert.equal(count(/tier:'god'/g), 2);
-for (const name of ['Око архивариуса','Печать времени','Сердце корней','Камень эха','Мантия архивариуса','Диадема эха','Доспехи корневого стража','Корона живого корня']) assert.ok(source.includes(name), 'Missing cave exclusive item: '+name);
-for (const effect of ["equipment.artifact==='Око архивариуса'","equipment.artifact==='Сердце корней'","player.hp+6","equipment.artifact==='Камень эха'"]) assert.ok(source.includes(effect), 'Missing equipped artifact effect: '+effect);
+for (const name of ['Око архивариуса','Печать времени','Сердце корней','Камень эха','Клык титана','Сфера жизни','Мантия архивариуса','Диадема эха','Доспехи корневого стража','Корона живого корня']) assert.ok(source.includes(name), 'Missing cave exclusive item: '+name);
+for (const effect of ["equipment.artifact==='Око архивариуса'","equipment.artifact==='Сердце корней'","equipment.artifact==='Клык титана'","equipment.artifact==='Сфера жизни'","applyArtifactKillEffects()","player.hp+healing","equipment.artifact==='Камень эха'"]) assert.ok(source.includes(effect), 'Missing equipped artifact effect: '+effect);
 assert.ok(source.includes("changeItem('Око архивариуса',1)") && source.includes("changeItem('Доспехи корневого стража',1)"), 'Secret room chests must grant exclusive artifacts and armor.');
+assert.ok(source.includes("changeItem('Клык титана',1)") && source.includes("changeItem('Сфера жизни',1)"), 'Both one-time secret chests must grant their new exclusive artifacts.');
+assert.equal((source.match(/applyArtifactKillEffects\(\);/g)||[]).length,2,'Player and companion kills must both trigger equipped artifact healing.');
+assert.ok(source.includes("equipment.artifact==='Око архивариуса'&&equipment.armor==='Мантия архивариуса'")&&source.includes("equipment.artifact==='Камень эха'&&equipment.helmet==='Корона живого корня'"), 'Matching relic armor must activate artifact set bonuses.');
 for (const event of ['meteor','horde','blood_moon','awakening','rift','storm']) {
   assert.ok(source.includes("['" + event + "'") || source.includes('["' + event + '"'), 'Missing Boss Realm event: ' + event);
 }
