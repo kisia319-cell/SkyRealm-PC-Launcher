@@ -1,0 +1,17 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.join(__dirname, '..');
+const previewWorkflow = fs.readFileSync(path.join(root, '.github/workflows/publish-coop-preview.yml'), 'utf8');
+const stableWorkflow = fs.readFileSync(path.join(root, '.github/workflows/build-release.yml'), 'utf8');
+const updateConfig = JSON.parse(fs.readFileSync(path.join(root, 'updater_config.json'), 'utf8'));
+assert.ok(previewWorkflow.includes('path = Path("preview-manifest.json")'), 'Co-op preview must write its own manifest.');
+assert.ok(previewWorkflow.includes('git add preview-manifest.json'), 'Co-op preview must stage only its dedicated manifest.');
+assert.ok(!/git add\\s+manifest\\.json/.test(previewWorkflow), 'Co-op preview must never stage the stable manifest.');
+assert.ok(previewWorkflow.includes('stable_path = Path("manifest.json")'), 'Preview metadata may inherit stable launcher fields.');
+assert.ok(stableWorkflow.includes('Commit updated manifest'), 'The release workflow remains the owner of the stable manifest.');
+assert.ok(stableWorkflow.includes('"preview-manifest.json"'), 'A preview-only manifest change must not trigger a redundant stable Windows build.');
+assert.equal(updateConfig.channel, 'stable', 'The installed launcher defaults to the stable channel.');
+assert.ok(updateConfig.manifest_url.endsWith('/manifest.json'), 'Stable updater must use manifest.json, never preview-manifest.json.');
+console.log('SkyRealm stable/preview manifest isolation tests passed.');
