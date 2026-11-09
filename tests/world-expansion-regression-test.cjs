@@ -30,7 +30,7 @@ class FakeElement {
 }
 function bootWorld(isBossRealm) {
   const created = [];
-  const snapshot = {worldId:isBossRealm?'boss-test-world':'ordinary-test-world',paused:false,day:4,difficulty:'medium',items:{'Древесина':2,'Камень':1},exploredCells:10,totalCells:100};
+  const snapshot = {worldId:isBossRealm?'boss-test-world':'ordinary-test-world',paused:false,day:0,difficulty:'medium',items:{'Древесина':2,'Камень':1},exploredCells:10,totalCells:100};
   const bridge = {
     getChallengeSnapshot:()=>snapshot,
     isBossRealm:()=>isBossRealm,
