@@ -31,6 +31,7 @@ const created=[];
 const timers=[];
 const enemyCounts=new Map();
 const spawned=[];
+const guardians=[];
 const rewards={gold:0,items:[]};
 const messages=[];
 const stored=new Map();
@@ -41,7 +42,9 @@ const bridge={
   getVillageCenters:()=>[{id:'forest',x:320,y:420},{id:'snow',x:1100,y:900}],
   getPlayerPosition:()=>({x:300,y:400}),
   getWorldEventSpawnPoint:()=>({x:700,y:700}),
-  spawnEventEnemies:(id,x,y,count)=>{spawned.push({id,x,y,count});enemyCounts.set(id,count);return count;},
+  spawnVillageGuardian:(id,x,y)=>{guardians.push({id,x,y,hp:250,damage:19,speed:155/1.3,rangeFactor:1/1.2});enemyCounts.set(id,1);return true;},
+  spawnEventEnemies:(id,x,y,count)=>{spawned.push({id,x,y,count});enemyCounts.set(id,(enemyCounts.get(id)||0)+count);return count;},
+  clearEventEnemies:id=>{enemyCounts.delete(id);return true;},
   getEventEnemyCount:id=>enemyCounts.get(id)||0,
   addGold:cents=>{rewards.gold+=cents;},
   addItem:(name,count)=>rewards.items.push({name,count}),
@@ -73,6 +76,11 @@ assert.ok(active&&active.active,'starting the assault must persist an active eve
 assert.equal(active.villageId,'forest','the nearest village must be selected');
 assert.equal(spawned.length,1);
 assert.equal(spawned[0].count,8,'an assault must spawn eight defenders');
+assert.equal(guardians.length,1,'an assault must summon one Great Village Guardian');
+assert.equal(guardians[0].hp,250,'the guardian must have 250 HP');
+assert.equal(guardians[0].damage,19,'the guardian must deal 19 base damage');
+assert.equal(guardians[0].speed,155/1.3,'the guardian must move at 1.3 times slower than the base player speed');
+assert.equal(guardians[0].rangeFactor,1/1.2,'the guardian must attack at 1.2 times shorter player weapon range');
 const savedState=Array.from(stored.values()).map(value=>JSON.parse(value)).find(value=>value?.ordinary?.assault?.id===active.id);
 assert.ok(savedState?.ordinary?.assault?.active,'the active assault must be written to the world save');
 assert.match(messages.join(' '),/НАПАДЕНИЕ НА ДЕРЕВНЮ/);
@@ -86,4 +94,4 @@ assert.equal(rewards.gold,18000,'the raid must grant 180 gold');
 assert.deepEqual(rewards.items.map(item=>[item.name,item.count]),[['Знак налётчика',1],['Слиток закалённого железа',2]]);
 timers[0]();
 assert.equal(rewards.gold,18000,'repeated updates must not duplicate the reward');
-console.log('Village assault regression checks passed: nearest settlement selection, eight defenders, persistent event state, and one-time loot.');
+console.log('Village assault regression checks passed: nearest settlement selection, eight defenders plus Great Village Guardian, persistent event state, and one-time loot.');
