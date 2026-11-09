@@ -12,6 +12,16 @@ assert.match(sea,/const W = 360, H = 260/,'Sea map must be substantially larger'
 assert.match(sea,/length:2/,'Sharks must be rare by default');
 assert.match(sea,/state\.sharkSpawnTimer/,'Sharks must spawn only on a rare timer');
 assert.match(sea,/function upgradeShip\(\)/,'Players must be able to upgrade their ship');
+assert.match(sea,/const SALVAGE_RESPAWN_DAYS=3/,'Sea salvage must use a three in-game day respawn');
+for(const id of ['sunken_convoy','coral_cache','whaler_wreck','deep_supply'])assert.ok(sea.includes(id),'Missing sea salvage site '+id);
+assert.match(sea,/salvageClaims:\{\}/,'New sea saves must track salvage claims');
+assert.match(sea,/state\.salvageClaims=Object\.fromEntries\(SALVAGE_SITES\.map/,'Old sea saves must safely migrate salvage cooldowns');
+assert.match(sea,/function nearestSalvage\(\)/,'Players must be able to locate nearby salvage');
+assert.match(sea,/function claimSalvage\(site=nearestSalvage\(\)\)/,'Players must be able to collect sea salvage');
+assert.match(sea,/b\?\.addItem\?\.\(site\.item,site\.amount/,'Sea salvage must grant real inventory items');
+assert.match(sea,/b\?\.addGold\?\.\(site\.gold/,'Sea salvage must grant real gold');
+assert.match(sea,/id="sea-salvage-btn"/,'Sea HUD must expose a nearby salvage action');
+assert.match(sea,/for\(const site of SALVAGE_SITES\)/,'Sea map must mark salvage locations');
 assert.match(sea,/const CAVE_ENTRANCE=\{x:309,y:214\}/,'Sea map must contain a discoverable underwater grotto');
 assert.match(sea,/const CAVE_ROOMS=\[/,'The underwater grotto must contain multiple rooms');
 assert.match(sea,/enemy:'Морской титан'/,'The final underwater grotto room must have its own boss');
