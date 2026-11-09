@@ -13,6 +13,7 @@ assert.ok(previewWorkflow.includes('stable_path = Path("manifest.json")'), 'Prev
 assert.ok(stableWorkflow.includes('Commit updated manifest'), 'The release workflow remains the owner of the stable manifest.');
 assert.ok(stableWorkflow.includes('"preview-manifest.json"'), 'A preview-only manifest change must not trigger a redundant stable Windows build.');
 assert.equal((stableWorkflow.match(/\(exclude\)preview-manifest\.json/g)||[]).length, 3, 'All three stable build staleness guards must ignore preview-manifest.json but still reject game source changes.');
+assert.equal((stableWorkflow.match(/\(exclude\)tests\/\*\*/g)||[]).length, 3, 'All three stable build staleness guards must ignore test-only changes, matching the workflow path filter.');
 assert.equal(updateConfig.channel, 'stable', 'The installed launcher defaults to the stable channel.');
 assert.ok(updateConfig.manifest_url.endsWith('/manifest.json'), 'Stable updater must use manifest.json, never preview-manifest.json.');
 console.log('SkyRealm stable/preview manifest isolation tests passed.');
