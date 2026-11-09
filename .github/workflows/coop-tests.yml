@@ -20,6 +20,7 @@ jobs:
       - run: node tests/intro-cleanup-test.cjs
       - run: node tests/sea-world-regression-test.cjs
       - run: node tests/boss-realm-regression-test.cjs
+      - run: node tests/world-events-expansion-test.cjs
       - run: node tests/multiplayer-client-test.cjs
       - run: node --check tests/staff-authorization-test.cjs
       - run: node --check tests/gameplay-regression-test.cjs
