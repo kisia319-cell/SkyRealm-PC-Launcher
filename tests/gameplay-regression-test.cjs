@@ -337,3 +337,36 @@ assert.match(source,/Soft reflected pools connect the existing lanterns to the c
 console.log('SkyRealm Boss Realm creatures, bosses, gods, abilities, events, visuals and onboarding tests passed.');
 
 assert.ok(source.includes("forest_king:{name:'Король Древнего Леса'")&&source.includes("name:'Сердце Древнего Леса'"),'Forest King must have a unique boss and passive relic.');
+
+
+// Regression: ordinary-world tree restoration must not depend on a function
+// that is scoped only inside the Boss Realm arena-layout builder.
+const treeRegrowthFn = extractFunction('updateTreeRegrowth');
+let treeRegrowthSaveCount = 0;
+const treeRegrowthContext = {
+  isCoopWorldSave: () => false,
+  tradeWorldMode: false, inHouse: false, caveMode: false, mineMode: false, dungeonMode: false,
+  felledTrees: [{x:320,y:480,regrowAt:4320,size:2.5,tint:7,fruitful:true,ancient:true}],
+  gameMinuteTotal: 4319,
+  world: {trees:[]},
+  waterAt: () => false,
+  TILE: 32,
+  player: {x:320,y:480},
+  spawnVisualBurst: () => {},
+  saveGame: () => { treeRegrowthSaveCount++; },
+  toast: () => {},
+  Math
+};
+execute(treeRegrowthContext, [treeRegrowthFn], ['updateTreeRegrowth']);
+treeRegrowthContext.updateTreeRegrowth();
+assert.equal(treeRegrowthContext.world.trees.length, 0, 'A tree must not regrow before its saved due time.');
+treeRegrowthContext.gameMinuteTotal = 4320;
+treeRegrowthContext.updateTreeRegrowth();
+assert.equal(treeRegrowthContext.world.trees.length, 1, 'A felled tree must regrow when world time reaches regrowAt.');
+assert.equal(treeRegrowthContext.world.trees[0].size, 2, 'Restored tree size must be clamped to the supported maximum.');
+assert.equal(treeRegrowthContext.world.trees[0].tint, 2, 'Restored tree tint must be clamped to a supported palette index.');
+assert.equal(treeRegrowthContext.world.trees[0].fruitful, true, 'Fruit-bearing status must survive regrowth.');
+assert.equal(treeRegrowthContext.world.trees[0].ancient, true, 'Ancient-tree status must survive regrowth.');
+assert.equal(treeRegrowthContext.felledTrees.length, 0, 'Successfully restored trees must be removed from the stump queue.');
+assert.equal(treeRegrowthSaveCount, 1, 'Restoring a tree must persist the updated world.');
+console.log('SkyRealm tree-regrowth regression tests passed.');
