@@ -8,6 +8,9 @@ assert.equal(count(/tier:'mob'/g), 8);
 assert.equal(count(/tier:'elite'/g), 6);
 assert.equal(count(/tier:'boss'/g), 9);
 assert.equal(count(/tier:'god'/g), 2);
+for (const name of ['Око архивариуса','Печать времени','Сердце корней','Камень эха','Мантия архивариуса','Диадема эха','Доспехи корневого стража','Корона живого корня']) assert.ok(source.includes(name), 'Missing cave exclusive item: '+name);
+for (const effect of ["equipment.artifact==='Око архивариуса'","equipment.artifact==='Сердце корней'","player.hp+6","equipment.artifact==='Камень эха'"]) assert.ok(source.includes(effect), 'Missing equipped artifact effect: '+effect);
+assert.ok(source.includes("changeItem('Око архивариуса',1)") && source.includes("changeItem('Доспехи корневого стража',1)"), 'Secret room chests must grant exclusive artifacts and armor.');
 for (const event of ['meteor','horde','blood_moon','awakening','rift','storm']) {
   assert.ok(source.includes("['" + event + "'") || source.includes('["' + event + '"'), 'Missing Boss Realm event: ' + event);
 }
