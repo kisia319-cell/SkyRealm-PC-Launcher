@@ -86,6 +86,7 @@
     if(type==='frost_empress')return 'glacier';
     if(['ancient_devourer','void_mirror'].includes(type))return 'temple';
     if(['astral_god','chronos_god'].includes(type))return 'astral';
+    if(type==='forest_king')return 'forest';
     return 'forge';
   }
   function bossRealmMuseumPosition(x,y,exclude=null){
