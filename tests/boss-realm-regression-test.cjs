@@ -17,6 +17,7 @@ assert.ok(source.includes("equipment.artifact==='Око архивариуса'&
 for (const feature of ['ARTIFACT_EVOLUTION_COSTS','function artifactEvolutionLevel','function upgradeEquippedArtifact','Осколок пробуждения','artifactProgression,','normalizeArtifactProgression(d.artifactProgression)','artifactProgression.awakeningCooldownUntil','artifactProgression.wardUntil','artifactProgression.berserkUntil','ЭВОЛЮЦИЯ АРТЕФАКТА','ПРОБУЖДЕНИЕ ·','set.archive','set.root','set.echo']) assert.ok(source.includes(feature),'Missing artifact progression feature: '+feature);
 assert.ok(source.includes("trophies.push({name:'Осколок пробуждения',count:4})")&&source.includes("trophies.push({name:'Осколок пробуждения',count:2})"),'Bosses and gods must drop artifact evolution materials.');
 assert.ok(source.includes('player.hp=awakened?Math.max(1,player.hp-hit):Math.max(0,player.hp-hit)'),'Without an evolved artifact awakening, ordinary lethal damage must still kill the player.');
+assert.ok(source.includes('function loadGame(){\\n    artifactProgression={levels:{},awakeningCooldownUntil:0,wardUntil:0,berserkUntil:0};'),'Each world load must reset artifact state before restoring that world save.');
 for (const event of ['meteor','horde','blood_moon','awakening','rift','storm']) {
   assert.ok(source.includes("['" + event + "'") || source.includes('["' + event + '"'), 'Missing Boss Realm event: ' + event);
 }
