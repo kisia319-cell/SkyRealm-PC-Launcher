@@ -4191,6 +4191,18 @@ function setupVillageNpcs(){
       if(dist>25){const speed=mob.speed||43,nx=mob.x+dx/dist*speed*dt,ny=mob.y+dy/dist*speed*dt;if(!blocked(nx,mob.y))mob.x=nx;if(!blocked(mob.x,ny))mob.y=ny;}
       const currentDistance=Math.hypot(player.x-mob.x,player.y-mob.y);
       mob.age=(mob.age||0)+dt;
+      if(mob.villageGuardian){
+        mob.villageGuardianAttackTimer=Math.max(0,(mob.villageGuardianAttackTimer||0)-dt);
+        const guardianReach=weaponRange()/1.2;
+        if(currentDistance<=guardianReach&&mob.villageGuardianAttackTimer<=0&&!immortal&&dodgeTimer<=0){
+          const hit=Math.max(1,Math.round(19*(1-armorReduction())));
+          player.hp=Math.max(0,player.hp-hit);mob.villageGuardianAttackTimer=1.25;
+          mob.flash=.12;spawnVisualBurst(mob.x,mob.y,14,'spark','#f0ca79');
+          updateVitals();toast('ВЕЛИКИЙ СТРАЖ ДЕРЕВНИ · тяжёлый удар: −'+hit+' HP');
+          if(player.hp<=0)respawnPlayerAfterDefeat();
+        }
+        continue;
+      }
       if(mob.forestMiniBoss&&mob.hp>0){
         const ratio=mob.hp/Math.max(1,mob.maxHp);
         if(ratio<.58&&mob.forestPhase<2){mob.forestPhase=2;mob.damageScale=1.48;mob.speed*=1.12;mob.specialCooldown=Math.min(mob.specialCooldown||3,1.2);spawnVisualBurst(mob.x,mob.y,28,'spark','#e8bd72');toast(mob.bossTitle+' входит во вторую фазу! Удары стали быстрее.');}
@@ -4228,6 +4240,29 @@ function setupVillageNpcs(){
   }
   function drawSheep(camX,camY,time){for(const a of sheep){if(!a.alive)continue;const x=a.x-camX,y=a.y-camY;if(x<-35||x>width+35||y<-35||y>height+35)continue;const bob=Math.sin(time/280+a.phase)*1.2;ctx.save();ctx.translate(x,y+bob);ctx.fillStyle='#101c1c66';ctx.beginPath();ctx.ellipse(0,8,15,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e9e8df';for(const [cx,cy,r] of [[-8,-2,7],[0,-5,8],[8,-2,7],[-2,2,8],[7,3,6]]){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();}ctx.fillStyle='#7b574b';ctx.fillRect(8,-7,8,11);ctx.fillStyle='#211d24';ctx.fillRect(13,-4,2,2);ctx.fillStyle='#5e4a40';const leg=Math.sin(time/90+a.phase)*2;ctx.fillRect(-7,5+leg,3,6);ctx.fillRect(5,5-leg,3,6);ctx.restore();}}
   function updateSheep(dt){if(inHouse)return;updateSheep._accumulator=(updateSheep._accumulator||0)+dt;if(updateSheep._accumulator<.2)return;dt=Math.min(.4,updateSheep._accumulator);updateSheep._accumulator=0;const activeRadius=Math.max(width,height)*1.35;for(const a of sheep){if(!a.alive||Math.hypot(a.x-player.x,a.y-player.y)>activeRadius)continue;a.wander-=dt;if(a.wander<=0){a.dir=Math.random()*Math.PI*2;a.wander=1+Math.random()*4;}const nx=a.x+Math.cos(a.dir)*13*dt,ny=a.y+Math.sin(a.dir)*13*dt;if(!blocked(nx,a.y))a.x=nx;if(!blocked(a.x,ny))a.y=ny;}}
+  function drawVillageGuardian(m,x,y,time){
+    const bob=Math.sin(time/190+(m.phase||0))*2.2,step=Math.sin(time/105+(m.phase||0))*3.5;
+    const attacking=(m.villageGuardianAttackTimer||0)>.82,flash=m.flash>0;
+    ctx.save();ctx.translate(x,y+bob);
+    ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(0,17,31,10,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#343d4b';ctx.lineWidth=12;ctx.lineCap='round';ctx.beginPath();
+    ctx.moveTo(-11,4);ctx.lineTo(-14+step,24);ctx.moveTo(11,4);ctx.lineTo(15-step,24);ctx.stroke();
+    ctx.strokeStyle='#9b8055';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-19,23);ctx.lineTo(-8,23);ctx.moveTo(8,23);ctx.lineTo(20,23);ctx.stroke();
+    ctx.fillStyle=flash?'#fff4cf':'#566477';ctx.beginPath();ctx.roundRect(-22,-31,44,39,9);ctx.fill();
+    ctx.fillStyle='#283446';ctx.beginPath();ctx.roundRect(-18,-26,36,31,7);ctx.fill();
+    ctx.fillStyle=flash?'#fff':'#c5a66b';ctx.beginPath();ctx.moveTo(-19,-28);ctx.lineTo(-15,-43);ctx.lineTo(-7,-49);ctx.lineTo(0,-44);ctx.lineTo(8,-49);ctx.lineTo(16,-42);ctx.lineTo(19,-28);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#e9c66e';ctx.fillRect(-12,-37,7,4);ctx.fillRect(5,-37,7,4);
+    ctx.shadowColor='#ffcb70';ctx.shadowBlur=gameSettings.graphicsQuality==='low'?0:10;ctx.fillStyle='#fff0a0';ctx.fillRect(-10,-37,4,2);ctx.fillRect(7,-37,4,2);ctx.shadowBlur=0;
+    ctx.fillStyle='#9eabbc';ctx.beginPath();ctx.roundRect(-31,-23,12,28,5);ctx.fill();ctx.beginPath();ctx.roundRect(19,-22,12,27,5);ctx.fill();
+    ctx.fillStyle='#c6d0dc';ctx.beginPath();ctx.roundRect(-35,-19,14,22,5);ctx.fill();
+    ctx.fillStyle='#6c7b8d';ctx.beginPath();ctx.roundRect(23,-18,10,22,4);ctx.fill();
+    ctx.strokeStyle='#b2bdca';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(26,-12);ctx.lineTo(37,13+ (attacking?-13:0));ctx.stroke();
+    ctx.strokeStyle='#e0bd73';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(22,-15);ctx.lineTo(31,-15);ctx.stroke();
+    ctx.fillStyle='#f0d18a';ctx.fillRect(-5,-5,10,5);
+    ctx.fillStyle='#17212d';ctx.fillRect(-27,-60,54,6);ctx.fillStyle='#e6b75d';ctx.fillRect(-27,-60,54*Math.max(0,m.hp/250),6);
+    ctx.textAlign='center';ctx.font='900 9px Segoe UI';ctx.fillStyle='#fff0c4';ctx.fillText('ВЕЛИКИЙ СТРАЖ',0,-67);
+    ctx.restore();
+  }
   function drawForestTreantMob(m,x,y,time){
     const bob=Math.sin(time/145+(m.phase||0))*2.4,walk=Math.sin(time/95+(m.phase||0))*3;
     ctx.save();ctx.translate(x,y+bob);
@@ -4248,6 +4283,7 @@ function setupVillageNpcs(){
     for(const mob of monsters){
       const x=mob.x-camX,y=mob.y-camY;if(x<-45||x>width+45||y<-45||y>height+45)continue;
       if(mob.bossRealmCreature){drawBossRealmCreature(mob,x,y,time);continue;}
+      if(mob.villageGuardian&&!mob.exploding){drawVillageGuardian(mob,x,y,time);continue;}
       if(mob.forestTreant&&!mob.exploding){drawForestTreantMob(mob,x,y,time);continue;}
       if(mob.exploding){const p=1-Math.max(0,mob.explosionTimer)/.42;ctx.save();ctx.globalAlpha=Math.max(.15,1-p*.7);ctx.fillStyle='#ff7a32';ctx.beginPath();ctx.arc(x,y,24+90*p,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ffe7a0';ctx.lineWidth=5;ctx.beginPath();ctx.arc(x,y,15+72*p,0,Math.PI*2);ctx.stroke();ctx.restore();continue;}
       const bob=Math.sin(time/210+mob.phase)*2,walk=Math.sin(time/95+mob.phase)*(Math.hypot(mob.vx||0,mob.vy||0)>1?3:1);ctx.save();ctx.translate(x,y+bob);if(mob.isRebornBoss){const scale=Math.min(2.1,1.35+(mob.rebirthMultiplier||1)*.08);ctx.scale(scale,scale);ctx.shadowColor='#ffbd65';ctx.shadowBlur=gameSettings.graphicsQuality==='low'?0:18;ctx.strokeStyle='#ffe5a6';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-13,22,Math.PI,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;}ctx.fillStyle='#090f1e88';ctx.beginPath();ctx.ellipse(0,10,16,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#202536';ctx.fillRect(-8,8+walk,5,5);ctx.fillRect(4,8-walk,5,5);
@@ -5739,7 +5775,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
             exploding:raw.exploding===true,explosionTimer:Math.max(0,Math.min(10,Number(raw.explosionTimer)||0)),
             damageApplied:raw.damageApplied===true,adminSpawned:true,
             expansionEventId:eventId,expansionEventDefeated:raw.expansionEventDefeated===true,
-            villageRaid,forestTreant:raw.forestTreant===true,forestMiniBoss:raw.forestMiniBoss===true,
+            villageRaid,villageGuardian:raw.villageGuardian===true,villageGuardianAttackTimer:Math.max(0,Math.min(2,Number(raw.villageGuardianAttackTimer)||0)),forestTreant:raw.forestTreant===true,forestMiniBoss:raw.forestMiniBoss===true,
             forestPhase:Math.max(1,Math.min(3,Math.floor(Number(raw.forestPhase)||1))),
             eventBeaconX:Number.isFinite(raw.eventBeaconX)?raw.eventBeaconX:x,
             eventBeaconY:Number.isFinite(raw.eventBeaconY)?raw.eventBeaconY:y,
@@ -6802,6 +6838,25 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   window.SkyRealmCustomModHost={getContext:customModContext,canRun:canRunCustomScriptMods,applyActions:applyCustomScriptActions};
   window.SkyRealmSeaBridge={getWorldId:()=>currentWorldId,getPlayerPosition:()=>({x:player.x,y:player.y}),getWorldBounds:()=>({width:COLS*TILE,height:ROWS*TILE}),getBiomeAt:(x,y)=>biomeAt(Number(x)/TILE,Number(y)/TILE),isBossRealm:()=>!!bossRealmMode,getBossForestPosition:()=>bossRealmGrovePosition(),startBossForestTrial:()=>startBossRealmForestTrial(),getBossForestTrialRemaining:()=>countBossRealmForestTrial(),isCaveMode:()=>!!caveMode,isMineMode:()=>!!mineMode,isHouseMode:()=>!!inHouse,isDungeonMode:()=>!!dungeonMode,isCoopWorld:()=>isCoopWorldSave(),
+    spawnVillageGuardian:(eventId,x,y)=>{
+      if(isCoopWorldSave()||bossRealmMode||monsters.length>=12||!Number.isFinite(Number(x))||!Number.isFinite(Number(y)))return false;
+      const before=monsters.length;if(!spawnMonster('brute'))return false;
+      const mob=monsters[before];if(!mob)return false;
+      let placed=false;
+      for(let attempt=0;attempt<40;attempt++){
+        const angle=Math.random()*Math.PI*2,radius=105+Math.random()*65;
+        const px=Math.max(TILE*2,Math.min(COLS*TILE-TILE*2,Number(x)+Math.cos(angle)*radius));
+        const py=Math.max(TILE*2,Math.min(ROWS*TILE-TILE*2,Number(y)+Math.sin(angle)*radius));
+        if(waterAt(px/TILE,py/TILE)||blocked(px,py))continue;
+        mob.x=px;mob.y=py;placed=true;break;
+      }
+      if(!placed){monsters.splice(before,1);return false;}
+      mob.hp=mob.maxHp=250;mob.speed=155/1.3;mob.damageScale=1;mob.attackCooldown=0;mob.specialCooldown=999;
+      mob.villageGuardian=true;mob.villageGuardianAttackTimer=0;mob.expansionEventId=String(eventId).slice(0,160);
+      mob.expansionEventDefeated=false;mob.eventBeaconX=Number(x);mob.eventBeaconY=Number(y);
+      mob.bossTitle='ВЕЛИКИЙ СТРАЖ ДЕРЕВНИ';mob.adminSpawned=true;mob.territoryX=Number(x);mob.territoryY=Number(y);mob.territoryRadius=520;
+      spawnVisualBurst(mob.x,mob.y,22,'spark','#f3c66d');drawMinimap();saveGame();return true;
+    },
     spawnEventEnemies:(eventId,x,y,count=6)=>{
       if(isCoopWorldSave())return 0;
       const wanted=Math.max(0,Math.min(8,Math.floor(Number(count)||0))),limit=Math.min(wanted,Math.max(0,12-monsters.length));let spawned=0;
