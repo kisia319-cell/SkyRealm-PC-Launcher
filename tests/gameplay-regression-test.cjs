@@ -405,3 +405,15 @@ assert.equal(bossArenaRouteContext.bossRealmArenaIdFor('forest_king'), 'forest',
 assert.equal(bossArenaRouteContext.bossRealmArenaIdFor('magma_behemoth'), 'forge',
   'The Ashen Titan must remain assigned to the Forge arena.');
 console.log('SkyRealm Forest King arena-routing regression tests passed.');
+
+
+// Regression: the Root Crypt entrance and nearby root trap must have
+// non-overlapping interaction radii, so pressing E at the trap disarms it.
+const forestModuleSource = fs.readFileSync(path.join(__dirname, '../game/forest-ecosystem.js'), 'utf8');
+const archInteraction = forestModuleSource.indexOf('if(Math.hypot(p.x-arch.x,p.y-arch.y)<72)');
+const trapInteraction = forestModuleSource.indexOf('if(Math.hypot(p.x-trap.x,p.y-trap.y)<70');
+assert.ok(archInteraction >= 0 && trapInteraction > archInteraction,
+  'Root Crypt entrance radius must leave the adjacent trap interaction reachable.');
+assert.ok(Math.hypot(132-90,42-116) > 72,
+  'The exact trap position must be outside the entrance interaction radius.');
+console.log('SkyRealm Root Crypt trap interaction regression tests passed.');
