@@ -20,6 +20,7 @@ jobs:
       - run: node tests/intro-cleanup-test.cjs
       - run: node tests/sea-world-regression-test.cjs
       - run: node tests/boss-realm-regression-test.cjs
+      - run: node tests/world-events-expansion-test.cjs
       - run: node tests/multiplayer-client-test.cjs
       - run: node --check tests/staff-authorization-test.cjs
       - run: node --check tests/gameplay-regression-test.cjs
@@ -61,6 +62,7 @@ jobs:
       - run: node --check game/multiplayer-client.js
       - run: node --check game/multiplayer-ui.js
       - run: node --check game/game.js
+      - run: node --check game/world-events.js
       - run: node --check game/sea-system.js
       - run: node --check game/expansion-systems.js
       - run: python -m py_compile launcher.py
