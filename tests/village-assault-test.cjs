@@ -13,12 +13,15 @@ class FakeElement {
   querySelector(selector) { this._queries ||= {}; return this._queries[selector] ||= new FakeElement('query'); }
   querySelectorAll(selector) {
     if(selector!=='[data-action]') return [];
-    return Array.from(this.innerHTML.matchAll(/data-action="([^"]+)"/g),match=>{
-      const control=new FakeElement('button');
-      control.attributes['data-action']=match[1];
-      control.getAttribute=name=>control.attributes[name]||null;
-      return control;
-    });
+    if(!this._actionControls){
+      this._actionControls=Array.from(this.innerHTML.matchAll(/data-action="([^"]+)"/g),match=>{
+        const control=new FakeElement('button');
+        control.attributes['data-action']=match[1];
+        control.getAttribute=name=>control.attributes[name]||null;
+        return control;
+      });
+    }
+    return this._actionControls;
   }
   setAttribute(name,value) { this.attributes[name]=value; }
   getAttribute(name) { return this.attributes[name]||null; }
