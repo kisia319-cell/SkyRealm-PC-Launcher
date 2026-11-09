@@ -5659,6 +5659,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     return true;
   }
   function loadGame(){
+    artifactProgression={levels:{},awakeningCooldownUntil:0,wardUntil:0,berserkUntil:0};
     monsters.length=0;coopGuestMobAttackCooldowns.clear();
     let loadedSuccessfully=true;
     try{
