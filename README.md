@@ -13,7 +13,7 @@
 
 ## Текущая версия игры
 
-Установленная и публикуемая сборка игры: **0.20.50.97**. В обновлении добавлена визуальная подсветка активных боссов и объёмное освещение существующей пещеры; новые предметы, существа, боссы и механики не добавлялись.nt Edition Preferences
+Установленная и публикуемая сборка игры: **0.20.50.102**. Исправлено восстановление срубленных деревьев: после наступления игрового срока дерево снова появляется без ошибки обновления мира. Добавлена регрессионная проверка срока, размера, окраски и сохранения свойств восстановленного дерева.nt Edition Preferences
 
 - Added an opt-in checkbox below Premium/Free choices to remember the selected edition.
 - Stored the preference against the authenticated SkyRealm account, so it follows the same account across computers and does not leak between different accounts.
