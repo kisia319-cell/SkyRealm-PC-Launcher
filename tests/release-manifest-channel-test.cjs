@@ -8,7 +8,7 @@ const stableWorkflow = fs.readFileSync(path.join(root, '.github/workflows/build-
 const updateConfig = JSON.parse(fs.readFileSync(path.join(root, 'updater_config.json'), 'utf8'));
 assert.ok(previewWorkflow.includes('path = Path("preview-manifest.json")'), 'Co-op preview must write its own manifest.');
 assert.ok(previewWorkflow.includes('git add preview-manifest.json'), 'Co-op preview must stage only its dedicated manifest.');
-assert.ok(!/git add\\s+manifest\\.json/.test(previewWorkflow), 'Co-op preview must never stage the stable manifest.');
+assert.ok(!previewWorkflow.includes('git add manifest.json'), 'Co-op preview must never stage the stable manifest.');
 assert.ok(previewWorkflow.includes('stable_path = Path("manifest.json")'), 'Preview metadata may inherit stable launcher fields.');
 assert.ok(stableWorkflow.includes('Commit updated manifest'), 'The release workflow remains the owner of the stable manifest.');
 assert.ok(stableWorkflow.includes('"preview-manifest.json"'), 'A preview-only manifest change must not trigger a redundant stable Windows build.');
