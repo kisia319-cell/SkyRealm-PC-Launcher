@@ -33,7 +33,12 @@
     sanctuary:{name:'\u0423\u0431\u0435\u0436\u0438\u0449\u0435 \u0437\u0432\u0435\u0440\u0435\u0439',icon:'\u{1F3E1}',price:850,desc:'\u0421\u043f\u0443\u0442\u043d\u0438\u043a\u0438 \u043f\u043e\u043b\u0443\u0447\u0430\u044e\u0442 \u0443\u0441\u0438\u043b\u0435\u043d\u0438\u0435 \u0438 \u0430\u0442\u0430\u043a\u0443\u044e\u0442 \u0447\u0430\u0449\u0435.'},
     market:{name:'\u0422\u043e\u0440\u0433\u043e\u0432\u0430\u044f \u043f\u043b\u043e\u0449\u0430\u0434\u044c',icon:'\u{1F3EA}',price:500,desc:'\u0414\u0430\u0451\u0442 \u043d\u0435\u0431\u043e\u043b\u044c\u0448\u043e\u0439 \u0435\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0439 \u0434\u043e\u0445\u043e\u0434.'},
     guild_hall:{name:'\u0413\u0438\u043b\u044c\u0434\u0435\u0439\u0441\u043a\u0438\u0439 \u0434\u043e\u043c',icon:'\u{1F3DB}',price:1250,desc:'\u0423\u0432\u0435\u043b\u0438\u0447\u0438\u0432\u0430\u0435\u0442 \u043d\u0430\u0433\u0440\u0430\u0434\u044b \u0437\u0430 \u043f\u043e\u0440\u0443\u0447\u0435\u043d\u0438\u044f \u0436\u0438\u0442\u0435\u043b\u0435\u0439.'},
-    granary:{name:'\u0417\u0435\u0440\u043d\u043e\u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0435',icon:'\u{1F3E1}',price:950,desc:'\u0414\u0430\u0451\u0442 \u0435\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0439 \u0434\u043e\u0445\u043e\u0434 \u0438 \u043f\u043e\u043c\u043e\u0433\u0430\u0435\u0442 \u0440\u0430\u0437\u0432\u0438\u0432\u0430\u0442\u044c \u0433\u043e\u0440\u043e\u0434.'}
+    granary:{name:'\u0417\u0435\u0440\u043d\u043e\u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0435',icon:'\u{1F3E1}',price:950,desc:'\u0414\u0430\u0451\u0442 \u0435\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0439 \u0434\u043e\u0445\u043e\u0434 \u0438 \u043f\u043e\u043c\u043e\u0433\u0430\u0435\u0442 \u0440\u0430\u0437\u0432\u0438\u0432\u0430\u0442\u044c \u0433\u043e\u0440\u043e\u0434.'},
+    infirmary:{name:'\u0413\u043e\u0440\u043e\u0434\u0441\u043a\u0430\u044f \u043b\u0435\u0447\u0435\u0431\u043d\u0438\u0446\u0430',icon:'\u{1F3E5}',price:900,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':14,'\u041a\u0430\u043c\u0435\u043d\u044c':16,'\u0416\u0435\u043b\u0435\u0437\u043e':4},desc:'\u041b\u0435\u0447\u0435\u0431\u043d\u0438\u0446\u0430 \u043f\u043e\u043c\u043e\u0433\u0430\u0435\u0442 \u0436\u0438\u0442\u0435\u043b\u044f\u043c \u043f\u043e\u0441\u043b\u0435 \u043d\u043e\u0447\u043d\u044b\u0445 \u043d\u0430\u043f\u0430\u0434\u0435\u043d\u0438\u0439.'},
+    school:{name:'\u0428\u043a\u043e\u043b\u0430 \u0440\u0435\u043c\u0451\u0441\u0435\u043b',icon:'\u{1F3EB}',price:850,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':18,'\u041a\u0430\u043c\u0435\u043d\u044c':8,'\u041a\u0440\u0438\u0441\u0442\u0430\u043b\u043b':1},desc:'\u041f\u043e\u043c\u043e\u0433\u0430\u0435\u0442 \u0443\u0447\u0435\u043d\u0438\u043a\u0430\u043c \u0438 \u0443\u0432\u0435\u043b\u0438\u0447\u0438\u0432\u0430\u0435\u0442 \u043d\u0430\u0433\u0440\u0430\u0434\u044b \u0437\u0430 \u043f\u043e\u0440\u0443\u0447\u0435\u043d\u0438\u044f.'},
+    smithy:{name:'\u041a\u043e\u0440\u043e\u043b\u0435\u0432\u0441\u043a\u0430\u044f \u043a\u0443\u0437\u043d\u0438\u0446\u0430',icon:'\u{1F528}',price:1200,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':12,'\u041a\u0430\u043c\u0435\u043d\u044c':18,'\u0416\u0435\u043b\u0435\u0437\u043e':14,'\u0423\u0433\u043e\u043b\u044c':8},desc:'\u041a\u0443\u0437\u043d\u0438\u0446\u0430 \u0441\u043d\u0430\u0431\u0436\u0430\u0435\u0442 \u0437\u0430\u0449\u0438\u0442\u043d\u0438\u043a\u043e\u0432 \u0438 \u0432\u043e\u0438\u043d\u043e\u0432.'},
+    watch_bell:{name:'\u0421\u0438\u0433\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u0431\u0430\u0448\u043d\u044f',icon:'\u{1F514}',price:1000,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':20,'\u041a\u0430\u043c\u0435\u043d\u044c':10,'\u0416\u0435\u043b\u0435\u0437\u043e':6},desc:'\u041f\u0440\u0435\u0434\u0443\u043f\u0440\u0435\u0436\u0434\u0430\u0435\u0442 \u043e \u043d\u0430\u043f\u0430\u0434\u0435\u043d\u0438\u044f\u0445 \u0438 \u0443\u0441\u043a\u043e\u0440\u044f\u0435\u0442 \u043f\u0430\u0442\u0440\u0443\u043b\u0438.'},
+    greenhouse:{name:'\u0411\u043e\u043b\u044c\u0448\u0430\u044f \u043e\u0440\u0430\u043d\u0436\u0435\u0440\u0435\u044f',icon:'\u{1F331}',price:750,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':16,'\u041a\u0430\u043c\u0435\u043d\u044c':6,'\u0416\u0435\u043b\u0435\u0437\u043e':3},desc:'\u0412\u044b\u0440\u0430\u0449\u0438\u0432\u0430\u0435\u0442 \u043f\u0440\u0438\u043f\u0430\u0441\u044b \u0434\u043b\u044f \u0433\u043e\u0440\u043e\u0434\u0430.'}
   };
   const RAIDS = {
     sky:{name:'\u0425\u0440\u0430\u043c \u043d\u0435\u0431\u0435\u0441',boss:'\u0410\u0440\u0445\u043e\u043d\u0442 \u0441\u043e\u043b\u043d\u0446\u0430',hp:1800,damage:22,reward:55000,item:'\u041f\u0435\u0447\u0430\u0442\u044c \u043d\u0435\u0431\u0435\u0441\u043d\u043e\u0433\u043e \u0440\u0435\u0439\u0434\u0430'},
@@ -54,6 +59,7 @@
     version:VERSION, ownedPets:[], activePet:null, petLevels:{}, petX:0, petY:0, petCooldown:1.5,
     fish:{}, projects:{}, lastSeasonKey:'', pendingSeason:'', claimedSeasons:[],
     seasonsSeen:[], lastMarketDay:-1, lastGranaryDay:-1, contractsDay:-1, contracts:[], raid:null, raidCooldownDay:0,
+    town:{renown:0,happiness:55,lastIncomeDay:-1,patrolCooldownDay:0,patrol:null},
     achievements:{}, stats:{fishSpecies:0,petKills:0,raidsWon:0,projectsBuilt:0,contractsDone:0}
   });
   let state=defaults(), loadedWorld='', button=null, root=null, opened=false, activeTab='fish', updateButtonTimer=0;
@@ -71,6 +77,9 @@
     s.petCooldown=clamp(Number(raw.petCooldown)||1.5,0,30);
     s.fish=raw.fish&&typeof raw.fish==='object'?Object.fromEntries(FISH.map(f=>[f.id,clamp(Math.floor(Number(raw.fish[f.id])||0),0,999999)])):s.fish;
     s.projects=raw.projects&&typeof raw.projects==='object'?Object.fromEntries(Object.keys(PROJECTS).map(id=>[id,raw.projects[id]===true])):s.projects;
+    const town=raw.town&&typeof raw.town==='object'?raw.town:{};
+    const p=town.patrol&&typeof town.patrol==='object'?town.patrol:null;
+    s.town={renown:clamp(Math.floor(Number(town.renown)||0),0,1000000),happiness:clamp(Math.floor(Number(town.happiness)||55),0,100),lastIncomeDay:Number.isInteger(town.lastIncomeDay)?town.lastIncomeDay:-1,patrolCooldownDay:clamp(Math.floor(Number(town.patrolCooldownDay)||0),0,1000000),patrol:p&&typeof p.id==='string'?{id:p.id.slice(0,120),day:clamp(Math.floor(Number(p.day)||0),0,1000000),active:p.active===true,completed:p.completed===true,spawned:clamp(Math.floor(Number(p.spawned)||0),1,8)}:null};
     s.lastSeasonKey=typeof raw.lastSeasonKey==='string'?raw.lastSeasonKey.slice(0,64):'';
     s.pendingSeason=typeof raw.pendingSeason==='string'?raw.pendingSeason.slice(0,64):'';
     s.claimedSeasons=Array.isArray(raw.claimedSeasons)?raw.claimedSeasons.filter(v=>typeof v==='string').slice(-32):[];
@@ -123,11 +132,36 @@
     state.ownedPets.push(id);state.petLevels[id]={level:1,xp:0};state.activePet=id;state.petCooldown=.5;save();notify('\u041d\u043e\u0432\u044b\u0439 \u0441\u043f\u0443\u0442\u043d\u0438\u043a \u0432 \u043a\u043e\u043c\u0430\u043d\u0434\u0435: '+pet.name+'!');checkAchievements();render();
   }
   function buildProject(id){
-    const item=PROJECTS[id];if(!item||state.projects[id])return;
-    if(!bridge()?.isTradeWorld?.()){notify('\u041f\u0440\u043e\u0435\u043a\u0442\u044b \u043f\u043e\u0441\u0435\u043b\u0435\u043d\u0438\u044f \u043c\u043e\u0436\u043d\u043e \u0443\u043b\u0443\u0447\u0448\u0430\u0442\u044c \u0432 \u041c\u0438\u0440\u0435 \u0442\u043e\u0440\u0433\u043e\u0432\u044b\u0445 \u0433\u043e\u0440\u043e\u0434\u043e\u0432.');return;}
-    if(Number(bridge()?.getGold?.()||0)<item.price){notify('\u041d\u0443\u0436\u043d\u043e \u0437\u043e\u043b\u043e\u0442\u043e: '+item.price+'.');return;}
-    if(bridge()?.spendGold?.(item.price)!==true)return;
-    state.projects[id]=true;state.stats.projectsBuilt++;save();notify('\u041f\u043e\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0430: '+item.name+'!');checkAchievements();render();
+    const item=PROJECTS[id];if(!item||state.projects[id])return false;
+    const b=bridge();if(!b?.isTradeWorld?.()){notify('Развивать здания можно только в Мире торговых городов.');return false;}
+    const missing=Object.entries(item.items||{}).filter(([name,count])=>(Number(b.getItemCount?.(name))||0)<count);
+    if(missing.length){notify('Не хватает материалов: '+missing.map(([name,count])=>name+' '+(Number(b.getItemCount?.(name))||0)+'/'+count).join(', ')+'.');return false;}
+    if(Number(b.getGold?.()||0)<item.price){notify('Нужно золото: '+item.price+'.');return false;}
+    if(b.spendGold?.(item.price)!==true)return false;
+    for(const [name,count] of Object.entries(item.items||{})){if(b.spendItem?.(name,count)!==true){notify('Не удалось списать материалы. Проверь инвентарь.');return false;}}
+    state.projects[id]=true;state.stats.projectsBuilt++;state.town.renown=clamp(state.town.renown+35,0,1000000);state.town.happiness=clamp(state.town.happiness+6,0,100);save();
+    notify('Постройка завершена: '+item.name+'! +35 репутации города.');checkAchievements();render();return true;
+  }
+  function townRank(){const r=Number(state.town?.renown)||0;return r>=900?5:r>=480?4:r>=220?3:r>=80?2:1;}
+  function townRankName(){return ['','Посёлок','Деревня','Городок','Город','Столица'][townRank()];}
+  function startTownPatrol(){
+    const b=bridge(),snap=b?.getChallengeSnapshot?.();if(!b?.isTradeWorld?.()||!snap?.worldId){notify('Оборона доступна в Мире торговых городов.');return false;}
+    if(b.isCoopWorld?.()){notify('Патрули пока доступны только в одиночных мирах.');return false;}
+    if(state.town.patrol?.active){notify('Отбей текущее нападение.');return false;}
+    const day=Math.max(0,Number(snap.day)||0);if(day<state.town.patrolCooldownDay){notify('Патруль доступен через '+(state.town.patrolCooldownDay-day)+' игровых дня.');return false;}
+    const centers=b.getVillageCenters?.()||[],pos=b.getPlayerPosition?.();if(!centers.length){notify('Поселение не найдено.');return false;}
+    const center=centers.slice().sort((a,z)=>Math.hypot(a.x-(pos?.x||0),a.y-(pos?.y||0))-Math.hypot(z.x-(pos?.x||0),z.y-(pos?.y||0)))[0];
+    const eventId='town-patrol-'+encodeURIComponent(worldId())+'-'+day;
+    const spawned=Number(b.spawnEventEnemies?.(eventId,center.x,center.y,6))||0;if(spawned<3){b.clearEventEnemies?.(eventId);notify('Рядом слишком много существ. Освободи место и попробуй снова.');return false;}
+    state.town.patrol={id:eventId,day,active:true,completed:false,spawned};state.town.patrolCooldownDay=day+(state.projects.watch_bell?1:2);save();render();notify('ТРЕВОГА! На поселение напали '+spawned+' налётчиков.');return true;
+  }
+  function updateTownPatrol(){
+    const patrol=state.town?.patrol,b=bridge();if(!patrol?.active||typeof b?.getEventEnemyCount!=='function')return;
+    const left=Number(b.getEventEnemyCount(patrol.id));if(!Number.isFinite(left)||left!==0)return;
+    patrol.active=false;patrol.completed=true;state.town.renown=clamp(state.town.renown+90,0,1000000);state.town.happiness=clamp(state.town.happiness+14,0,100);
+    const reward=state.projects.guild_hall?42000:35000;b.addGold?.(reward);b.addItem?.('Знак защитника города',1,'Трофей за оборону торгового города.');
+    if(state.projects.infirmary)b.addItem?.('Настойка лесного лекаря',1,'Припасы городской лечебницы.');
+    save();notify('ПОСЕЛЕНИЕ СПАСЕНО! +90 репутации и '+Math.floor(reward/100)+' золота.');if(opened)render();
   }
   function startRaid(id){
     if(!RAIDS[id])return;
@@ -164,8 +198,8 @@
     const b=bridge();
     if(Number(b?.getItemCount?.(task.item)||0)<task.amount){notify('Не хватает ресурсов: '+task.item+' ×'+task.amount+'.');return;}
     if(b?.spendItem?.(task.item,task.amount)!==true){notify('Не удалось списать предметы из инвентаря.');return;}
-    const reward=Math.round(task.reward*(state.projects.guild_hall?1.25:1));
-    b?.addGold?.(reward);entry.completed=true;state.stats.contractsDone++;save();
+    const reward=Math.round(task.reward*(state.projects.guild_hall?1.25:1)*(state.projects.school?1.1:1));
+    b?.addGold?.(reward);entry.completed=true;state.stats.contractsDone++;state.town.renown=clamp(state.town.renown+18,0,1000000);state.town.happiness=clamp(state.town.happiness+3,0,100);save();
     notify('Поручение выполнено! Награда: '+Math.floor(reward/100)+' золота.');
     checkAchievements();render();
   }
@@ -194,7 +228,7 @@
   function update(dt){
     const id=worldId();if(!id)return;if(id!==loadedWorld)load();
     const b=bridge(),snap=b?.getChallengeSnapshot?.();if(!snap||snap.paused||b?.isCoopWorld?.())return;
-    const season=b?.getSeasonInfo?.(),day=Math.max(0,Number(snap.day)||0);
+    const season=b?.getSeasonInfo?.(),day=Math.max(0,Number(snap.day)||0);updateTownPatrol();
     if(season?.id){
       const key=Math.floor((Number(season.day)||0)/28)+':'+season.id;
       if(key!==state.lastSeasonKey){state.lastSeasonKey=key;if(!state.claimedSeasons.includes(key))state.pendingSeason=key;if(!state.seasonsSeen.includes(season.id))state.seasonsSeen.push(season.id);save();notify('\u041d\u0430\u0447\u0430\u043b\u0441\u044f \u0441\u0435\u0437\u043e\u043d: '+seasonName(season.id)+'!');}
@@ -326,7 +360,14 @@
       {id:'harbor',village:'forest',dx:600,dy:350},
       {id:'watchtower',village:'snow',dx:540,dy:350},
       {id:'sanctuary',village:'desert',dx:540,dy:-380},
-      {id:'market',village:'volcano',dx:540,dy:350}
+      {id:'market',village:'volcano',dx:540,dy:350},
+      {id:'granary',village:'blight',dx:560,dy:350},
+      {id:'guild_hall',village:'forest',dx:560,dy:-350},
+      {id:'infirmary',village:'desert',dx:560,dy:350},
+      {id:'school',village:'snow',dx:560,dy:-350},
+      {id:'smithy',village:'volcano',dx:560,dy:-350},
+      {id:'watch_bell',village:'blight',dx:560,dy:-350},
+      {id:'greenhouse',village:'forest',dx:560,dy:550)
     ];
     for(const item of items){
       if(!state.projects[item.id])continue;
@@ -361,9 +402,16 @@
         for(let i=0;i<3;i++){const sx=-48+i*48;ctx.fillStyle='#654633';ctx.fillRect(sx,0,5,36);ctx.fillRect(sx+31,0,5,36);ctx.fillStyle=colors[i];ctx.beginPath();ctx.moveTo(sx-7,0);ctx.lineTo(sx+18,-28);ctx.lineTo(sx+43,0);ctx.closePath();ctx.fill();ctx.fillStyle='#f0d6a1';ctx.fillRect(sx+6,12,20,9);}
         ctx.fillStyle='#f4d98e';ctx.fillRect(-12,-37,24,5);
       }
+      if(item.id==='granary'){ctx.fillStyle='#6c4b31';ctx.fillRect(-42,-2,84,48);ctx.fillStyle='#d39b4f';ctx.beginPath();ctx.moveTo(-52,0);ctx.lineTo(0,-42);ctx.lineTo(52,0);ctx.closePath();ctx.fill();ctx.fillStyle='#e4c47d';ctx.fillRect(-9,18,18,28);}
+      else if(item.id==='guild_hall'){ctx.fillStyle='#71543d';ctx.fillRect(-54,-4,108,52);ctx.fillStyle='#c7b27a';ctx.beginPath();ctx.moveTo(-65,-3);ctx.lineTo(0,-58);ctx.lineTo(65,-3);ctx.closePath();ctx.fill();ctx.fillStyle='#e7d7aa';ctx.fillRect(-39,4,8,35);ctx.fillRect(-13,4,8,35);ctx.fillRect(13,4,8,35);ctx.fillRect(39,4,8,35);}
+      else if(item.id==='infirmary'){ctx.fillStyle='#d5dfcf';ctx.fillRect(-45,-2,90,46);ctx.fillStyle='#82a98d';ctx.beginPath();ctx.moveTo(-54,0);ctx.lineTo(0,-38);ctx.lineTo(54,0);ctx.closePath();ctx.fill();ctx.fillStyle='#fff4df';ctx.fillRect(-9,-25,18,44);ctx.fillRect(-21,-13,42,17);ctx.fillStyle='#bd574f';ctx.fillRect(-4,-21,8,36);ctx.fillRect(-14,-7,28,8);}
+      else if(item.id==='school'){ctx.fillStyle='#d6b98b';ctx.fillRect(-47,-3,94,46);ctx.fillStyle='#557c9b';ctx.beginPath();ctx.moveTo(-57,-1);ctx.lineTo(0,-43);ctx.lineTo(57,-1);ctx.closePath();ctx.fill();ctx.fillStyle='#f4dfa9';ctx.fillRect(-36,8,17,15);ctx.fillRect(19,8,17,15);ctx.fillStyle='#644631';ctx.fillRect(-8,19,16,24);}
+      else if(item.id==='smithy'){ctx.fillStyle='#57483f';ctx.fillRect(-50,-2,100,47);ctx.fillStyle='#8b6550';ctx.beginPath();ctx.moveTo(-58,0);ctx.lineTo(0,-44);ctx.lineTo(58,0);ctx.closePath();ctx.fill();ctx.fillStyle='#413431';ctx.fillRect(20,-58,17,43);ctx.fillStyle='#ff9c45';ctx.shadowColor='#ff672c';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(-12,20,11,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+      else if(item.id==='watch_bell'){ctx.fillStyle='#8b795d';ctx.fillRect(-22,-2,44,70);ctx.fillStyle='#c5a875';ctx.beginPath();ctx.moveTo(-34,0);ctx.lineTo(0,-51);ctx.lineTo(34,0);ctx.closePath();ctx.fill();ctx.fillStyle='#182b39';ctx.fillRect(-12,-30,24,20);ctx.strokeStyle='#f0d58e';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,-20,8,0,Math.PI*2);ctx.stroke();}
+      else if(item.id==='greenhouse'){ctx.fillStyle='rgba(99,187,159,.38)';ctx.fillRect(-54,0,108,43);ctx.strokeStyle='#b2e7d7';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-60,0);ctx.lineTo(0,-42);ctx.lineTo(60,0);ctx.lineTo(60,43);ctx.lineTo(-60,43);ctx.closePath();ctx.stroke();for(let x=-35;x<=35;x+=18){ctx.strokeStyle='#8fc9b8';ctx.beginPath();ctx.moveTo(x,3);ctx.lineTo(x,40);ctx.stroke();ctx.fillStyle='#7abf75';ctx.beginPath();ctx.arc(x,14+(x%2)*6,7,0,Math.PI*2);ctx.fill();}}
       ctx.globalAlpha=1;ctx.fillStyle='#f1f6e7';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';
       ctx.shadowColor='#06131a';ctx.shadowBlur=5;
-      ctx.fillText(item.id==='harbor'?'\u041c\u043e\u0440\u0441\u043a\u043e\u0439 \u043f\u043e\u0440\u0442':item.id==='watchtower'?'\u0421\u0442\u043e\u0440\u043e\u0436\u0435\u0432\u0430\u044f \u0431\u0430\u0448\u043d\u044f':item.id==='sanctuary'?'\u0423\u0431\u0435\u0436\u0438\u0449\u0435': '\u0422\u043e\u0440\u0433\u043e\u0432\u044b\u0439 \u0440\u044b\u043d\u043e\u043a',0,-82);
+      ctx.fillText(PROJECTS[item.id]?.name||item.id,0,-82);
       ctx.restore();
     }
   }
@@ -392,8 +440,15 @@
     return '<p class="lw-note">Ежедневные задания жителей. Предметы списываются из инвентаря после сдачи.</p><div class="lw-grid">'+state.contracts.map(entry=>{const c=CONTRACTS.find(v=>v.id===entry.id);if(!c)return '';const count=Number(bridge()?.getItemCount?.(c.item)||0),done=entry.completed;return '<article class="lw-card"><b>'+esc(CONTRACT_NPCS[c.npc]||'Житель')+'</b><small>'+esc(c.desc)+'</small><div class="lw-meter"><i style="width:'+Math.min(100,count/c.amount*100)+'%"></i></div><small>'+esc(c.item)+': '+Math.min(count,c.amount)+' / '+c.amount+'</small><small>Награда: '+Math.floor(c.reward*(state.projects.guild_hall?1.25:1)/100)+' золота</small><button type="button" '+(done||count<c.amount?'disabled':'')+' data-lw-action="contract:'+c.id+'">'+(done?'Выполнено':count<c.amount?'Собрать ресурсы':'Сдать ресурсы')+'</button></article>';}).join('')+'</div>';
   }
   function renderProjects(){
-    const trade=!!bridge()?.isTradeWorld?.();
-    return renderContracts()+'<p class="lw-note">'+(trade?'\u0422\u044b \u0432 \u041c\u0438\u0440\u0435 \u0442\u043e\u0440\u0433\u043e\u0432\u044b\u0445 \u0433\u043e\u0440\u043e\u0434\u043e\u0432. \u0417\u0434\u0435\u0441\u044c \u043c\u043e\u0436\u043d\u043e \u0440\u0430\u0437\u0432\u0438\u0432\u0430\u0442\u044c \u043f\u043e\u0441\u0435\u043b\u0435\u043d\u0438\u044f.':'\u0414\u043b\u044f \u043f\u0440\u043e\u0435\u043a\u0442\u043e\u0432 \u043f\u0435\u0440\u0435\u0439\u0434\u0438 \u0447\u0435\u0440\u0435\u0437 \u043f\u043e\u0440\u0442\u0430\u043b \u0432 \u041c\u0438\u0440 \u0442\u043e\u0440\u0433\u043e\u0432\u044b\u0445 \u0433\u043e\u0440\u043e\u0434\u043e\u0432.')+'</p><div class="lw-grid">'+Object.entries(PROJECTS).map(([id,p])=>'<article class="lw-card"><div class="lw-pet-icon">'+p.icon+'</div><b>'+esc(p.name)+'</b><small>'+esc(p.desc)+'</small><button type="button" '+(state.projects[id]||!trade?'disabled':'')+' data-lw-action="project:'+id+'">'+(state.projects[id]?'\u041f\u043e\u0441\u0442\u0440\u043e\u0435\u043d\u043e':!trade?'\u041d\u0443\u0436\u0435\u043d \u0442\u043e\u0440\u0433\u043e\u0432\u044b\u0439 \u043c\u0438\u0440':'\u0423\u043b\u0443\u0447\u0448\u0438\u0442\u044c \u00b7 '+p.price+' \u0437\u043e\u043b\u043e\u0442\u0430')+'</button></article>').join('')+'</div>';
+    const trade=!!bridge()?.isTradeWorld?.(),town=state.town,patrol=town.patrol,rank=townRank();
+    const levels=[0,80,220,480,900],progress=rank>=5?100:(town.renown-levels[rank])/(levels[rank+1]-levels[rank])*100;
+    const buildings=Object.values(state.projects).filter(Boolean).length;
+    const patrolText=patrol?.active?'Защита идёт · осталось '+(bridge()?.getEventEnemyCount?.(patrol.id)??'—')+' врагов':patrol?.completed&&patrol.day===Number(bridge()?.getGameDay?.()||0)?'Поселение защищено сегодня':'Можно начать патруль';
+    const stats='<div class="lw-note"><b>🏘 '+townRankName()+'</b> · Репутация '+town.renown+' · Настроение '+town.happiness+'/100<div class="lw-meter"><i style="width:'+clamp(progress,0,100)+'%"></i></div><small>18 домов · 15 гуляющих жителей · '+buildings+' построек. Репутация растёт за проекты, поручения и оборону.</small></div>';
+    const patrolCard='<article class="lw-card"><div class="lw-pet-icon">🛡️</div><b>Оборона торговых улиц</b><small>Шесть настоящих налётчиков появляются возле ближайшего поселения. Сигнальная башня сокращает перерыв между патрулями.</small><div class="lw-count">'+esc(patrolText)+'</div><button type="button" '+(!trade||patrol?.active||Number(bridge()?.getGameDay?.()||0)<town.patrolCooldownDay?'disabled':'')+' data-lw-action="town-patrol">'+(patrol?.active?'Нападение идёт':!trade?'Нужен торговый мир':'Начать оборону')+'</button></article>';
+    const note='<p class="lw-note">'+(trade?'Развивай торговые города: строй общественные здания, помогай жителям и защищай улицы.':'Для городских построек перейди через портал в Мир торговых городов.')+'</p>';
+    const projects='<div class="lw-grid">'+Object.entries(PROJECTS).map(([id,p])=>{const missing=Object.entries(p.items||{}).filter(([name,count])=>(Number(bridge()?.getItemCount?.(name))||0)<count);const req=p.items?Object.entries(p.items).map(([name,count])=>name+' ×'+count).join(', '):'';return '<article class="lw-card"><div class="lw-pet-icon">'+p.icon+'</div><b>'+esc(p.name)+'</b><small>'+esc(p.desc)+'</small>'+(p.items?'<small>Материалы: '+esc(req)+'</small>':'')+'<button type="button" '+(state.projects[id]||!trade||missing.length?'disabled':'')+' data-lw-action="project:'+id+'">'+(state.projects[id]?'Построено':!trade?'Нужен торговый мир':missing.length?'Не хватает материалов':'Построить · '+p.price+' золота')+'</button></article>';}).join('')+'</div>';
+    return stats+'<div class="lw-grid">'+patrolCard+'</div>'+renderContracts()+note+projects;
   }
   function renderSeason(){
     const s=bridge()?.getSeasonInfo?.()||{},key=state.pendingSeason;
@@ -439,6 +494,7 @@
       if(action.startsWith('fish-sell:')){sellFish(action.slice(10));return;}
       if(action.startsWith('pet:')){buyOrSelectPet(action.slice(4));return;}
       if(action.startsWith('project:')){buildProject(action.slice(8));return;}
+      if(action==='town-patrol'){startTownPatrol();return;}
       if(action.startsWith('raid:')){startRaid(action.slice(5));return;}
       if(action==='raid-attack'){attackRaid();return;}
       if(action==='raid-guard'){guardRaid();return;}
@@ -464,6 +520,7 @@
   window.SkyRealmLivingWorld=Object.freeze({
     update,draw,onFishingCatch,damageMultiplier,defenseBonus,fishBonus,
     getState:()=>JSON.parse(JSON.stringify(state)),
+    getTownState:()=>JSON.parse(JSON.stringify(state.town)),buildProject,startTownPatrol,
     open:openPanel
   });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
