@@ -36,6 +36,9 @@
       }
     }catch(e){console.warn('[SkyRealm world events load]',e);}
     if(!state.camps.length)state.camps=makeCamps();
+    // Enemies may not survive a process restart. Never turn a stale encounter ID into free loot.
+    if(state.activeTreeId&&Number(B()?.getEventEnemyCount?.(state.activeTreeId))<=0)state.activeTreeId='';
+    if(state.activeMiniBossId&&Number(B()?.getEventEnemyCount?.(state.activeMiniBossId))<=0)state.activeMiniBossId='';
     persist(true);
   }
   function activeSurface(){
