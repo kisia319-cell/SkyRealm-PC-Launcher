@@ -125,7 +125,7 @@
   }
   function resize(){if(!canvas)return;const r=canvas.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.max(1,Math.floor(r.width*d));canvas.height=Math.max(1,Math.floor(r.height*d));ctx.setTransform(d,0,0,d,0,0);}
   function keyToken(e){const code=String(e.code||'');if(code.startsWith('Key')&&code.length===4)return code.slice(3).toLowerCase();if(code==='Space')return ' ';return String(e.key||'').toLowerCase();}
-  function onKey(e){if(!active)return;const k=keyToken(e);if(!['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','m','e','escape'].includes(k))return;e.preventDefault();e.stopPropagation();const firstPress=!keys.has(k);keys.add(k);if(!firstPress)return;if(k==='m')toggleMap();if(k==='e'){if(state.underwater)toggleDive();else interact();}if(k==='escape'){if($('sea-vault').classList.contains('open'))$('sea-vault').classList.remove('open');else if(state.mapOpen)toggleMap();else leave();}}
+  function onKey(e){if(!active)return;const k=keyToken(e);if(!['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','m','e','escape'].includes(k))return;e.preventDefault();e.stopPropagation();const firstPress=!keys.has(k);keys.add(k);if(!firstPress)return;if(k==='m')toggleMap();if(k==='e'){if(state.underwater)toggleDive();else interact();}if(k==='escape'){if($('sea-vault').classList.contains('open'))$('sea-vault').classList.remove('open');else if(state.mapOpen)toggleMap();else if($('sea-kraken').classList.contains('open'))closeKraken();else leave();}}
   function onUp(e){keys.delete(keyToken(e));}
   function enter(){
     const b=bridge(); if(!b?.getWorldId?.()){msg('Сначала загрузи игровой мир.');return;}
@@ -133,7 +133,7 @@
     build(); load(); ensureWorld(); active=true; state.underwater=false; state.helmetLevel=b.getWaterHelmetLevel?.()||0;
     root.hidden=false;const pauseLock=$('sea-pause-lock');if(pauseLock)pauseLock.hidden=false;b.pause?.(); resize(); last=performance.now(); cancelAnimationFrame(raf); raf=requestAnimationFrame(frame); msg('Ты вышел за горизонт. Исследуй море и ищи затонувшие сокровища.'); save();
   }
-  function leave(){if(!active)return;active=false;keys.clear();closeCave();cancelAnimationFrame(raf);save();root.hidden=true;const pauseLock=$('sea-pause-lock');if(pauseLock)pauseLock.hidden=true;bridge()?.resume?.();}
+  function leave(){if(!active)return;active=false;keys.clear();closeCave();closeKraken();cancelAnimationFrame(raf);save();root.hidden=true;const pauseLock=$('sea-pause-lock');if(pauseLock)pauseLock.hidden=true;bridge()?.resume?.();}
   function toggleMap(){if(!active)return;state.mapOpen=!state.mapOpen;$('sea-map').classList.toggle('open',state.mapOpen);if(state.mapOpen)drawMap();}
   function drainAir(seconds){if(state.air===Infinity)return;state.air=Math.max(0,state.air-Math.max(0,seconds));state.airEndsAt=Date.now()+state.air*1000;}
   function toggleDive(){
@@ -234,7 +234,7 @@
   function krakenNear(){return !state.underwater&&Math.hypot(state.x-KRAKEN_LAIR.x,state.y-KRAKEN_LAIR.y)<=KRAKEN_LAIR.radius;}
   function renderKraken(){
     const panel=$('sea-kraken'),content=$('sea-kraken-content');if(!panel||!content)return;
-    const k=state.kraken;
+    const k=state.kraken;$('sea-kraken-attack').disabled=!!k.defeated;$('sea-kraken-guard').disabled=!!k.defeated;
     if(k.defeated){content.innerHTML='<b>🏆 Кракен повержен!</b><p>Корабль больше не находится под угрозой. Сердце кракена, панцирь и гарпун бури уже находятся в инвентаре.</p>';return;}
     if(k.maxHp<=0){const diff=bridge()?.getDifficulty?.()||'medium',scale={easy:.75,medium:1,hard:1.35,hell:1.8,impossible:2.35,challenge:2.7}[diff]||1;k.maxHp=Math.round(KRAKEN_BASE_HP*scale);k.hp=k.maxHp;}
     const hp=Math.max(0,k.hp),ratio=hp/Math.max(1,k.maxHp);
