@@ -9,7 +9,7 @@ const hub=fs.readFileSync(path.join(root,'boss-realm-hub.js'),'utf8');
 for(const name of ['Клинок бездны','Трезубец прилива','Ритуал эволюции','БИБЛИОТЕКА ВЕЧНОСТИ','СВЯТИЛИЩЕ ИССЛЕДОВАТЕЛЯ','МУЗЕЙ','АТЛАС ИССЛЕДОВАТЕЛЯ','Камень помнит','Небесный якорь','Живой минерал','Город под водой'])assert.ok(hub.includes(name),'Missing hub content: '+name);
 for(const term of ['function craft(i)','function interact()','function drawForge','function drawLibrary','function drawSanctuary','180000','localStorage.setItem(KEY+encodeURIComponent(worldId)','state.sanctuary.trophies.length===4','bridge()?.upgradeArtifact?.()'])assert.ok(hub.includes(term),'Missing hub feature: '+term);
 assert.ok(game.includes('window.SkyRealmBossRealmHub?.draw?.(ctx,camX,camY,time,width,height);'),'Hub must be drawn in Boss Realm.');
-assert.ok(game.includes('restoreHealth:()=>{player.hp=100;updateVitals();saveGame();return true;}'),'Sanctuary must restore health using the game's 100 HP cap.');
+assert.ok(game.includes("restoreHealth:()=>{player.hp=100;updateVitals();saveGame();return true;}"),"Sanctuary must restore health using the game 100 HP cap.");
 assert.ok(game.includes('upgradeArtifact:()=>upgradeEquippedArtifact()'),'Forge must call the existing artifact evolution system.');
 assert.ok(html.includes('<script src="boss-realm-hub.js"></script>'),'Hub script must load.');
 assert.ok(!hub.includes('movementDirections')&&!hub.includes('pressedMovementCodes')&&!hub.includes('player.vx')&&!hub.includes('player.vy'),'Hub must not alter player movement.');
