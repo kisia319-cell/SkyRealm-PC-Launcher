@@ -310,6 +310,8 @@ console.log('SkyRealm boss realm portal unlock, separate save slot and return fl
 // Boss Realm creature roster, combat progression, abilities, presentation and first-entry onboarding.
 assert.equal((source.match(/tier:'mob'/g)||[]).length,8,'Boss Realm must define eight regular creatures.');
 assert.equal((source.match(/tier:'elite'/g)||[]).length,6,'Boss Realm must define six elite creatures, including the awakened tree and Root Eater.');
+assert.ok(source.includes("'Клинок живого корня':245")&&source.includes("'Клинок живого корня']")&&source.includes("'Доспехи древнего корня'")&&source.includes("equipment.armor==='Доспехи древнего корня'?.58"),'New root weapon and armor must be equipable and have real combat stats.');
+for(const item of ['Сердце Корнееда','Живой корень','Кора древня','Пыльца древнего леса','Трофей биомного охотника','Ключ древнего лагеря','Записка разведчика','Эликсир корневой ярости','Клинок живого корня','Доспехи древнего корня'])assert.ok(source.includes(item),'New world-event item must exist in the inventory catalogue: '+item);
 assert.equal((source.match(/tier:'boss'/g)||[]).length,9,'Boss Realm must define nine bosses including the Forest King.');
 assert.equal((source.match(/tier:'god'/g)||[]).length,2,'Boss Realm must define two gods.');
 for(const event of ['meteor','horde','blood_moon','awakening','rift','storm'])assert.ok(source.includes("['"+event+"'")||source.includes('["'+event+'"'),'Missing Boss Realm event '+event);

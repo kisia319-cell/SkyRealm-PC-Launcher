@@ -64,4 +64,12 @@ events.get(miniId).count=0;api.update(.1);
 assert.equal(api.getState().activeMiniBossId,'','Miniboss encounter clears on victory');
 assert.ok(inventory['Трофей биомного охотника']>=1,'Miniboss grants its trophy');
 assert.ok(rewards.gold>=18000,'Miniboss grants a gold reward');
+// A process restart must not award loot for a missing in-progress enemy.
+localStorage.setItem('skyrealm_world_events_v1_world-events-test',JSON.stringify({camps:api.getState().camps,activeTreeId:'stale-tree',activeMiniBossId:'stale-mini',lastMiniBossDay:snapshot.day,caravan:null}));
+const restartedWindow={SkyRealmSeaBridge:bridge};
+vm.runInNewContext(source,{window:restartedWindow,localStorage,console,Math,Number,String,Object,JSON,Array,Date});
+restartedWindow.SkyRealmWorldEvents.update(.1);
+assert.equal(restartedWindow.SkyRealmWorldEvents.getState().activeTreeId,'','Stale tree encounter is cleared after restart');
+assert.equal(restartedWindow.SkyRealmWorldEvents.getState().activeMiniBossId,'','Stale miniboss encounter is cleared after restart');
+assert.equal(inventory['Сердцевина древня'],1,'Restarting an unfinished fight must not duplicate its trophy');
 console.log('World events expansion tests passed: camps, one-time loot, caravan, awakened trees and biome minibosses.');

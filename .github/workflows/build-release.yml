@@ -42,7 +42,7 @@ jobs:
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "community-mods.css", "community-mods.js", "config.js", "realm.jpg", "icon.png",
             "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt", "game/bugfix_counter.txt",
-            "game/edition-system.js", "game/forest-ecosystem.js", "game/world-expansion.js", "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/living-world.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css", "game/expansion-systems.js"
+            "game/edition-system.js", "game/forest-ecosystem.js", "game/world-events.js", "game/world-expansion.js", "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/living-world.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css", "game/expansion-systems.js"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
           if ($missing.Count -gt 0) {
@@ -52,6 +52,7 @@ jobs:
           node --check game/game.js
           node --check game/edition-system.js
           node --check game/forest-ecosystem.js
+          node --check game/world-events.js
           node --check game/world-expansion.js
           node --check game/multiplayer-core.js
           node --check game/multiplayer-client.js
@@ -99,6 +100,7 @@ jobs:
           node tests/supabase-migration-history-test.cjs
           node tests/time-mechanics-test.cjs
           node tests/gameplay-regression-test.cjs
+          node tests/world-events-expansion-test.cjs
           node --check tests/settlement-archipelago-regression-test.cjs
           node --check tests/boss-realm-regression-test.cjs
           node --check tests/world-expansion-regression-test.cjs
