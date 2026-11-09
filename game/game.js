@@ -832,7 +832,7 @@
       else if(artifact==='Клык титана')artifactProgression.berserkUntil=now+9000;
       else artifactProgression.wardUntil=now+3500;
     }
-    player.hp=Math.max(1,player.hp-hit);
+    player.hp=awakened?Math.max(1,player.hp-hit):Math.max(0,player.hp-hit);
     if(awakened&&(artifact==='Сфера жизни'||artifact==='Сердце корней'))player.hp=Math.min(100,player.hp+(artifact==='Сфера жизни'?20:16));
     spawnVisualBurst(player.x,player.y,awakened?26:guarded?15:10,'spark',awakened?'#d5b5ff':guarded?'#9bdcff':(color||'#ff6688'));updateVitals();toast((awakened?'ПРОБУЖДЕНИЕ · ':'')+label+' · −'+hit+' HP'+(guarded?' · БЛОК':'')+(awakened?' · '+artifact+' спасает тебя!':''));
     if(guarded)combatEnergy=Math.min(100,combatEnergy+5);if(player.hp<=0)respawnPlayerAfterDefeat();return hit;
