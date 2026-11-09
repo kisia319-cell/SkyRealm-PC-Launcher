@@ -21,6 +21,9 @@ assert.match(living,/b\.spendItem\?\.\(name,count\)/,'Civic buildings must consu
 assert.match(living,/b\.spendGold\?\.\(item\.price\)/,'Civic building construction must spend real gold');
 assert.match(living,/state\.town\.renown=clamp\(state\.town\.renown\+35/,'Building projects must improve city reputation');
 assert.match(living,/state\.projects\.school\?1\.1:1/,'Craft school must improve residents contract rewards');
+assert.match(living,/state\.projects\.smithy\?\.08:0/,'Royal smithy must increase outgoing combat damage');
+assert.match(living,/state\.projects\.infirmary\?\.02:0/,'Infirmary must improve combat defense');
+assert.match(living,/state\.projects\.watch_bell\?\.015:0/,'Signal bell must improve combat defense');
 assert.match(living,/state\.projects\.watch_bell\?1:2/,'Signal bell must reduce patrol cooldown');
 assert.match(living,/function townRank\(\)/,'Town rank progression must be derived from reputation');
 assert.match(living,/function startTownPatrol\(\)/,'Town defense must be startable from the living-world panel');
