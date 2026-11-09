@@ -106,8 +106,8 @@
   function currentPet(){return state.activePet?PETS[state.activePet]:null;}
   function seasonName(id){return ({spring:'\u0412\u0435\u0441\u043d\u0430',summer:'\u041b\u0435\u0442\u043e',autumn:'\u041e\u0441\u0435\u043d\u044c',winter:'\u0417\u0438\u043c\u0430'})[id]||'\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e';}
   function fishBonus(){return (state.projects.harbor?.12:0)+(state.activePet==='owl'?.08:0)+(state.activePet==='phoenix'?.04:0);}
-  function damageMultiplier(){const p=currentPet();return (p?.damageBonus||0)+(state.projects.watchtower?.05:0);}
-  function defenseBonus(){const p=currentPet();return (p?.defenseBonus||0)+(state.projects.sanctuary?.025:0);}
+  function damageMultiplier(){const p=currentPet();return (p?.damageBonus||0)+(state.projects.watchtower?.05:0)+(state.projects.smithy?.08:0);}
+  function defenseBonus(){const p=currentPet();return (p?.defenseBonus||0)+(state.projects.sanctuary?.025:0)+(state.projects.infirmary?.02:0)+(state.projects.watch_bell?.015:0);}
   function onFishingCatch(season,weather){
     load();if(Math.random()>clamp(.36+fishBonus()+(weather==='rain'?.08:0),.05,.72))return false;
     let pool=FISH.filter(f=>f.season===season);if(!pool.length)pool=FISH.slice(0,2);
