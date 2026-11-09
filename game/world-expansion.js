@@ -146,10 +146,12 @@
     if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)){notify('Не удалось найти деревню для нападения.');return;}
     const villageId=String(point.id||'village').slice(0,40),villageName=names[villageId]||'Ближайшее поселение';
     const id='chronicle-assault-'+activeWorld+'-'+villageId+'-'+day;
+    const guardian=b?.spawnVillageGuardian?.(id,point.x,point.y)===true;
+    if(!guardian){notify('Не удалось призвать Великого стража. Освободи место возле деревни и попробуй снова.');return;}
     const count=b?.spawnEventEnemies?.(id,point.x,point.y,8)||0;
-    if(!count){notify('У деревни слишком много существ. Освободи место и попробуй снова.');return;}
+    if(count!==8){b?.clearEventEnemies?.(id);notify('Для нападения нужно свободное место для Великого стража и восьми защитников. Очисти окрестности деревни и попробуй снова.');return;}
     state.ordinary.assault={id,day,villageId,villageName,active:true,claimed:false};
-    save();render();notify('НАПАДЕНИЕ НА ДЕРЕВНЮ: '+villageName+'! Победи '+count+' стражников и забери припасы.');
+    save();render();notify('НАПАДЕНИЕ НА ДЕРЕВНЮ: '+villageName+'! Победи восьмерых защитников и Великого стража деревни.');
   }
   function startExpedition(day){
     const b=bridge(),point=b?.getWorldEventSpawnPoint?.();
@@ -222,7 +224,7 @@
       (state.ordinary.claimedDay===day?'<button disabled>Заказ выполнен сегодня</button>':'')+
       (isAccepted&&!done?'<button disabled>Продолжай собирать ресурсы</button>':'')+'</div></article>'+
       '<article class="we-card"><h3>🛡️ Оборона поселения</h3><small>Шесть налётчиков атакуют ближайшее поселение. Победа приносит знак защитника и 125 золота.</small><div class="we-meta">'+(raid?.active?'Врагов осталось: '+(bridge()?.getEventEnemyCount?.(raid.id)??'—'):raid?.claimed?'Оборона завершена':'Доступно раз в три игровых дня')+'</div><div class="we-actions"><button data-action="village-raid" '+(raidReady?'':'disabled')+'>'+(raid?.active?'Нападение идёт':'Защитить поселение')+'</button></div></article>'+
-      '<article class="we-card"><h3>⚔️ Нападение на деревню</h3><small>Цель: '+esc(assault?.active?assault.villageName:targetName)+'. Ворота охраняют восемь стражников. Победи защитников, чтобы забрать деревенские припасы и трофей налётчика. Новый налёт доступен раз в три игровых дня.</small><div class="we-meta">'+(assault?.active?'Нападение идёт · врагов осталось: '+(bridge()?.getEventEnemyCount?.(assault.id)??'—'):assault?.claimed&&assault.day===day?'Налёт завершён сегодня':'Награда: 180 золота, знак налётчика и 2 слитка железа')+'</div><div class="we-actions"><button data-action="village-assault" '+(assaultReady?'':'disabled')+'>'+(assault?.active?'Идёт нападение':assaultReady?'Напасть на деревню':'Деревня восстанавливается')+'</button></div></article>'+
+      '<article class="we-card"><h3>⚔️ Нападение на деревню</h3><small>Цель: '+esc(assault?.active?assault.villageName:targetName)+'. Ворота охраняют восемь защитников и Великий страж деревни (250 HP, 19 урона). Победи всех девятерых, чтобы забрать деревенские припасы и трофей налётчика. Новый налёт доступен раз в три игровых дня.</small><div class="we-meta">'+(assault?.active?'Нападение идёт · врагов осталось: '+(bridge()?.getEventEnemyCount?.(assault.id)??'—'):assault?.claimed&&assault.day===day?'Налёт завершён сегодня':'Награда: 180 золота, знак налётчика и 2 слитка железа')+'</div><div class="we-actions"><button data-action="village-assault" '+(assaultReady?'':'disabled')+'>'+(assault?.active?'Идёт нападение':assaultReady?'Напасть на деревню':'Деревня восстанавливается')+'</button></div></article>'+
       '<article class="we-card"><h3>🧭 Экспедиция древних троп</h3><small>Пять существ охраняют древний ориентир. Очисти место и забери фрагмент старой карты.</small><div class="we-meta">'+(expedition?.active?'Врагов осталось: '+(bridge()?.getEventEnemyCount?.(expedition.id)??'—'):expedition?.claimed?'Экспедиция завершена':'Доступно раз в три игровых дня')+'</div><div class="we-actions"><button data-action="expedition" '+(expeditionReady?'':'disabled')+'>'+(expedition?.active?'Экспедиция идёт':'Начать экспедицию')+'</button></div></article>'+
       '</div>';
   }
