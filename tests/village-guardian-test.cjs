@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const game=fs.readFileSync(path.join(__dirname,'..','game','game.js'),'utf8');
+const expansion=fs.readFileSync(path.join(__dirname,'..','game','world-expansion.js'),'utf8');
+
+assert.match(game,/spawnVillageGuardian:\(eventId,x,y\)=>/,'game bridge must expose a dedicated guardian spawn function');
+const spawn=game.slice(game.indexOf('spawnVillageGuardian:(eventId,x,y)=>'),game.indexOf('spawnEventEnemies:(eventId,x,y,count=6)=>'));
+assert.match(spawn,/mob\.hp=mob\.maxHp=250/,'guardian must have exactly 250 HP');
+assert.match(spawn,/mob\.speed=155\/1\.3/,'guardian base speed must be 1.3 times slower than walking player speed');
+assert.match(spawn,/mob\.damageScale=1/,'guardian damage must not be scaled by world difficulty');
+assert.match(spawn,/mob\.villageGuardian=true/,'guardian must carry a dedicated behavior flag');
+assert.match(game,/const guardianReach=weaponRange\(\)\/1\.2/,'guardian attack reach must be 1.2 times shorter than current player weapon reach');
+assert.match(game,/Math\.round\(19\*\(1-armorReduction\(\)\)\)/,'guardian must deal 19 base damage before player armor reduction');
+assert.match(game,/drawVillageGuardian\(mob,x,y,time\)/,'guardian must use a dedicated visual renderer');
+assert.match(game,/villageGuardian:raw\.villageGuardian===true/,'guardian identity must survive world save/load');
+assert.match(expansion,/spawnVillageGuardian\?\.\(id,point\.x,point\.y\)===true/,'village assault must spawn the guardian');
+assert.match(expansion,/spawnEventEnemies\?\.\(id,point\.x,point\.y,8\)/,'village assault must also spawn eight regular defenders');
+assert.match(expansion,/Великий страж деревни/,'assault description must name the guardian');
+console.log('Great Village Guardian regression checks passed: 250 HP, 19 base damage, 1.3x slower movement, 1.2x shorter weapon reach, dedicated visuals and persistence.');
