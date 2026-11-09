@@ -13,7 +13,7 @@
 
 ## Текущая версия игры
 
-Установленная и публикуемая сборка игры: **0.20.50.103**. Исправлено восстановление срубленных деревьев и появление древних деревьев в специальной роще Мира боссов. Для обеих механик добавлены регрессионные проверки.nt Edition Preferences
+Установленная и публикуемая сборка игры: **0.20.50.104**. Исправлено восстановление срубленных деревьев, появление древних деревьев в роще и маршрутизация Короля Древнего Леса: он остаётся в собственной роще и корректно проходит фазы боя. Для этих механик добавлены регрессионные проверки.nt Edition Preferences
 
 - Added an opt-in checkbox below Premium/Free choices to remember the selected edition.
 - Stored the preference against the authenticated SkyRealm account, so it follows the same account across computers and does not leak between different accounts.
