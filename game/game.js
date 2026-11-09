@@ -2949,7 +2949,7 @@ function setupVillageNpcs(){
       ctx.transform(1,Math.sin(p*Math.PI)*.075,Math.sin(p*Math.PI)*-.045,1,0,0);
       ctx.translate(-focusX+panX,-focusY+panY);
     }
-    if(tradeWorldMode){drawTradeGround(camX,camY);}else if(bossRealmMode){drawBossRealmGround(camX,camY,time);drawBossRealmEnvironment(camX,camY,time);drawBossRealmForest(camX,camY,time);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
+    if(tradeWorldMode){drawTradeGround(camX,camY);}else if(bossRealmMode){drawBossRealmGround(camX,camY,time);drawBossRealmEnvironment(camX,camY,time);drawBossRealmForest(camX,camY,time);window.SkyRealmBossExploration?.draw?.(ctx,camX,camY,time,width,height);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
     if(bossRealmMode){drawMonsters(camX,camY,time);drawLootDrops(camX,camY,time);drawBossRealmPortal(camX,camY,time);}
     else if(tradeWorldMode){
       drawTradeEntrance(camX,camY); drawVillageSettlements(camX,camY,time); drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);
