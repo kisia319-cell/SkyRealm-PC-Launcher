@@ -216,7 +216,7 @@
   function interact(){
     if(state.underwater){if(caveNear()){enterCave();return;}const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет.');return;}
     if(visitNearestIsland())return;
-    if(krakenNear()&&krakenUnlocked()&&!state.kraken.defeated){startKrakenFight();return;}
+    if(krakenNear()&&krakenUnlocked()){startKrakenFight();return;}
     const t=nearestTreasure();if(t){openTreasure(t);return;}
     const b=bridge();if(state.x<=12&&state.boatHp<boatMaxHp()){if((b?.getItemCount?.('Древесина')||0)<8||(b?.getItemCount?.('Железо')||0)<2){msg('Для ремонта у берега нужно 8 древесины и 2 железа.');return;}b.changeItem('Древесина',-8);b.changeItem('Железо',-2);state.boatHp=Math.min(boatMaxHp(),state.boatHp+45);msg('Корабль отремонтирован у берега. Прочность '+state.boatHp+'%.');save();b.save?.();return;} if(state.boatHp<=0){msg('Корабль разрушен. Вернись на берег и отремонтируй его.');return;}
     msg('Волны несут корабль вперёд. Ищи обломки, метки на карте и вход в сокровищницу.'); 
@@ -230,7 +230,7 @@
     msg('Открыт остров «'+island.name+'»! '+island.description+' Награда: '+island.reward+' ×'+island.amount+' и '+Math.floor(island.gold/100)+' золота.');
     save();b?.save?.();return true;
   }
-  function krakenUnlocked(){return state.islandsDiscovered.length>=2&&state.shipLevel>=1&&!state.kraken.defeated;}
+  function krakenUnlocked(){return state.islandsDiscovered.length>=2&&state.shipLevel>=1;}
   function krakenNear(){return !state.underwater&&Math.hypot(state.x-KRAKEN_LAIR.x,state.y-KRAKEN_LAIR.y)<=KRAKEN_LAIR.radius;}
   function renderKraken(){
     const panel=$('sea-kraken'),content=$('sea-kraken-content');if(!panel||!content)return;
@@ -242,8 +242,8 @@
   }
   function startKrakenFight(){
     if(!active||state.underwater||!krakenNear()){msg('Кракен скрывается у внешнего рифа архипелага. Подойди к водовороту на поверхности.');return false;}
-    if(state.kraken.defeated){msg('Кракен уже повержен. В этом мире он больше не появится.');return false;}
-    if(!krakenUnlocked()){msg('Для встречи с Кракеном исследуй хотя бы два острова и улучши корабль до второго уровня корпуса.');return false;}
+    if(state.kraken.defeated){$('sea-kraken').classList.add('open');renderKraken();msg('Кракен уже повержен. Трофеи сохранены в этом мире.');return false;}
+    if(!krakenUnlocked()){msg('Для встречи с Кракеном исследуй хотя бы два острова и улучши корабль хотя бы один раз.');return false;}
     const k=state.kraken;k.active=true;if(k.maxHp<=0){const diff=bridge()?.getDifficulty?.()||'medium',scale={easy:.75,medium:1,hard:1.35,hell:1.8,impossible:2.35,challenge:2.7}[diff]||1;k.maxHp=Math.round(KRAKEN_BASE_HP*scale);k.hp=k.maxHp;}
     $('sea-map').classList.remove('open');$('sea-vault').classList.remove('open');closeCave();$('sea-kraken').classList.add('open');renderKraken();save();msg('КРАКЕН ПРОБУЖДЁН! Гигантские щупальца окружают корабль.');return true;
   }
@@ -361,7 +361,7 @@
     $('sea-coords').textContent='Координаты: '+Math.floor(state.x)+' / '+Math.floor(state.y);
     $('sea-dive-btn').textContent=state.underwater?'↑ Всплыть · E':'↓ Нырнуть · E';
     const island=nearestIsland(),islandNear=!!island&&Math.hypot(island.x-state.x,island.y-state.y)<8&&!state.underwater;$('sea-island-btn').disabled=!islandNear;$('sea-island-btn').textContent=islandNear?'🏝 '+island.name:'🏝 Острова · '+state.islandsDiscovered.length+'/3';$('sea-island-btn').title=islandNear?island.description:'Исследуй острова архипелага на поверхности.';
-    const lairNear=krakenNear();$('sea-kraken-btn').disabled=!lairNear||!krakenUnlocked();$('sea-kraken-btn').textContent=state.kraken.defeated?'🐙 Кракен побеждён':lairNear?'🐙 Встретить Кракена':'🐙 Кракен';$('sea-kraken-btn').title=!krakenUnlocked()?'Нужно открыть два острова и улучшить корабль.':'Подойди к тёмному водовороту у внешнего рифа.';
+    const lairNear=krakenNear();$('sea-kraken-btn').disabled=!lairNear||!krakenUnlocked();$('sea-kraken-btn').textContent=state.kraken.defeated?'🐙 Кракен побеждён':lairNear?'🐙 Встретить Кракена':'🐙 Кракен';$('sea-kraken-btn').title=state.kraken.defeated?'Открыть запись о победе над Кракеном.':!krakenUnlocked()?'Нужно открыть два острова и хотя бы один раз улучшить корабль.':'Подойди к тёмному водовороту у внешнего рифа.';
     if(state.kraken.active&&$('sea-kraken')?.classList.contains('open'))renderKraken();
   }
   function draw(){
