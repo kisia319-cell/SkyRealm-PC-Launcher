@@ -8,6 +8,7 @@ on:
       - "v*"
     paths-ignore:
       - "manifest.json"
+      - "preview-manifest.json"
       - ".github/workflows/coop-tests.yml"
       - "tests/**"
   workflow_dispatch:
@@ -97,6 +98,8 @@ jobs:
           node tests/time-mechanics-test.cjs
           node tests/gameplay-regression-test.cjs
           node --check tests/boss-realm-regression-test.cjs
+          node --check tests/release-manifest-channel-test.cjs
+          node tests/release-manifest-channel-test.cjs
           node tests/boss-realm-regression-test.cjs
           node --check tests/quarry-system-test.cjs
           node tests/quarry-system-test.cjs
