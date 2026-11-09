@@ -197,7 +197,7 @@ jobs:
         run: |
           git fetch origin main
           $builtCommit = "${{ github.sha }}"
-          git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json'
+          git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json' ':(exclude)preview-manifest.json'
           if ($LASTEXITCODE -ne 0) {
             throw "Skipping stale build $builtCommit; source files on main have changed"
           }
@@ -268,7 +268,7 @@ jobs:
         run: |
           git fetch origin main
           $builtCommit = "${{ github.sha }}"
-          git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json'
+          git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json' ':(exclude)preview-manifest.json'
           if ($LASTEXITCODE -ne 0) {
             throw "Refusing stale manifest publication $builtCommit; source files on main have changed"
           }
@@ -288,7 +288,7 @@ jobs:
             }
             git reset --hard origin/main
             if ($LASTEXITCODE -ne 0) { throw "Could not reset to origin/main" }
-            git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json'
+            git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json' ':(exclude)preview-manifest.json'
             if ($LASTEXITCODE -ne 0) { throw "Source files changed during manifest publication; refusing stale launcher metadata" }
             $builtManifest = Get-Content update_release/manifest.json -Raw | ConvertFrom-Json
             $currentManifest = Get-Content manifest.json -Raw | ConvertFrom-Json
