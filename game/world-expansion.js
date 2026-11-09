@@ -20,7 +20,7 @@
   ];
 
   const fresh = () => ({
-    version:VERSION, worldId:'', ordinary:{day:-1,accepted:null,claimedDay:-1,raid:null,expedition:null},
+    version:VERSION, worldId:'', ordinary:{day:-1,accepted:null,claimedDay:-1,raid:null,expedition:null,assault:null},
     boss:{day:-1,accepted:null,claimedDay:-1,wardenDay:-1}
   });
   let state=fresh(), activeWorld='', opened=false, uiReady=false, lastSnapshot=null;
@@ -39,6 +39,8 @@
       const raw=JSON.parse(localStorage.getItem(storageKey(id))||'null');
       if(raw&&typeof raw==='object'&&raw.version===VERSION){
         state.ordinary={...state.ordinary,...(raw.ordinary&&typeof raw.ordinary==='object'?raw.ordinary:{})};
+        const assault=state.ordinary.assault;
+        state.ordinary.assault=assault&&typeof assault==='object'&&typeof assault.id==='string'&&typeof assault.villageId==='string'?{id:assault.id.slice(0,160),day:Math.max(0,Math.floor(Number(assault.day)||0)),villageId:assault.villageId.slice(0,40),villageName:typeof assault.villageName==='string'?assault.villageName.slice(0,80):'Поселение',active:assault.active===true,claimed:assault.claimed===true}:null;
         state.boss={...state.boss,...(raw.boss&&typeof raw.boss==='object'?raw.boss:{})};
         state.worldId=id;
       }
@@ -133,6 +135,22 @@
     state.ordinary.raid={id,day,active:true,claimed:false};
     save();render();notify('ТРЕВОГА В ПОСЕЛЕНИИ! Отбей нападение шести налётчиков.');
   }
+  function startVillageAssault(day){
+    const b=bridge();
+    if(state.ordinary.assault?.active){notify('Налёт уже начался. Сначала разберись с защитниками.');return;}
+    const previous=state.ordinary.assault;
+    if(previous&&previous.day>=day-2){notify('Это поселение уже подвергалось налёту. Подожди ещё '+Math.max(1,3-(day-previous.day))+' игровой день.');return;}
+    const centers=b?.getVillageCenters?.()||[],player=b?.getPlayerPosition?.();
+    const names={forest:'Лесная деревня',snow:'Снежная деревня',desert:'Пустынный посёлок',volcano:'Вулканическое поселение',blight:'Заражённая деревня'};
+    const point=centers.length?centers.slice().sort((a,c)=>Math.hypot((a.x||0)-(player?.x||0),(a.y||0)-(player?.y||0))-Math.hypot((c.x||0)-(player?.x||0),(c.y||0)-(player?.y||0)))[0]:b?.getWorldEventSpawnPoint?.();
+    if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)){notify('Не удалось найти деревню для нападения.');return;}
+    const villageId=String(point.id||'village').slice(0,40),villageName=names[villageId]||'Ближайшее поселение';
+    const id='chronicle-assault-'+activeWorld+'-'+villageId+'-'+day;
+    const count=b?.spawnEventEnemies?.(id,point.x,point.y,8)||0;
+    if(!count){notify('У деревни слишком много существ. Освободи место и попробуй снова.');return;}
+    state.ordinary.assault={id,day,villageId,villageName,active:true,claimed:false};
+    save();render();notify('НАПАДЕНИЕ НА ДЕРЕВНЮ: '+villageName+'! Победи '+count+' стражников и забери припасы.');
+  }
   function startExpedition(day){
     const b=bridge(),point=b?.getWorldEventSpawnPoint?.();
     if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)){notify('Не удалось найти место для экспедиции.');return;}
@@ -144,15 +162,16 @@
   }
   function updateOrdinaryEvents(){
     const b=bridge(),day=Math.max(0,Number(lastSnapshot?.day)||0);
-    for(const kind of ['raid','expedition']){
+    for(const kind of ['raid','expedition','assault']){
       const event=state.ordinary[kind];
       if(!event?.active||event.claimed)continue;
       const remaining=b?.getEventEnemyCount?.(event.id);
       if(remaining===0){
         event.active=false;event.claimed=true;
         if(kind==='raid')reward(12500,'Знак защитника поселения',1,'Трофей за защиту деревни от налётчиков.');
+        else if(kind==='assault'){reward(18000,'Знак налётчика',1,'Трофей за успешное нападение на деревню.');b?.addItem?.('Слиток закалённого железа',2,'Добыча из разграбленного деревенского хранилища.');}
         else reward(9500,'Фрагмент карты древних троп',1,'Находка из экспедиции древних троп.');
-        save();notify(kind==='raid'?'ПОСЕЛЕНИЕ СПАСЕНО! Получено 125 золота и знак защитника.':'ЭКСПЕДИЦИЯ ЗАВЕРШЕНА! Получено 95 золота и фрагмент карты.');
+        save();notify(kind==='raid'?'ПОСЕЛЕНИЕ СПАСЕНО! Получено 125 золота и знак защитника.':kind==='assault'?'ДЕРЕВНЯ РАЗГРАБЛЕНА! Получено 180 золота, знак налётчика и 2 слитка железа.':'ЭКСПЕДИЦИЯ ЗАВЕРШЕНА! Получено 95 золота и фрагмент карты.');
         if(opened)render();
       }
     }
@@ -187,9 +206,14 @@
     const done=isAccepted&&progressForContract(contract,accepted.baseline,snapshot)>=targetForContract(contract);
     const progress=isAccepted?progressForContract(contract,accepted.baseline,snapshot):0;
     const total=targetForContract(contract);
-    const raid=state.ordinary.raid,expedition=state.ordinary.expedition;
+    const raid=state.ordinary.raid,expedition=state.ordinary.expedition,assault=state.ordinary.assault;
     const raidReady=!raid||raid.day<day-2;
     const expeditionReady=!expedition||expedition.day<day-2;
+    const assaultReady=!assault||(!assault.active&&assault.day<day-2);
+    const centers=bridge()?.getVillageCenters?.()||[],player=bridge()?.getPlayerPosition?.();
+    const nearest=centers.length?centers.slice().sort((a,c)=>Math.hypot((a.x||0)-(player?.x||0),(a.y||0)-(player?.y||0))-Math.hypot((c.x||0)-(player?.x||0),(c.y||0)-(player?.y||0)))[0]:null;
+    const villageNames={forest:'Лесная деревня',snow:'Снежная деревня',desert:'Пустынный посёлок',volcano:'Вулканическое поселение',blight:'Заражённая деревня'};
+    const targetName=nearest?(villageNames[String(nearest.id)]||'Ближайшее поселение'):'Ближайшее поселение';
     return '<div class="we-note">Поселения просят о помощи. Заказы обновляются каждый игровой день. Оборона поселения и экспедиции создают настоящие группы противников в текущем мире.</div>'+
       '<div class="we-grid">'+
       '<article class="we-card"><h3>📦 '+esc(contract.title)+'</h3><small>'+esc(contract.description)+'</small><div class="we-meta">'+(isAccepted?progress+'/'+total+' ресурсов':'Награда: '+Math.floor(contract.gold/100)+' золота и '+esc(contract.item))+'</div><div class="we-meter"><i style="width:'+(isAccepted?Math.round(progress/total*100):0)+'%"></i></div><div class="we-actions">'+
@@ -198,6 +222,7 @@
       (state.ordinary.claimedDay===day?'<button disabled>Заказ выполнен сегодня</button>':'')+
       (isAccepted&&!done?'<button disabled>Продолжай собирать ресурсы</button>':'')+'</div></article>'+
       '<article class="we-card"><h3>🛡️ Оборона поселения</h3><small>Шесть налётчиков атакуют ближайшее поселение. Победа приносит знак защитника и 125 золота.</small><div class="we-meta">'+(raid?.active?'Врагов осталось: '+(bridge()?.getEventEnemyCount?.(raid.id)??'—'):raid?.claimed?'Оборона завершена':'Доступно раз в три игровых дня')+'</div><div class="we-actions"><button data-action="village-raid" '+(raidReady?'':'disabled')+'>'+(raid?.active?'Нападение идёт':'Защитить поселение')+'</button></div></article>'+
+      '<article class="we-card"><h3>⚔️ Нападение на деревню</h3><small>Цель: '+esc(assault?.active?assault.villageName:targetName)+'. Ворота охраняют восемь стражников. Победи защитников, чтобы забрать деревенские припасы и трофей налётчика. Новый налёт доступен раз в три игровых дня.</small><div class="we-meta">'+(assault?.active?'Нападение идёт · врагов осталось: '+(bridge()?.getEventEnemyCount?.(assault.id)??'—'):assault?.claimed&&assault.day===day?'Налёт завершён сегодня':'Награда: 180 золота, знак налётчика и 2 слитка железа')+'</div><div class="we-actions"><button data-action="village-assault" '+(assaultReady?'':'disabled')+'>'+(assault?.active?'Идёт нападение':assaultReady?'Напасть на деревню':'Деревня восстанавливается')+'</button></div></article>'+
       '<article class="we-card"><h3>🧭 Экспедиция древних троп</h3><small>Пять существ охраняют древний ориентир. Очисти место и забери фрагмент старой карты.</small><div class="we-meta">'+(expedition?.active?'Врагов осталось: '+(bridge()?.getEventEnemyCount?.(expedition.id)??'—'):expedition?.claimed?'Экспедиция завершена':'Доступно раз в три игровых дня')+'</div><div class="we-actions"><button data-action="expedition" '+(expeditionReady?'':'disabled')+'>'+(expedition?.active?'Экспедиция идёт':'Начать экспедицию')+'</button></div></article>'+
       '</div>';
   }
@@ -241,6 +266,7 @@
       if(action==='accept-contract')acceptOrdinary(contractForDay(day),lastSnapshot,day);
       else if(action==='claim-contract')claimOrdinary(contractForDay(day),lastSnapshot,day);
       else if(action==='village-raid')startVillageRaid(day);
+      else if(action==='village-assault')startVillageAssault(day);
       else if(action==='expedition')startExpedition(day);
       else if(action==='accept-boss')acceptBoss(bossContractForDay(day),b?.getBossRealmSnapshot?.()||{},day);
       else if(action==='claim-boss')claimBoss(bossContractForDay(day),b?.getBossRealmSnapshot?.()||{},day);
