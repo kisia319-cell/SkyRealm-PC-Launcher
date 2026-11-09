@@ -10,11 +10,18 @@
     vaultUnlocked: false, vaultRoom: 0, vaultPath: 0, vaultBosses: { tide:false, abyss:false },
     relics: [], discovered: [], message: '', messageLeft: 0, lastSave: 0,
     chartFound: false, bossHp: 0, bossAttack: 0, stormDamageAt: 0,
-    diveCooldown: 0, mapMarks: [], cave:{room:1,cleared:[],finished:false,enemyHp:0,enemyMaxHp:0}
+    diveCooldown: 0, mapMarks: [], islandsDiscovered:[], kraken:{active:false,defeated:false,hp:0,maxHp:0,phase:1,attacks:0,guardNext:false}, cave:{room:1,cleared:[],finished:false,enemyHp:0,enemyMaxHp:0}
   };
   const DEFAULT_STATE=JSON.parse(JSON.stringify(state));
   const W = 360, H = 260, TILE = 32;
   const CAVE_ENTRANCE={x:309,y:214};
+  const ARCHIPELAGO=[
+    {id:'coral_atoll',name:'Коралловый атолл',x:56,y:38,kind:'coral',description:'Тёплая лагуна, розовые кораллы и старый маячный буй.',reward:'Коралловый фрагмент',amount:3,gold:12000},
+    {id:'storm_lighthouse',name:'Маяк штормового мыса',x:166,y:54,kind:'lighthouse',description:'Заброшенный маяк хранит осколки навигационного кристалла.',reward:'Осколок маяка',amount:2,gold:18000},
+    {id:'shipbreaker_cove',name:'Бухта Кораблекрушителей',x:266,y:202,kind:'wreck',description:'Пляж усеян останками кораблей. В песке спрятана карта последнего рейда.',reward:'Старая карта архипелага',amount:1,gold:24000}
+  ];
+  const KRAKEN_LAIR={x:320,y:132,radius:13};
+  const KRAKEN_BASE_HP=4200;
   const CAVE_ROOMS=[
     {name:'Коралловый вход',enemy:'Краб-страж',hp:240,damage:7,loot:[['Жемчуг',3],['Кристалл',2]]},
     {name:'Зал приливов',enemy:'Глубинный охотник',hp:430,damage:12,loot:[['Сапфир',3],['Мифрил',2]]},
@@ -46,6 +53,8 @@
       state.sharks=Array.isArray(d.sharks)?d.sharks:[]; state.monsters=Array.isArray(d.monsters)?d.monsters:[];
       state.treasures=Array.isArray(d.treasures)?d.treasures:[]; state.opened=Array.isArray(d.opened)?d.opened:[];
       state.relics=Array.isArray(d.relics)?d.relics:[];
+      state.islandsDiscovered=Array.isArray(d.islandsDiscovered)?Array.from(new Set(d.islandsDiscovered.filter(id=>ARCHIPELAGO.some(i=>i.id===id)))):[];
+      const kraken=d.kraken&&typeof d.kraken==='object'?d.kraken:{};state.kraken={active:kraken.active===true&&kraken.defeated!==true,defeated:kraken.defeated===true,hp:clamp(Number(kraken.hp)||0,0,100000),maxHp:clamp(Number(kraken.maxHp)||0,0,100000),phase:clamp(Math.floor(Number(kraken.phase)||1),1,3),attacks:clamp(Math.floor(Number(kraken.attacks)||0),0,10000),guardNext:kraken.guardNext===true};
       state.cave=ensureCaveState(d.cave);
     } catch(e){ console.warn('Sea save load failed',e); }
   }
@@ -58,6 +67,9 @@
     if(!state.sharks.length)state.sharks=Array.from({length:2},(_,i)=>({id:'shark-'+i,x:rand(42,W-18),y:rand(12,H-12),hp:65,angle:rand(0,6.28),speed:rand(10,16),cool:rand(0,2)}));else state.sharks=state.sharks.filter(Boolean).slice(0,3);
     if(!state.monsters.length)state.monsters=Array.from({length:10},(_,i)=>({id:'sea-monster-'+i,x:rand(24,W-10),y:rand(8,H-8),hp:85,angle:rand(0,6.28),speed:rand(8,15),cool:rand(0,2)}));
     if(!Array.isArray(state.discovered))state.discovered=[];
+    if(!Array.isArray(state.islandsDiscovered))state.islandsDiscovered=[];state.islandsDiscovered=Array.from(new Set(state.islandsDiscovered.filter(id=>ARCHIPELAGO.some(i=>i.id===id))));
+    if(!state.kraken||typeof state.kraken!=='object')state.kraken={active:false,defeated:false,hp:0,maxHp:0,phase:1,attacks:0,guardNext:false};
+    state.kraken={active:state.kraken.active===true&&state.kraken.defeated!==true,defeated:state.kraken.defeated===true,hp:clamp(Number(state.kraken.hp)||0,0,100000),maxHp:clamp(Number(state.kraken.maxHp)||0,0,100000),phase:clamp(Math.floor(Number(state.kraken.phase)||1),1,3),attacks:clamp(Math.floor(Number(state.kraken.attacks)||0),0,10000),guardNext:state.kraken.guardNext===true};
     state.cave=ensureCaveState(state.cave);
   }
   function build(){
@@ -77,21 +89,24 @@
       #skyrealm-sea .sea-control-pad{position:absolute;right:14px;bottom:14px;z-index:5;display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px;border:1px solid #8bd3ef88;border-radius:14px;background:#061321c9;backdrop-filter:blur(5px);touch-action:none;user-select:none}#skyrealm-sea .sea-control-row{display:flex;gap:5px}#skyrealm-sea .sea-control-pad button{width:42px;height:40px;padding:0;font-size:18px;border-color:#84cce8;background:#174a66;touch-action:none;user-select:none}#skyrealm-sea .sea-control-pad button:active{background:#317e9d;transform:scale(.96)}#sea-vault{position:absolute;inset:8% 10%;display:none;background:#10182bf5;border:1px solid #aa9cce;border-radius:14px;padding:18px;overflow:auto}
       #sea-vault.open{display:block}#sea-vault h2{margin:0 0 8px;color:#e5d6ff}#sea-vault .vault-paths{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
       #sea-vault .vault-paths button{flex:1;min-width:140px}#sea-vault .vault-log{padding:12px;background:#080f1e;border-radius:8px;min-height:90px;line-height:1.7}
-      #sea-cave{position:absolute;inset:8% 12%;display:none;background:linear-gradient(145deg,#071b35f8,#0b2940f8);border:1px solid #73d9ef;border-radius:14px;padding:18px;overflow:auto;box-shadow:0 20px 70px #000b}
+      #sea-kraken{position:absolute;inset:10% 14%;display:none;background:linear-gradient(145deg,#10172ff8,#061b32f8);border:1px solid #73d9ef;border-radius:14px;padding:18px;overflow:auto;box-shadow:0 20px 70px #000b}#sea-kraken.open{display:block}#sea-kraken h2{color:#a9f0ff;margin:0 0 8px}#sea-kraken-content{padding:14px;background:#061626;border:1px solid #2d6880;border-radius:9px;line-height:1.7;margin:12px 0}#sea-kraken .kraken-hp{height:11px;background:#233d55;border-radius:9px;overflow:hidden;margin:9px 0}#sea-kraken .kraken-hp i{display:block;height:100%;background:linear-gradient(90deg,#aa6bc7,#5ed8e5)}#sea-cave{position:absolute;inset:8% 12%;display:none;background:linear-gradient(145deg,#071b35f8,#0b2940f8);border:1px solid #73d9ef;border-radius:14px;padding:18px;overflow:auto;box-shadow:0 20px 70px #000b}
       #sea-cave.open{display:block}#sea-cave h2{margin:0 0 8px;color:#a9f0ff}#sea-cave-content{padding:13px;background:#061626;border:1px solid #2d6880;border-radius:9px;line-height:1.7;margin:12px 0}#sea-cave .cave-actions{display:flex;gap:8px;flex-wrap:wrap}#sea-cave .cave-actions button{flex:1;min-width:130px}#sea-cave .cave-hp{height:9px;background:#233d55;border-radius:9px;overflow:hidden;margin:8px 0}#sea-cave .cave-hp i{display:block;height:100%;background:linear-gradient(90deg,#36b8ce,#a4f2e7)}
       @media(max-width:700px){#skyrealm-sea .sea-help{font-size:10px;max-width:90%}#skyrealm-sea .sea-top{gap:6px;padding:7px}#skyrealm-sea .sea-stat{font-size:10px}}
       </style>
-      <div class="sea-top"><span class="sea-title">🌊 SKYREALM · МОРЕ</span><span class="sea-stat" id="sea-weather">Погода: штиль</span><span class="sea-stat" id="sea-boat-hp">Корабль: 100%</span><span class="sea-stat" id="sea-air">Воздух: —</span><span class="sea-stat" id="sea-coords">Координаты: 13 / 82</span><button id="sea-map-btn">🗺 Карта</button><button id="sea-ship-upgrade">⚓ Улучшить корабль</button><button id="sea-dive-btn">↓ Нырнуть · E</button><button id="sea-vault-btn">🏛 Сокровищница</button><button id="sea-cave-btn" disabled>🪨 Подводный грот</button><button id="sea-exit">Вернуться на берег</button></div>
+      <div class="sea-top"><span class="sea-title">🌊 SKYREALM · МОРЕ</span><span class="sea-stat" id="sea-weather">Погода: штиль</span><span class="sea-stat" id="sea-boat-hp">Корабль: 100%</span><span class="sea-stat" id="sea-air">Воздух: —</span><span class="sea-stat" id="sea-coords">Координаты: 13 / 82</span><button id="sea-map-btn">🗺 Карта</button><button id="sea-ship-upgrade">⚓ Улучшить корабль</button><button id="sea-dive-btn">↓ Нырнуть · E</button><button id="sea-vault-btn">🏛 Сокровищница</button><button id="sea-cave-btn" disabled>🪨 Подводный грот</button><button id="sea-island-btn" disabled>🏝 Остров</button><button id="sea-kraken-btn" disabled>🐙 Кракен</button><button id="sea-exit">Вернуться на берег</button></div>
       <div class="sea-stage"><canvas id="sea-canvas"></canvas><div id="sea-message">Море ждёт тебя. Найди карту сокровищ!</div>
       <div class="sea-help">WASD / стрелки — управлять кораблём · E — взаимодействовать / нырять · M — карта · Space — ускорение<br>В шторм волны повреждают корабль. Акулы преследуют лодку. Для долгого погружения нужен водяной шлем.</div>
       <div class="sea-control-pad" aria-label="Управление кораблём"><button type="button" data-sea-direction="w" aria-label="Вперёд">▲</button><div class="sea-control-row"><button type="button" data-sea-direction="a" aria-label="Влево">◀</button><button type="button" data-sea-direction="s" aria-label="Назад">▼</button><button type="button" data-sea-direction="d" aria-label="Вправо">▶</button></div></div>
       <div id="sea-map"><h2>🗺 Морская карта · 360 × 260</h2><p>Туман скрывает неизведанные воды. Найди обломки кораблей и карты сокровищ.</p><canvas id="sea-map-canvas"></canvas><button id="sea-map-close">Закрыть карту</button></div>
       <div id="sea-vault"><h2>🏛 Великая сокровищница глубин</h2><p>Подводный лабиринт с несколькими путями. Внутри находятся ровно два бога моря.</p><div class="vault-paths"><button data-path="0">Путь затонувших стражей</button><button data-path="1">Коралловые катакомбы</button><button data-path="2">Бездна древних</button></div><div class="vault-log" id="vault-log">Перед входом подготовь водяной шлем. В каждом пути есть монстры и ловушки.</div><div class="vault-paths"><button id="vault-enter">Войти в выбранный путь</button><button id="vault-fight" disabled>Сразиться с боссом</button><button id="vault-exit">Выйти из сокровищницы</button></div></div>
       <div id="sea-cave"><h2>🪨 Подводный грот · экспедиция</h2><p>Три комнаты, три защитника и сокровища древнего морского титана. Воздух продолжает расходоваться во время боя.</p><div id="sea-cave-content"></div><div class="cave-actions"><button id="sea-cave-attack">⚔ Атаковать</button><button id="sea-cave-close">Выйти из грота</button></div></div>
-      </div>`;
+      </div>
+      <div id="sea-kraken"><h2>🐙 Кракен-разрушитель</h2><p>Древнее чудовище охраняет внешний проход архипелага. Береги корпус корабля и выбирай момент для удара.</p><div id="sea-kraken-content"></div><div class="cave-actions"><button id="sea-kraken-attack">⚔ Ударить</button><button id="sea-kraken-guard">🛡 Защититься</button><button id="sea-kraken-close">Закрыть</button></div></div>
+`;
     document.body.appendChild(root);const pauseLock=document.createElement('div');pauseLock.className='shade';pauseLock.id='sea-pause-lock';pauseLock.hidden=true;document.body.appendChild(pauseLock);canvas=$('sea-canvas');ctx=canvas.getContext('2d');
     $('sea-exit').onclick=leave; $('sea-map-btn').onclick=toggleMap; $('sea-map-close').onclick=toggleMap; $('sea-ship-upgrade').onclick=upgradeShip;
     $('sea-dive-btn').onclick=toggleDive; $('sea-vault-btn').onclick=()=>{ $('sea-vault').classList.add('open'); $('sea-map').classList.remove('open'); closeCave(); }; $('sea-cave-btn').onclick=enterCave; $('sea-cave-attack').onclick=attackCave; $('sea-cave-close').onclick=closeCave;
+    $('sea-island-btn').onclick=visitNearestIsland; $('sea-kraken-btn').onclick=startKrakenFight; $('sea-kraken-attack').onclick=attackKraken; $('sea-kraken-guard').onclick=guardKraken; $('sea-kraken-close').onclick=closeKraken;
     $('vault-exit').onclick=()=> $('sea-vault').classList.remove('open');
     $('vault-enter').onclick=enterVault; $('vault-fight').onclick=fightVaultBoss;
     root.querySelectorAll('[data-path]').forEach(b=>b.onclick=()=>{state.vaultPath=Number(b.dataset.path);$('vault-log').textContent=['Путь затонувших стражей: тяжёлые рыцари охраняют проход.','Коралловые катакомбы: ядовитые медузы и ловушки.','Бездна древних: сильнейшие монстры и два алтаря богов.'][state.vaultPath];});
@@ -200,9 +215,61 @@
   }
   function interact(){
     if(state.underwater){if(caveNear()){enterCave();return;}const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет.');return;}
+    if(visitNearestIsland())return;
+    if(krakenNear()&&krakenUnlocked()&&!state.kraken.defeated){startKrakenFight();return;}
     const t=nearestTreasure();if(t){openTreasure(t);return;}
     const b=bridge();if(state.x<=12&&state.boatHp<boatMaxHp()){if((b?.getItemCount?.('Древесина')||0)<8||(b?.getItemCount?.('Железо')||0)<2){msg('Для ремонта у берега нужно 8 древесины и 2 железа.');return;}b.changeItem('Древесина',-8);b.changeItem('Железо',-2);state.boatHp=Math.min(boatMaxHp(),state.boatHp+45);msg('Корабль отремонтирован у берега. Прочность '+state.boatHp+'%.');save();b.save?.();return;} if(state.boatHp<=0){msg('Корабль разрушен. Вернись на берег и отремонтируй его.');return;}
     msg('Волны несут корабль вперёд. Ищи обломки, метки на карте и вход в сокровищницу.'); 
+  }
+  function nearestIsland(){return ARCHIPELAGO.filter(i=>!state.islandsDiscovered.includes(i.id)).sort((a,b)=>Math.hypot(a.x-state.x,a.y-state.y)-Math.hypot(b.x-state.x,b.y-state.y))[0]||null;}
+  function visitNearestIsland(){
+    if(!active||state.underwater)return false;
+    const island=nearestIsland();if(!island||Math.hypot(island.x-state.x,island.y-state.y)>8)return false;
+    state.islandsDiscovered.push(island.id);const b=bridge();b?.addItem?.(island.reward,island.amount,'Награда за исследование острова архипелага.');b?.addGold?.(island.gold);
+    if(island.id==='storm_lighthouse')state.mapMarks.push({x:KRAKEN_LAIR.x,y:KRAKEN_LAIR.y});
+    msg('Открыт остров «'+island.name+'»! '+island.description+' Награда: '+island.reward+' ×'+island.amount+' и '+Math.floor(island.gold/100)+' золота.');
+    save();b?.save?.();return true;
+  }
+  function krakenUnlocked(){return state.islandsDiscovered.length>=2&&state.shipLevel>=1&&!state.kraken.defeated;}
+  function krakenNear(){return !state.underwater&&Math.hypot(state.x-KRAKEN_LAIR.x,state.y-KRAKEN_LAIR.y)<=KRAKEN_LAIR.radius;}
+  function renderKraken(){
+    const panel=$('sea-kraken'),content=$('sea-kraken-content');if(!panel||!content)return;
+    const k=state.kraken;
+    if(k.defeated){content.innerHTML='<b>🏆 Кракен повержен!</b><p>Корабль больше не находится под угрозой. Сердце кракена, панцирь и гарпун бури уже находятся в инвентаре.</p>';return;}
+    if(k.maxHp<=0){const diff=bridge()?.getDifficulty?.()||'medium',scale={easy:.75,medium:1,hard:1.35,hell:1.8,impossible:2.35,challenge:2.7}[diff]||1;k.maxHp=Math.round(KRAKEN_BASE_HP*scale);k.hp=k.maxHp;}
+    const hp=Math.max(0,k.hp),ratio=hp/Math.max(1,k.maxHp);
+    content.innerHTML='<b>Фаза '+k.phase+' / 3 · ударов нанесено: '+k.attacks+'</b><div class="kraken-hp"><i style="width:'+Math.round(ratio*100)+'%"></i></div><b>'+Math.ceil(hp)+' / '+k.maxHp+' HP</b><p>Твоё оружие наносит '+Math.max(1,Math.floor(Number(bridge()?.getWeaponDamage?.())||20))+' урона. Кракен бьёт по корпусу и палубе после каждого второго твоего удара.</p><p>Прочность корабля: '+Math.ceil(state.boatHp)+' / '+boatMaxHp()+(k.guardNext?' · защита готова':'')+'</p>';
+  }
+  function startKrakenFight(){
+    if(!active||state.underwater||!krakenNear()){msg('Кракен скрывается у внешнего рифа архипелага. Подойди к водовороту на поверхности.');return false;}
+    if(state.kraken.defeated){msg('Кракен уже повержен. В этом мире он больше не появится.');return false;}
+    if(!krakenUnlocked()){msg('Для встречи с Кракеном исследуй хотя бы два острова и улучши корабль до второго уровня корпуса.');return false;}
+    const k=state.kraken;k.active=true;if(k.maxHp<=0){const diff=bridge()?.getDifficulty?.()||'medium',scale={easy:.75,medium:1,hard:1.35,hell:1.8,impossible:2.35,challenge:2.7}[diff]||1;k.maxHp=Math.round(KRAKEN_BASE_HP*scale);k.hp=k.maxHp;}
+    $('sea-map').classList.remove('open');$('sea-vault').classList.remove('open');closeCave();$('sea-kraken').classList.add('open');renderKraken();save();msg('КРАКЕН ПРОБУЖДЁН! Гигантские щупальца окружают корабль.');return true;
+  }
+  function closeKraken(){const panel=$('sea-kraken');if(panel)panel.classList.remove('open');}
+  function guardKraken(){if(!state.kraken.active||state.kraken.defeated)return false;state.kraken.guardNext=true;renderKraken();save();msg('Ты закрепил щит на палубе. Следующий удар кракена будет ослаблен.');return true;}
+  function attackKraken(){
+    const k=state.kraken;if(!active||!k.active||k.defeated)return false;
+    const weapon=Math.max(1,Math.floor(Number(bridge()?.getWeaponDamage?.())||20)),damage=weapon+state.shipLevel*18+22;
+    k.hp=Math.max(0,k.hp-damage);k.attacks++;const ratio=k.hp/Math.max(1,k.maxHp);k.phase=ratio>.66?1:ratio>.32?2:3;
+    if(k.hp<=0){
+      k.active=false;k.defeated=true;k.guardNext=false;
+      bridge()?.addGold?.(90000);bridge()?.addItem?.('Сердце кракена',1,'Трофей за победу над морским боссом архипелага.');
+      bridge()?.addItem?.('Панцирь кракена',2,'Редкий материал из бронированных щупалец.');
+      bridge()?.addItem?.('Гарпун бури',1,'Уникальное оружие из морского трофея.');
+      bridge()?.addItem?.('Ключ архипелага',1,'Открывает доступ к тайникам архипелага.');
+      msg('КРАКЕН ПОВЕРЖЕН! Получены Сердце кракена, Панцирь, Гарпун бури и 900 золота.');
+      renderKraken();save();bridge()?.save?.();return true;
+    }
+    if(k.attacks%2===0){
+      const power=k.phase===1?1:k.phase===2?1.35:1.8,guard=k.guardNext?.35:1;
+      const hullDamage=Math.max(2,Math.round(7*power*guard)),playerDamage=Math.max(1,Math.round(8*power*guard));
+      k.guardNext=false;state.boatHp=Math.max(0,state.boatHp-hullDamage);bridge()?.damagePlayer?.(playerDamage);
+      if(state.boatHp<=0){k.active=false;msg('Кракен расколол корпус! Возвращайся к берегу, отремонтируй корабль и вернись к битве.');}
+      else msg('Кракен ударил щупальцами! Корпус −'+hullDamage+' · здоровье −'+playerDamage+'.');
+    }else msg('Удар пришёлся по панцирю: −'+damage+' HP Кракену. Следи за щупальцами!');
+    renderKraken();save();bridge()?.save?.();return true;
   }
   function nearestTreasure(){return state.treasures.find(t=>!state.opened.includes(t.id)&&Math.hypot(t.x-state.x,t.y-state.y)<4.5);}
   const UNIQUE_LOOT=[
@@ -293,6 +360,9 @@
     $('sea-boat-hp').textContent='Корабль: '+Math.ceil(state.boatHp)+'/'+boatMaxHp();updateShipButton();$('sea-air').textContent=state.underwater?'Воздух: '+(state.air===Infinity?'∞':Math.ceil(state.air)+' с'):'Воздух: —';
     $('sea-coords').textContent='Координаты: '+Math.floor(state.x)+' / '+Math.floor(state.y);
     $('sea-dive-btn').textContent=state.underwater?'↑ Всплыть · E':'↓ Нырнуть · E';
+    const island=nearestIsland(),islandNear=!!island&&Math.hypot(island.x-state.x,island.y-state.y)<8&&!state.underwater;$('sea-island-btn').disabled=!islandNear;$('sea-island-btn').textContent=islandNear?'🏝 '+island.name:'🏝 Острова · '+state.islandsDiscovered.length+'/3';$('sea-island-btn').title=islandNear?island.description:'Исследуй острова архипелага на поверхности.';
+    const lairNear=krakenNear();$('sea-kraken-btn').disabled=!lairNear||!krakenUnlocked();$('sea-kraken-btn').textContent=state.kraken.defeated?'🐙 Кракен побеждён':lairNear?'🐙 Встретить Кракена':'🐙 Кракен';$('sea-kraken-btn').title=!krakenUnlocked()?'Нужно открыть два острова и улучшить корабль.':'Подойди к тёмному водовороту у внешнего рифа.';
+    if(state.kraken.active&&$('sea-kraken')?.classList.contains('open'))renderKraken();
   }
   function draw(){
     const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
@@ -318,6 +388,16 @@
     for(let i=0;i<475;i++){const x=((i*97+state.time*(12+i%5)*8)%(W*TILE)),y=(i*53+Math.sin(state.time+i)*14)%(H*TILE);if(x/TILE<left||x/TILE>right||y/TILE<top||y/TILE>bottom)continue;ctx.fillStyle='rgba(226,252,255,'+(.12+(i%4)*.07)+')';ctx.beginPath();ctx.ellipse(x,y,2+i%3,1.2,Math.sin(state.time+i),0,Math.PI*2);ctx.fill();}
     // Small distant islands and jagged rocks.
     for(let i=0;i<28;i++){const x=(31+i*29%338)*TILE,y=(17+(i*41)%242)*TILE;if(x/TILE<left-8||x/TILE>right+8||y/TILE<top-8||y/TILE>bottom+8)continue;ctx.fillStyle='#344d45';ctx.beginPath();ctx.ellipse(x,y,28,17,.15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b4a36e';ctx.beginPath();ctx.ellipse(x-4,y-5,25,13,.1,0,Math.PI*2);ctx.fill();ctx.fillStyle='#3f8660';ctx.beginPath();ctx.arc(x,y-13,10,0,Math.PI*2);ctx.fill();ctx.fillRect(x-2,y-26,4,17);}
+    // Three named archipelago locations have persistent map coordinates and visible landmarks.
+    for(const island of ARCHIPELAGO){const x=island.x*TILE,y=island.y*TILE,found=state.islandsDiscovered.includes(island.id);if(x/TILE<left-12||x/TILE>right+12||y/TILE<top-12||y/TILE>bottom+12)continue;ctx.save();ctx.translate(x,y);
+      ctx.fillStyle='rgba(0,12,24,.28)';ctx.beginPath();ctx.ellipse(0,14,island.kind==='wreck'?44:39,17,0,0,Math.PI*2);ctx.fill();
+      if(island.kind==='coral'){ctx.fillStyle='#e8d5a1';ctx.beginPath();ctx.ellipse(0,0,38,24,.1,0,Math.PI*2);ctx.fill();ctx.fillStyle='#35b5ae';ctx.beginPath();ctx.ellipse(3,2,19,12,0,0,Math.PI*2);ctx.fill();for(let i=0;i<5;i++){const px=-24+i*12,py=-10+(i%2)*13;ctx.strokeStyle=i%2?'#e97b89':'#efb56d';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(px,py+8);ctx.lineTo(px-3,py-4);ctx.lineTo(px+2,py-10);ctx.stroke();}}
+      else if(island.kind==='lighthouse'){ctx.fillStyle='#766f63';ctx.beginPath();ctx.moveTo(-43,16);ctx.lineTo(-31,-12);ctx.lineTo(-17,-25);ctx.lineTo(16,-25);ctx.lineTo(38,-10);ctx.lineTo(43,16);ctx.closePath();ctx.fill();ctx.fillStyle='#e9e0cf';ctx.fillRect(-8,-47,16,47);ctx.fillStyle='#bd554d';ctx.fillRect(-11,-52,22,7);ctx.fillStyle='#ffe9a2';ctx.fillRect(-6,-41,12,7);ctx.fillStyle='rgba(255,235,160,.35)';ctx.beginPath();ctx.moveTo(0,-38);ctx.lineTo(-45,-70);ctx.lineTo(45,-70);ctx.closePath();ctx.fill();}
+      else{ctx.fillStyle='#e2cd9b';ctx.beginPath();ctx.moveTo(-48,18);ctx.quadraticCurveTo(-35,-15,0,-20);ctx.quadraticCurveTo(36,-13,48,18);ctx.closePath();ctx.fill();ctx.save();ctx.rotate(-.25);ctx.fillStyle='#573b2b';ctx.fillRect(-30,-4,60,13);ctx.fillStyle='#9b6941';ctx.fillRect(-24,-10,48,7);ctx.strokeStyle='#d2a36c';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-9,-7);ctx.lineTo(-3,-31);ctx.moveTo(12,-5);ctx.lineTo(23,-24);ctx.stroke();ctx.restore();ctx.fillStyle='#547a55';ctx.beginPath();ctx.arc(-27,-19,8,0,Math.PI*2);ctx.arc(28,-17,9,0,Math.PI*2);ctx.fill();}
+      ctx.fillStyle=found?'#c7f7dc':'#f4e2a7';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#06131a';ctx.shadowBlur=6;ctx.fillText(found?island.name:'НЕИЗВЕДАННЫЙ ОСТРОВ',0,-58);ctx.restore();
+    }
+    // A living whirlpool marks the Kraken's deep-water lair.
+    {const x=KRAKEN_LAIR.x*TILE,y=KRAKEN_LAIR.y*TILE,p=.5+.5*Math.sin(state.time*2.4);ctx.save();ctx.translate(x,y);for(let i=0;i<4;i++){ctx.strokeStyle='rgba(37,13,64,'+(.48-i*.07)+')';ctx.lineWidth=5-i;ctx.beginPath();ctx.ellipse(0,0,34+i*9,21+i*6,state.time*.22+i,0,Math.PI*1.8);ctx.stroke();}ctx.fillStyle=state.kraken.defeated?'#8a9aa2':'#35214b';ctx.beginPath();ctx.arc(0,0,16+p*4,0,Math.PI*2);ctx.fill();if(!state.kraken.defeated){ctx.strokeStyle='#7651a2';ctx.lineWidth=6;for(let i=0;i<8;i++){const a=state.time*.18+i*Math.PI/4;ctx.beginPath();ctx.moveTo(Math.cos(a)*11,Math.sin(a)*8);ctx.bezierCurveTo(Math.cos(a+0.4)*30,Math.sin(a+0.4)*24,Math.cos(a+0.65)*38,Math.sin(a+0.65)*33,Math.cos(a+0.8)*46,Math.sin(a+0.8)*26);ctx.stroke();}ctx.fillStyle='#ff6a87';ctx.beginPath();ctx.arc(-5,-2,3,0,Math.PI*2);ctx.arc(5,-2,3,0,Math.PI*2);ctx.fill();}ctx.restore();}
     // Treasure chests and shipwrecks.
     for(const t of state.treasures){if(state.opened.includes(t.id))continue;const x=t.x*TILE,y=t.y*TILE;if(t.kind==='wreck'){ctx.save();ctx.translate(x,y);ctx.rotate(-.18);ctx.fillStyle='#513c2b';ctx.fillRect(-29,-7,58,15);ctx.fillStyle='#986b43';ctx.fillRect(-23,-14,46,8);ctx.strokeStyle='#d0a16a';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-17,-12);ctx.lineTo(-8,-28);ctx.moveTo(8,-12);ctx.lineTo(21,-22);ctx.stroke();ctx.restore();}else{ctx.fillStyle='#62452e';ctx.fillRect(x-10,y-8,20,16);ctx.fillStyle='#d8a94f';ctx.fillRect(x-10,y-8,20,5);ctx.fillStyle='#fff0a5';ctx.fillRect(x-2,y-7,4,6);}}
     // Sharks: animated bodies, tail, dorsal and pectoral fins.
@@ -342,9 +422,9 @@ const glow=ctx.createRadialGradient(state.x*TILE,state.y*TILE,10,state.x*TILE,st
     if(state.weather==='storm'){ctx.fillStyle='rgba(8,22,43,.58)';ctx.fillRect(w-168,12,156,30);ctx.fillStyle='#d7edff';ctx.font='bold 12px Segoe UI';ctx.fillText('⚡ ШТОРМ',w-151,32);}
   }
   function drawMap(){
-    const c=$('sea-map-canvas');if(!c)return;const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.fillStyle='#0b4567';x.fillRect(0,0,w,h);x.strokeStyle='rgba(190,235,255,.12)';for(let i=0;i<=22;i++){x.beginPath();x.moveTo(i*w/22,0);x.lineTo(i*w/22,h);x.stroke();}for(let i=0;i<=16;i++){x.beginPath();x.moveTo(0,i*h/16);x.lineTo(w,i*h/16);x.stroke();}x.fillStyle='#e9f5ff';for(const cell of state.discovered){const [a,b]=cell.split(',').map(Number);x.fillRect(a/360*w,b/260*h,2,2);}x.fillStyle='#ffe17c';for(const m of state.mapMarks)x.fillRect(m.x/360*w-4,m.y/260*h-4,8,8);x.fillStyle='#ff756a';x.beginPath();x.arc(state.x/360*w,state.y/260*h,5,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.font='12px Segoe UI';x.fillText('Ты',state.x/360*w+8,state.y/260*h-8);x.fillStyle='#7df2ff';x.beginPath();x.arc(CAVE_ENTRANCE.x/360*w,CAVE_ENTRANCE.y/260*h,6,0,Math.PI*2);x.fill();x.fillStyle='#e8fbff';x.fillText('Грот',CAVE_ENTRANCE.x/360*w+9,CAVE_ENTRANCE.y/260*h-6);
+    const c=$('sea-map-canvas');if(!c)return;const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);const w=r.width,h=r.height;x.fillStyle='#0b4567';x.fillRect(0,0,w,h);x.strokeStyle='rgba(190,235,255,.12)';for(let i=0;i<=22;i++){x.beginPath();x.moveTo(i*w/22,0);x.lineTo(i*w/22,h);x.stroke();}for(let i=0;i<=16;i++){x.beginPath();x.moveTo(0,i*h/16);x.lineTo(w,i*h/16);x.stroke();}x.fillStyle='#e9f5ff';for(const cell of state.discovered){const [a,b]=cell.split(',').map(Number);x.fillRect(a/360*w,b/260*h,2,2);}x.fillStyle='#ffe17c';for(const m of state.mapMarks)x.fillRect(m.x/360*w-4,m.y/260*h-4,8,8);x.fillStyle='#ff756a';x.beginPath();x.arc(state.x/360*w,state.y/260*h,5,0,Math.PI*2);x.fill();for(const island of ARCHIPELAGO){x.fillStyle=state.islandsDiscovered.includes(island.id)?'#8ff0ba':'#f2d477';x.beginPath();x.arc(island.x/360*w,island.y/260*h,5,0,Math.PI*2);x.fill();x.fillStyle='#f3f8ff';x.font='11px Segoe UI';x.fillText(state.islandsDiscovered.includes(island.id)?island.name:'?',island.x/360*w+7,island.y/260*h-6);}x.fillStyle=state.kraken.defeated?'#afc2d0':'#cc83e9';x.beginPath();x.arc(KRAKEN_LAIR.x/360*w,KRAKEN_LAIR.y/260*h,6,0,Math.PI*2);x.fill();x.fillStyle='#f3f8ff';x.fillText('Кракен',KRAKEN_LAIR.x/360*w+8,KRAKEN_LAIR.y/260*h-7);x.fillStyle='#fff';x.font='12px Segoe UI';x.fillText('Ты',state.x/360*w+8,state.y/260*h-8);x.fillStyle='#7df2ff';x.beginPath();x.arc(CAVE_ENTRANCE.x/360*w,CAVE_ENTRANCE.y/260*h,6,0,Math.PI*2);x.fill();x.fillStyle='#e8fbff';x.fillText('Грот',CAVE_ENTRANCE.x/360*w+9,CAVE_ENTRANCE.y/260*h-6);
   }
-  function api(){return {open:enter,isOpen:()=>active,save,upgradeShip,enterCave,attackCave,closeCave,getState:()=>JSON.parse(JSON.stringify(state))};}
+  function api(){return {open:enter,isOpen:()=>active,save,upgradeShip,enterCave,attackCave,closeCave,visitNearestIsland,startKrakenFight,attackKraken,guardKraken,closeKraken,getState:()=>JSON.parse(JSON.stringify(state))};}
   window.SkyRealmSea=api();
   function installExpeditionButton(){
     if($('open-sea-expedition'))return;
