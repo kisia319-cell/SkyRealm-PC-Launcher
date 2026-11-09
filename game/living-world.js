@@ -368,7 +368,7 @@
       {id:'school',village:'snow',dx:560,dy:-350},
       {id:'smithy',village:'volcano',dx:560,dy:-350},
       {id:'watch_bell',village:'blight',dx:560,dy:-350},
-      {id:'greenhouse',village:'forest',dx:560,dy:550)
+      {id:'greenhouse',village:'forest',dx:560,dy:550}
     ];
     for(const item of items){
       if(!state.projects[item.id])continue;
