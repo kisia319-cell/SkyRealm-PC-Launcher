@@ -108,6 +108,8 @@ jobs:
           node tests/release-manifest-channel-test.cjs
           node tests/boss-realm-regression-test.cjs
           node tests/world-expansion-regression-test.cjs
+          node --check tests/village-assault-test.cjs
+          node tests/village-assault-test.cjs
           node --check tests/quarry-system-test.cjs
           node tests/quarry-system-test.cjs
           node --check tests/mine-exploration-test.cjs
