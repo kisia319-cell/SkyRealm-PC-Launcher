@@ -41,7 +41,7 @@ jobs:
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "community-mods.css", "community-mods.js", "config.js", "realm.jpg", "icon.png",
             "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt", "game/bugfix_counter.txt",
-            "game/edition-system.js", "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css", "game/expansion-systems.js"
+            "game/edition-system.js", "game/forest-ecosystem.js", "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css", "game/expansion-systems.js"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
           if ($missing.Count -gt 0) {
@@ -50,6 +50,7 @@ jobs:
           python -m py_compile launcher.py update_helper.py
           node --check game/game.js
           node --check game/edition-system.js
+          node --check game/forest-ecosystem.js
           node --check game/multiplayer-core.js
           node --check game/multiplayer-client.js
           node --check game/multiplayer-ui.js
@@ -95,6 +96,8 @@ jobs:
           node tests/supabase-migration-history-test.cjs
           node tests/time-mechanics-test.cjs
           node tests/gameplay-regression-test.cjs
+          node --check tests/boss-realm-regression-test.cjs
+          node tests/boss-realm-regression-test.cjs
           node --check tests/quarry-system-test.cjs
           node tests/quarry-system-test.cjs
           node --check tests/mine-exploration-test.cjs
