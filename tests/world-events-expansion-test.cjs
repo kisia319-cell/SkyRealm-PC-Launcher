@@ -3,7 +3,8 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const source=fs.readFileSync('game/world-events.js','utf8');
-assert.ok(source.includes('Печать разведчика')&&source.includes('Фрагмент карты пещер')&&source.includes('caveSecretRoomsOpened'),'Two secret cave rooms and their persistent rewards must be implemented in the game runtime.');
+const gameSource=fs.readFileSync('game/game.js','utf8');
+assert.ok(gameSource.includes('Печать разведчика')&&gameSource.includes('Фрагмент карты пещер')&&gameSource.includes('caveSecretRoomsOpened'),'Two secret cave rooms and their persistent rewards must be implemented in the game runtime.');
 
 const rewards={items:{},gold:0,damage:0,toasts:[]};
 const inventory={'Древесина':20,'Железо':10,'Листья':8};
