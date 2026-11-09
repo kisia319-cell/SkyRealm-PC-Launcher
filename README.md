@@ -11,9 +11,18 @@
 - Манифест содержит версии и SHA-256 обоих архивов:
   https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json
 
+
+## Release channels
+
+- The stable Windows launcher reads only `manifest.json` and the stable GitHub Release.
+- Co-op preview archives are published separately; their manifest is `preview-manifest.json` and is never written into the stable update channel.
+- The user's `updater_config.json` remains pinned to the stable manifest unless the user deliberately changes it.
+
 ## Текущая версия игры
 
-Установленная и публикуемая сборка игры: **0.20.50.105**. Исправлено восстановление срубленных деревьев, появление древних деревьев в роще, маршрутизация Короля Древнего Леса и перекрытие взаимодействия с ловушкой Склепа Корней. Для этих механик добавлены регрессионные проверки.nt Edition Preferences
+Установленная и публикуемая сборка игры: **0.20.50.105**. Исправлено восстановление срубленных деревьев, появление древних деревьев в роще, маршрутизация Короля Древнего Леса и перекрытие взаимодействия с ловушкой Склепа Корней. Для этих механик добавлены регрессионные проверки.
+
+## Account Edition Preferences
 
 - Added an opt-in checkbox below Premium/Free choices to remember the selected edition.
 - Stored the preference against the authenticated SkyRealm account, so it follows the same account across computers and does not leak between different accounts.
