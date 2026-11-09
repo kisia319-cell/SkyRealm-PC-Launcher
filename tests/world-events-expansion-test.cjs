@@ -38,7 +38,7 @@ player={x:camp.x+36,y:camp.y+10};
 assert.equal(api.interact(),true,'Camp chest can be opened');
 assert.equal(api.getState().camps[0].chestOpened,true,'Camp chest is permanently marked opened');
 assert.equal(inventory['Ключ древнего лагеря'],1,'Camp grants its rare key');
-player={x:camp.x,y:camp.y};
+player={x:camp.x-10,y:camp.y-55};
 assert.equal(api.interact(),true,'Camp note can be read');
 assert.equal(inventory['Записка разведчика'],1,'Camp note is stored in inventory');
 snapshot.day=2;api.update(.1);
