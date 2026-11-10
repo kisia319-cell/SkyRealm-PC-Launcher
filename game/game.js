@@ -1421,6 +1421,13 @@ let audioContext=null;
     ctx.fillStyle=colors[1];ctx.beginPath();ctx.moveTo(0,-35);ctx.lineTo(-17,-4);ctx.lineTo(-7,-4);ctx.lineTo(-17,6);ctx.lineTo(17,6);ctx.lineTo(7,-7);ctx.closePath();ctx.fill();
     ctx.fillStyle=colors[2];ctx.beginPath();ctx.moveTo(0,-29);ctx.lineTo(-7,-6);ctx.lineTo(3,-8);ctx.lineTo(12,0);ctx.lineTo(5,-16);ctx.closePath();ctx.fill();
     if(t.fruitful){ctx.shadowColor='#ffcf70';ctx.shadowBlur=5;for(const [fx,fy] of [[-12,-12],[10,-20],[5,2]]){ctx.fillStyle='#f3a64e';ctx.beginPath();ctx.arc(fx,fy+Math.sin(ambientTime/260+t.x+fx)*1.2,2.7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b8e18a';ctx.fillRect(fx,fy-4,2,2);}ctx.shadowBlur=0;}if(t.ancient){ctx.strokeStyle='#a8d66f';ctx.globalAlpha=.65+.2*Math.sin(ambientTime/190+t.x);ctx.lineWidth=1.8;ctx.shadowColor='#9bdf62';ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(-14,-10);ctx.lineTo(-7,-18);ctx.lineTo(0,-12);ctx.lineTo(8,-20);ctx.lineTo(14,-12);ctx.stroke();ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.fillStyle='#b5f76c';ctx.beginPath();ctx.arc(0,-18,2,0,6.28);ctx.fill();}
+
+    // Bark grain, roots, branch knots and layered leaf highlights.
+    ctx.strokeStyle=snowy?'rgba(224,239,244,.55)':'rgba(39,24,17,.62)';ctx.lineWidth=1.35;ctx.beginPath();ctx.moveTo(-2,1);ctx.lineTo(-3,17);ctx.moveTo(2,4);ctx.lineTo(3,20);ctx.moveTo(-4,7);ctx.lineTo(-8,11);ctx.moveTo(4,9);ctx.lineTo(8,13);ctx.stroke();
+    ctx.fillStyle=snowy?'#b8c8ce':'#4a3325';ctx.beginPath();ctx.ellipse(-2,8,1.5,2.5,-.2,0,Math.PI*2);ctx.ellipse(3,15,1.2,2,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=snowy?'#c7dce5':'#553c2a';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(-4,5);ctx.quadraticCurveTo(-15,-1,-19,-10);ctx.moveTo(4,7);ctx.quadraticCurveTo(15,0,19,-8);ctx.stroke();
+    for(let layer=0;layer<3;layer++){const yy=-25+layer*12;for(let j=0;j<5;j++){const lx=-16+j*8+(layer%2)*3,ly=yy+Math.sin(j*2.1+layer)*3;ctx.fillStyle=colors[(j+layer)%3];ctx.globalAlpha=.28+.12*((j+layer)%3);ctx.beginPath();ctx.ellipse(lx,ly,3.2,1.8,-.4,0,Math.PI*2);ctx.fill();} }ctx.globalAlpha=1;
+    if(gameSettings.graphicsQuality!=='low'){ctx.fillStyle=snowy?'rgba(242,251,255,.7)':'rgba(183,231,151,.6)';for(let i=0;i<4;i++){const px=Math.sin(t.x*.1+i*8)*17,py=-29+i*9;ctx.beginPath();ctx.arc(px,py,1.1,0,Math.PI*2);ctx.fill();}}
     ctx.restore();
   }
   function bossRealmGrovePosition(){return {x:Math.min(COLS*TILE-12*TILE,38*TILE+16),y:Math.min(ROWS*TILE-12*TILE,38*TILE+16)};}
@@ -2519,6 +2526,13 @@ function setupVillageNpcs(){
     ctx.fillStyle='#d5a36c';ctx.beginPath();ctx.moveTo(x-8,y+8);ctx.lineTo(x-3,y-12);ctx.lineTo(x+10,y+8);ctx.closePath();ctx.fill();
     ctx.strokeStyle='#ff9b54';ctx.lineWidth=3;ctx.shadowColor='#ff793d';ctx.shadowBlur=12;
     ctx.beginPath();ctx.moveTo(x+22,y+7);ctx.lineTo(x+26,y-2-Math.sin(time/90)*3);ctx.lineTo(x+30,y+7);ctx.stroke();
+
+    // Camp details: stitched seams, guy ropes, bedroll, supply crate and embers.
+    ctx.strokeStyle='#513a2c';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x-3,y-23);ctx.lineTo(x-3,y+7);ctx.moveTo(x-20,y+7);ctx.lineTo(x-29,y+13);ctx.moveTo(x+16,y+7);ctx.lineTo(x+28,y+13);ctx.stroke();
+    ctx.strokeStyle='#e0b982';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-15,y-1);ctx.lineTo(x-7,y-12);ctx.lineTo(x+2,y+2);ctx.stroke();
+    ctx.fillStyle='#5b4030';ctx.fillRect(x-29,y+8,13,8);ctx.fillStyle='#b47b43';ctx.fillRect(x-28,y+9,11,6);ctx.strokeStyle='#e3bc78';ctx.strokeRect(x-28,y+9,11,6);
+    ctx.fillStyle='#4d3829';ctx.fillRect(x+13,y+5,13,10);ctx.fillStyle='#b88a52';ctx.fillRect(x+14,y+6,11,3);ctx.fillStyle='#d6bd87';ctx.fillRect(x+18,y+7,3,7);
+    for(let i=0;i<5;i++){const ex=x+Math.sin(time/110+i*2)*7,ey=y+11+Math.cos(time/130+i)*2;ctx.fillStyle=i%2?'#ffb64d':'#ff7138';ctx.globalAlpha=.55+.35*Math.sin(time/80+i);ctx.beginPath();ctx.arc(ex,ey,1.5,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=alpha;
     ctx.fillStyle='#fff0be';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ЗАБРОШЕННЫЙ ЛАГЕРЬ · E',x,y-35);
     ctx.restore();
   }
@@ -2531,6 +2545,13 @@ function setupVillageNpcs(){
     ctx.fillStyle='#865a42';ctx.fillRect(-9,-5,18,18);ctx.fillStyle='#c68a5e';ctx.beginPath();ctx.arc(0,-14,8,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#344b68';ctx.fillRect(-7,0,14,14);ctx.fillStyle='#c99b57';ctx.fillRect(7,-1,7,11);
     ctx.strokeStyle='#d9bd8b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-8,13);ctx.lineTo(-11,20);ctx.moveTo(7,13);ctx.lineTo(10,20);ctx.stroke();
+
+    // Merchant's layered travel cloak, satchel buckles and walking staff.
+    ctx.fillStyle='#24364b';ctx.beginPath();ctx.moveTo(-9,-2);ctx.lineTo(-13,12);ctx.lineTo(-7,17);ctx.lineTo(9,17);ctx.lineTo(13,12);ctx.lineTo(8,-2);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#c69b60';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-6,0);ctx.lineTo(0,13);ctx.lineTo(7,0);ctx.stroke();
+    ctx.fillStyle='#a87948';ctx.fillRect(8,-2,9,12);ctx.fillStyle='#e0c17d';ctx.fillRect(10,1,5,2);ctx.fillRect(11,6,3,2);
+    ctx.strokeStyle='#806044';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-13,-17);ctx.lineTo(-16,21);ctx.stroke();ctx.fillStyle='#d2b27c';ctx.beginPath();ctx.arc(-13,-18,2.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#e9c58a';ctx.beginPath();ctx.arc(0,-14,5,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#fff0be';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПУТНИК · E',0,-31);
     ctx.restore();
   }
@@ -4333,6 +4354,14 @@ function setupVillageNpcs(){
     ctx.strokeStyle='#b2bdca';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(26,-12);ctx.lineTo(37,13+ (attacking?-13:0));ctx.stroke();
     ctx.strokeStyle='#e0bd73';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(22,-15);ctx.lineTo(31,-15);ctx.stroke();
     ctx.fillStyle='#f0d18a';ctx.fillRect(-5,-5,10,5);
+
+    // Ornate layered plates, rivets, engraved crest and shield emblem.
+    ctx.fillStyle='#7f91a5';ctx.beginPath();ctx.moveTo(-19,-25);ctx.lineTo(-10,-31);ctx.lineTo(0,-27);ctx.lineTo(10,-31);ctx.lineTo(19,-25);ctx.lineTo(16,-8);ctx.lineTo(0,-2);ctx.lineTo(-16,-8);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#d9c18b';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-16,-24);ctx.lineTo(-9,-28);ctx.lineTo(0,-24);ctx.lineTo(9,-28);ctx.lineTo(16,-24);ctx.stroke();
+    ctx.fillStyle='#d7b86f';for(const [rx,ry] of [[-15,-20],[15,-20],[-13,-7],[13,-7]]){ctx.beginPath();ctx.arc(rx,ry,1.8,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='#3a526b';ctx.beginPath();ctx.moveTo(-28,-17);ctx.lineTo(-37,-12);ctx.lineTo(-35,3);ctx.lineTo(-25,8);ctx.lineTo(-19,1);ctx.lineTo(-20,-13);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#d7bd7a';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#f0d58d';ctx.beginPath();ctx.moveTo(-28,-12);ctx.lineTo(-24,-7);ctx.lineTo(-28,-2);ctx.lineTo(-32,-7);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#d5e0e8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(30,-15);ctx.lineTo(39,9);ctx.stroke();ctx.fillStyle='#e5c77f';ctx.beginPath();ctx.arc(30,-15,3,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#17212d';ctx.fillRect(-27,-60,54,6);ctx.fillStyle='#e6b75d';ctx.fillRect(-27,-60,54*Math.max(0,m.hp/250),6);
     ctx.textAlign='center';ctx.font='900 9px Segoe UI';ctx.fillStyle='#fff0c4';ctx.fillText('ВЕЛИКИЙ СТРАЖ',0,-67);
     ctx.restore();
@@ -4349,6 +4378,13 @@ function setupVillageNpcs(){
     ctx.strokeStyle='#8a653b';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-8,-26);ctx.lineTo(-17,-43);ctx.lineTo(-22,-47);ctx.moveTo(8,-27);ctx.lineTo(17,-43);ctx.lineTo(23,-48);ctx.stroke();
     ctx.shadowColor='#ffdf75';ctx.shadowBlur=13;ctx.fillStyle='#ffe58a';ctx.fillRect(-8,-18,5,4);ctx.fillRect(4,-18,5,4);ctx.shadowBlur=0;
     ctx.strokeStyle='#3b2418';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-5,-8);ctx.lineTo(0,-5);ctx.lineTo(5,-8);ctx.stroke();
+
+    // Deep bark grooves, knotted wood, moss patches and tiny leaves.
+    ctx.strokeStyle='#3e291c';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(-10,-27);ctx.lineTo(-7,-13);ctx.lineTo(-12,1);ctx.moveTo(5,-29);ctx.lineTo(2,-14);ctx.lineTo(8,2);ctx.moveTo(-2,-22);ctx.lineTo(1,-8);ctx.stroke();
+    ctx.fillStyle='#8b6540';ctx.beginPath();ctx.ellipse(-5,-13,3,5,-.35,0,Math.PI*2);ctx.ellipse(8,-4,2,4,.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#527a3c';ctx.beginPath();ctx.ellipse(-12,-23,7,3,-.4,0,Math.PI*2);ctx.ellipse(12,-29,7,3,.45,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#b0d86c';for(let i=0;i<5;i++){const lx=Math.sin(i*2.3+(m.phase||0))*19,ly=-34+Math.cos(i*1.7)*9;ctx.beginPath();ctx.ellipse(lx,ly,2.4,1.3,i*.7,0,Math.PI*2);ctx.fill();}
+    ctx.strokeStyle='#9a7445';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-22,-18);ctx.lineTo(-31,-25);ctx.moveTo(22,-18);ctx.lineTo(31,-25);ctx.stroke();
     ctx.fillStyle='#19251b';ctx.fillRect(-27,-58,54,5);ctx.fillStyle='#9de071';ctx.fillRect(-27,-58,54*Math.max(0,m.hp/Math.max(1,m.maxHp)),5);
     ctx.fillStyle='#f6f0d7';ctx.font='900 9px Segoe UI';ctx.textAlign='center';ctx.fillText('ДРЕВОДЕМОН',0,-64);
     ctx.restore();
