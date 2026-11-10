@@ -3454,12 +3454,49 @@ function setupVillageNpcs(){
   }
   function drawPlacedStructures(camX,camY){
     for(const s of placedStructures){const x=s.x-camX,y=s.y-camY;if(x<-100||x>width+100||y<-100||y>height+100)continue;ctx.save();ctx.translate(x,y);
-      if(s.type==='furnace'){ctx.fillStyle='#172a2b88';ctx.beginPath();ctx.ellipse(0,13,21,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#626d73';ctx.fillRect(-17,-17,34,30);ctx.fillStyle='#89979b';ctx.fillRect(-12,-13,24,20);ctx.fillStyle='#273238';ctx.fillRect(-8,-8,16,13);ctx.fillStyle='#ff9a42';ctx.beginPath();ctx.moveTo(-5,4);ctx.quadraticCurveTo(-10,-5,0,-9);ctx.quadraticCurveTo(1,-2,7,-6);ctx.quadraticCurveTo(12,5,0,6);ctx.fill();ctx.fillStyle='#fff0bd';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЧЬ',0,26);}
-      else if(s.type==='house'){ctx.fillStyle='#102d2b88';ctx.beginPath();ctx.ellipse(0,31,45,12,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9a7049';ctx.fillRect(-38,-5,76,37);ctx.fillStyle='#704536';ctx.beginPath();ctx.moveTo(-45,-5);ctx.lineTo(0,-36);ctx.lineTo(45,-5);ctx.closePath();ctx.fill();ctx.fillStyle='#c18a52';ctx.fillRect(-30,0,60,26);ctx.fillStyle='#3b2924';ctx.fillRect(-7,8,14,24);ctx.fillStyle='#e9cf8b';ctx.fillRect(5,18,2,3);ctx.fillStyle='#d5e6d8';ctx.fillRect(-27,3,11,10);ctx.fillRect(16,3,11,10);ctx.fillStyle='#fff0bd';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ДОМ',0,-41);}
-      else if(s.type==='anvil'){ctx.fillStyle='#26313a';ctx.fillRect(-18,-7,36,22);ctx.fillStyle='#9caeb8';ctx.fillRect(-23,-17,46,12);ctx.fillStyle='#dbe8ed';ctx.fillRect(-11,-20,22,5);ctx.fillStyle='#fff0bd';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('НАКОВАЛЬНЯ',0,30);}
+      if(s.type==='furnace'){
+        const pulse=.55+.45*Math.sin(performance.now()/120);
+        ctx.fillStyle='rgba(5,14,18,.34)';ctx.beginPath();ctx.ellipse(0,14,24,9,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#36434a';ctx.fillRect(-20,-18,40,34);ctx.fillStyle='#77878a';ctx.fillRect(-17,-15,34,27);
+        ctx.strokeStyle='#3a4548';ctx.lineWidth=1;for(let row=0;row<3;row++){ctx.beginPath();ctx.moveTo(-16,-10+row*8);ctx.lineTo(16,-10+row*8);ctx.stroke();ctx.beginPath();ctx.moveTo(-7,-15+row*8);ctx.lineTo(-7,-7+row*8);ctx.moveTo(8,-15+row*8);ctx.lineTo(8,-7+row*8);ctx.stroke();}
+        ctx.fillStyle='#222d32';ctx.fillRect(-10,-8,20,17);ctx.fillStyle='rgba(255,132,49,'+(.65+pulse*.3)+')';ctx.shadowColor='#ff7939';ctx.shadowBlur=12;ctx.beginPath();ctx.moveTo(-7,7);ctx.quadraticCurveTo(-12,-3,-2,-10);ctx.quadraticCurveTo(0,-3,4,-9);ctx.quadraticCurveTo(12,2,0,9);ctx.fill();ctx.shadowBlur=0;
+        ctx.fillStyle='#c0c9c6';ctx.fillRect(-6,-26,12,9);ctx.fillStyle='#49545a';ctx.fillRect(-8,-29,16,4);ctx.fillStyle='#fff0bd';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЧЬ',0,29);
+      }
+      else if(s.type==='house'){
+        ctx.fillStyle='rgba(5,13,16,.36)';ctx.beginPath();ctx.ellipse(0,31,48,13,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#4d392b';ctx.fillRect(-40,-5,80,39);ctx.fillStyle='#a77a4e';ctx.fillRect(-36,-4,72,33);
+        ctx.fillStyle='#6a442e';ctx.fillRect(-33,0,7,30);ctx.fillRect(26,0,7,30);ctx.fillRect(-31,24,62,5);
+        ctx.fillStyle='#5a3930';ctx.beginPath();ctx.moveTo(-48,-5);ctx.lineTo(0,-42);ctx.lineTo(48,-5);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#a65f4a';ctx.beginPath();ctx.moveTo(-42,-7);ctx.lineTo(0,-38);ctx.lineTo(42,-7);ctx.lineTo(36,-1);ctx.lineTo(0,-31);ctx.lineTo(-36,-1);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='rgba(238,190,145,.42)';ctx.lineWidth=1;for(let row=0;row<3;row++){ctx.beginPath();ctx.moveTo(-33+row*3,-8+row*8);ctx.lineTo(33-row*3,-8+row*8);ctx.stroke();}
+        ctx.fillStyle='#36505a';ctx.fillRect(-26,3,12,13);ctx.fillRect(14,3,12,13);ctx.fillStyle='#f5ce7b';ctx.fillRect(-24,5,8,9);ctx.fillRect(16,5,8,9);
+        ctx.strokeStyle='#dfc18b';ctx.lineWidth=2;ctx.strokeRect(-28,1,16,17);ctx.strokeRect(12,1,16,17);
+        ctx.fillStyle='#382820';ctx.fillRect(-7,8,14,26);ctx.fillStyle='#d8b678';ctx.fillRect(4,20,2,3);
+        ctx.fillStyle='#7a5133';ctx.fillRect(30,-28,8,23);ctx.fillStyle='#c18a52';ctx.fillRect(28,-32,12,4);
+        ctx.fillStyle='#fff0bd';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ДОМ',0,-47);
+      }
+      else if(s.type==='anvil'){
+        ctx.fillStyle='rgba(6,13,18,.35)';ctx.beginPath();ctx.ellipse(0,15,24,8,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#303941';ctx.fillRect(-19,-7,38,22);ctx.fillStyle='#657680';ctx.fillRect(-14,-5,28,16);
+        ctx.fillStyle='#8396a2';ctx.fillRect(-23,-17,46,12);ctx.fillStyle='#dbe8ed';ctx.fillRect(-12,-21,24,5);
+        ctx.fillStyle='#e9f1ed';ctx.fillRect(-18,-15,36,2);ctx.fillStyle='#34434e';ctx.fillRect(-4,-7,8,18);
+        ctx.fillStyle='#fff0bd';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('НАКОВАЛЬНЯ',0,30);
+      }
       else if(s.type==='torch'){ctx.fillStyle='#67452c';ctx.fillRect(-3,-2,6,18);ctx.fillStyle=`rgba(255,${150+Math.floor(Math.sin(performance.now()/75)*25)},66,.96)`;ctx.beginPath();ctx.moveTo(0,-20+Math.sin(performance.now()/90)*2);ctx.quadraticCurveTo(-11,-8,-2,-4);ctx.quadraticCurveTo(1,-12,4,-5);ctx.quadraticCurveTo(13,-14,0,-20);ctx.fill();ctx.fillStyle='#ffe9a1';ctx.fillRect(-1,-13,2,7);}
-      else if(s.type==='coal'){ctx.fillStyle='#252b30';ctx.fillRect(-12,-10,24,22);ctx.fillStyle='#555f65';ctx.fillRect(-8,-7,8,7);ctx.fillRect(2,1,7,7);}
-      else if(s.type==='storage'){ctx.fillStyle='#102a2a88';ctx.beginPath();ctx.ellipse(0,12,23,8,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#80532f';ctx.fillRect(-18,-7,36,23);ctx.fillStyle='#b77b3d';ctx.fillRect(-18,-12,36,9);ctx.fillStyle='#e6c46b';ctx.fillRect(-3,-7,6,17);ctx.fillStyle='#fff2b0';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('СУНДУК',0,28);}
+      else if(s.type==='coal'){
+        ctx.fillStyle='rgba(5,10,14,.3)';ctx.beginPath();ctx.ellipse(0,12,19,7,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#20272c';ctx.beginPath();ctx.moveTo(-16,9);ctx.lineTo(-14,-1);ctx.lineTo(-6,-13);ctx.lineTo(5,-16);ctx.lineTo(16,-4);ctx.lineTo(17,9);ctx.closePath();ctx.fill();
+        for(const [cx,cy,rr] of [[-8,0,5],[0,-8,6],[8,3,5],[-1,5,4]]){ctx.fillStyle='#414c52';ctx.beginPath();ctx.arc(cx,cy,rr,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(196,213,216,.24)';ctx.beginPath();ctx.arc(cx-1,cy-2,rr*.42,0,Math.PI*2);ctx.fill();}
+      }
+      else if(s.type==='storage'){
+        ctx.fillStyle='rgba(5,13,18,.38)';ctx.beginPath();ctx.ellipse(0,14,25,8,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#3f2b21';ctx.fillRect(-20,-7,40,24);ctx.fillStyle='#8b5b33';ctx.fillRect(-18,-8,36,20);
+        ctx.fillStyle='#bb8349';ctx.fillRect(-18,-11,36,5);ctx.fillRect(-18,9,36,4);
+        ctx.fillStyle='#4c3425';for(const bx of [-12,-4,4,12])ctx.fillRect(bx,-5,2,13);
+        ctx.strokeStyle='#d4b77c';ctx.lineWidth=2;ctx.strokeRect(-19,-8,38,21);ctx.fillStyle='#e7c878';ctx.fillRect(-4,-7,8,18);
+        ctx.fillStyle='#fff0b0';ctx.beginPath();ctx.arc(0,1,2.5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff2b0';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('СУНДУК',0,29);
+      }
       else if(s.type==='village-watchtower'){
         const level=Math.max(1,Math.min(3,Number(s.watchtowerLevel)||1)),hp=Math.max(0,Number.isFinite(s.hp)?s.hp:360+(level-1)*120),maxHp=Math.max(1,Number(s.maxHp)||360+(level-1)*120),angle=Number.isFinite(s.watchtowerAngle)?s.watchtowerAngle:-Math.PI/2,active=hp>0,now=performance.now(),pulse=.5+.5*Math.sin(now/190),damageRatio=1-hp/maxHp;
         const stone=level===3?'#71818b':level===2?'#806e5b':'#74604e',wood=level===3?'#76533b':level===2?'#8a603d':'#956943',trim=level===3?'#b8cbd0':level===2?'#d1ad70':'#c69a62';
