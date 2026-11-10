@@ -153,6 +153,12 @@
     state.ordinary.assault={id,day,villageId,villageName,active:true,claimed:false};
     save();render();notify('НАПАДЕНИЕ НА ДЕРЕВНЮ: '+villageName+'! Победи восьмерых защитников и Великого стража деревни.');
   }
+  function buildNearestVillage(kind){
+    const b=bridge(),centers=b?.getVillageCenters?.()||[],player=b?.getPlayerPosition?.();
+    const nearest=centers.slice().sort((a,c)=>Math.hypot(a.x-(player?.x||0),a.y-(player?.y||0))-Math.hypot(c.x-(player?.x||0),c.y-(player?.y||0)))[0];
+    if(!nearest){notify('В этом мире пока нет доступного поселения для строительства.');return;}
+    if(b?.buildVillageStructure?.(nearest.id,kind))render();
+  }
   function startExpedition(day){
     const b=bridge(),point=b?.getWorldEventSpawnPoint?.();
     if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)){notify('Не удалось найти место для экспедиции.');return;}
@@ -225,6 +231,7 @@
       (isAccepted&&!done?'<button disabled>Продолжай собирать ресурсы</button>':'')+'</div></article>'+
       '<article class="we-card"><h3>🛡️ Оборона поселения</h3><small>Шесть налётчиков атакуют ближайшее поселение. Победа приносит знак защитника и 125 золота.</small><div class="we-meta">'+(raid?.active?'Врагов осталось: '+(bridge()?.getEventEnemyCount?.(raid.id)??'—'):raid?.claimed?'Оборона завершена':'Доступно раз в три игровых дня')+'</div><div class="we-actions"><button data-action="village-raid" '+(raidReady?'':'disabled')+'>'+(raid?.active?'Нападение идёт':'Защитить поселение')+'</button></div></article>'+
       '<article class="we-card"><h3>⚔️ Нападение на деревню</h3><small>Цель: '+esc(assault?.active?assault.villageName:targetName)+'. Ворота охраняют восемь защитников и Великий страж деревни (250 HP, 19 урона). Победи всех девятерых, чтобы забрать деревенские припасы и трофей налётчика. Новый налёт доступен раз в три игровых дня.</small><div class="we-meta">'+(assault?.active?'Нападение идёт · врагов осталось: '+(bridge()?.getEventEnemyCount?.(assault.id)??'—'):assault?.claimed&&assault.day===day?'Налёт завершён сегодня':'Награда: 180 золота, знак налётчика и 2 слитка железа')+'</div><div class="we-actions"><button data-action="village-assault" '+(assaultReady?'':'disabled')+'>'+(assault?.active?'Идёт нападение':assaultReady?'Напасть на деревню':'Деревня восстанавливается')+'</button></div></article>'+
+      '<article class="we-card"><h3>🏘️ Развитие деревни</h3><small>Строй настоящие здания рядом с выбранным поселением. Дом можно использовать как личное убежище, хранилище открывается клавишей E, а сторожевая башня отмечает усиление обороны.</small><div class="we-meta">Построено: '+(()=>{const c=bridge()?.getVillageStructureCounts?.(nearest?.id)||{};return (c.houses||0)+' домов · '+(c.storages||0)+' хранилищ · '+(c.watchtowers||0)+' башен';})()+'</div><div class="we-actions"><button data-action="build-village-house" '+(nearest?'':'disabled')+'>Дом · 24 дерева · 12 камня</button><button data-action="build-village-storage" '+(nearest?'':'disabled')+'>Хранилище · 12 дерева · 8 камня</button><button data-action="build-village-watchtower" '+(nearest?'':'disabled')+'>Башня · 30 дерева · 20 камня · 8 железа</button></div></article>'+
       '<article class="we-card"><h3>🧭 Экспедиция древних троп</h3><small>Пять существ охраняют древний ориентир. Очисти место и забери фрагмент старой карты.</small><div class="we-meta">'+(expedition?.active?'Врагов осталось: '+(bridge()?.getEventEnemyCount?.(expedition.id)??'—'):expedition?.claimed?'Экспедиция завершена':'Доступно раз в три игровых дня')+'</div><div class="we-actions"><button data-action="expedition" '+(expeditionReady?'':'disabled')+'>'+(expedition?.active?'Экспедиция идёт':'Начать экспедицию')+'</button></div></article>'+
       '</div>';
   }
@@ -269,6 +276,9 @@
       else if(action==='claim-contract')claimOrdinary(contractForDay(day),lastSnapshot,day);
       else if(action==='village-raid')startVillageRaid(day);
       else if(action==='village-assault')startVillageAssault(day);
+      else if(action==='build-village-house')buildNearestVillage('house');
+      else if(action==='build-village-storage')buildNearestVillage('storage');
+      else if(action==='build-village-watchtower')buildNearestVillage('watchtower');
       else if(action==='expedition')startExpedition(day);
       else if(action==='accept-boss')acceptBoss(bossContractForDay(day),b?.getBossRealmSnapshot?.()||{},day);
       else if(action==='claim-boss')claimBoss(bossContractForDay(day),b?.getBossRealmSnapshot?.()||{},day);
