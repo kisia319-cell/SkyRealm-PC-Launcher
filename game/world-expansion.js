@@ -55,7 +55,7 @@
   function mode(){
     const b=bridge();
     if(b?.isBossRealm?.())return 'boss';
-    if(b?.isTradeWorld?.()||b?.isCoopWorld?.()||b?.isSpecialWorldMode?.())return 'hidden';
+    if(b?.isCoopWorld?.()||b?.isSpecialWorldMode?.())return 'hidden';
     return 'ordinary';
   }
   function ensureUI(){
