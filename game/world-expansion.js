@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 1;
+  const VERSION = 2;
   const KEY_PREFIX = 'skyrealm_world_expansion_v1_';
   const bridge = () => window.SkyRealmSeaBridge;
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -19,8 +19,19 @@
     {id:'arena_master',title:'Покоритель арен',description:'Победи ещё одного главного босса или бога.',metric:'majorDefeats',target:1,gold:30000,item:'Печать победителя арен',amount:1}
   ];
 
+  const VILLAGE_NAMES=Object.freeze({forest:'Лесная деревня',snow:'Снежная деревня',desert:'Пустынный посёлок',volcano:'Вулканическое поселение',blight:'Заражённая деревня'});
+  const VILLAGE_IDS=Object.keys(VILLAGE_NAMES);
+  const makeVillageRelations=()=>Object.fromEntries(VILLAGE_IDS.map(id=>[id,{trust:0,wanted:0,lastCrimeDay:-1,lastDecayDay:0,crimeCount:0,allyRewardClaimed:false}]));
+  function normalizeVillageRelations(raw){
+    const result=makeVillageRelations();
+    for(const id of VILLAGE_IDS){
+      const value=raw&&typeof raw==='object'?raw[id]:null;if(!value||typeof value!=='object')continue;
+      result[id]={trust:clamp(Math.floor(Number(value.trust)||0),-100,100),wanted:clamp(Math.floor(Number(value.wanted)||0),0,100),lastCrimeDay:Number.isInteger(value.lastCrimeDay)?clamp(value.lastCrimeDay,-1,10000000):-1,lastDecayDay:Number.isInteger(value.lastDecayDay)?clamp(value.lastDecayDay,0,10000000):0,crimeCount:clamp(Math.floor(Number(value.crimeCount)||0),0,1000000),allyRewardClaimed:value.allyRewardClaimed===true};
+    }
+    return result;
+  }
   const fresh = () => ({
-    version:VERSION, worldId:'', ordinary:{day:-1,accepted:null,claimedDay:-1,raid:null,expedition:null,assault:null},
+    version:VERSION, worldId:'', ordinary:{day:-1,accepted:null,claimedDay:-1,raid:null,expedition:null,assault:null,relations:makeVillageRelations()},
     boss:{day:-1,accepted:null,claimedDay:-1,wardenDay:-1}
   });
   let state=fresh(), activeWorld='', opened=false, uiReady=false, lastSnapshot=null;
@@ -37,8 +48,9 @@
     activeWorld=id;state=fresh();
     try{
       const raw=JSON.parse(localStorage.getItem(storageKey(id))||'null');
-      if(raw&&typeof raw==='object'&&raw.version===VERSION){
+      if(raw&&typeof raw==='object'&&Number(raw.version)>=1&&Number(raw.version)<=VERSION){
         state.ordinary={...state.ordinary,...(raw.ordinary&&typeof raw.ordinary==='object'?raw.ordinary:{})};
+        state.ordinary.relations=normalizeVillageRelations(state.ordinary.relations);
         const assault=state.ordinary.assault;
         state.ordinary.assault=assault&&typeof assault==='object'&&typeof assault.id==='string'&&typeof assault.villageId==='string'?{id:assault.id.slice(0,160),day:Math.max(0,Math.floor(Number(assault.day)||0)),villageId:assault.villageId.slice(0,40),villageName:typeof assault.villageName==='string'?assault.villageName.slice(0,80):'Поселение',active:assault.active===true,claimed:assault.claimed===true}:null;
         state.boss={...state.boss,...(raw.boss&&typeof raw.boss==='object'?raw.boss:{})};
@@ -121,6 +133,7 @@
   function claimOrdinary(contract,snapshot,day){
     const accepted=state.ordinary.accepted;
     if(!accepted||accepted.id!==contract.id||accepted.day!==day||progressForContract(contract,accepted.baseline,snapshot)<targetForContract(contract))return;
+    const villageId=nearestVillageId();if(villageId)recordVillageAid(villageId,'contract',false);
     reward(contract.gold,contract.item,contract.amount,'Награда жителям за выполненный заказ.');
     state.ordinary.claimedDay=day;state.ordinary.accepted=null;save();render();
     notify('Заказ выполнен! Получена награда: '+contract.item+'.');
@@ -132,7 +145,7 @@
     const id='chronicle-village-'+activeWorld+'-'+day;
     const count=b?.spawnEventEnemies?.(id,point.x,point.y,6)||0;
     if(!count){notify('Поблизости слишком много врагов. Освободи место и повтори попытку.');return;}
-    state.ordinary.raid={id,day,active:true,claimed:false};
+    state.ordinary.raid={id,day,active:true,claimed:false,villageId:String(point.id||'')};
     save();render();notify('ТРЕВОГА В ПОСЕЛЕНИИ! Отбей нападение шести налётчиков.');
   }
   function startVillageAssault(day){
@@ -151,13 +164,14 @@
     const count=b?.spawnEventEnemies?.(id,point.x,point.y,8)||0;
     if(count!==8){b?.clearEventEnemies?.(id);notify('Для нападения нужно свободное место для Великого стража и восьми защитников. Очисти окрестности деревни и попробуй снова.');return;}
     state.ordinary.assault={id,day,villageId,villageName,active:true,claimed:false};
+    recordVillageCrime(villageId,'assault',false);
     save();render();notify('НАПАДЕНИЕ НА ДЕРЕВНЮ: '+villageName+'! Победи восьмерых защитников и Великого стража деревни.');
   }
   function buildNearestVillage(kind){
     const b=bridge(),centers=b?.getVillageCenters?.()||[],player=b?.getPlayerPosition?.();
     const nearest=centers.slice().sort((a,c)=>Math.hypot(a.x-(player?.x||0),a.y-(player?.y||0))-Math.hypot(c.x-(player?.x||0),c.y-(player?.y||0)))[0];
     if(!nearest){notify('В этом мире пока нет доступного поселения для строительства.');return;}
-    if(b?.buildVillageStructure?.(nearest.id,kind))render();
+    if(b?.buildVillageStructure?.(nearest.id,kind)){recordVillageAid(String(nearest.id),'construction',false);save();render();}
   }
   function startExpedition(day){
     const b=bridge(),point=b?.getWorldEventSpawnPoint?.();
@@ -168,6 +182,110 @@
     state.ordinary.expedition={id,day,active:true,claimed:false};
     save();render();notify('ЭКСПЕДИЦИЯ НАЧАЛАСЬ! Победи пять существ у древнего ориентира.');
   }
+  function relationDay(){return Math.max(0,Math.floor(Number(lastSnapshot?.day)||0));}
+  function relationFor(id){
+    const key=String(id||'');if(!VILLAGE_IDS.includes(key))return null;
+    if(!state.ordinary.relations||typeof state.ordinary.relations!=='object')state.ordinary.relations=makeVillageRelations();
+    if(!state.ordinary.relations[key])state.ordinary.relations[key]=makeVillageRelations()[key];
+    return state.ordinary.relations[key];
+  }
+  function nearestVillageId(){
+    const centers=bridge()?.getVillageCenters?.()||[],player=bridge()?.getPlayerPosition?.();
+    if(!centers.length)return '';
+    return String(centers.slice().sort((a,b)=>Math.hypot((a.x||0)-(player?.x||0),(a.y||0)-(player?.y||0))-Math.hypot((b.x||0)-(player?.x||0),(b.y||0)-(player?.y||0)))[0]?.id||'');
+  }
+  function relationStatus(record){
+    if(!record)return 'Поселение не найдено';
+    if(record.wanted>=70)return 'В РОЗЫСКЕ';
+    if(record.trust<=-55)return 'ВРАЖДЕБНО';
+    if(record.trust<=-20)return 'НЕДОВЕРИЕ';
+    if(record.trust<20)return 'НЕЙТРАЛЬНО';
+    if(record.trust<65)return 'ДРУЖЕЛЮБНО';
+    return 'СОЮЗНИК';
+  }
+  function recordVillageCrime(villageId,kind='vandalism',persist=true){
+    const record=relationFor(villageId);if(!record)return null;
+    const rules={vandalism:{trust:-2,wanted:6},destruction:{trust:-9,wanted:20},theft:{trust:-16,wanted:28},assault:{trust:-34,wanted:65}};
+    const rule=rules[String(kind)]||rules.vandalism,wasWanted=record.wanted;
+    record.trust=clamp(record.trust+rule.trust,-100,100);
+    record.wanted=clamp(record.wanted+rule.wanted,0,100);
+    record.lastCrimeDay=relationDay();record.lastDecayDay=relationDay();record.crimeCount=clamp(record.crimeCount+1,0,1000000);
+    if(record.wanted>=70&&wasWanted<70)notify('ТРЕВОГА! '+VILLAGE_NAMES[villageId]+' объявляет тебя в розыск. Стража запомнила твои поступки.');
+    else if(kind==='assault')notify('Ты напал на '+VILLAGE_NAMES[villageId]+'. Доверие разрушено, розыск усилен.');
+    if(persist){save();if(opened)render();}
+    return {...record};
+  }
+  function recordVillageAid(villageId,kind='contract',persist=true){
+    const record=relationFor(villageId);if(!record)return null;
+    const rewards={defense:{trust:18,wanted:20},donation:{trust:10,wanted:7},repair:{trust:14,wanted:10},contract:{trust:7,wanted:5},construction:{trust:6,wanted:4}};
+    const reward=rewards[String(kind)]||rewards.contract;
+    record.trust=clamp(record.trust+reward.trust,-100,100);
+    record.wanted=clamp(record.wanted-reward.wanted,0,100);
+    if(record.wanted===0&&record.trust<0)record.trust=Math.min(0,record.trust+2);
+    if(record.lastDecayDay<relationDay())record.lastDecayDay=relationDay();
+    if(persist){save();if(opened)render();}
+    return {...record};
+  }
+  function updateVillageRelations(day){
+    const relations=state.ordinary.relations||makeVillageRelations();let changed=false;
+    for(const id of VILLAGE_IDS){
+      const record=relationFor(id),last=Math.max(0,Math.floor(Number(record.lastDecayDay)||0)),elapsed=Math.min(365,Math.max(0,day-last));
+      if(!elapsed)continue;
+      record.wanted=Math.max(0,record.wanted-elapsed*10);
+      if(record.wanted===0&&record.trust<0)record.trust=Math.min(0,record.trust+elapsed*2);
+      record.lastDecayDay=day;changed=true;
+    }
+    if(changed){state.ordinary.relations=relations;save();if(opened)render();}
+  }
+  function getTradePriceFactor(kind='buy'){
+    const record=relationFor(nearestVillageId());if(!record)return 1;
+    if(kind==='sell')return record.trust<=-55?.78:record.trust<=-20?.90:record.trust>=75?1.12:record.trust>=35?1.05:1;
+    return record.trust<=-55?1.28:record.trust<=-20?1.12:record.trust>=75?.86:record.trust>=35?.94:1;
+  }
+  function canTrade(){
+    const record=relationFor(nearestVillageId());return !record||!(record.wanted>=85&&record.trust<=-55);
+  }
+  function villageFine(record){return Math.min(150,Math.max(10,Math.ceil(record.wanted*.65+Math.max(0,-record.trust)*.25)));}
+  function donateVillage(villageId){
+    const b=bridge(),record=relationFor(villageId);if(!record)return false;
+    const costs=[['Древесина',8],['Камень',5]];
+    if(costs.some(([name,count])=>(b?.getItemCount?.(name)||0)<count)){notify('Для пожертвования нужно 8 древесины и 5 камня.');return false;}
+    if(!costs.every(([name,count])=>b?.spendItem?.(name,count)===true)){notify('Не удалось передать припасы. Проверь инвентарь.');return false;}
+    recordVillageAid(villageId,'donation');notify('Припасы доставлены в '+VILLAGE_NAMES[villageId]+'. Доверие жителей выросло.');return true;
+  }
+  function repairVillage(villageId){
+    const b=bridge(),record=relationFor(villageId);if(!record)return false;
+    const damage=Math.max(0,Number(b?.getVillageDamageCount?.(villageId))||0);
+    if(!damage){notify('В этом поселении нет повреждённых построек.');return false;}
+    const costs=[['Древесина',12],['Камень',8]];
+    if(costs.some(([name,count])=>(b?.getItemCount?.(name)||0)<count)){notify('Для ремонта нужно 12 древесины и 8 камня.');return false;}
+    if(!costs.every(([name,count])=>b?.spendItem?.(name,count)===true)){notify('Не удалось списать материалы для ремонта.');return false;}
+    const repaired=Math.max(0,Number(b?.repairVillageDamage?.(villageId))||0);
+    if(!repaired){notify('Не удалось восстановить постройки. Проверь состояние поселения.');return false;}
+    recordVillageAid(villageId,'repair');notify('В '+VILLAGE_NAMES[villageId]+' восстановлено построек: '+repaired+'.');return true;
+  }
+  function payVillageFine(villageId){
+    const b=bridge(),record=relationFor(villageId);if(!record)return false;
+    if(record.wanted<=0){notify('У этого поселения нет претензий к тебе.');return false;}
+    const fee=villageFine(record);
+    if(b?.spendGold?.(fee)!==true){notify('Для погашения розыска нужно '+fee+' золота.');return false;}
+    record.wanted=Math.max(0,record.wanted-65);record.trust=clamp(record.trust+8,-100,100);record.lastDecayDay=relationDay();
+    save();if(opened)render();notify('Штраф уплачен: '+fee+' золота. Розыск снижен, но доверие ещё предстоит восстановить.');return true;
+  }
+  function claimVillageAlly(villageId){
+    const b=bridge(),record=relationFor(villageId);if(!record||record.trust<75||record.allyRewardClaimed)return false;
+    record.allyRewardClaimed=true;b?.addGold?.(10000);b?.addItem?.('Герб союзного поселения',1,'Знак доверия жителей.');
+    save();if(opened)render();notify('Получен герб союзного поселения и 100 золота.');return true;
+  }
+  function renderVillageRelations(nearest){
+    const centers=bridge()?.getVillageCenters?.()||[];
+    if(!nearest)return '<article class="we-card"><h3>🕊️ Отношения с поселениями</h3><small>Поселения появятся здесь, когда ты войдёшь в Мир торговли.</small></article>';
+    const id=String(nearest.id||''),record=relationFor(id),status=relationStatus(record),fee=record.wanted>0?villageFine(record):0;
+    const damaged=Math.max(0,Number(bridge()?.getVillageDamageCount?.(id))||0);
+    const list=centers.map(v=>{const r=relationFor(v.id);return esc(VILLAGE_NAMES[v.id]||v.id)+' · '+r.trust+' доверия · розыск '+r.wanted;}).join('<br>');
+    const tradeBlocked=!canTrade();
+    return '<article class="we-card"><h3>🕊️ Отношения: '+esc(VILLAGE_NAMES[id]||'Поселение')+'</h3><small>Жители запоминают нападения, кражи тайников, повреждение и разрушение домов. Помогай с обороной, доставляй припасы, ремонтируй здания или выплачивай штраф. Розыск постепенно ослабевает с игровыми днями.</small><div class="we-meta">'+status+' · доверие '+record.trust+'/100 · розыск '+record.wanted+'/100</div><div class="we-meter"><i style="width:'+Math.round((record.trust+100)/2)+'%"></i></div><small>'+(tradeBlocked?'Торговля закрыта из-за тяжёлых преступлений. Погаси розыск и восстанови доверие.':record.trust<=-20?'Торговцы повышают цены и хуже платят за товары.':record.trust>=35?'Жители предлагают более выгодные цены.':'Отношения пока нейтральные.')+'</small><div class="we-actions"><button data-action="donate-village">Передать припасы · 8 дерева · 5 камня</button><button data-action="repair-village" '+(damaged?'':'disabled')+'>Починить постройки · 12 дерева · 8 камня ('+damaged+')</button><button data-action="pay-village-fine" '+(fee?'':'disabled')+'>Погасить розыск · '+fee+' золота</button><button data-action="claim-village-ally" '+(record.trust>=75&&!record.allyRewardClaimed?'':'disabled')+'>Награда союзника · 75 доверия</button></div><div class="we-note"><b>Все поселения:</b><br>'+list+'</div></article>';
+  }
   function updateOrdinaryEvents(){
     const b=bridge(),day=Math.max(0,Number(lastSnapshot?.day)||0);
     for(const kind of ['raid','expedition','assault']){
@@ -176,7 +294,7 @@
       const remaining=b?.getEventEnemyCount?.(event.id);
       if(remaining===0){
         event.active=false;event.claimed=true;
-        if(kind==='raid')reward(12500,'Знак защитника поселения',1,'Трофей за защиту деревни от налётчиков.');
+        if(kind==='raid'){if(event.villageId)recordVillageAid(event.villageId,'defense',false);reward(12500,'Знак защитника поселения',1,'Трофей за защиту деревни от налётчиков.');}
         else if(kind==='assault'){reward(18000,'Знак налётчика',1,'Трофей за успешное нападение на деревню.');b?.addItem?.('Слиток закалённого железа',2,'Добыча из разграбленного деревенского хранилища.');}
         else reward(9500,'Фрагмент карты древних троп',1,'Находка из экспедиции древних троп.');
         save();notify(kind==='raid'?'ПОСЕЛЕНИЕ СПАСЕНО! Получено 125 золота и знак защитника.':kind==='assault'?'ДЕРЕВНЯ РАЗГРАБЛЕНА! Получено 180 золота, знак налётчика и 2 слитка железа.':'ЭКСПЕДИЦИЯ ЗАВЕРШЕНА! Получено 95 золота и фрагмент карты.');
@@ -223,7 +341,7 @@
     const villageNames={forest:'Лесная деревня',snow:'Снежная деревня',desert:'Пустынный посёлок',volcano:'Вулканическое поселение',blight:'Заражённая деревня'};
     const targetName=nearest?(villageNames[String(nearest.id)]||'Ближайшее поселение'):'Ближайшее поселение';
     return '<div class="we-note">Поселения просят о помощи. Заказы обновляются каждый игровой день. Оборона поселения и экспедиции создают настоящие группы противников в текущем мире.</div>'+
-      '<div class="we-grid">'+
+      '<div class="we-grid">'+renderVillageRelations(nearest)+
       '<article class="we-card"><h3>📦 '+esc(contract.title)+'</h3><small>'+esc(contract.description)+'</small><div class="we-meta">'+(isAccepted?progress+'/'+total+' ресурсов':'Награда: '+Math.floor(contract.gold/100)+' золота и '+esc(contract.item))+'</div><div class="we-meter"><i style="width:'+(isAccepted?Math.round(progress/total*100):0)+'%"></i></div><div class="we-actions">'+
       (!isAccepted&&!done&&state.ordinary.claimedDay!==day?'<button data-action="accept-contract">Взять заказ</button>':'')+
       (isAccepted&&done?'<button data-action="claim-contract">Сдать заказ</button>':'')+
@@ -276,6 +394,10 @@
       else if(action==='claim-contract')claimOrdinary(contractForDay(day),lastSnapshot,day);
       else if(action==='village-raid')startVillageRaid(day);
       else if(action==='village-assault')startVillageAssault(day);
+      else if(action==='donate-village')donateVillage(nearestVillageId());
+      else if(action==='repair-village')repairVillage(nearestVillageId());
+      else if(action==='pay-village-fine')payVillageFine(nearestVillageId());
+      else if(action==='claim-village-ally')claimVillageAlly(nearestVillageId());
       else if(action==='build-village-house')buildNearestVillage('house');
       else if(action==='build-village-storage')buildNearestVillage('storage');
       else if(action==='build-village-watchtower')buildNearestVillage('watchtower');
@@ -295,7 +417,7 @@
     ensureUI();
     if(button)button.hidden=m==='hidden'||!!snapshot?.paused||opened;
     if(!snapshot||snapshot.paused||m==='hidden')return;
-    if(m==='ordinary')updateOrdinaryEvents();
+    if(m==='ordinary'){updateVillageRelations(Math.max(0,Number(snapshot.day)||0));updateOrdinaryEvents();}
     if(opened&&refreshClock++%2===0)render();
   }
   function boot(){ensureUI();update();window.setInterval(update,500);}
@@ -305,6 +427,15 @@
   window.SkyRealmWorldExpansion=Object.freeze({
     getState:()=>JSON.parse(JSON.stringify(state)),
     getMode:mode,
+    recordVillageCrime:(id,kind)=>recordVillageCrime(id,kind),
+    recordVillageAid:(id,kind)=>recordVillageAid(id,kind),
+    getVillageRelation:id=>{const value=relationFor(id);return value?{...value}:null;},
+    getTradePriceFactor,
+    canTrade,
+    donateVillage,
+    repairVillage,
+    payVillageFine,
+    claimVillageAlly,
     refresh:update
   });
 })();
