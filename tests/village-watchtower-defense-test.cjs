@@ -29,6 +29,11 @@ assert.match(game,/Village banner, level insignia and flutter/,'tower needs a mo
 assert.match(game,/Rotating ballista and its aiming rail/,'tower ballista needs detailed aiming hardware');
 assert.match(game,/Damage cracks and broken timbers remain visible/,'tower damage must be visible');
 assert.match(game,/Status plaque, level stars and readable durability bar/,'tower needs a clear level and durability display');
+assert.match(game,/Bark grain, roots, branch knots and layered leaf highlights/,'ordinary trees need bark, roots and layered foliage');
+assert.match(game,/Ornate layered plates, rivets, engraved crest and shield emblem/,'village guardian needs detailed armor and shield');
+assert.match(game,/Deep bark grooves, knotted wood, moss patches and tiny leaves/,'treant needs bark, moss and leaf detail');
+assert.match(game,/Camp details: stitched seams, guy ropes, bedroll, supply crate and embers/,'abandoned camp needs richer props and fire embers');
+assert.match(game,/Merchant's layered travel cloak, satchel buckles and walking staff/,'traveler needs layered equipment and accessories');
 assert.match(chronicles,/upgrade-village-watchtower/,'world chronicles must expose tower repair and upgrade action');
 assert.match(chronicles,/автоматически обнаруживает налётчиков/,'world chronicles must explain the automated defense');
 console.log('Village watchtower defense regression checks passed: targeting, homing projectiles, damage, enemy counterattacks, three upgrades, repair, persistence and chronicles UI.');
