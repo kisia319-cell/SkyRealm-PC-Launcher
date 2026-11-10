@@ -1566,18 +1566,29 @@ let audioContext=null;
     ctx.restore();
   }
   function drawFlowers(camX,camY,t){for(const f of world.flowers){const x=f.x-camX,y=f.y-camY;if(x<-20||x>width+20||y<-20||y>height+20)continue;const sway=Math.sin(t/620+f.x*.07+f.y*.03)*.16;ctx.save();ctx.translate(x,y);ctx.rotate(sway);ctx.fillStyle='#22523a';ctx.fillRect(-1,0,2,6);ctx.fillStyle=['#f4d77a','#d9b9ff','#f7d4d6','#a8e1ff'][f.c];ctx.fillRect(-2,-2,4,4);ctx.fillStyle='#fff5d5';ctx.fillRect(0,-1,1,1);ctx.restore();}}
-  function drawCabin(camX,camY){
+  function drawCabin(camX,camY,time=performance.now()){
     const x=36*TILE-120-camX,y=15*TILE-120-camY;
     ctx.fillStyle='#102d2b88';ctx.beginPath();ctx.ellipse(x+160,y+300,168,28,0,0,Math.PI*2);ctx.fill();
     // Foundation and walls
     ctx.fillStyle=houseLevel>=3?'#746553':'#846044';ctx.fillRect(x,y+35,320,270);
     ctx.fillStyle=houseLevel>=2?'#bb8957':'#a57a51';ctx.fillRect(x+12,y+48,296,244);
+    // Stone plinth, exposed timber frame and hand-cut wall boards.
+    ctx.fillStyle='#55483c';ctx.fillRect(x+7,y+270,306,28);ctx.fillStyle='#8b8171';ctx.fillRect(x+11,y+273,298,20);
+    ctx.strokeStyle='rgba(41,42,39,.65)';ctx.lineWidth=1;for(let row=0;row<2;row++){const yy=y+280+row*9;ctx.beginPath();ctx.moveTo(x+12,yy);ctx.lineTo(x+308,yy);ctx.stroke();for(let bx=x+28+(row%2)*17;bx<x+300;bx+=36){ctx.beginPath();ctx.moveTo(bx,yy-7);ctx.lineTo(bx,yy);ctx.stroke();}}
+    ctx.fillStyle='#69452f';ctx.fillRect(x+18,y+52,9,215);ctx.fillRect(x+293,y+52,9,215);ctx.fillRect(x+24,y+52,272,7);ctx.fillRect(x+24,y+259,272,7);
+    ctx.fillStyle='rgba(240,204,145,.17)';for(let row=0;row<7;row++){const yy=y+65+row*26;ctx.fillRect(x+31,yy,255,2);}
     // Roof gets reinforcement at each house tier
     ctx.fillStyle=houseLevel>=3?'#563b48':'#5f3a34';ctx.beginPath();ctx.moveTo(x-14,y+42);ctx.lineTo(x+160,y-35);ctx.lineTo(x+334,y+42);ctx.closePath();ctx.fill();
     ctx.fillStyle=houseLevel>=2?'#a76150':'#92534a';ctx.beginPath();ctx.moveTo(x+3,y+36);ctx.lineTo(x+160,y-25);ctx.lineTo(x+317,y+36);ctx.lineTo(x+305,y+48);ctx.lineTo(x+160,y-10);ctx.lineTo(x+15,y+48);ctx.closePath();ctx.fill();
+    // Layered shingles with alternating seams, ridge cap and bright eaves.
+    for(let row=0;row<5;row++){const yy=y-12+row*13,half=24+row*25;ctx.strokeStyle='rgba(43,28,31,.55)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+160-half,yy);ctx.lineTo(x+160+half,yy);ctx.stroke();ctx.strokeStyle='rgba(227,170,126,.28)';ctx.lineWidth=1;for(let col=-3;col<=3;col++){const px=x+160+col*(14+row*4);if(Math.abs(px-(x+160))>half)continue;ctx.beginPath();ctx.moveTo(px,yy-7);ctx.lineTo(px+(col%2?3:-3),yy+1);ctx.stroke();}}
+    ctx.fillStyle='#d0a477';ctx.fillRect(x+7,y+35,306,4);ctx.fillStyle='#4b3030';ctx.fillRect(x+154,y-27,12,5);
     ctx.fillStyle='#382e32';ctx.fillRect(x+137,y+244,46,61);ctx.fillStyle='#d2ab67';ctx.fillRect(x+171,y+274,5,5);
     // Bright framed windows
     ctx.fillStyle='#d5e6d8';ctx.fillRect(x+35,y+95,48,42);ctx.fillRect(x+237,y+95,48,42);
+    ctx.fillStyle='#5c3e2d';ctx.fillRect(x+30,y+90,58,5);ctx.fillRect(x+232,y+90,58,5);
+    ctx.fillStyle='#d4b681';ctx.fillRect(x+32,y+139,54,5);ctx.fillRect(x+234,y+139,54,5);
+    ctx.fillStyle='rgba(255,214,137,.14)';ctx.fillRect(x+43,y+103,14,25);ctx.fillRect(x+245,y+103,14,25);
     ctx.fillStyle=houseLevel>=2?'#f5d58b':'#426a67';ctx.fillRect(x+41,y+101,36,30);ctx.fillRect(x+243,y+101,36,30);
     ctx.fillStyle='#654331';ctx.fillRect(x+31,y+90,56,6);ctx.fillRect(x+233,y+90,56,6);
     if(houseLevel>=2){
@@ -1587,6 +1598,13 @@ let audioContext=null;
       ctx.fillStyle='#705049';ctx.fillRect(x+258,y-7,24,50);ctx.fillStyle='#95665a';ctx.fillRect(x+254,y-15,32,9);
       ctx.fillStyle='#f7d18c';ctx.fillRect(x+53,y+111,12,3);ctx.fillRect(x+255,y+111,12,3);
     }
+    // Porch lantern, firewood, flower pots and animated chimney smoke.
+    ctx.fillStyle='#4a3024';ctx.fillRect(x+93,y+300,5,10);ctx.fillRect(x+224,y+300,5,10);ctx.fillStyle='#d7b77f';ctx.fillRect(x+91,y+298,9,3);ctx.fillRect(x+222,y+298,9,3);
+    ctx.fillStyle='#513a2b';ctx.fillRect(x+22,y+303,41,13);for(let i=0;i<3;i++){ctx.fillStyle=i%2?'#b27d4b':'#8c5c38';ctx.fillRect(x+25+i*12,y+296+(i%2)*4,12,5);}
+    ctx.fillStyle='#6d4b32';ctx.fillRect(x+287,y+38,8,22);ctx.fillStyle='#dbb477';ctx.fillRect(x+285,y+35,12,4);
+    ctx.globalAlpha=.2+.08*Math.sin(time/340);ctx.fillStyle='#b9c4c0';for(let i=0;i<3;i++){const drift=Math.sin(time/420+i)*4;ctx.beginPath();ctx.arc(x+291+drift,y+26-i*11,3+i*1.5,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+    ctx.fillStyle='#d49b55';ctx.fillRect(x+18,y+178,5,16);ctx.fillStyle='#ffe1a1';ctx.shadowColor='#ffc36d';ctx.shadowBlur=8;ctx.beginPath();ctx.arc(x+20,y+176,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    for(const side of [0,1]){const px=x+(side?286:28),py=y+294;ctx.fillStyle='#754b33';ctx.fillRect(px-7,py-3,14,8);ctx.fillStyle=side?'#a45c48':'#ad7454';ctx.beginPath();ctx.arc(px,py-7,6,Math.PI,0);ctx.fill();ctx.fillStyle='#78a45c';ctx.fillRect(px-1,py-15,2,9);}
     if(houseLevel>=3){
       // A dormer and stone trim are added at the highest tier.
       ctx.fillStyle='#7b4b42';ctx.fillRect(x+130,y+9,60,38);ctx.fillStyle='#57363a';ctx.beginPath();ctx.moveTo(x+122,y+11);ctx.lineTo(x+160,y-10);ctx.lineTo(x+198,y+11);ctx.closePath();ctx.fill();
@@ -1595,7 +1613,23 @@ let audioContext=null;
     }
     ctx.fillStyle='#d5b982';ctx.font='bold 12px Segoe UI';ctx.textAlign='center';ctx.fillText('ДОМ · УРОВЕНЬ '+houseLevel,x+160,y+190);ctx.textAlign='left';
   }
-  function drawFences(camX,camY){for(const f of world.fences){const x=f.x-camX,y=f.y-camY;if(x<-32||x>width+32||y<-24||y>height+24)continue;ctx.fillStyle='#5c4935';ctx.fillRect(x-13,y-3,26,6);ctx.fillStyle='#c5a06d';ctx.fillRect(x-12,y-5,3,10);ctx.fillRect(x+9,y-5,3,10);}}
+  function drawFences(camX,camY){
+    const positions=new Set(world.fences.map(f=>Math.round(f.x)+':'+Math.round(f.y)));
+    for(const f of world.fences){
+      const x=f.x-camX,y=f.y-camY;if(x<-40||x>width+40||y<-40||y>height+40)continue;
+      const px=Math.round(f.x),py=Math.round(f.y),left=positions.has((px-TILE)+':'+py),right=positions.has((px+TILE)+':'+py),up=positions.has(px+':'+(py-TILE)),down=positions.has(px+':'+(py+TILE));
+      ctx.save();ctx.fillStyle='rgba(15,20,18,.22)';ctx.beginPath();ctx.ellipse(x,y+8,16,5,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#3e2c20';ctx.fillRect(x-5,y-13,10,29);ctx.fillStyle='#805735';ctx.fillRect(x-4,y-13,7,25);ctx.fillStyle='#c3965e';ctx.fillRect(x-4,y-13,2,23);
+      if(left||right){
+        ctx.fillStyle='#4c3423';ctx.fillRect(x-16,y-9,32,5);ctx.fillRect(x-16,y+2,32,5);
+        ctx.fillStyle='#946941';ctx.fillRect(x-15,y-10,30,3);ctx.fillRect(x-15,y+1,30,3);
+        ctx.strokeStyle='rgba(225,190,132,.42)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-12,y-8);ctx.lineTo(x+12,y-8);ctx.moveTo(x-12,y+3);ctx.lineTo(x+12,y+3);ctx.stroke();
+      }
+      if(up||down){ctx.fillStyle='#4c3423';ctx.fillRect(x-8,y-16,5,32);ctx.fillRect(x+3,y-16,5,32);ctx.fillStyle='#946941';ctx.fillRect(x-9,y-15,3,30);ctx.fillRect(x+2,y-15,3,30);}
+      ctx.fillStyle='#d4b27c';for(const nx of [-2,2]){ctx.beginPath();ctx.arc(x+nx,y-6,1.15,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+nx,y+5,1.15,0,Math.PI*2);ctx.fill();}
+      ctx.strokeStyle='rgba(39,27,19,.8)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+1,y-11);ctx.lineTo(x-1,y-4);ctx.lineTo(x+1,y+1);ctx.stroke();ctx.restore();
+    }
+  }
   function drawSign(s,camX,camY){const x=s.x-camX,y=s.y-camY;if(x<-24||x>width+24||y<-30||y>height+30)return;ctx.fillStyle='#533c2b';ctx.fillRect(x-3,y-4,6,25);ctx.fillStyle='#9d7547';ctx.fillRect(x-15,y-13,30,15);ctx.fillStyle='#dec08b';ctx.fillRect(x-12,y-10,24,9);ctx.fillStyle='#806447';ctx.fillRect(x-7,y-7,13,2);ctx.fillRect(x-4,y-3,8,2);}
   function xpForNextLevel(level=playerLevel){return 100+Math.max(0,level-1)*75;}
   function skillBonus(key){return Math.max(0,Math.min(10,Number(skills[key])||0));}
@@ -1810,6 +1844,15 @@ function setupVillageNpcs(){
         ctx.fillStyle=roof;ctx.beginPath();ctx.moveTo(-w/2-11,6);ctx.lineTo(0,-39-(h.style%3)*3);ctx.lineTo(w/2+11,6);ctx.lineTo(w/2+4,18);ctx.lineTo(-w/2-4,18);ctx.closePath();ctx.fill();
         ctx.strokeStyle='rgba(255,220,160,.38)';ctx.lineWidth=2;for(let row=0;row<4;row++){const yy=-17+row*9,half=(w*.43)*(1-row*.13);ctx.beginPath();ctx.moveTo(-half,yy);ctx.lineTo(half,yy);ctx.stroke();}
         ctx.strokeStyle='rgba(20,25,35,.3)';ctx.lineWidth=1;for(let col=-4;col<=4;col++){ctx.beginPath();ctx.moveTo(col*11,-22);ctx.lineTo(col*11,17);ctx.stroke();}
+         // Roof tiles, carved fascia, wall grain and bright window reflections.
+         ctx.strokeStyle='rgba(38,28,26,.58)';ctx.lineWidth=1.4;
+         for(let rr=0;rr<4;rr++){const yy=-29+rr*10,half=w*.42*(1-rr*.12);ctx.beginPath();ctx.moveTo(-half,yy);ctx.lineTo(half,yy);ctx.stroke();for(let cc=-4;cc<=4;cc++){const px=cc*11+(rr%2?5:0);if(Math.abs(px)>half)continue;ctx.strokeStyle='rgba(238,190,139,.26)';ctx.beginPath();ctx.moveTo(px,yy-4);ctx.lineTo(px+2,yy+1);ctx.stroke();ctx.strokeStyle='rgba(38,28,26,.58)';}}
+         ctx.fillStyle='rgba(247,222,175,.18)';for(let board=0;board<6;board++){const bx=-w*.42+board*14;ctx.fillRect(bx,8,1,bodyH-18);}
+         ctx.fillStyle='#5b3929';ctx.fillRect(-w/2-4,bodyH-4,w+8,5);ctx.fillStyle='#d2b180';ctx.fillRect(-w/2-5,bodyH+1,w+10,3);
+         ctx.strokeStyle='rgba(241,206,145,.55)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-w/2-7,8);ctx.lineTo(-w/2-7,bodyH+3);ctx.moveTo(w/2+7,8);ctx.lineTo(w/2+7,bodyH+3);ctx.stroke();
+         // Carved shutters and a painted sign beside the entry.
+         for(const wx of [-w*.31,w*.31]){ctx.fillStyle='#69432e';ctx.fillRect(wx-14,15,4,28);ctx.fillRect(wx+10,15,4,28);ctx.fillStyle='#b17b4c';ctx.fillRect(wx-13,18,2,22);ctx.fillRect(wx+11,18,2,22);ctx.fillStyle='rgba(255,225,162,.32)';ctx.fillRect(wx-5,21,3,11);ctx.fillStyle='#59402d';ctx.fillRect(wx-14,43,28,3);}
+         ctx.fillStyle='#e0c28b';ctx.beginPath();ctx.arc(0,-42-(h.style%3)*3,2.2,0,Math.PI*2);ctx.fill();
         ctx.fillStyle='#392c29';ctx.fillRect(-11,bodyH-34,22,34);ctx.fillStyle='#8e6543';ctx.fillRect(-8,bodyH-31,16,31);ctx.fillStyle='#d9b879';ctx.fillRect(-8,bodyH-31,16,3);ctx.fillStyle='#f0cb70';ctx.beginPath();ctx.arc(5,bodyH-16,2,0,Math.PI*2);ctx.fill();
         for(const wx of [-w*.31,w*.31]){ctx.fillStyle='#4b342b';ctx.fillRect(wx-10,17,20,23);ctx.fillStyle=(h.style%4===0)?'#f4c96e':'#80b8ca';ctx.fillRect(wx-7,20,14,17);ctx.fillStyle='#f0d49a';ctx.fillRect(wx-1,20,2,17);ctx.fillRect(wx-7,27,14,2);ctx.fillStyle=dark;ctx.fillRect(wx-13,15,4,27);ctx.fillRect(wx+9,15,4,27);ctx.fillStyle=wall;ctx.fillRect(wx-15,14,4,29);ctx.fillRect(wx+11,14,4,29);}
         ctx.fillStyle='#63452d';ctx.fillRect(-23,bodyH+1,46,6);ctx.fillStyle='#c9a06a';ctx.fillRect(-25,bodyH-1,50,4);ctx.fillStyle='#735238';ctx.fillRect(-20,bodyH+7,5,8);ctx.fillRect(15,bodyH+7,5,8);
@@ -2020,7 +2063,30 @@ function setupVillageNpcs(){
     ctx.fillStyle='#2c3447';ctx.fillRect(px-7,py+14,5,8);ctx.fillRect(px+2,py+14,5,8);
     ctx.restore();
   }
-  function drawTreasureChests(camX,camY,time){for(const chest of treasureChests){const x=chest.x-camX,y=chest.y-camY;if(x<-40||x>width+40||y<-40||y>height+40)continue;ctx.save();ctx.translate(x,y);ctx.fillStyle='#102a2a77';ctx.beginPath();ctx.ellipse(0,10,18,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=chest.opened?'#5c5142':'#80502c';ctx.fillRect(-15,-5,30,17);ctx.fillStyle=chest.opened?'#887967':'#b77a3c';ctx.fillRect(-15,-10,30,10);ctx.fillStyle='#e7c56b';ctx.fillRect(-3,-5,6,12);if(!chest.opened){ctx.shadowColor='#ffd86b';ctx.shadowBlur=9+Math.sin(time/180)*4;ctx.fillStyle='#ffdf7c';ctx.fillRect(-2,-7,4,5);}ctx.restore();}}
+  function drawTreasureChests(camX,camY,time){
+    for(const chest of treasureChests){
+      const x=chest.x-camX,y=chest.y-camY;if(x<-44||x>width+44||y<-44||y>height+44)continue;
+      ctx.save();ctx.translate(x,y);const pulse=.5+.5*Math.sin(time/180+(chest.x||0)*.01);
+      ctx.fillStyle='rgba(5,13,18,.38)';ctx.beginPath();ctx.ellipse(0,12,22,8,0,0,Math.PI*2);ctx.fill();
+      // Thick plank body, iron straps, corner caps and a hand-forged lock.
+      ctx.fillStyle='#3a2924';ctx.fillRect(-18,-7,36,22);ctx.fillStyle=chest.opened?'#65594a':'#81502c';ctx.fillRect(-16,-6,32,18);
+      ctx.fillStyle=chest.opened?'#8e806b':'#b17a42';ctx.fillRect(-16,-6,32,4);ctx.fillRect(-16,8,32,4);
+      ctx.fillStyle='#533722';for(const bx of [-13,-4,5,12])ctx.fillRect(bx,-3,2,9);
+      ctx.strokeStyle='#dfba72';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-17,-4);ctx.lineTo(-17,12);ctx.moveTo(17,-4);ctx.lineTo(17,12);ctx.stroke();
+      ctx.fillStyle='#d9b76d';ctx.fillRect(-3,-6,6,18);ctx.fillStyle='#f7e3aa';ctx.beginPath();ctx.arc(0,1,2.2,0,Math.PI*2);ctx.fill();
+      if(chest.opened){
+        ctx.save();ctx.translate(0,-7);ctx.rotate(-.55);ctx.fillStyle='#503526';ctx.fillRect(-17,-9,34,8);ctx.fillStyle='#987047';ctx.fillRect(-15,-8,30,5);ctx.strokeStyle='#d2ae72';ctx.lineWidth=1;ctx.strokeRect(-16,-9,32,7);ctx.restore();
+        ctx.fillStyle='#756957';ctx.fillRect(-10,-1,20,4);
+      }else{
+        ctx.fillStyle='#3b2a22';ctx.fillRect(-16,-13,32,9);ctx.fillStyle='#b67c43';ctx.fillRect(-15,-14,30,7);
+        ctx.strokeStyle='rgba(255,220,150,.62)';ctx.lineWidth=1;for(let k=-2;k<=2;k++){ctx.beginPath();ctx.moveTo(k*6,-14);ctx.lineTo(k*6,-8);ctx.stroke();}
+        ctx.fillStyle='#e6c77b';ctx.fillRect(-17,-7,34,3);
+        ctx.shadowColor='#ffd86b';ctx.shadowBlur=8+pulse*7;ctx.fillStyle='rgba(255,225,137,'+(.22+pulse*.2)+')';ctx.beginPath();ctx.arc(0,-11,3+pulse,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+        for(let i=0;i<3;i++){const a=time/440+i*2.1;ctx.globalAlpha=.3+.4*pulse;ctx.fillStyle='#fff0b4';ctx.fillRect(Math.cos(a)*22-1,-10+Math.sin(a)*7,2,2);}ctx.globalAlpha=1;
+      }
+      ctx.restore();
+    }
+  }
   function drawCaveBoss(){if(caveBossDefeated)return;const maxHp=bossMaxHp(),x=caveBossX,y=caveBossY;ctx.save();ctx.translate(x,y);ctx.fillStyle='#090d16aa';ctx.beginPath();ctx.ellipse(0,22,36,13,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=caveBossFlash>0?'#ffffff':'#626f7d';ctx.fillRect(-25,-20,50,39);ctx.fillStyle='#8798a6';ctx.fillRect(-20,-30,40,19);ctx.fillStyle='#3c4656';ctx.beginPath();ctx.moveTo(-22,-24);ctx.lineTo(-31,-41);ctx.lineTo(-12,-33);ctx.lineTo(0,-40);ctx.lineTo(14,-32);ctx.lineTo(30,-43);ctx.lineTo(22,-22);ctx.closePath();ctx.fill();ctx.fillStyle='#e85c69';ctx.shadowColor='#ff495b';ctx.shadowBlur=10;ctx.fillRect(-14,-23,8,5);ctx.fillRect(6,-23,8,5);ctx.shadowBlur=0;ctx.fillStyle='#404a56';ctx.fillRect(-35,-8,12,29);ctx.fillRect(23,-8,12,29);ctx.fillStyle='#a9b8c4';ctx.fillRect(-18,18,12,13);ctx.fillRect(6,18,12,13);ctx.restore();ctx.fillStyle='#211b28';ctx.fillRect(x-48,y-53,96,7);ctx.fillStyle='#ff6578';ctx.fillRect(x-48,y-53,96*Math.max(0,caveBossHp/maxHp),7);ctx.fillStyle='#f4f1e7';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText('КАМЕННЫЙ СТРАЖ · '+Math.ceil(caveBossHp)+'/'+maxHp+' HP · '+difficultyConfig().name,x,y-60);ctx.textAlign='left';}
   function defeatCaveBoss(){
     if(caveBossDefeated)return;
@@ -3330,19 +3396,34 @@ function setupVillageNpcs(){
       }
     }
   }
-  function drawMineEntrance(camX,camY){
+  function drawMineEntrance(camX,camY,time=performance.now()){
     const mx=mineTileX*TILE+16-camX,my=mineTileY*TILE+16-camY;
-    if(mx<-100||mx>width+100||my<-100||my>height+100)return;
-    // Brightly outlined cave mouth, wooden supports, stones and lamps make it easy to spot.
+    if(mx<-130||mx>width+130||my<-120||my>height+120)return;
     ctx.save();ctx.translate(mx,my);
-    ctx.fillStyle='rgba(5,13,16,.4)';ctx.beginPath();ctx.ellipse(0,15,41,21,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#66716d';ctx.beginPath();ctx.moveTo(-36,11);ctx.lineTo(-31,-13);ctx.lineTo(-17,-29);ctx.lineTo(0,-34);ctx.lineTo(20,-26);ctx.lineTo(35,-7);ctx.lineTo(38,13);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#35413f';ctx.beginPath();ctx.moveTo(-25,14);ctx.lineTo(-22,-9);ctx.lineTo(-12,-21);ctx.lineTo(3,-25);ctx.lineTo(19,-18);ctx.lineTo(27,-3);ctx.lineTo(29,14);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#101923';ctx.beginPath();ctx.moveTo(-18,14);ctx.lineTo(-15,-5);ctx.lineTo(-7,-16);ctx.lineTo(7,-18);ctx.lineTo(17,-7);ctx.lineTo(20,14);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#a17a4d';ctx.fillRect(-24,-16,5,31);ctx.fillRect(20,-16,5,31);ctx.fillRect(-25,-20,51,5);
-    ctx.fillStyle='#f7d28a';ctx.shadowColor='#ffc86a';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(-31,-4,4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(32,-4,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-    ctx.fillStyle='#fff0bd';ctx.font='900 13px Segoe UI';ctx.textAlign='center';ctx.fillText('ШАХТА',0,34);
-    ctx.fillStyle='#d7e6c0';ctx.font='bold 10px Segoe UI';ctx.fillText('E · ВОЙТИ',0,47);ctx.textAlign='left';ctx.restore();
+    ctx.fillStyle='rgba(4,11,15,.48)';ctx.beginPath();ctx.ellipse(0,17,54,24,0,0,Math.PI*2);ctx.fill();
+    // Layered cliff face with fractured slabs, mineral veins and embedded ore.
+    ctx.fillStyle='#414b4b';ctx.beginPath();ctx.moveTo(-48,14);ctx.lineTo(-43,-17);ctx.lineTo(-27,-37);ctx.lineTo(-8,-44);ctx.lineTo(18,-39);ctx.lineTo(43,-17);ctx.lineTo(50,15);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#697572';ctx.beginPath();ctx.moveTo(-42,10);ctx.lineTo(-37,-15);ctx.lineTo(-24,-31);ctx.lineTo(-8,-38);ctx.lineTo(15,-33);ctx.lineTo(38,-12);ctx.lineTo(43,10);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(29,39,40,.8)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-34,-11);ctx.lineTo(-24,-17);ctx.lineTo(-20,-27);ctx.moveTo(22,-29);ctx.lineTo(17,-18);ctx.lineTo(27,-8);ctx.moveTo(-4,-36);ctx.lineTo(2,-27);ctx.lineTo(-3,-16);ctx.stroke();
+    ctx.fillStyle='#8f9c93';ctx.fillRect(-34,2,11,4);ctx.fillRect(21,-8,13,3);ctx.fillRect(-10,-29,9,3);
+    ctx.fillStyle='#27363a';ctx.beginPath();ctx.moveTo(-29,16);ctx.lineTo(-26,-9);ctx.lineTo(-13,-27);ctx.lineTo(3,-31);ctx.lineTo(23,-22);ctx.lineTo(34,-3);ctx.lineTo(35,16);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#09131c';ctx.beginPath();ctx.moveTo(-21,16);ctx.lineTo(-18,-6);ctx.lineTo(-8,-19);ctx.lineTo(8,-22);ctx.lineTo(21,-12);ctx.lineTo(27,16);ctx.closePath();ctx.fill();
+    // Timber portal frame with iron brackets, bolts and diagonal braces.
+    ctx.fillStyle='#3d291e';ctx.fillRect(-31,-22,7,42);ctx.fillRect(24,-22,7,42);ctx.fillRect(-32,-27,64,7);
+    ctx.fillStyle='#a77949';ctx.fillRect(-29,-21,4,39);ctx.fillRect(25,-21,4,39);ctx.fillRect(-28,-26,56,4);
+    ctx.strokeStyle='#56351f';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-27,-17);ctx.lineTo(-7,-2);ctx.moveTo(27,-17);ctx.lineTo(7,-2);ctx.stroke();
+    ctx.fillStyle='#c6b28d';for(const bx of [-27,27])for(const by of [-22,15]){ctx.beginPath();ctx.arc(bx,by,1.7,0,Math.PI*2);ctx.fill();}
+    // Crystal seams glow inside the cliff; these are decorative only.
+    for(const [cx,cy,color] of [[-39,-13,'#8bd8e8'],[39,-4,'#c59bfa'],[-24,9,'#e3bd69']]){
+      ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=9;ctx.beginPath();ctx.moveTo(cx,cy-6);ctx.lineTo(cx+4,cy-1);ctx.lineTo(cx+2,cy+5);ctx.lineTo(cx-3,cy+2);ctx.closePath();ctx.fill();ctx.shadowBlur=0;
+    }
+    const glow=.65+.3*Math.sin(time/180);ctx.fillStyle='#5c3e28';ctx.fillRect(-43,-17,5,13);ctx.fillRect(38,-17,5,13);ctx.fillStyle='rgba(255,185,87,'+glow+')';ctx.shadowColor='#ffb85a';ctx.shadowBlur=15;ctx.beginPath();ctx.arc(-41,-20,4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(40,-20,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    // Short mine rails and an ore trolley complete the entrance silhouette.
+    ctx.strokeStyle='#8b9592';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-19,17);ctx.lineTo(-13,31);ctx.moveTo(19,17);ctx.lineTo(13,31);ctx.stroke();
+    ctx.strokeStyle='#574b3d';ctx.lineWidth=2;for(let i=0;i<4;i++){const yy=20+i*3;ctx.beginPath();ctx.moveTo(-18+i*.5,yy);ctx.lineTo(18-i*.5,yy);ctx.stroke();}
+    ctx.fillStyle='#4b3425';ctx.fillRect(45,3,17,11);ctx.fillStyle='#98683b';ctx.fillRect(47,0,13,9);ctx.fillStyle='#68747a';ctx.beginPath();ctx.arc(49,16,3,0,Math.PI*2);ctx.arc(59,16,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff0bd';ctx.font='900 13px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=5;ctx.fillText('ШАХТА',0,49);
+    ctx.fillStyle='#d7e6c0';ctx.font='bold 10px Segoe UI';ctx.fillText('E · ВОЙТИ',0,62);ctx.textAlign='left';ctx.restore();
   }
   function drawTradeEntrance(camX,camY){const x=tradeEntranceX*TILE+16-camX,y=tradeEntranceY*TILE+16-camY;if(x<-100||x>width+100||y<-100||y>height+100)return;ctx.save();ctx.translate(x,y);ctx.fillStyle='#142b36aa';ctx.beginPath();ctx.ellipse(0,15,39,18,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7d9b87';ctx.fillRect(-28,-16,56,32);ctx.fillStyle='#3d6b62';ctx.fillRect(-21,-10,42,25);ctx.fillStyle='#101c2c';ctx.fillRect(-13,-5,26,20);ctx.fillStyle='#f4d58b';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.fillText(tradeWorldMode?'В ДОЛИНУ':'МИР ТОРГОВЛИ',0,-25);ctx.font='bold 10px Segoe UI';ctx.fillText(tradeWorldMode?'E · ВЫЙТИ':'E · ВОЙТИ',0,42);ctx.textAlign='left';ctx.restore();
   }
