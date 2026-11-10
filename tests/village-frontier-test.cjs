@@ -6,7 +6,7 @@ const game=fs.readFileSync(path.join(__dirname,'..','game','game.js'),'utf8');
 const expansion=fs.readFileSync(path.join(__dirname,'..','game','world-expansion.js'),'utf8');
 assert.match(expansion,/function mode\(\)[\s\S]*?if\(b\?\.isCoopWorld\?\.\(\)\|\|b\?\.isSpecialWorldMode\?\.\(\)\)return 'hidden';/,'Trade World must show the village development panel');
 assert.doesNotMatch(expansion,/isTradeWorld\?\.\(\)\)return 'hidden'/,'Trade World must not be hidden from the chronicles');
-assert.match(game,/if\(isCoopWorldSave\(\)\|\|bossRealmMode\|\|!\['house','storage','watchtower'\]/,'village construction must be allowed in single-player Trade World');
+assert.match(game,/if\(isCoopWorldSave\(\)\|\|bossRealmMode\|\|!tradeWorldMode\|\|!\['house','storage','watchtower'\]/,'village construction must be restricted to single-player Trade World');
 assert.match(game,/const valid=tradeWorldMode\?/,'Trade World needs a placement validator that does not reject all placements');
 assert.match(game,/villageHouseDamage\[house\.key\]=house\.hp/,'attacks must persist village house damage');
 assert.match(game,/ДОМ РАЗРУШЕН · добыча: древесина и камень/,'destroyed village homes must yield materials');
@@ -17,6 +17,7 @@ assert.match(game,/villageHouseDamage,villageCaches:villageCaches\.map/,'village
 assert.match(game,/villageHouseDamage=d\.villageHouseDamage/,'village damage must be restored from world saves');
 assert.match(game,/mineDepth===8/,'the eighth mine depth must unlock the underground city');
 assert.match(game,/function drawMineUndercity/,'the underground city needs its own rendered landmarks');
+assert.match(game,/function mineUndercityLayout\(\)[\s\S]*?mineUndercityLayoutCache&&mineUndercityLayoutCache\.seed===mineSeed/,'undercity landmark positions must be cached instead of recalculated every frame');
 assert.match(game,/function openMineUndercityChest/,'the underground city must have a dedicated treasure interaction');
 assert.match(game,/mineUndercityChestOpened/,'undercity treasure must persist after reopening the world');
 assert.match(game,/СОКРОВИЩНИЦА ПОДЗЕМНОГО ГОРОДА/,'undercity reward must grant real loot');
