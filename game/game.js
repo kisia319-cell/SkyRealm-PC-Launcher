@@ -1557,6 +1557,13 @@ let audioContext=null;
     ctx.fillStyle='#b18a5c';ctx.fillRect(x-47,y+15,94,7);ctx.fillStyle='#d7bc8c';ctx.fillRect(x-44,y+15,88,3);
     for(let i=0;i<4;i++){const rx=x-34+i*15,ry=y+11-(i%2)*5;ctx.fillStyle=['#6e7c7e','#899393','#53666b'][i%3];ctx.beginPath();ctx.moveTo(rx-7,ry+4);ctx.lineTo(rx-5,ry-5);ctx.lineTo(rx+1,ry-9);ctx.lineTo(rx+8,ry-2);ctx.lineTo(rx+6,ry+5);ctx.closePath();ctx.fill();ctx.fillStyle='#c1ceca';ctx.fillRect(rx-3,ry-4,4,2);}
     ctx.strokeStyle='#65462f';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x+49,y-12);ctx.lineTo(x+67,y-47);ctx.stroke();
+    // Ore sacks, tool rack, timber bracing and a hand-painted quarry sign.
+    ctx.fillStyle='#4b3526';ctx.fillRect(x-77,y+4,9,37);ctx.fillRect(x-77,y+4,34,4);ctx.fillStyle='#b88a55';ctx.fillRect(x-76,y+9,30,3);
+    ctx.strokeStyle='#6d4a2e';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x-72,y+10);ctx.lineTo(x-53,y-8);ctx.moveTo(x-53,y-8);ctx.lineTo(x-45,y+10);ctx.stroke();
+    ctx.fillStyle='#a27a4e';ctx.beginPath();ctx.ellipse(x-64,y+30,11,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d1b17c';ctx.fillRect(x-70,y+23,13,3);
+    ctx.fillStyle='#6d5138';ctx.fillRect(x-33,y+31,25,15);ctx.fillStyle='#bb8a54';ctx.fillRect(x-31,y+28,21,5);ctx.strokeStyle='#593b27';ctx.lineWidth=1;ctx.strokeRect(x-33,y+31,25,15);
+    ctx.fillStyle='#c2aa7e';ctx.beginPath();ctx.ellipse(x+3,y+42,12,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8a6d4c';ctx.fillRect(x-9,y+37,24,7);
+    ctx.fillStyle='#5a3e2a';ctx.fillRect(x+47,y-58,42,18);ctx.fillStyle='#d7b27b';ctx.fillRect(x+50,y-55,36,12);ctx.fillStyle='#61432d';ctx.font='bold 8px Segoe UI';ctx.textAlign='center';ctx.fillText('РУДА',x+68,y-46);
     ctx.strokeStyle='#c4a16d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+66,y-46);ctx.lineTo(x+66,y-8);ctx.stroke();
     ctx.fillStyle='#d2b47c';ctx.fillRect(x+58,y-50,17,7);
     ctx.globalAlpha=.55+.35*Math.sin(time/360);ctx.fillStyle='#ffd889';ctx.shadowColor='#ffbd63';ctx.shadowBlur=13;ctx.beginPath();ctx.arc(x-50,y-8,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;
@@ -3450,7 +3457,19 @@ function setupVillageNpcs(){
     ctx.fillStyle='#fff0bd';ctx.font='900 13px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=5;ctx.fillText('ШАХТА',0,49);
     ctx.fillStyle='#d7e6c0';ctx.font='bold 10px Segoe UI';ctx.fillText('E · ВОЙТИ',0,62);ctx.textAlign='left';ctx.restore();
   }
-  function drawTradeEntrance(camX,camY){const x=tradeEntranceX*TILE+16-camX,y=tradeEntranceY*TILE+16-camY;if(x<-100||x>width+100||y<-100||y>height+100)return;ctx.save();ctx.translate(x,y);ctx.fillStyle='#142b36aa';ctx.beginPath();ctx.ellipse(0,15,39,18,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7d9b87';ctx.fillRect(-28,-16,56,32);ctx.fillStyle='#3d6b62';ctx.fillRect(-21,-10,42,25);ctx.fillStyle='#101c2c';ctx.fillRect(-13,-5,26,20);ctx.fillStyle='#f4d58b';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.fillText(tradeWorldMode?'В ДОЛИНУ':'МИР ТОРГОВЛИ',0,-25);ctx.font='bold 10px Segoe UI';ctx.fillText(tradeWorldMode?'E · ВЫЙТИ':'E · ВОЙТИ',0,42);ctx.textAlign='left';ctx.restore();
+  function drawTradeEntrance(camX,camY){
+    const x=tradeEntranceX*TILE+16-camX,y=tradeEntranceY*TILE+16-camY;if(x<-120||x>width+120||y<-120||y>height+120)return;
+    const time=performance.now(),pulse=.5+.5*Math.sin(time/260);ctx.save();ctx.translate(x,y);
+    ctx.fillStyle='rgba(5,13,18,.38)';ctx.beginPath();ctx.ellipse(0,18,49,22,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#45554e';ctx.beginPath();ctx.moveTo(-39,15);ctx.lineTo(-35,-21);ctx.lineTo(-22,-34);ctx.lineTo(22,-34);ctx.lineTo(35,-21);ctx.lineTo(39,15);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#8ca08c';ctx.fillRect(-30,-17,60,32);ctx.fillStyle='#516f66';ctx.fillRect(-24,-12,48,25);
+    ctx.fillStyle='#172837';ctx.beginPath();ctx.moveTo(-17,14);ctx.lineTo(-15,-4);ctx.lineTo(-9,-12);ctx.lineTo(9,-12);ctx.lineTo(15,-4);ctx.lineTo(17,14);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#c8b17c';ctx.lineWidth=3;ctx.strokeRect(-32,-19,64,38);ctx.strokeStyle='rgba(235,215,163,.65)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-26,-13);ctx.lineTo(-26,12);ctx.moveTo(26,-13);ctx.lineTo(26,12);ctx.stroke();
+    ctx.fillStyle='rgba(112,218,194,'+(.18+pulse*.14)+')';ctx.shadowColor='#74e3ce';ctx.shadowBlur=18;ctx.beginPath();ctx.ellipse(0,2,25,19,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    for(let i=0;i<4;i++){const a=time/750+i*Math.PI/2;ctx.fillStyle='#f4d58b';ctx.beginPath();ctx.arc(Math.cos(a)*34,Math.sin(a)*13-3,2,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='#f4d58b';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=6;ctx.fillText(tradeWorldMode?'В ДОЛИНУ':'МИР ТОРГОВЛИ',0,-42);
+    ctx.font='bold 10px Segoe UI';ctx.fillText(tradeWorldMode?'E · ВЫЙТИ':'E · ВОЙТИ',0,48);ctx.textAlign='left';ctx.restore();
+  }
   }
   function drawPlacedStructures(camX,camY){
     for(const s of placedStructures){const x=s.x-camX,y=s.y-camY;if(x<-100||x>width+100||y<-100||y>height+100)continue;ctx.save();ctx.translate(x,y);
