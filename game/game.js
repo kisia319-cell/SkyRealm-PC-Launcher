@@ -1779,6 +1779,20 @@ function setupVillageNpcs(){
     villageNpcs=specs;
   }
   function drawNpcCharacter(npc,x,y,time){const v=NPC_VISUALS[npc.id]||NPC_VISUALS.merchant,step=Math.sin(time/105+npc.phase)*1.3;ctx.save();if(bossRealmInvisibleTimer>0)ctx.globalAlpha=.28;ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.28,1.28);ctx.fillStyle='rgba(4,10,18,.38)';ctx.beginPath();ctx.ellipse(0,14,12,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=v.pants;ctx.fillRect(-7,5+step,6,10);ctx.fillRect(1,5-step,6,10);ctx.fillStyle='#302d35';ctx.fillRect(-8,14+step,7,3);ctx.fillRect(1,14-step,7,3);ctx.fillStyle=v.coat;ctx.beginPath();ctx.roundRect(-10,-5,20,15,4);ctx.fill();ctx.fillStyle=v.trim;ctx.fillRect(-8,-3,3,7);ctx.fillRect(5,-3,3,7);ctx.fillStyle=v.trim;ctx.fillRect(-2,-4,4,12);ctx.fillRect(-8,0,3,5);ctx.fillRect(5,0,3,5);ctx.fillStyle=v.skin;ctx.fillRect(-12,-3,4,10);ctx.fillRect(8,-3,4,10);ctx.fillStyle=v.coat;ctx.fillRect(-12,4,4,4);ctx.fillRect(8,4,4,4);ctx.fillStyle=v.skin;ctx.beginPath();ctx.roundRect(-6,-20,12,13,3);ctx.fill();ctx.fillStyle=v.hair;ctx.fillRect(-7,-22,14,5);ctx.fillRect(-8,-18,3,5);ctx.fillRect(5,-18,3,5);ctx.fillStyle='#263247';ctx.fillRect(-3,-14,2,2);ctx.fillRect(2,-14,2,2);ctx.fillStyle='#fff';ctx.fillRect(-3,-15,1,1);ctx.fillRect(2,-15,1,1);ctx.fillStyle='#9b5e54';ctx.fillRect(-1,-9,3,1);ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(-5,-19,3,2);if(v.beard){ctx.fillStyle=v.beard;ctx.fillRect(-4,-9,8,4);}const hat=v.hat||v.helmet||v.hood||v.cap;if(hat){ctx.fillStyle=hat;ctx.fillRect(-9,-25,18,5);ctx.fillRect(-7,-28,14,5);}if(v.scarf){ctx.fillStyle=v.scarf;ctx.fillRect(-8,-7,16,4);}if(v.prop==='coin'){ctx.fillStyle='#ffd35a';ctx.beginPath();ctx.arc(12,-2,3,0,Math.PI*2);ctx.fill();}if(v.prop==='potion'){ctx.fillStyle='#8fe7ff';ctx.fillRect(11,-4,4,7);}if(['pickaxe','hammer','spear','staff','bow'].includes(v.prop)){ctx.strokeStyle=v.prop==='staff'?'#9beaff':'#9b774d';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(12,10);ctx.lineTo(14,-22);ctx.stroke();if(v.prop==='pickaxe'){ctx.strokeStyle='#c8d4df';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(8,-18);ctx.lineTo(19,-22);ctx.stroke();}if(v.prop==='hammer'){ctx.fillStyle='#b7c4d1';ctx.fillRect(10,-22,9,5);}if(v.prop==='spear'){ctx.fillStyle='#dce7f2';ctx.fillRect(12,-27,4,7);}if(v.prop==='staff'){ctx.fillStyle='#7deaff';ctx.shadowColor='#65dfff';ctx.shadowBlur=9;ctx.beginPath();ctx.arc(14,-23,4,0,Math.PI*2);ctx.fill();}if(v.prop==='bow'){ctx.strokeStyle='#c89b55';ctx.beginPath();ctx.arc(14,-8,8,-1.2,1.2);ctx.stroke();}}ctx.restore();}
+  function drawVillageCaravan(x,y,time,variant='forest'){
+    const cloth={forest:'#a34f43',snow:'#527c91',desert:'#9b753f',volcano:'#647c52',blight:'#765b91'}[variant]||'#a34f43';
+    ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(8,14,17,.35)';ctx.beginPath();ctx.ellipse(0,17,47,11,0,0,Math.PI*2);ctx.fill();
+    // Merchant wagon: reinforced bed, loaded crates, cloth canopy and spoked wheels.
+    ctx.fillStyle='#4b3022';ctx.fillRect(-36,-5,72,17);ctx.fillStyle='#9a6b3f';ctx.fillRect(-32,-8,64,13);
+    ctx.fillStyle='#d0a06a';ctx.fillRect(-28,-7,4,12);ctx.fillRect(24,-7,4,12);
+    ctx.fillStyle='#68462c';ctx.fillRect(-28,-21,18,14);ctx.fillRect(-7,-25,19,18);ctx.fillStyle='#bd8a50';ctx.fillRect(-26,-19,14,10);ctx.fillRect(-5,-23,15,14);
+    ctx.strokeStyle='#e0bd7b';ctx.lineWidth=1;ctx.strokeRect(-26,-19,14,10);ctx.strokeRect(-5,-23,15,14);
+    ctx.fillStyle=cloth;ctx.beginPath();ctx.moveTo(-32,-23);ctx.quadraticCurveTo(-27,-43,0,-43);ctx.quadraticCurveTo(28,-43,33,-23);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(247,224,182,.55)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-28,-24);ctx.quadraticCurveTo(-24,-39,0,-39);ctx.quadraticCurveTo(24,-39,29,-24);ctx.stroke();
+    ctx.fillStyle='#e5c78b';ctx.fillRect(-32,-24,65,3);ctx.fillRect(-31,-22,3,7);ctx.fillRect(28,-22,3,7);
+    for(const wx of [-24,24]){ctx.fillStyle='#39271e';ctx.beginPath();ctx.arc(wx,13,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#a77a4d';ctx.beginPath();ctx.arc(wx,13,6,0,Math.PI*2);ctx.fill();ctx.save();ctx.translate(wx,13);ctx.rotate(time/380);ctx.strokeStyle='#51351f';ctx.lineWidth=1.5;for(let spoke=0;spoke<8;spoke++){ctx.rotate(Math.PI/4);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,7);ctx.stroke();}ctx.restore();ctx.fillStyle='#e0c28b';ctx.beginPath();ctx.arc(wx,13,2,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='#b78b55';ctx.fillRect(33,-1,18,3);ctx.fillStyle='#d6b47a';ctx.fillRect(45,-3,5,7);ctx.fillStyle='#fff0ca';ctx.font='800 8px Segoe UI';ctx.textAlign='center';ctx.fillText('ТОРГОВЫЙ ОБОЗ',0,31);ctx.restore();
+  }
   function drawVillageSettlements(camX,camY,time){
     // Trade World settlements use a clear rectangular street plan, not circular rings.
     // Six homes per street, three streets per village; every facade faces the same road.
@@ -1862,8 +1876,19 @@ function setupVillageNpcs(){
         if(houseHp<160){ctx.fillStyle='#21151a';ctx.fillRect(-27,-63,54,5);ctx.fillStyle='#ef765f';ctx.fillRect(-27,-63,54*Math.max(0,houseHp/160),5);ctx.strokeStyle='rgba(35,20,18,.85)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-25,8);ctx.lineTo(-7,24);ctx.lineTo(1,13);ctx.stroke();}
         ctx.restore();
       }
-      for(const cache of villageCaches){const cx=cache.x-camX,cy=cache.y-camY;if(cx<-35||cx>width+35||cy<-35||cy>height+35)continue;ctx.save();ctx.translate(cx,cy);ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(0,12,20,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=cache.opened?'#51473c':'#65402b';ctx.fillRect(-16,-5,32,18);ctx.fillStyle=cache.opened?'#756b5d':'#b77a3c';ctx.fillRect(-16,-11,32,10);ctx.fillStyle='#e9cb76';ctx.fillRect(-3,-5,6,13);if(!cache.opened){ctx.shadowColor='#ffdb7c';ctx.shadowBlur=10+Math.sin(time/180)*3;ctx.fillStyle='#ffe7a0';ctx.fillRect(-2,-8,4,5);}ctx.fillStyle='#fff0c7';ctx.font='bold 8px Segoe UI';ctx.textAlign='center';ctx.fillText(cache.opened?'ПУСТО':'ТАЙНИК · E',0,29);ctx.restore();}
-      ctx.fillStyle='#f2e4c2';ctx.font='900 14px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=6;ctx.fillText(c.name,x,y-560);ctx.restore();
+      for(const cache of villageCaches){
+        const cx=cache.x-camX,cy=cache.y-camY;if(cx<-38||cx>width+38||cy<-38||cy>height+38)continue;
+        ctx.save();ctx.translate(cx,cy);const pulse=.5+.5*Math.sin(time/190+cx*.02);
+        ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(0,13,22,8,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=cache.opened?'#4e493f':'#4a3022';ctx.fillRect(-18,-6,36,22);
+        ctx.fillStyle=cache.opened?'#756b5d':'#9b6234';ctx.fillRect(-16,-10,32,13);ctx.fillStyle=cache.opened?'#9c9280':'#c18b4e';ctx.fillRect(-15,-12,30,4);
+        ctx.fillStyle='#5c3f2b';for(const bx of [-11,-3,5,12])ctx.fillRect(bx,-4,2,15);
+        ctx.strokeStyle='#e2c47f';ctx.lineWidth=2;ctx.strokeRect(-17,-8,34,18);ctx.fillStyle='#d6b66d';ctx.fillRect(-4,-6,8,17);ctx.fillStyle='#fff0b0';ctx.beginPath();ctx.arc(0,1,2,0,Math.PI*2);ctx.fill();
+        if(!cache.opened){ctx.shadowColor='#ffdb7c';ctx.shadowBlur=10+pulse*7;ctx.fillStyle='rgba(255,231,160,.7)';ctx.beginPath();ctx.arc(0,-10,3+pulse,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+        else{ctx.save();ctx.translate(0,-10);ctx.rotate(-.5);ctx.fillStyle='#70523a';ctx.fillRect(-17,-6,34,6);ctx.fillStyle='#bd9663';ctx.fillRect(-15,-5,30,3);ctx.restore();}
+        ctx.fillStyle='#fff0c7';ctx.font='bold 8px Segoe UI';ctx.textAlign='center';ctx.fillText(cache.opened?'ПУСТО':'ТАЙНИК · E',0,31);ctx.restore();
+      }
+      ctx.fillStyle='#f2e4c2';ctx.font='900 14px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=6;drawVillageCaravan(x+555,y+laneY[1]+28,time,c.id);ctx.fillText(c.name,x,y-560);ctx.restore();
     }
     for(const npc of villageNpcs){const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-75||x>width+75||y<-100||y>height+80)continue;drawNpcCharacter(npc,x,y,time);ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(npc.name||NPC_NAMES[npc.id]||'Житель',x,y-27);ctx.font='800 8px Segoe UI';ctx.fillStyle='#d8e8dc';ctx.fillText(npc.activity==='sleeping'?'ОТДЫХАЕТ':npc.activity==='working'?'РАБОТАЕТ':npc.activity==='at market'?'ТОРГУЕТ':'ГУЛЯЕТ',x,y-39);ctx.restore();}
   }
