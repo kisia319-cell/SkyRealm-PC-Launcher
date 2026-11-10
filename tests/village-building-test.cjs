@@ -25,7 +25,8 @@ class Element {
   querySelector(selector){this.queries ||= {};return this.queries[selector] ||= new Element();}
   querySelectorAll(selector){
     if(selector!=='[data-action]')return [];
-    return [...this.innerHTML.matchAll(/data-action="([^"]+)"/g)].map(m=>{const e=new Element();e.attributes['data-action']=m[1];e.getAttribute=k=>e.attributes[k]||null;return e;});
+    if(this._actionHtml!==this.innerHTML){this._actionHtml=this.innerHTML;this._actionControls=[...this.innerHTML.matchAll(/data-action="([^"]+)"/g)].map(m=>{const e=new Element();e.attributes['data-action']=m[1];e.getAttribute=k=>e.attributes[k]||null;return e;});}
+    return this._actionControls||[];
   }
 }
 const made=[],calls=[],timers=[];
