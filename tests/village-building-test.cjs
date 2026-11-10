@@ -11,7 +11,7 @@ assert.match(game,/'Древесина':24,'Камень':12/,'house must consum
 assert.match(game,/'Древесина':12,'Камень':8/,'storage must consume real wood and stone');
 assert.match(game,/'Древесина':30,'Камень':20,'Железо':8/,'watchtower must consume real materials');
 assert.match(game,/village-watchtower/,'watchtower must have a dedicated visual type');
-assert.match(game,/\['furnace','house','torch','coal','storage','farmplot','village-watchtower'/,'watchtower must be accepted by the world-save loader');
+assert.match(game,/\['furnace','house','torch','coal','storage','farmplot','(?:village-cache',)?'village-watchtower'/,'watchtower must be accepted by the world-save loader');
 assert.match(game,/villageId:String\(villageId\)/,'new structures must be linked to and saved with their village');
 assert.match(expansion,/Развитие деревни/,'world chronicles must show village development');
 assert.match(expansion,/build-village-house/,'world chronicles must expose house construction');
