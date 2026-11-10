@@ -43,6 +43,8 @@ jobs:
       - run: node --check game/world-expansion.js
       - run: node --check tests/village-building-test.cjs
       - run: node tests/village-building-test.cjs
+      - run: node --check tests/village-watchtower-defense-test.cjs
+      - run: node tests/village-watchtower-defense-test.cjs
       - run: node --check tests/village-frontier-test.cjs
       - run: node tests/village-frontier-test.cjs
       - run: node tests/expansion-systems-test.cjs
