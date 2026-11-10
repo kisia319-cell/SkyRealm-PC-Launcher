@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 2;
+  const VERSION = 3;
   const KEY_PREFIX = 'skyrealm_world_expansion_v1_';
   const bridge = () => window.SkyRealmSeaBridge;
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -21,12 +21,12 @@
 
   const VILLAGE_NAMES=Object.freeze({forest:'Лесная деревня',snow:'Снежная деревня',desert:'Пустынный посёлок',volcano:'Вулканическое поселение',blight:'Заражённая деревня'});
   const VILLAGE_IDS=Object.keys(VILLAGE_NAMES);
-  const makeVillageRelations=()=>Object.fromEntries(VILLAGE_IDS.map(id=>[id,{trust:0,wanted:0,lastCrimeDay:-1,lastDecayDay:0,crimeCount:0,allyRewardClaimed:false}]));
+  const makeVillageRelations=()=>Object.fromEntries(VILLAGE_IDS.map(id=>[id,{trust:0,wanted:0,lastCrimeDay:-1,lastDecayDay:0,crimeCount:0,allyRewardClaimed:false,allied:false}]));
   function normalizeVillageRelations(raw){
     const result=makeVillageRelations();
     for(const id of VILLAGE_IDS){
       const value=raw&&typeof raw==='object'?raw[id]:null;if(!value||typeof value!=='object')continue;
-      result[id]={trust:clamp(Math.floor(Number(value.trust)||0),-100,100),wanted:clamp(Math.floor(Number(value.wanted)||0),0,100),lastCrimeDay:Number.isInteger(value.lastCrimeDay)?clamp(value.lastCrimeDay,-1,10000000):-1,lastDecayDay:Number.isInteger(value.lastDecayDay)?clamp(value.lastDecayDay,0,10000000):0,crimeCount:clamp(Math.floor(Number(value.crimeCount)||0),0,1000000),allyRewardClaimed:value.allyRewardClaimed===true};
+      result[id]={trust:clamp(Math.floor(Number(value.trust)||0),-100,100),wanted:clamp(Math.floor(Number(value.wanted)||0),0,100),lastCrimeDay:Number.isInteger(value.lastCrimeDay)?clamp(value.lastCrimeDay,-1,10000000):-1,lastDecayDay:Number.isInteger(value.lastDecayDay)?clamp(value.lastDecayDay,0,10000000):0,crimeCount:clamp(Math.floor(Number(value.crimeCount)||0),0,1000000),allyRewardClaimed:value.allyRewardClaimed===true,allied:value.allied===true};
     }
     return result;
   }
@@ -210,6 +210,7 @@
     record.trust=clamp(record.trust+rule.trust,-100,100);
     record.wanted=clamp(record.wanted+rule.wanted,0,100);
     record.lastCrimeDay=relationDay();record.lastDecayDay=relationDay();record.crimeCount=clamp(record.crimeCount+1,0,1000000);
+    if(record.allied&&(record.wanted>=70||record.trust<75)){record.allied=false;notify('СОЮЗ РАСТОРГНУТ! '+VILLAGE_NAMES[villageId]+' отозвало поддержку своих защитников.');}
     if(record.wanted>=70&&wasWanted<70)notify('ТРЕВОГА! '+VILLAGE_NAMES[villageId]+' объявляет тебя в розыск. Стража запомнила твои поступки.');
     else if(kind==='assault')notify('Ты напал на '+VILLAGE_NAMES[villageId]+'. Доверие разрушено, розыск усилен.');
     if(persist){save();if(opened)render();}
@@ -277,14 +278,22 @@
     record.allyRewardClaimed=true;b?.addGold?.(10000);b?.addItem?.('Герб союзного поселения',1,'Знак доверия жителей.');
     save();if(opened)render();notify('Получен герб союзного поселения и 100 золота.');return true;
   }
+  function establishVillageAlliance(villageId){
+    const b=bridge(),record=relationFor(villageId);if(!record)return false;
+    if(record.allied){notify('Союз с '+VILLAGE_NAMES[villageId]+' уже заключён.');return false;}
+    if(record.trust<75||record.wanted>0){notify('Для союза нужно не менее 75 доверия и полностью погашенный розыск.');return false;}
+    if(b?.spendGold?.(50)!==true){notify('Для заключения договора нужно 50 золота.');return false;}
+    record.allied=true;record.lastDecayDay=relationDay();save();if(opened)render();
+    notify('СОЮЗ ЗАКЛЮЧЁН! Стража '+VILLAGE_NAMES[villageId]+' будет сопровождать тебя и помогать в боях возле поселения.');return true;
+  }
   function renderVillageRelations(nearest){
     const centers=bridge()?.getVillageCenters?.()||[];
     if(!nearest)return '<article class="we-card"><h3>🕊️ Отношения с поселениями</h3><small>Поселения появятся здесь, когда ты войдёшь в Мир торговли.</small></article>';
     const id=String(nearest.id||''),record=relationFor(id),status=relationStatus(record),fee=record.wanted>0?villageFine(record):0;
     const damaged=Math.max(0,Number(bridge()?.getVillageDamageCount?.(id))||0);
-    const list=centers.map(v=>{const r=relationFor(v.id);return esc(VILLAGE_NAMES[v.id]||v.id)+' · '+r.trust+' доверия · розыск '+r.wanted;}).join('<br>');
+    const list=centers.map(v=>{const r=relationFor(v.id);return esc(VILLAGE_NAMES[v.id]||v.id)+' · '+(r.allied?'СОЮЗНИК':relationStatus(r))+' · '+r.trust+' доверия · розыск '+r.wanted;}).join('<br>');
     const tradeBlocked=!canTrade();
-    return '<article class="we-card"><h3>🕊️ Отношения: '+esc(VILLAGE_NAMES[id]||'Поселение')+'</h3><small>Жители запоминают нападения, кражи тайников, повреждение и разрушение домов. Помогай с обороной, доставляй припасы, ремонтируй здания или выплачивай штраф. Розыск постепенно ослабевает с игровыми днями.</small><div class="we-meta">'+status+' · доверие '+record.trust+'/100 · розыск '+record.wanted+'/100</div><div class="we-meter"><i style="width:'+Math.round((record.trust+100)/2)+'%"></i></div><small>'+(tradeBlocked?'Торговля закрыта из-за тяжёлых преступлений. Погаси розыск и восстанови доверие.':record.trust<=-20?'Торговцы повышают цены и хуже платят за товары.':record.trust>=35?'Жители предлагают более выгодные цены.':'Отношения пока нейтральные.')+'</small><div class="we-actions"><button data-action="donate-village">Передать припасы · 8 дерева · 5 камня</button><button data-action="repair-village" '+(damaged?'':'disabled')+'>Починить постройки · 12 дерева · 8 камня ('+damaged+')</button><button data-action="pay-village-fine" '+(fee?'':'disabled')+'>Погасить розыск · '+fee+' золота</button><button data-action="claim-village-ally" '+(record.trust>=75&&!record.allyRewardClaimed?'':'disabled')+'>Награда союзника · 75 доверия</button></div><div class="we-note"><b>Все поселения:</b><br>'+list+'</div></article>';
+    return '<article class="we-card"><h3>🕊️ Отношения: '+esc(VILLAGE_NAMES[id]||'Поселение')+'</h3><small>Жители запоминают нападения, кражи тайников, повреждение и разрушение домов. Стража патрулирует улицы, преследует разыскиваемых и отправляет отряд при тяжёлых преступлениях. Помогай с обороной, доставляй припасы, ремонтируй здания или выплачивай штраф. При доверии 75 и нулевом розыске можно заключить союз: защитники будут сопровождать тебя и сражаться рядом.</small><div class="we-meta">'+(record.allied?'СОЮЗ ЗАКЛЮЧЁН · СТРАЖА НА ТВОЕЙ СТОРОНЕ':status)+' · доверие '+record.trust+'/100 · розыск '+record.wanted+'/100</div><div class="we-meter"><i style="width:'+Math.round((record.trust+100)/2)+'%"></i></div><small>'+(tradeBlocked?'Торговля закрыта из-за тяжёлых преступлений. Погаси розыск и восстанови доверие.':record.trust<=-20?'Торговцы повышают цены и хуже платят за товары.':record.trust>=35?'Жители предлагают более выгодные цены.':'Отношения пока нейтральные.')+'</small><div class="we-actions"><button data-action="donate-village">Передать припасы · 8 дерева · 5 камня</button><button data-action="repair-village" '+(damaged?'':'disabled')+'>Починить постройки · 12 дерева · 8 камня ('+damaged+')</button><button data-action="pay-village-fine" '+(fee?'':'disabled')+'>Погасить розыск · '+fee+' золота</button><button data-action="claim-village-ally" '+(record.trust>=75&&!record.allyRewardClaimed?'':'disabled')+'>Награда союзника · 75 доверия</button><button data-action="establish-village-alliance" '+(record.trust>=75&&record.wanted===0&&!record.allied?'':'disabled')+'>'+(record.allied?'Союз заключён':'Заключить союз · 50 золота')+'</button></div><div class="we-note"><b>Все поселения:</b><br>'+list+'</div></article>';
   }
   function updateOrdinaryEvents(){
     const b=bridge(),day=Math.max(0,Number(lastSnapshot?.day)||0);
@@ -398,6 +407,7 @@
       else if(action==='repair-village')repairVillage(nearestVillageId());
       else if(action==='pay-village-fine')payVillageFine(nearestVillageId());
       else if(action==='claim-village-ally')claimVillageAlly(nearestVillageId());
+      else if(action==='establish-village-alliance')establishVillageAlliance(nearestVillageId());
       else if(action==='build-village-house')buildNearestVillage('house');
       else if(action==='build-village-storage')buildNearestVillage('storage');
       else if(action==='build-village-watchtower')buildNearestVillage('watchtower');
@@ -436,6 +446,7 @@
     repairVillage,
     payVillageFine,
     claimVillageAlly,
+    establishVillageAlliance,
     refresh:update
   });
 })();

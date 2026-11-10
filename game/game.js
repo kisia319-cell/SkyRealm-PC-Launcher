@@ -1783,6 +1783,10 @@ function setupVillageNpcs(){
       const x=v.x*TILE+16+xOffsets[col]+(row===1?34:-26),y=v.y*TILE+streetY[row]+22;
       specs.push({id:'citizen',name:names[i],x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:i*1.91,color:'#9ab6a2',villageId:v.id,activity:'wandering',scheduleSlot:-1,moveTimer:0,walkPhase:0});
     }
+    for(const v of villageCenters){
+      const cx=v.x*TILE+16,cy=v.y*TILE+16,posts=[[-410,-150],[0,390],[410,-150]];
+      posts.forEach((offset,index)=>{const x=cx+offset[0],y=cy+offset[1];specs.push({id:'guard',name:index===0?'Страж западного дозора':index===1?'Страж центрального поста':'Страж восточного дозора',x,y,homeX:x,homeY:y,targetX:x,targetY:y,phase:(seedByVillage[v.id]||0)*2.3+index*1.7,color:'#8299b4',villageId:v.id,isSettlementGuard:true,guardIndex:index,guardCenterX:cx,guardCenterY:cy,guardPatrolTimer:index*.6,guardAttackCooldown:0,guardAlerted:false,activity:'patrol',scheduleSlot:-1,moveTimer:0,walkPhase:0});});
+    }
     villageNpcs=specs;
   }
   function drawNpcCharacter(npc,x,y,time){const v=NPC_VISUALS[npc.id]||NPC_VISUALS.merchant,step=Math.sin(time/105+npc.phase)*1.3;ctx.save();if(bossRealmInvisibleTimer>0)ctx.globalAlpha=.28;ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.28,1.28);ctx.fillStyle='rgba(4,10,18,.38)';ctx.beginPath();ctx.ellipse(0,14,12,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=v.pants;ctx.fillRect(-7,5+step,6,10);ctx.fillRect(1,5-step,6,10);ctx.fillStyle='#302d35';ctx.fillRect(-8,14+step,7,3);ctx.fillRect(1,14-step,7,3);ctx.fillStyle=v.coat;ctx.beginPath();ctx.roundRect(-10,-5,20,15,4);ctx.fill();ctx.fillStyle=v.trim;ctx.fillRect(-8,-3,3,7);ctx.fillRect(5,-3,3,7);ctx.fillStyle=v.trim;ctx.fillRect(-2,-4,4,12);ctx.fillRect(-8,0,3,5);ctx.fillRect(5,0,3,5);ctx.fillStyle=v.skin;ctx.fillRect(-12,-3,4,10);ctx.fillRect(8,-3,4,10);ctx.fillStyle=v.coat;ctx.fillRect(-12,4,4,4);ctx.fillRect(8,4,4,4);ctx.fillStyle=v.skin;ctx.beginPath();ctx.roundRect(-6,-20,12,13,3);ctx.fill();ctx.fillStyle=v.hair;ctx.fillRect(-7,-22,14,5);ctx.fillRect(-8,-18,3,5);ctx.fillRect(5,-18,3,5);ctx.fillStyle='#263247';ctx.fillRect(-3,-14,2,2);ctx.fillRect(2,-14,2,2);ctx.fillStyle='#fff';ctx.fillRect(-3,-15,1,1);ctx.fillRect(2,-15,1,1);ctx.fillStyle='#9b5e54';ctx.fillRect(-1,-9,3,1);ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(-5,-19,3,2);if(v.beard){ctx.fillStyle=v.beard;ctx.fillRect(-4,-9,8,4);}const hat=v.hat||v.helmet||v.hood||v.cap;if(hat){ctx.fillStyle=hat;ctx.fillRect(-9,-25,18,5);ctx.fillRect(-7,-28,14,5);}if(v.scarf){ctx.fillStyle=v.scarf;ctx.fillRect(-8,-7,16,4);}if(v.prop==='coin'){ctx.fillStyle='#ffd35a';ctx.beginPath();ctx.arc(12,-2,3,0,Math.PI*2);ctx.fill();}if(v.prop==='potion'){ctx.fillStyle='#8fe7ff';ctx.fillRect(11,-4,4,7);}if(['pickaxe','hammer','spear','staff','bow'].includes(v.prop)){ctx.strokeStyle=v.prop==='staff'?'#9beaff':'#9b774d';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(12,10);ctx.lineTo(14,-22);ctx.stroke();if(v.prop==='pickaxe'){ctx.strokeStyle='#c8d4df';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(8,-18);ctx.lineTo(19,-22);ctx.stroke();}if(v.prop==='hammer'){ctx.fillStyle='#b7c4d1';ctx.fillRect(10,-22,9,5);}if(v.prop==='spear'){ctx.fillStyle='#dce7f2';ctx.fillRect(12,-27,4,7);}if(v.prop==='staff'){ctx.fillStyle='#7deaff';ctx.shadowColor='#65dfff';ctx.shadowBlur=9;ctx.beginPath();ctx.arc(14,-23,4,0,Math.PI*2);ctx.fill();}if(v.prop==='bow'){ctx.strokeStyle='#c89b55';ctx.beginPath();ctx.arc(14,-8,8,-1.2,1.2);ctx.stroke();}}ctx.restore();}
@@ -1897,7 +1901,7 @@ function setupVillageNpcs(){
       }
       ctx.fillStyle='#f2e4c2';ctx.font='900 14px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=6;drawVillageCaravan(x+555,y+laneY[1]+28,time,c.id);ctx.fillText(c.name,x,y-560);ctx.restore();
     }
-    for(const npc of villageNpcs){const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-75||x>width+75||y<-100||y>height+80)continue;drawNpcCharacter(npc,x,y,time);ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(npc.name||NPC_NAMES[npc.id]||'Житель',x,y-27);ctx.font='800 8px Segoe UI';ctx.fillStyle='#d8e8dc';ctx.fillText(npc.activity==='sleeping'?'ОТДЫХАЕТ':npc.activity==='working'?'РАБОТАЕТ':npc.activity==='at market'?'ТОРГУЕТ':'ГУЛЯЕТ',x,y-39);ctx.restore();}
+    for(const npc of villageNpcs){const x=npc.x-camX,y=npc.y-camY+Math.sin(time/105+npc.phase)*.8;if(x<-75||x>width+75||y<-100||y>height+80)continue;drawNpcCharacter(npc,x,y,time);ctx.save();ctx.textAlign='center';ctx.font='900 10px Segoe UI';ctx.fillStyle='#fff1cf';ctx.shadowColor='#07111d';ctx.shadowBlur=5;ctx.fillText(npc.name||NPC_NAMES[npc.id]||'Житель',x,y-27);ctx.font='800 8px Segoe UI';ctx.fillStyle='#d8e8dc';ctx.fillText(npc.isSettlementGuard?(npc.activity==='pursuing'?'В РОЗЫСКЕ':npc.activity==='response-raid'?'ОТРЯД РЕЙДА':npc.activity==='ally'?'СОЮЗНИК':npc.activity==='defending'?'ЗАЩИЩАЕТ':'ПАТРУЛЬ'):(npc.activity==='sleeping'?'ОТДЫХАЕТ':npc.activity==='working'?'РАБОТАЕТ':npc.activity==='at market'?'ТОРГУЕТ':'ГУЛЯЕТ'),x,y-39);ctx.restore();}
   }
   function updateVillageNpcs(dt){
     if(inHouse||mineMode||caveMode||dungeonMode)return;
@@ -1906,6 +1910,74 @@ function setupVillageNpcs(){
     dt=Math.min(.4,updateVillageNpcs._accumulator);updateVillageNpcs._accumulator=0;
     const minute=minuteOfDay(),night=minute>=21*60||minute<6*60,working=minute>=8*60&&minute<18*60;
     for(const npc of villageNpcs){
+      if(npc.isSettlementGuard){
+        if(!tradeWorldMode)continue;
+        const relation=window.SkyRealmWorldExpansion?.getVillageRelation?.(npc.villageId)||{trust:0,wanted:0,allied:false};
+        const wanted=Math.max(0,Number(relation.wanted)||0),trust=Number(relation.trust)||0;
+        const underWanted=wanted>=35||trust<=-55,retaliation=wanted>=80;
+        const homeX=Number(npc.guardCenterX)||npc.homeX,homeY=Number(npc.guardCenterY)||npc.homeY;
+        const playerFromHome=Math.hypot(player.x-homeX,player.y-homeY);
+        let targetX=null,targetY=null,targetEnemy=null,chasingPlayer=false;
+        npc.guardAttackCooldown=Math.max(0,(Number(npc.guardAttackCooldown)||0)-dt);
+        if(underWanted&&playerFromHome<=(retaliation?1800:760)){
+          targetX=player.x;targetY=player.y;chasingPlayer=true;
+          npc.activity=retaliation?'response-raid':'pursuing';
+          if(!npc.guardAlerted&&npc.guardIndex===0){
+            const key=String(npc.villageId)+':'+(retaliation?'raid':'wanted');
+            if(updateVillageNpcs._alertKey!==key){updateVillageNpcs._alertKey=key;toast(retaliation?'ОТРЯД ПОСЕЛЕНИЯ ВЫШЕЛ НА ОХОТУ! Стража '+(npc.villageId)+' преследует тебя за тяжёлые преступления.':'СТРАЖА ОБНАРУЖИЛА ТЕБЯ! Патруль требует ответить за преступления.');}
+            npc.guardAlerted=true;
+          }
+        }else{
+          npc.guardAlerted=false;
+          if(!underWanted&&npc.guardIndex===0)updateVillageNpcs._alertKey='';
+          if(relation.allied===true&&wanted===0&&playerFromHome<560){
+            const nearbyThreats=monsters.filter(m=>m&&m.hp>0&&!m.exploding&&!m.villageGuardian&&(m.villageRaid===true||!!m.expansionEventId)&&Math.hypot(m.x-npc.x,m.y-npc.y)<360);
+            targetEnemy=nearbyThreats.sort((a,b)=>Math.hypot(a.x-npc.x,a.y-npc.y)-Math.hypot(b.x-npc.x,b.y-npc.y))[0]||null;
+            if(targetEnemy){targetX=targetEnemy.x;targetY=targetEnemy.y;npc.activity='defending';}
+            else if(playerFromHome<470){
+              targetX=player.x+Math.cos(npc.guardIndex*2.094)*82;
+              targetY=player.y+Math.sin(npc.guardIndex*2.094)*58;
+              npc.activity='ally';
+            }
+          }
+        }
+        if(targetX===null||targetY===null){
+          npc.guardPatrolTimer=Math.max(0,(Number(npc.guardPatrolTimer)||0)-dt);
+          if(npc.guardPatrolTimer<=0||Math.hypot((npc.targetX||npc.x)-npc.x,(npc.targetY||npc.y)-npc.y)<18){
+            const angle=npc.guardIndex*2.1+Math.random()*2.2+(night?.5:0),radius=135+Math.random()*245;
+            npc.targetX=homeX+Math.cos(angle)*radius;npc.targetY=homeY+Math.sin(angle)*radius;
+            npc.guardPatrolTimer=4+Math.random()*4;
+          }
+          targetX=npc.targetX;targetY=npc.targetY;npc.activity='patrol';
+        }
+        const dx=targetX-npc.x,dy=targetY-npc.y,distance=Math.hypot(dx,dy);
+        const stopDistance=chasingPlayer?37:targetEnemy?42:npc.activity==='ally'?70:3;
+        if(distance>stopDistance){
+          const speed=chasingPlayer?(retaliation?112:88):targetEnemy?78:npc.activity==='ally'?72:night?48:42;
+          const step=Math.min(distance-stopDistance,dt*speed),nx=npc.x+dx/distance*step,ny=npc.y+dy/distance*step;
+          if(!blocked(nx,npc.y))npc.x=nx;
+          if(!blocked(npc.x,ny))npc.y=ny;
+          npc.walkPhase+=dt*9;
+        }
+        if(chasingPlayer&&Math.hypot(player.x-npc.x,player.y-npc.y)<=43&&npc.guardAttackCooldown<=0&&!immortal&&dodgeTimer<=0){
+          const damage=Math.max(1,Math.round((retaliation?12:8)*(1-armorReduction())));
+          player.hp=Math.max(0,player.hp-damage);npc.guardAttackCooldown=retaliation?1.05:1.35;
+          npc.guardFlash=.22;spawnVisualBurst(npc.x,npc.y,9,'spark','#e6c783');updateVitals();
+          if(updateVillageNpcs._hitToast<=0){toast('УДАР СТРАЖИ · '+(retaliation?'ответный рейд':'погоня')+': −'+damage+' HP');updateVillageNpcs._hitToast=1.8;}
+          if(player.hp<=0){respawnPlayerAfterDefeat();break;}
+        }else if(targetEnemy&&Math.hypot(targetEnemy.x-npc.x,targetEnemy.y-npc.y)<=48&&npc.guardAttackCooldown<=0){
+          const damage=22+(retaliation?8:0);targetEnemy.hp=Math.max(0,targetEnemy.hp-damage);targetEnemy.flash=.2;
+          npc.guardAttackCooldown=.92;npc.guardFlash=.2;spawnVisualBurst(targetEnemy.x,targetEnemy.y,7,'spark','#f0cd82');
+          if(targetEnemy.hp<=0){
+            const index=monsters.indexOf(targetEnemy);if(index>=0)monsters.splice(index,1);
+            notifyExpansionEnemyDefeated(targetEnemy);dropMonsterLoot(targetEnemy);awardXP(12,'помощь союзной стражи');trackAdventureQuest('hunt',1,false);
+            if(targetEnemy.villageRaid)villageRaidKills=Math.max(0,villageRaidKills-1);
+            saveGame();
+          }
+        }
+        updateVillageNpcs._hitToast=Math.max(0,(updateVillageNpcs._hitToast||0)-dt);
+        continue;
+      }
       const slot=night?2:working?1:0;
       if(npc.scheduleSlot!==slot||npc.moveTimer<=0){
         npc.scheduleSlot=slot;

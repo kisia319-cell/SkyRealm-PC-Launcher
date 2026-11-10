@@ -114,6 +114,8 @@ jobs:
           node tests/village-assault-test.cjs
           node --check tests/settlement-relations-test.cjs
           node tests/settlement-relations-test.cjs
+          node --check tests/settlement-guard-ai-test.cjs
+          node tests/settlement-guard-ai-test.cjs
           node --check tests/village-guardian-test.cjs
           node tests/village-guardian-test.cjs
           node --check tests/village-building-test.cjs
