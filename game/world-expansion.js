@@ -153,6 +153,12 @@
     state.ordinary.assault={id,day,villageId,villageName,active:true,claimed:false};
     save();render();notify('НАПАДЕНИЕ НА ДЕРЕВНЮ: '+villageName+'! Победи восьмерых защитников и Великого стража деревни.');
   }
+  function buildNearestVillage(kind){
+    const b=bridge(),centers=b?.getVillageCenters?.()||[],player=b?.getPlayerPosition?.();
+    const nearest=centers.slice().sort((a,c)=>Math.hypot(a.x-(player?.x||0),a.y-(player?.y||0))-Math.hypot(c.x-(player?.x||0),c.y-(player?.y||0)))[0];
+    if(!nearest){notify('В этом мире пока нет доступного поселения для строительства.');return;}
+    if(b?.buildVillageStructure?.(nearest.id,kind))render();
+  }
   function startExpedition(day){
     const b=bridge(),point=b?.getWorldEventSpawnPoint?.();
     if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)){notify('Не удалось найти место для экспедиции.');return;}
@@ -270,9 +276,9 @@
       else if(action==='claim-contract')claimOrdinary(contractForDay(day),lastSnapshot,day);
       else if(action==='village-raid')startVillageRaid(day);
       else if(action==='village-assault')startVillageAssault(day);
-      else if(action==='build-village-house'){if(b?.buildVillageStructure?.(b?.getVillageCenters?.().slice().sort((a,c)=>Math.hypot(a.x-(b?.getPlayerPosition?.()?.x||0),a.y-(b?.getPlayerPosition?.()?.y||0))-Math.hypot(c.x-(b?.getPlayerPosition?.()?.x||0),c.y-(b?.getPlayerPosition?.()?.y||0)))[0]?.id,'house'))render();}
-      else if(action==='build-village-storage'){if(b?.buildVillageStructure?.(b?.getVillageCenters?.().slice().sort((a,c)=>Math.hypot(a.x-(b?.getPlayerPosition?.()?.x||0),a.y-(b?.getPlayerPosition?.()?.y||0))-Math.hypot(c.x-(b?.getPlayerPosition?.()?.x||0),c.y-(b?.getPlayerPosition?.()?.y||0)))[0]?.id,'storage'))render();}
-      else if(action==='build-village-watchtower'){if(b?.buildVillageStructure?.(b?.getVillageCenters?.().slice().sort((a,c)=>Math.hypot(a.x-(b?.getPlayerPosition?.()?.x||0),a.y-(b?.getPlayerPosition?.()?.y||0))-Math.hypot(c.x-(b?.getPlayerPosition?.()?.x||0),c.y-(b?.getPlayerPosition?.()?.y||0)))[0]?.id,'watchtower'))render();}
+      else if(action==='build-village-house')buildNearestVillage('house');
+      else if(action==='build-village-storage')buildNearestVillage('storage');
+      else if(action==='build-village-watchtower')buildNearestVillage('watchtower');
       else if(action==='expedition')startExpedition(day);
       else if(action==='accept-boss')acceptBoss(bossContractForDay(day),b?.getBossRealmSnapshot?.()||{},day);
       else if(action==='claim-boss')claimBoss(bossContractForDay(day),b?.getBossRealmSnapshot?.()||{},day);
