@@ -36,7 +36,7 @@ assert.match(game,/Camp details: stitched seams, guy ropes, bedroll, supply crat
 assert.match(game,/Merchant's layered travel cloak, satchel buckles and walking staff/,'traveler needs layered equipment and accessories');
 assert.match(chronicles,/upgrade-village-watchtower/,'world chronicles must expose tower repair and upgrade action');
 assert.match(chronicles,/автоматически обнаруживает налётчиков/,'world chronicles must explain the automated defense');
-assert.match(game,/Individually cut posts, paired rails, end grain and iron nail heads/,'fences need timber grain, paired rails and metal fasteners');
+assert.match(game,/const positions=new Set\(world\.fences\.map/,'fences need connected-section rendering based on adjacent posts');
 assert.match(game,/Stone plinth, exposed timber frame and hand-cut wall boards/,'the main cabin needs a detailed stone-and-timber foundation');
 assert.match(game,/Layered shingles with alternating seams, ridge cap and bright eaves/,'the cabin roof needs individually layered shingles');
 assert.match(game,/Porch lantern, firewood, flower pots and animated chimney smoke/,'the cabin needs lived-in porch props and chimney ambience');
