@@ -51,5 +51,5 @@ assert.match(game,/Ore sacks, tool rack, timber bracing and a hand-painted quarr
 assert.match(game,/reinforced bed, loaded crates/,'caravan cargo details must remain in the renderer');
 assert.match(game,/ctx.strokeStyle='#c8b17c'/,'the trade portal needs a framed stone threshold');
 assert.match(game,/hand-cut wall boards/,'cabin timber wall detail must remain in the renderer');
-assert.match(game,/ctx.strokeRect\\(-19,-8,38,21\\)/,'crafted storage needs visible metal reinforcement');
+assert.match(game,/ctx\.strokeRect\(-19,-8,38,21\)/,'crafted storage needs visible metal reinforcement');
 console.log('Village watchtower defense regression checks passed: targeting, homing projectiles, damage, enemy counterattacks, three upgrades, repair, persistence and chronicles UI.');
