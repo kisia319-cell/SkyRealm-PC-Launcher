@@ -21,7 +21,7 @@ class Element {
   addEventListener(name,fn){(this.listeners[name] ||= []).push(fn);}
   dispatch(name,event={}){for(const fn of this.listeners[name]||[])fn(event);}
   appendChild(child){return child;}
-  querySelector(){return new Element();}
+  querySelector(selector){this.queries ||= {};return this.queries[selector] ||= new Element();}
   querySelectorAll(selector){
     if(selector!=='[data-action]')return [];
     return [...this.innerHTML.matchAll(/data-action="([^"]+)"/g)].map(m=>{const e=new Element();e.attributes['data-action']=m[1];e.getAttribute=k=>e.attributes[k]||null;return e;});
