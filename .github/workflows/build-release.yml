@@ -114,6 +114,8 @@ jobs:
           node tests/village-assault-test.cjs
           node --check tests/village-guardian-test.cjs
           node tests/village-guardian-test.cjs
+          node --check tests/village-building-test.cjs
+          node tests/village-building-test.cjs
           node --check tests/quarry-system-test.cjs
           node tests/quarry-system-test.cjs
           node --check tests/mine-exploration-test.cjs
