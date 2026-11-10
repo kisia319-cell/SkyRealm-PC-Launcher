@@ -22,6 +22,13 @@ assert.match(game,/watchtowerLevel:Math\.max\(1,Math\.min\(3/,'tower level must 
 assert.match(game,/hp:Math\.max\(0,Math\.min\(1000,Number\.isFinite\(Number\(v\.hp\)\)\?Number\(v\.hp\):360\)\)/,'destroyed tower health must remain zero after loading');
 assert.match(game,/drawPlacedStructures\(camX,camY\);drawTradeEntrance/,'watchtowers must render in Trade World');
 assert.match(game,/for\(const shot of villageTowerProjectiles\)/,'tower bolts must render');
+assert.match(game,/Layered stone foundation, individual masonry blocks and mortar/,'tower needs layered masonry and mortar detail');
+assert.match(game,/Tall timber frame with visible beams and cross braces/,'tower needs a visible timber frame');
+assert.match(game,/Roof canopy with layered shingles and ridge cap/,'tower roof needs layered shingles');
+assert.match(game,/Village banner, level insignia and flutter/,'tower needs a moving level banner');
+assert.match(game,/Rotating ballista and its aiming rail/,'tower ballista needs detailed aiming hardware');
+assert.match(game,/Damage cracks and broken timbers remain visible/,'tower damage must be visible');
+assert.match(game,/Status plaque, level stars and readable durability bar/,'tower needs a clear level and durability display');
 assert.match(chronicles,/upgrade-village-watchtower/,'world chronicles must expose tower repair and upgrade action');
 assert.match(chronicles,/автоматически обнаруживает налётчиков/,'world chronicles must explain the automated defense');
 console.log('Village watchtower defense regression checks passed: targeting, homing projectiles, damage, enemy counterattacks, three upgrades, repair, persistence and chronicles UI.');
