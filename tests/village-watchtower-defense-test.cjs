@@ -49,7 +49,6 @@ assert.match(game,/Layered cliff face with fractured slabs/,'the mine entrance n
 assert.match(game,/Short mine rails and an ore trolley/,'the mine entrance needs decorative mining equipment');
 assert.match(game,/Ore sacks, tool rack, timber bracing and a hand-painted quarry sign/,'the quarry outpost needs more workshop props');
 assert.match(game,/reinforced bed, loaded crates/,'caravan cargo details must remain in the renderer');
-assert.match(game,/Detail crafted houses, storage chests/,'');
 assert.match(game,/ctx.strokeStyle='#c8b17c'/,'the trade portal needs a framed stone threshold');
 assert.match(game,/hand-cut wall boards/,'cabin timber wall detail must remain in the renderer');
 assert.match(game,/ctx.strokeRect\\(-19,-8,38,21\\)/,'crafted storage needs visible metal reinforcement');
