@@ -154,7 +154,7 @@
     if(Number(b.getGold?.()||0)<item.price){notify('Нужно золото: '+item.price+'.');return false;}
     if(b.spendGold?.(item.price)!==true)return false;
     for(const [name,count] of Object.entries(item.items||{})){if(b.spendItem?.(name,count)!==true){notify('Не удалось списать материалы. Проверь инвентарь.');return false;}}
-    state.projects[id]=true;state.projectLevels[id]=1;state.stats.projectsBuilt++;state.town.renown=clamp(state.town.renown+35,0,1000000);state.town.happiness=clamp(state.town.happiness+6,0,100);save();
+    state.projects[id]=true;state.projectLevels[id]=1;state.stats.projectsBuilt++;state.town.renown=clamp(state.town.renown+35,0,1000000);state.town.happiness=clamp(state.town.happiness+6,0,100);if(id==='market')state.town.nextCaravanDay=Math.max(state.town.nextCaravanDay,(Number(b.getGameDay?.())||0)+2);save();
     notify('Постройка завершена: '+item.name+'! +35 репутации города.');checkAchievements();render();return true;
   }
   function upgradeProject(id){
@@ -642,7 +642,7 @@
   window.SkyRealmLivingWorld=Object.freeze({
     update,draw,onFishingCatch,damageMultiplier,defenseBonus,fishBonus,
     getState:()=>JSON.parse(JSON.stringify(state)),
-    getTownState:()=>JSON.parse(JSON.stringify(state.town)),buildProject,upgradeProject,startTownPatrol,
+    getTownState:()=>JSON.parse(JSON.stringify(state.town)),buildProject,upgradeProject,startTownPatrol,hireTownSpecialist,startTownCaravan,claimTownCaravan,
     open:openPanel
   });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
