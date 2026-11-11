@@ -29,6 +29,28 @@ function renderLeaderboard(){
  root.innerHTML=rows.map((b,i)=>'<div class="bot" style="display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px"><b>#'+(i+1)+'</b><span><b>'+b.name+' · ВЫ</b><br><small>Личный рейтинг</small></span><strong>'+b.elo+' ELO</strong></div>').join('');
 }
 function renderHistory(){const root=$('history-list');if(!root)return;if(!profile.history.length){root.textContent='Матчей пока нет.';return;}root.innerHTML=profile.history.map((h,i)=>'<div class="bot" style="display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;margin:8px 0"><span><b>'+(h.label||'Матч')+'</b><br><small>'+String(h.date||'')+'</small><br><small>Соперники: '+(Array.isArray(h.opponents)?h.opponents.join(', '):'—')+'</small></span><strong>'+String(h.delta||'')+'</strong></div>').join('');}
+
+const PRIME_LANG_KEY='primeLauncher.language.v1';
+const PRIME_EN={
+'Главная':'Home','Топ рейтинга':'Leaderboard','История матчей':'Match history','Настройки':'Settings',
+'Войти в Prime':'Enter Prime','Настройки Prime':'Prime settings','Язык интерфейса':'Interface language',
+'Русский':'Russian','Матчей пока нет.':'No matches yet.','Последние 100 результатов с датой и изменением ELO.':'Last 100 results with date and ELO change.',
+'Здесь отображаются только игроки. Тренировочные боты не участвуют в рейтинге. Онлайн-таблица появится после запуска серверного подбора.':'Only players appear here. Training bots are excluded. Online rankings require server matchmaking.',
+'Экономика матча: +5 монет в секунду только во время боя. Монеты и уровни построек сбрасываются после матча. Улучшения доступны только на арене.':'Match economy: +5 coins per second during battle only. Coins and structure levels reset after each match. Upgrades are available only in battle.',
+'Победа':'Victory','Поражение':'Defeat','В бой':'Battle','В меню':'Menu','Строительство':'Build','Баланс':'Balance','Улучшить башню':'Upgrade tower',
+'Монеты действуют только в текущем бою':'Coins are valid only in the current match','Матчевый уровень':'Match level',
+'Управление: WASD или стрелки · Атака: пробел / левая кнопка мыши · Выход из матча: Esc.':'Controls: WASD or arrows · Attack: Space / left mouse button · Leave match: Esc.',
+'Онлайн-режим временно недоступен: при выборе он покажет сообщение о доработке. Играть сейчас можно только в тренировке с ботами.':'Online mode is not available yet. You can currently play training matches against bots.',
+'ТВОЙ РЕЙТИНГ':'YOUR RATING','БАЛАНС':'BALANCE','ТВОЯ БАШНЯ':'YOUR TOWER','ПРОГРЕСС':'PROGRESS','ПОБЕДЫ':'WINS','МАТЧ ЗАВЕРШЁН':'MATCH FINISHED',
+'В МЕНЮ PRIME':'BACK TO PRIME MENU','ЕЩЁ МАТЧ':'PLAY AGAIN','ТРЕНИРОВКА':'TRAINING','ВЫХОД':'EXIT'
+};
+function applyPrimeLanguage(lang){
+ const chosen=lang==='en'?'en':'ru';localStorage.setItem(PRIME_LANG_KEY,chosen);document.documentElement.lang=chosen;
+ const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let node;
+ while((node=walker.nextNode())){const raw=node.nodeValue,trim=raw.trim();if(!trim)continue;if(chosen==='en'&&PRIME_EN[trim])node.nodeValue=raw.replace(trim,PRIME_EN[trim]);}
+ const select=$('prime-language');if(select&&select.value!==chosen)select.value=chosen;
+}
+
 function show(page){
  scene=page;document.body.classList.toggle('battle-active',page==='battle');pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
  document.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
@@ -50,6 +72,7 @@ function beginSearch(){
  let ticks=0;searchTimer=window.setInterval(()=>{ticks++;$('search-title').textContent=['Подготовка арены...','Расстановка башен...','Формируем команды...'][ticks%3];if(ticks>=3){clearInterval(searchTimer);createMatch();}},550);
 }
 $('find-match').addEventListener('click',beginSearch);
+const languageSelect=$('prime-language');if(languageSelect){languageSelect.value=localStorage.getItem(PRIME_LANG_KEY)||'ru';languageSelect.addEventListener('change',()=>applyPrimeLanguage(languageSelect.value));}applyPrimeLanguage(localStorage.getItem(PRIME_LANG_KEY)||'ru');
 function createTower(x,y,owner,isPlayer=false){
  const level=isPlayer?(match?.playerTowerLevel||1):owner.towerLevel;
  return {x,y,owner,isPlayer,team:isPlayer?0:(owner.team===0?0:1),level,hp:560+level*180,maxHp:560+level*180,range:210+level*12,damage:8+level*3,fire:0};
