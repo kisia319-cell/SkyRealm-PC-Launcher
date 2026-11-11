@@ -1,5 +1,5 @@
 'use strict';
-const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const launcherHtml=read('index.html'),app=read('app.js'),launcherPy=read('launcher.py'),build=read('build_exe.bat');
 const primeHtml=read('game/competitive/index.html'),primeJs=read('game/competitive/prime-world.js'),workflow=read('.github/workflows/build-release.yml');
@@ -29,8 +29,23 @@ assert.match(primeJs,/if\(!aggro&&!assault\)continue/,'Bot fighters must stay at
 assert.match(primeJs,/t\.team===1&&match\.enemyAggroUntil<=match\.elapsed&&match\.enemyAssaultUntil<=match\.elapsed/,'Enemy towers must stay silent until the match attack window or player provocation.');
 assert.match(primeJs,/nextBarracksAt/);assert.match(primeJs,/nextWallAt/);assert.match(primeJs,/nextUpgradeAt/);
 
+function extractFunction(source,name){
+ const start=source.indexOf('function '+name+'(');assert.ok(start>=0,'Missing function '+name);
+ const open=source.indexOf('{',start);let depth=0,quote='',escaped=false,lineComment=false,blockComment=false;
+ for(let i=open;i<source.length;i++){
+  const c=source[i],n=source[i+1];
+  if(lineComment){if(c==='\\n')lineComment=false;continue;}
+  if(blockComment){if(c==='*'&&n==='/'){blockComment=false;i++;}continue;}
+  if(quote){if(escaped){escaped=false;continue;}if(c==='\\\\'){escaped=true;continue;}if(c===quote)quote='';continue;}
+  if(c==='/'&&n==='/'){lineComment=true;i++;continue;}
+  if(c==='/'&&n==='*'){blockComment=true;i++;continue;}
+  if(c==="'"||c==='"'||c.charCodeAt(0)===96){quote=c;continue;}
+  if(c==='{')depth++;else if(c==='}'&&--depth===0)return source.slice(start,i+1);
+ }
+ throw new Error('Unclosed function '+name);
+}
 // Exercise the bot director: it builds and upgrades before the five-minute wave, then attacks on schedule.
-const aiFunctions=['upgradeBotTower','enemyDirector','alertEnemyBase'].map(extractFunction);
+const aiFunctions=['upgradeBotTower','enemyDirector','alertEnemyBase'].map(name=>extractFunction(primeJs,name));
 const botProfile={name:'TestBot',coins:2200,towerLevel:1,elo:100};
 const aiContext={
  Math:Object.assign(Object.create(Math),{random:()=>0.2}),
