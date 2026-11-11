@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Publish Telegram news from actual changed source files and commit subjects."""
-import html, json, os, re, subprocess, sys, urllib.request
+import html, json, os, re, subprocess, sys, time, urllib.request
 
 REPO = os.environ.get("REPOSITORY", "kisia319-cell/SkyRealm-PC-Launcher")
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
@@ -65,6 +65,33 @@ def self_test():
 def stats_test_tab():
     return "\t".join(("1", "2", "game/competitive/prime-world.js")).split("\t")[2].endswith(".js")
 
+def read_state():
+    try:
+        git("fetch", "origin", "+refs/heads/telegram-news-state:refs/remotes/origin/telegram-news-state")
+        state_ref = "refs/remotes/origin/telegram-news-state"
+        state_commit = git("rev-parse", state_ref)
+        message = git("show", "-s", "--format=%B", state_ref)
+        announced = re.search(r"Announced-SHA: ([0-9a-f]{40})", message)
+        published = re.search(r"Published-At: (\\d+)", message)
+        if announced and published:
+            return state_commit, announced.group(1), int(published.group(1))
+        # Backward-compatible migration from the previous state branch format.
+        old_time = int(git("show", "-s", "--format=%ct", state_ref))
+        return state_commit, state_commit, old_time
+    except Exception:
+        return None, None, 0
+
+def save_state(parent_state, announced_sha, published_at):
+    # Keep the cursor and the real publication timestamp independently of main's commit dates.
+    empty_tree = git("mktree")
+    message = f"Telegram publication state\\n\\nAnnounced-SHA: {announced_sha}\\nPublished-At: {published_at}\\n"
+    args = ["commit-tree", empty_tree]
+    if parent_state:
+        args += ["-p", parent_state]
+    commit = subprocess.check_output(["git", *args], input=message, text=True, encoding="utf-8").strip()
+    git("push", "--force", "origin", commit + ":refs/heads/telegram-news-state")
+    print(f"News cursor updated to {announced_sha}; last publication timestamp {published_at}.")
+
 def main():
     if "--self-test" in sys.argv:
         self_test()
@@ -73,10 +100,8 @@ def main():
         raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured.")
     git("fetch", "origin", "+refs/heads/main:refs/remotes/origin/main")
     head = git("rev-parse", "origin/main")
-    try:
-        git("fetch", "origin", "+refs/heads/telegram-news-state:refs/remotes/origin/telegram-news-state")
-        base = git("rev-parse", "origin/telegram-news-state")
-    except Exception:
+    state_commit, base, last_published = read_state()
+    if not base:
         try:
             base = git("rev-parse", head + "^")
         except Exception:
@@ -86,23 +111,26 @@ def main():
         return
     commits = []
     for row in git("log", "--reverse", "--format=%H%x1f%s", base + ".." + head).splitlines():
-        if "\x1f" not in row:
+        if "\\x1f" not in row:
             continue
-        sha, subject = row.split("\x1f", 1)
+        sha, subject = row.split("\\x1f", 1)
         paths, changed = stats(sha)
         if paths:
             commits.append({"sha": sha, "subject": subject.strip(), "paths": paths, "lines": changed})
     if not commits:
-        git("push", "--force", "origin", head + ":refs/heads/telegram-news-state")
+        save_state(state_commit, head, last_published)
         print("Only metadata/non-game files changed; cursor advanced without a post.")
         return
+
+    now = int(time.time())
+    remaining = 3600 - (now - last_published)
+    if last_published and remaining > 0:
+        print(f"Hourly limit active: {remaining} seconds remain. {len(commits)} source changes are queued for one combined post.")
+        return
+
     total = sum(c["lines"] for c in commits)
     major_count = sum(bool(MAJOR.search(c["subject"])) for c in commits)
     major = (major_count >= 1 and total >= 250) or total >= 1200 or (major_count >= 2 and total >= 500)
-    small = len(commits) >= 5 and not major
-    if not (major or small):
-        print(f"Waiting for a major update or a 5–7 change batch: commits={len(commits)}, lines={total}.")
-        return
     selected = commits if major else commits[-7:]
     bullets = []
     for commit in selected:
@@ -113,7 +141,7 @@ def main():
     if major:
         heading, intro = "🚀 <b>КРУПНОЕ ОБНОВЛЕНИЕ SKYREALM</b>", "В этом обновлении:"
     else:
-        heading, intro = "🛠 <b>ПОДБОРКА ИЗМЕНЕНИЙ SKYREALM</b>", f"Собрали {len(commits)} небольших изменений:"
+        heading, intro = "🛠 <b>ИЗМЕНЕНИЯ SKYREALM ЗА ЧАС</b>", f"Объединили {len(commits)} изменений за последний период:"
     compare = f"https://github.com/{REPO}/compare/{base}...{head}"
     try:
         launcher_version = git("show", f"{head}:launcher_version.txt")
@@ -124,17 +152,16 @@ def main():
     except Exception:
         game_version = "—"
     version_line = f"📌 Лаунчер {launcher_version} · игра {game_version}"
-    message = heading + "\n\n" + version_line + "\n\n" + intro + "\n\n" + "\n".join("▫️ " + html.escape(item) for item in bullets)
-    message += '\n\n🔗 <a href="' + html.escape(compare, quote=True) + '">Все изменения на GitHub</a>\n\n💚 Спасибо, что следите за SkyRealm!'
+    message = heading + "\\n\\n" + version_line + "\\n\\n" + intro + "\\n\\n" + "\\n".join("▫️ " + html.escape(item) for item in bullets)
+    message += '\\n\\n🔗 <a href="' + html.escape(compare, quote=True) + '">Все изменения на GitHub</a>\\n\\n💚 Спасибо, что следите за SkyRealm!'
     payload = json.dumps({"chat_id": CHAT, "text": message, "parse_mode": "HTML", "disable_web_page_preview": True}).encode("utf-8")
     request = urllib.request.Request("https://api.telegram.org/bot" + TOKEN + "/sendMessage", data=payload, headers={"Content-Type": "application/json"}, method="POST")
     with urllib.request.urlopen(request, timeout=30) as response:
         result = json.loads(response.read().decode("utf-8"))
     if not result.get("ok"):
-        raise RuntimeError("Telegram rejected message: " + str(result))
+        raise RuntimeError("Telegram rejected the message: " + str(result))
     print("Telegram message published successfully.")
-    git("push", "--force", "origin", head + ":refs/heads/telegram-news-state")
-    print("News cursor updated to " + head)
+    save_state(state_commit, head, now)
 
 if __name__ == "__main__":
     main()
