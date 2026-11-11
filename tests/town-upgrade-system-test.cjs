@@ -37,4 +37,14 @@ for(const snippet of [
  'if(!record)return \'<article class="we-card">','board:{day:-1,accepted:[],claimed:[]}'
 ])assert.ok(expansion.includes(snippet),'Missing chronicles feature: '+snippet);
 
+// Population, specialist hiring and guarded caravans are persistent per-world town systems.
+for(const snippet of [
+ 'TOWN_SPECIALISTS={','function townHousingCapacity()','function townStaffSlots()','function hireTownSpecialist(id)',
+ 'function updateTownGrowth(day)','function updateTownCaravan(day)','function startTownCaravan()','function claimTownCaravan()',
+ 'nextCaravanDay:3','population:15','town.population<capacity','town.staff.steward','town.staff.scout',
+ 'town.staff.merchant?150:0','town.staff.engineer ? 0.9 : 1','data-lw-action=\\\"town-caravan\\\"',
+ 'data-lw-action=\\\"town-hire:','town-caravan-claim','drawTownCaravan(ctx,centers,camX,camY,time)',
+ 'status===\'complete\'','b?.addItem?.(item,amount'
+])assert.ok(living.includes(snippet),'Missing settlement expansion behavior: '+snippet);
+
 console.log('SkyRealm town upgrade, civic districts and daily quest board checks passed.');
