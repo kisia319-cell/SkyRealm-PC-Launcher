@@ -130,7 +130,7 @@ jobs:
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
 
       - name: Build PrimeLauncher runtime
-        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "game/competitive;game/competitive" launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" launcher.py
 
       - name: Verify PrimeLauncher bundled game UI
         shell: pwsh
