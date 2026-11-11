@@ -66,7 +66,7 @@ function createMatch(){
  for(let i=0;i<teamSize;i++){
   const angle=-Math.PI/2+(i-(teamSize-1)/2)*.55,radius=230+i*35;
   const bp=botsProfile[i%botsProfile.length],x=player.x+Math.cos(angle)*radius,y=player.y+Math.sin(angle)*radius;
-  const bot={id:i+1,team:1,x,y,hp:120+bp.towerLevel*12,maxHp:120+bp.towerLevel*12,speed:125+Math.random()*22,alive:true,attack:0,flash:0,elo:bp.elo,name:bp.name,profile:bp,upgradeTimer:0};
+  const bot={id:i+1,team:1,x,y,hp:120+bp.towerLevel*12,maxHp:120+bp.towerLevel*12,speed:125+Math.random()*22,alive:true,attack:0,flash:0,elo:bp.elo,name:bp.name,profile:bp};
   bots.push(bot);
   const tx=clamp(x+Math.cos(angle)*125,TILE*2,SIZE*TILE-TILE*2),ty=clamp(y+Math.sin(angle)*125,TILE*2,SIZE*TILE-TILE*2);
   towers.push(createTower(tx,ty,bp,false));
@@ -119,8 +119,7 @@ function update(dt){
   if(target){const vx=target.x-ally.x,vy=target.y-ally.y,dist=Math.hypot(vx,vy)||1;if(dist>58){ally.x+=vx/dist*ally.speed*dt;ally.y+=vy/dist*ally.speed*dt;}else if(ally.attack<=0){ally.attack=.9;target.hp=Math.max(0,target.hp-19);target.flash=.14;if(target.hp<=0)target.alive=false;}}
  }
  for(const b of match.bots){
-  if(!b.alive)continue;b.attack=Math.max(0,b.attack-dt);b.flash=Math.max(0,b.flash-dt);b.upgradeTimer+=dt;
-  if(b.profile.coins>=upgradeCost(b.profile.towerLevel)&&b.upgradeTimer>=12&&b.profile.towerLevel<20){b.profile.coins-=upgradeCost(b.profile.towerLevel);b.profile.towerLevel++;b.upgradeTimer=0;const t=match.towers.find(x=>x.owner===b.profile);if(t){t.level=b.profile.towerLevel;t.maxHp=560+t.level*180;t.hp=Math.min(t.maxHp,t.hp+180);t.range=210+t.level*12;t.damage=8+t.level*3;}b.elo+=8;}
+  if(!b.alive)continue;b.attack=Math.max(0,b.attack-dt);b.flash=Math.max(0,b.flash-dt);
   const playerTower=match.towers.find(t=>t.isPlayer),toTower=playerTower?Math.hypot(playerTower.x-b.x,playerTower.y-b.y):Infinity,toPlayer=Math.hypot(p.x-b.x,p.y-b.y),targetTower=playerTower&&playerTower.hp>0&&toTower<toPlayer+75;
   const tx=targetTower?playerTower.x:p.x,ty=targetTower?playerTower.y:p.y,vx=tx-b.x,vy=ty-b.y,dist=Math.hypot(vx,vy)||1;
   if(dist>(targetTower?48:40)){b.x+=vx/dist*b.speed*dt;b.y+=vy/dist*b.speed*dt;}
@@ -202,5 +201,5 @@ $('arena').addEventListener('contextmenu',e=>e.preventDefault());
 window.addEventListener('beforeunload',()=>{if(searchTimer)clearInterval(searchTimer);stopLoop();});
 updateProfile();
 // Prime's local economy runs while the launcher is open, not only during a match.
-window.setInterval(()=>{profile.coins+=5;for(const b of botsProfile)b.coins+=5;save();if(match&&!match.finished){match.bots.forEach(b=>{const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent=b.elo+' ELO · '+b.profile.coins+' ◆';});}},1000);
+window.setInterval(()=>{profile.coins+=5;for(const b of botsProfile){b.coins+=5;if(b.towerLevel<20&&b.coins>=upgradeCost(b.towerLevel)){b.coins-=upgradeCost(b.towerLevel);b.towerLevel++;b.elo+=8;}}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const t=match.towers.find(x=>x.owner===b.profile);if(t&&t.level!==b.profile.towerLevel){t.level=b.profile.towerLevel;t.maxHp=560+t.level*180;t.hp=Math.min(t.maxHp,t.hp+180);t.range=210+t.level*12;t.damage=8+t.level*3;}const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent=b.elo+' ELO · '+b.profile.coins+' ◆';});}save();},1000);
 })();
