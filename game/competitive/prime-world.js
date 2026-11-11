@@ -66,13 +66,13 @@ function createMatch(){
  for(let i=0;i<teamSize;i++){
   const angle=-Math.PI/2+(i-(teamSize-1)/2)*.55,radius=230+i*35;
   const bp=botsProfile[i%botsProfile.length],x=player.x+Math.cos(angle)*radius,y=player.y+Math.sin(angle)*radius;
-  const bot={id:i+1,team:1,x,y,hp:190+bp.towerLevel*20,maxHp:190+bp.towerLevel*20,speed:145+Math.random()*18,alive:true,attack:0,flash:0,elo:bp.elo,name:bp.name,profile:bp};
+  const bot={id:i+1,team:1,x,y,hp:190+bp.towerLevel*20,maxHp:190+bp.towerLevel*20,speed:145+Math.random()*18,alive:true,attack:0,flash:0,elo:bp.elo,name:bp.name,profile:bp,ai:{nextUpgradeAt:38+Math.random()*18,nextBuildAt:24+Math.random()*18,nextBarracksAt:82+Math.random()*24,nextWallAt:118+Math.random()*32}};
   bots.push(bot);
   const tx=clamp(x+Math.cos(angle)*125,TILE*2,SIZE*TILE-TILE*2),ty=clamp(y+Math.sin(angle)*125,TILE*2,SIZE*TILE-TILE*2);
   towers.push(createTower(tx,ty,bp,false));
  }
  worldMeta={...worldMeta,size:SIZE,lastTeam:teamSize,lastKind:matchKind};localStorage.setItem(WORLD_SAVE,JSON.stringify(worldMeta));
- match={player,bots,allies,towers,walls:[],barracks:[],units:[],kind:'training',team:teamSize,started:performance.now(),finished:false,worldSeed:worldMeta.seed,botCoinTick:0,elapsed:0,enemyLastAttack:0,enemyLastBuild:0,enemyAggroUntil:0,playerBaseLevel:1,unitCounter:0,enemyState:'развивается'};
+ match={player,bots,allies,towers,walls:[],barracks:[],units:[],kind:'training',team:teamSize,started:performance.now(),finished:false,worldSeed:worldMeta.seed,botCoinTick:0,elapsed:0,nextEnemyAttackAt:300,enemyAssaultUntil:0,enemyAggroUntil:0,enemyDefenseBoostUntil:0,playerHasEngaged:false,enemyCounterAt:0,enemyCounterQueued:false,nextCounterRollAt:0,enemyNoticeUntil:0,playerBaseLevel:1,unitCounter:0,enemyState:'РАЗВИВАЕТ БАЗУ'};
  attackCooldown=0;pressed.clear();$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
  renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');drawArena();
 }
@@ -99,10 +99,141 @@ $('upgrade-tower').addEventListener('click',()=>{
  if(match){const t=match.towers.find(x=>x.isPlayer);if(t){t.level=profile.towerLevel;t.maxHp=560+t.level*180;t.hp=Math.min(t.maxHp,t.hp+180);t.range=210+t.level*12;t.damage=8+t.level*3;}}
  $('tower-feedback').textContent='Башня улучшена до уровня '+profile.towerLevel+'!';renderTowerList();drawArena();
 });
-function updateHud(){if(!match)return;const q=id=>document.getElementById(id);q('hud-hp').textContent=Math.ceil(match.player.hp)+' / '+match.player.maxHp;q('hud-coins').textContent=Math.floor(profile.coins);q('hud-army').textContent=match.units.filter(u=>u.team===0&&u.alive).length;q('hud-base').textContent='База ур. '+match.playerBaseLevel;}
-function upgradeStructureAt(x,y){const m=match,items=[...m.walls,...m.barracks,...m.towers.filter(t=>t.team===0)];const o=items.find(v=>Math.hypot(v.x-x,v.y-y)<55);if(!o)return false;const cost=100*(o.level||1);if(profile.coins<cost)return true;profile.coins-=cost;o.level=(o.level||1)+1;o.maxHp=(o.maxHp||260)+120;o.hp=Math.min(o.maxHp,o.hp+120);if(o.damage)o.damage+=5;if(o.range)o.range+=22;save();updateHud();return true;}
-function spawnUnit(team,x,y){const u={team,x,y,hp:100,maxHp:100,damage:team===0?5:5/1.2,range:team===0?48:40,speed:team===0?125:125/1.2,attack:0,flash:0,alive:true,name:'Воин'};match.units.push(u);return u;}
-function enemyDirector(dt){const m=match;if(!m)return;m.enemyLastBuild+=dt;m.enemyLastAttack+=dt;for(const b of m.bots){if(b.profile.coins>=300&&m.enemyLastBuild>14&&m.towers.filter(t=>t.team===1).length<3){b.profile.coins-=300;const ang=Math.atan2(b.y-m.player.y,b.x-m.player.x),tx=clamp(b.x+Math.cos(ang)*90,TILE*2,SIZE*TILE-TILE*2),ty=clamp(b.y+Math.sin(ang)*90,TILE*2,SIZE*TILE-TILE*2);m.towers.push(createTower(tx,ty,b.profile,false));m.enemyLastBuild=0;}if(b.profile.coins>=450&&!m.barracks.some(x=>x.team===1)){b.profile.coins-=450;m.barracks.push({x:b.x+70,y:b.y+70,team:1,level:1,hp:500,maxHp:500,timer:0});}if(b.profile.coins>=150&&m.elapsed>45&&m.walls.filter(w=>w.team===1).length<5&&m.enemyLastBuild>25){b.profile.coins-=150;m.walls.push({x:b.x+Math.random()*100-50,y:b.y+Math.random()*100-50,team:1,level:1,hp:260,maxHp:260});m.enemyLastBuild=0;}}if(m.elapsed<60){m.enemyState='развивается';return;}if(m.elapsed-m.enemyLastAttack>=300){m.enemyLastAttack=m.elapsed;m.enemyState='атакует';for(const b of m.bots.filter(x=>x.alive))for(let i=0;i<Math.min(3,1+Math.floor(b.profile.towerLevel/4));i++)spawnUnit(1,b.x,b.y+45);}else if(m.elapsed<m.enemyAggroUntil){m.enemyState='защищается';if(!m.counterChecked&&Math.random()<.35&&m.bots.some(x=>x.alive)){m.counterChecked=true;m.enemyState='контратака';for(const b of m.bots.filter(x=>x.alive))spawnUnit(1,b.x,b.y+35);}}else{m.counterChecked=false;m.enemyState='готовит войска';}for(const br of m.barracks){br.timer=(br.timer||0)+dt;if(br.timer>18){br.timer=0;spawnUnit(br.team,br.x,br.y);}}updateHud();}
+function formatMatchTime(seconds){
+ const total=Math.max(0,Math.ceil(Number(seconds)||0));
+ return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
+}
+function updateHud(){
+ if(!match)return;
+ const q=id=>document.getElementById(id),m=match,coins=Math.floor(profile.coins),upgrade=upgradeCost(profile.towerLevel);
+ q('hud-hp').textContent=Math.ceil(m.player.hp)+' / '+m.player.maxHp;
+ q('hud-coins').textContent=coins.toLocaleString('ru-RU');
+ q('hud-army').textContent=m.units.filter(u=>u.team===0&&u.alive).length;
+ q('hud-base').textContent='БАЗА '+m.playerBaseLevel;
+ q('hud-tower').textContent='БАШНЯ ур. '+profile.towerLevel;
+ q('hud-elo').textContent=profile.elo+' ELO';
+ const assault=m.enemyAssaultUntil>m.elapsed,defending=m.enemyAggroUntil>m.elapsed;
+ const state=assault?'АТАКУЕТ ВОЛНОЙ':defending?(m.elapsed<60?'УСИЛЕННАЯ ОБОРОНА':'ОБОРОНЯЕТСЯ'):(m.elapsed<m.enemyNoticeUntil?m.enemyState:'РАЗВИВАЕТ БАЗУ');
+ q('hud-bot-state').textContent='БОТ: '+state;
+ q('hud-attack-timer').textContent=assault?'ВОЛНА · '+formatMatchTime(m.enemyAssaultUntil-m.elapsed):'АТАКА ЧЕРЕЗ '+formatMatchTime(m.nextEnemyAttackAt-m.elapsed);
+ q('balance-value').textContent=coins.toLocaleString('ru-RU')+' ◆';
+ q('balance-income').textContent='+5 ◆ / сек';
+ q('balance-tower').textContent='Башня ур. '+profile.towerLevel;
+ q('balance-next-upgrade').textContent=profile.towerLevel>=20?'Максимальный уровень':'Следующее улучшение: '+upgrade.toLocaleString('ru-RU')+' ◆';
+ q('balance-troops').textContent=m.units.filter(u=>u.team===0&&u.alive).length+' воинов';
+ q('balance-enemy').textContent=state+' · атака через '+formatMatchTime(m.nextEnemyAttackAt-m.elapsed);
+ const upgradeButton=q('upgrade-tower');
+ if(upgradeButton){upgradeButton.disabled=profile.towerLevel>=20||profile.coins<upgrade;upgradeButton.textContent=profile.towerLevel>=20?'Башня MAX':'Улучшить башню · '+upgrade+' ◆';}
+ document.querySelectorAll('[data-build]').forEach(button=>{
+  const cost={wall:150,tower:300,barracks:450}[button.dataset.build]||0;
+  button.disabled=profile.coins<cost;
+ });
+}
+function upgradeStructureAt(x,y){
+ const m=match,items=[...m.walls,...m.barracks,...m.towers.filter(t=>t.team===0&&!t.isPlayer)];
+ const o=items.find(v=>Math.hypot(v.x-x,v.y-y)<55);
+ if(!o)return false;
+ const cost=100*(o.level||1);
+ if(profile.coins<cost){$('tower-feedback').textContent='Не хватает '+(cost-Math.floor(profile.coins))+' ◆ для улучшения.';return true;}
+ profile.coins-=cost;o.level=(o.level||1)+1;o.maxHp=(o.maxHp||260)+120;o.hp=Math.min(o.maxHp,o.hp+120);
+ if(o.damage)o.damage+=5;if(o.range)o.range+=22;
+ $('tower-feedback').textContent='Постройка улучшена до уровня '+o.level+'.';
+ save();updateHud();return true;
+}
+function spawnUnit(team,x,y){
+ const u={team,x,y,hp:100,maxHp:100,damage:team===0?5:5/1.2,range:team===0?48:40,speed:team===0?125:125/1.2,attack:0,flash:0,alive:true,name:'Воин'};
+ match.units.push(u);return u;
+}
+function alertEnemyBase(){
+ const m=match;if(!m)return;
+ m.playerHasEngaged=true;
+ m.enemyAggroUntil=Math.max(m.enemyAggroUntil,m.elapsed+38);
+ if(m.elapsed<60)m.enemyDefenseBoostUntil=Math.max(m.enemyDefenseBoostUntil,60);
+ m.enemyState='ОБОРОНЯЕТСЯ';m.enemyNoticeUntil=m.elapsed+5;
+ if(m.elapsed>=m.nextCounterRollAt){
+  m.nextCounterRollAt=m.elapsed+45;
+  const hasTroops=m.units.some(u=>u.team===1&&u.alive)||m.barracks.some(br=>br.team===1)||m.bots.some(b=>b.profile.coins>=100);
+  m.enemyCounterQueued=hasTroops&&Math.random()<.35;
+  m.enemyCounterAt=m.elapsed+3;
+ }
+}
+function upgradeBotTower(bot){
+ const b=bot.profile;
+ if(!(b.towerLevel<20&&b.coins>=upgradeCost(b.towerLevel)))return false;
+ b.coins-=upgradeCost(b.towerLevel);b.towerLevel++;b.elo+=8;
+ match.towers.filter(t=>t.owner===b).forEach(t=>{
+  t.level=b.towerLevel;t.maxHp=560+t.level*180;t.hp=Math.min(t.maxHp,t.hp+180);
+  t.range=210+t.level*12;t.damage=8+t.level*3;
+ });
+ match.enemyState=bot.name+' улучшает башню';match.enemyNoticeUntil=match.elapsed+7;
+ renderTowerList();return true;
+}
+function enemyDirector(dt){
+ const m=match;if(!m)return;
+ for(const bot of m.bots){
+  const b=bot.profile,ai=bot.ai;
+  if(!bot.alive)continue;
+  if(m.elapsed>=ai.nextUpgradeAt){
+   if(upgradeBotTower(bot))ai.nextUpgradeAt=m.elapsed+48+Math.random()*24;
+   else ai.nextUpgradeAt=m.elapsed+8;
+  }
+  if(m.elapsed>=ai.nextBuildAt){
+   const owned=m.towers.filter(t=>t.owner===b).length;
+   if(b.coins>=300&&owned<2){
+    b.coins-=300;const angle=Math.atan2(bot.y-m.player.y,bot.x-m.player.x);
+    const x=clamp(bot.x+Math.cos(angle)*115,TILE*2,SIZE*TILE-TILE*2);
+    const y=clamp(bot.y+Math.sin(angle)*115,TILE*2,SIZE*TILE-TILE*2);
+    m.towers.push(createTower(x,y,b,false));ai.nextBuildAt=m.elapsed+92+Math.random()*28;
+    m.enemyState=bot.name+' строит башню';m.enemyNoticeUntil=m.elapsed+7;renderTowerList();
+   }else ai.nextBuildAt=m.elapsed+8;
+  }
+  if(m.elapsed>=ai.nextBarracksAt){
+   const ownsBarracks=m.barracks.some(br=>br.team===1&&br.owner===b);
+   if(b.coins>=450&&!ownsBarracks){
+    b.coins-=450;const x=clamp(bot.x+76,TILE*2,SIZE*TILE-TILE*2),y=clamp(bot.y+60,TILE*2,SIZE*TILE-TILE*2);
+    m.barracks.push({x,y,team:1,owner:b,level:1,hp:500,maxHp:500,timer:0});
+    ai.nextBarracksAt=m.elapsed+240;m.enemyState=bot.name+' строит казарму';m.enemyNoticeUntil=m.elapsed+7;
+   }else ai.nextBarracksAt=m.elapsed+10;
+  }
+  if(m.elapsed>=ai.nextWallAt){
+   const ownWalls=m.walls.filter(w=>w.team===1&&w.owner===b).length;
+   if(b.coins>=150&&ownWalls<3){
+    b.coins-=150;m.walls.push({x:clamp(bot.x+Math.random()*100-50,TILE*2,SIZE*TILE-TILE*2),y:clamp(bot.y+Math.random()*100-50,TILE*2,SIZE*TILE-TILE*2),team:1,owner:b,level:1,hp:260,maxHp:260});
+    ai.nextWallAt=m.elapsed+70+Math.random()*30;m.enemyState=bot.name+' укрепляет базу';m.enemyNoticeUntil=m.elapsed+6;
+   }else ai.nextWallAt=m.elapsed+10;
+  }
+ }
+ if(m.enemyCounterQueued&&m.elapsed>=m.enemyCounterAt){
+  m.enemyCounterQueued=false;let spawned=0;
+  for(const bot of m.bots.filter(b=>b.alive)){
+   const barracks=m.barracks.find(br=>br.team===1&&br.owner===bot.profile);
+   if(barracks){spawnUnit(1,barracks.x,barracks.y);spawned++;}
+   else if(bot.profile.coins>=100){bot.profile.coins-=100;spawnUnit(1,bot.x,bot.y+35);spawned++;}
+   if(spawned>=Math.max(1,m.team))break;
+  }
+  if(spawned){m.enemyAssaultUntil=Math.max(m.enemyAssaultUntil,m.elapsed+34);m.enemyState='КОНТРАТАКА';m.enemyNoticeUntil=m.elapsed+8;}
+ }
+ if(m.elapsed>=m.nextEnemyAttackAt){
+  m.enemyAssaultUntil=m.elapsed+48;m.nextEnemyAttackAt=Math.max(m.nextEnemyAttackAt+300,m.elapsed+300);
+  m.enemyState='АТАКА СОПЕРНИКА';m.enemyNoticeUntil=m.elapsed+8;
+  for(const bot of m.bots.filter(b=>b.alive)){
+   const waveSize=Math.min(3,1+Math.floor(bot.profile.towerLevel/5));
+   for(let i=0;i<waveSize;i++){
+    const cost=100;
+    if(bot.profile.coins>=cost){bot.profile.coins-=cost;spawnUnit(1,bot.x+(i-1)*22,bot.y+42);}
+   }
+  }
+ }
+ const aggro=m.enemyAggroUntil>m.elapsed,assault=m.enemyAssaultUntil>m.elapsed;
+ for(const br of m.barracks){
+  if(br.team===0||aggro||assault){
+   br.timer=(br.timer||0)+dt;
+   if(br.timer>18){br.timer=0;spawnUnit(br.team,br.x,br.y);}
+  }
+ }
+ if(!aggro&&!assault&&m.elapsed>=m.enemyNoticeUntil)m.enemyState='РАЗВИВАЕТ БАЗУ';
+ updateHud();
+}
 function stopLoop(){if(raf)cancelAnimationFrame(raf);raf=0;lastFrame=0;}
 function startLoop(){if(raf)return;lastFrame=performance.now();raf=requestAnimationFrame(loop);}
 function loop(now){
@@ -119,22 +250,29 @@ function update(dt){
  p.flash=Math.max(0,p.flash-dt);
  for(const ally of match.allies){
   if(!ally.alive)continue;ally.attack=Math.max(0,ally.attack-dt);ally.flash=Math.max(0,ally.flash-dt);
+  if(!match.playerHasEngaged&&match.enemyAssaultUntil<=match.elapsed){const dx=p.x-ally.x,dy=p.y-ally.y,dist=Math.hypot(dx,dy)||1;if(dist>78){ally.x+=dx/dist*ally.speed*.78*dt;ally.y+=dy/dist*ally.speed*.78*dt;}continue;}
   const target=match.bots.filter(b=>b.alive).sort((a,b)=>Math.hypot(a.x-ally.x,a.y-ally.y)-Math.hypot(b.x-ally.x,b.y-ally.y))[0];
-  if(target){const vx=target.x-ally.x,vy=target.y-ally.y,dist=Math.hypot(vx,vy)||1;if(dist>58){ally.x+=vx/dist*ally.speed*dt;ally.y+=vy/dist*ally.speed*dt;}else if(ally.attack<=0){ally.attack=.9;target.hp=Math.max(0,target.hp-19);target.flash=.14;if(target.hp<=0)target.alive=false;}}
+  if(target){const vx=target.x-ally.x,vy=target.y-ally.y,dist=Math.hypot(vx,vy)||1;if(dist>58){ally.x+=vx/dist*ally.speed*dt;ally.y+=vy/dist*ally.speed*dt;}else if(ally.attack<=0){ally.attack=.9;alertEnemyBase();target.hp=Math.max(0,target.hp-19);target.flash=.14;if(target.hp<=0)target.alive=false;}}
  }
  for(const b of match.bots){
-  if(!b.alive)continue;if(match.elapsed<60&&match.elapsed>=match.enemyAggroUntil)continue;if(match.elapsed<60&&match.enemyAggroUntil===0)continue;b.attack=Math.max(0,b.attack-dt);b.flash=Math.max(0,b.flash-dt);
+  if(!b.alive)continue;
+  const aggro=match.enemyAggroUntil>match.elapsed,assault=match.enemyAssaultUntil>match.elapsed;
+  if(!aggro&&!assault)continue;
+  b.attack=Math.max(0,b.attack-dt);b.flash=Math.max(0,b.flash-dt);
   const playerTower=match.towers.find(t=>t.isPlayer),toTower=playerTower?Math.hypot(playerTower.x-b.x,playerTower.y-b.y):Infinity,toPlayer=Math.hypot(p.x-b.x,p.y-b.y),targetTower=playerTower&&playerTower.hp>0&&toTower<toPlayer+75;
   const tx=targetTower?playerTower.x:p.x,ty=targetTower?playerTower.y:p.y,vx=tx-b.x,vy=ty-b.y,dist=Math.hypot(vx,vy)||1;
-  if(dist>(targetTower?48:40)){b.x+=vx/dist*b.speed*dt;b.y+=vy/dist*b.speed*dt;}
-  else if(b.attack<=0){b.attack=.88;if(targetTower)playerTower.hp=Math.max(0,playerTower.hp-(15+b.profile.towerLevel*2));else{p.hp=Math.max(0,p.hp-(12+b.profile.towerLevel*2));p.flash=.16;}}
+  const earlyBoost=match.elapsed<60&&match.enemyDefenseBoostUntil>match.elapsed?1.2:1;
+  if(dist>(targetTower?48:40)){b.x=clamp(b.x+vx/dist*b.speed*earlyBoost*dt,TILE,SIZE*TILE-TILE);b.y=clamp(b.y+vy/dist*b.speed*earlyBoost*dt,TILE,SIZE*TILE-TILE);}
+  else if(b.attack<=0){b.attack=.88;if(targetTower)playerTower.hp=Math.max(0,playerTower.hp-(15+b.profile.towerLevel*2)*earlyBoost);else{p.hp=Math.max(0,p.hp-(12+b.profile.towerLevel*2)*earlyBoost);p.flash=.16;}}
  }
  for(const u of match.units){if(!u.alive)continue;u.attack=Math.max(0,u.attack-dt);const foes=u.team===0?[...match.bots.filter(b=>b.alive),...match.units.filter(v=>v.team===1&&v.alive)]:[p,...match.allies.filter(a=>a.alive),...match.units.filter(v=>v.team===0&&v.alive)];let foe=null,near=Infinity;for(const f of foes){const d=Math.hypot(f.x-u.x,f.y-u.y);if(d<near){near=d;foe=f;}}if(foe){if(near>u.range){u.x+=(foe.x-u.x)/near*u.speed*dt;u.y+=(foe.y-u.y)/near*u.speed*dt;}else if(u.attack<=0){u.attack=1.1;foe.hp=Math.max(0,foe.hp-u.damage);foe.flash=.14;if(foe.hp<=0)foe.alive=false;}}}
  for(const t of match.towers){
-  if(t.hp<=0)continue;t.fire-=dt;if(t.fire>0)continue;
+  if(t.hp<=0)continue;
+  if(t.team===1&&match.enemyAggroUntil<=match.elapsed&&match.enemyAssaultUntil<=match.elapsed)continue;
+  t.fire-=dt;if(t.fire>0)continue;
   const targets=t.team===0?match.bots.filter(b=>b.alive):[p,...match.allies.filter(a=>a.alive),...match.units.filter(u=>u.team===0&&u.alive)];
   let target=null,best=t.range;for(const f of targets){const d=Math.hypot(f.x-t.x,f.y-t.y);if(d<best){best=d;target=f;}}
-  if(target){t.fire=Math.max(.55,1.45-t.level*.035);if(target===p){p.hp=Math.max(0,p.hp-t.damage);p.flash=.12;}else{target.hp=Math.max(0,target.hp-t.damage);target.flash=.12;if(target.hp<=0)target.alive=false;}}
+  if(target){t.fire=Math.max(.55,1.45-t.level*.035);if(target===p){p.hp=Math.max(0,p.hp-t.damage);p.flash=.12;}else{if(t.team===0&&target.team===1)alertEnemyBase();target.hp=Math.max(0,target.hp-t.damage);target.flash=.12;if(target.hp<=0)target.alive=false;}}
  }
  $('hp-fill').style.width=(p.hp/p.maxHp*100)+'%';$('hp-label').textContent=Math.ceil(p.hp)+' / '+p.maxHp;
  $('battle-coins').textContent=Math.floor(profile.coins)+' ◆';$('battle-tower').textContent='Уровень '+profile.towerLevel+' · '+(profile.towerLevel>=20?'MAX':upgradeCost(profile.towerLevel)+' ◆');
@@ -146,9 +284,9 @@ function attack(){
  if(!match||match.finished||attackCooldown>0)return;attackCooldown=.42;
  const p=match.player;let target=null,best=92;
  for(const b of match.bots){if(!b.alive)continue;const d=Math.hypot(b.x-p.x,b.y-p.y);if(d<best){best=d;target=b;}}
- if(target){target.hp=Math.max(0,target.hp-34);target.flash=.18;if(target.hp<=0)target.alive=false;match.enemyAggroUntil=match.elapsed+45;match.enemyState='защищается';return;}
+ if(target){alertEnemyBase();target.hp=Math.max(0,target.hp-34);target.flash=.18;if(target.hp<=0)target.alive=false;return;}
  for(const t of match.towers.filter(t=>t.team===1&&t.hp>0)){const d=Math.hypot(t.x-p.x,t.y-p.y);if(d<best){best=d;target=t;}}
- if(target&&target.isPlayer===false){target.hp=Math.max(0,target.hp-48);match.enemyAggroUntil=match.elapsed+45;match.enemyState='защищается';}
+ if(target&&target.isPlayer===false){alertEnemyBase();target.hp=Math.max(0,target.hp-48);}
 }
 function drawTower(ctx,t,camX,camY){
  const x=t.x-camX,y=t.y-camY,l=t.level,scale=1+Math.min(8,l-1)*.055;
@@ -200,12 +338,37 @@ window.addEventListener('keydown',e=>{
 },true);
 window.addEventListener('keyup',e=>{pressed.delete(e.code);},true);
 window.addEventListener('blur',()=>pressed.clear());
-$('arena').addEventListener('pointerdown',e=>{if(scene==='battle'){const r=$('arena').getBoundingClientRect(),x=(e.clientX-r.left)/r.width*$('arena').width,y=(e.clientY-r.top)/r.height*$('arena').height,wx=x+match.player.x-$('arena').width/2,wy=y+match.player.y-$('arena').height/2;if(buildMode){const cost={wall:150,tower:300,barracks:450}[buildMode];if(profile.coins>=cost){profile.coins-=cost;if(buildMode==='wall')match.walls.push({x:wx,y:wy,team:0,level:1,hp:260,maxHp:260});if(buildMode==='tower')match.towers.push({...createTower(wx,wy,profile,true),team:0,kind:'archer'});if(buildMode==='barracks')match.barracks.push({x:wx,y:wy,team:0,level:1,hp:500,maxHp:500});}buildMode=null;}else{if(!upgradeStructureAt(wx,wy))attack();}updateHud();$('arena').focus();}});
+$('arena').addEventListener('pointerdown',e=>{
+ if(scene!=='battle'||!match)return;
+ const rect=$('arena').getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width*$('arena').width,y=(e.clientY-rect.top)/rect.height*$('arena').height;
+ const wx=x+match.player.x-$('arena').width/2,wy=y+match.player.y-$('arena').height/2;
+ if(buildMode){
+  const costs={wall:150,tower:300,barracks:450},cost=costs[buildMode]||0;
+  if(wx<TILE*2||wy<TILE*2||wx>SIZE*TILE-TILE*2||wy>SIZE*TILE-TILE*2){$('tower-feedback').textContent='Слишком близко к краю карты. Выбери место внутри арены.';}
+  else if(profile.coins<cost){$('tower-feedback').textContent='Не хватает '+(cost-Math.floor(profile.coins))+' ◆ для постройки.';}
+  else if(Math.hypot(wx-match.player.x,wy-match.player.y)<85||[...match.walls,...match.barracks,...match.towers].some(o=>Math.hypot(o.x-wx,o.y-wy)<75)){$('tower-feedback').textContent='Это место занято. Выбери свободную площадку.';}
+  else{
+   profile.coins-=cost;
+   if(buildMode==='wall')match.walls.push({x:wx,y:wy,team:0,level:1,hp:260,maxHp:260});
+   if(buildMode==='tower')match.towers.push({...createTower(wx,wy,profile,true),team:0,kind:'archer'});
+   if(buildMode==='barracks')match.barracks.push({x:wx,y:wy,team:0,level:1,hp:500,maxHp:500,timer:0});
+   $('tower-feedback').textContent=(buildMode==='wall'?'Стена':buildMode==='tower'?'Башня лучника':'Казарма')+' построена.';
+   save();renderTowerList();
+  }
+  buildMode=null;$('build-panel').classList.add('hidden');
+ }else if(!upgradeStructureAt(wx,wy))attack();
+ updateHud();$('arena').focus();
+});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pressed.clear();});
 $('arena').addEventListener('contextmenu',e=>e.preventDefault());
 window.addEventListener('beforeunload',()=>{if(searchTimer)clearInterval(searchTimer);stopLoop();});
-$('build-toggle').addEventListener('click',()=>{$('build-panel').classList.toggle('hidden');});document.querySelectorAll('[data-build]').forEach(b=>b.addEventListener('click',()=>{buildMode=b.dataset.build;$('build-panel').classList.add('hidden');}));$('train-unit').addEventListener('click',()=>{if(!match)return;const br=match.barracks.find(x=>x.team===0);if(!br){buildMode='barracks';$('build-panel').classList.remove('hidden');return;}if(profile.coins>=100){profile.coins-=100;spawnUnit(0,br.x,br.y);updateHud();}});
+$('build-toggle').addEventListener('click',()=>{$('balance-panel').classList.add('hidden');$('bot-info-panel').classList.add('hidden');$('build-panel').classList.toggle('hidden');});
+$('balance-toggle').addEventListener('click',()=>{$('build-panel').classList.add('hidden');$('bot-info-panel').classList.add('hidden');$('balance-panel').classList.toggle('hidden');updateHud();});
+$('bot-info-toggle').addEventListener('click',()=>{$('build-panel').classList.add('hidden');$('balance-panel').classList.add('hidden');$('bot-info-panel').classList.toggle('hidden');});
+$('build-cancel').addEventListener('click',()=>{buildMode=null;$('build-panel').classList.add('hidden');$('tower-feedback').textContent='Выбор постройки отменён.';});
+document.querySelectorAll('[data-build]').forEach(b=>b.addEventListener('click',()=>{buildMode=b.dataset.build;$('build-panel').classList.add('hidden');$('tower-feedback').textContent='Выбрано строительство. Нажми на свободное место арены.';}));
+$('train-unit').addEventListener('click',()=>{if(!match)return;const br=match.barracks.find(x=>x.team===0);if(!br){buildMode='barracks';$('build-panel').classList.remove('hidden');$('tower-feedback').textContent='Сначала построй казарму: выбери «Дом воинов» и место на арене.';return;}if(profile.coins<100){$('tower-feedback').textContent='Для найма воина нужно 100 ◆.';return;}profile.coins-=100;spawnUnit(0,br.x,br.y);save();updateHud();});
 updateProfile();
 // Economy accrues outside battles.
-window.setInterval(()=>{if(!match||match.finished)profile.coins+=5;for(const b of botsProfile){b.coins+=5;if(b.towerLevel<20&&b.coins>=upgradeCost(b.towerLevel)){b.coins-=upgradeCost(b.towerLevel);b.towerLevel++;b.elo+=8;}}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const t=match.towers.find(x=>x.owner===b.profile);if(t&&t.level!==b.profile.towerLevel){t.level=b.profile.towerLevel;t.maxHp=560+t.level*180;t.hp=Math.min(t.maxHp,t.hp+180);t.range=210+t.level*12;t.damage=8+t.level*3;}const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent=b.elo+' ELO · '+b.profile.coins+' ◆';});}save();},1000);
+window.setInterval(()=>{if(!match||match.finished){profile.coins+=5;for(const b of botsProfile)b.coins+=5;}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent=b.elo+' ELO · '+b.profile.coins+' ◆';});updateHud();}save();},1000);
 })();
