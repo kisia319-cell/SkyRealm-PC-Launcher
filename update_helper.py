@@ -1,5 +1,6 @@
 """Replace the launcher after its process exits; keep a backup for recovery."""
 import os
+import json
 import ctypes
 import shutil
 import subprocess
@@ -36,7 +37,7 @@ def process_is_running(pid):
         return False
 
 
-def main(archive_path, target_exe, parent_pid, expected_version):
+def main(archive_path, target_exe, parent_pid, expected_version, launch_args=None):
     archive_path = Path(archive_path).resolve()
     target_exe = Path(target_exe).resolve()
     if not archive_path.is_file() or not target_exe.is_file():
@@ -66,14 +67,14 @@ def main(archive_path, target_exe, parent_pid, expected_version):
         except Exception:
             os.replace(backup, target_exe)
             raise
-        relaunched = subprocess.Popen([str(target_exe)], cwd=str(target_exe.parent), close_fds=True)
+        relaunched = subprocess.Popen([str(target_exe)] + list(launch_args or []), cwd=str(target_exe.parent), close_fds=True)
         time.sleep(3)
         if relaunched.poll() is not None:
             # The new build failed immediately: restore the previous working launcher.
             target_exe.unlink(missing_ok=True)
             if backup.is_file():
                 os.replace(backup, target_exe)
-            subprocess.Popen([str(target_exe)], cwd=str(target_exe.parent), close_fds=True)
+            subprocess.Popen([str(target_exe)] + list(launch_args or []), cwd=str(target_exe.parent), close_fds=True)
             return 6
         backup.unlink(missing_ok=True)
         archive_path.unlink(missing_ok=True)
@@ -83,9 +84,12 @@ def main(archive_path, target_exe, parent_pid, expected_version):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5:
+    if len(sys.argv) not in (5, 6):
         raise SystemExit(64)
     try:
-        raise SystemExit(main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]))
+        launch_args = json.loads(sys.argv[5]) if len(sys.argv) == 6 else []
+        if not isinstance(launch_args, list) or not all(isinstance(x, str) for x in launch_args):
+            raise ValueError("Invalid relaunch arguments")
+        raise SystemExit(main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], launch_args))
     except Exception:
         raise SystemExit(1)
