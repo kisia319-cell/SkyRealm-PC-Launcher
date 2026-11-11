@@ -1318,14 +1318,14 @@
     status.textContent = currentLanguage === 'en' ? 'Preparing PrimeLauncher…' : 'Подготавливаем PrimeLauncher…';
     try {
       if (window.pywebview?.api?.launch_competitive_game) {
-        const result = await window.pywebview.api.launch_competitive_game();
+        const result = await window.pywebview.api.launch_competitive_game(currentLanguage);
         if (!result || result.ok === false) throw new Error(result?.message || 'Не удалось установить или запустить PrimeLauncher.');
         status.textContent = currentLanguage === 'en' ? 'PrimeLauncher started' : 'PrimeLauncher установлен и запущен';
         button.innerHTML = '<span>▶</span> Играть <b>↗</b>';
         await new Promise(resolve => setTimeout(resolve, 350));
         await window.pywebview.api.close();
       } else {
-        const url = new URL('game/competitive/index.html', window.location.href);
+        const url = new URL('game/competitive/index.html', window.location.href); url.searchParams.set('lang', currentLanguage);
         const opened = window.open(url.toString(), '_blank');
         if (!opened) window.location.href = url.toString();
         status.textContent = currentLanguage === 'en' ? 'Competitive world opened' : 'Соревновательный мир открыт';
