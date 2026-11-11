@@ -17,7 +17,7 @@ assert.match(living,/state\\.projectLevels\\[id\\]=level\\+1/,'Upgrades must per
 assert.match(living,/b\\.spendGold\\?\\.\\(cost\\)/,'Upgrades must consume real gold.');
 assert.match(living,/b\\.spendItem\\?\\.\\(name,count\\)/,'Upgrades must consume real materials.');
 assert.match(living,/data-lw-action="upgrade:/,'The town panel must expose upgrade buttons.');
-assert.match(living,/Уровень '\\+level+'\\/3/,'The panel must display building level progress.');
+assert.ok(living.includes("Уровень '+level+'/3"),'The panel must display building level progress.');
 assert.match(living,/if\\(level>=2\\)/,'Level two buildings must gain visible structural details.');
 assert.match(living,/if\\(level>=3\\)/,'Level three buildings must gain a distinct visual aura.');
 assert.match(living,/projectLevel\\('walls'\\)\\*\\.025/,'Fortifications must improve defense.');
