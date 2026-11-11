@@ -65,7 +65,7 @@ function createMatch(){
  }
  for(let i=0;i<teamSize;i++){
   const angle=-Math.PI/2+(i-(teamSize-1)/2)*.55,radius=230+i*35;
-  const bp=botsProfile[i%botsProfile.length],x=player.x+Math.cos(angle)*radius,y=player.y+Math.sin(angle)*radius;
+  const bp=botsProfile[i%botsProfile.length];bp.coins=Math.max(650,Number(bp.coins)||0);const x=player.x+Math.cos(angle)*radius,y=player.y+Math.sin(angle)*radius;
   const bot={id:i+1,team:1,x,y,hp:190+bp.towerLevel*20,maxHp:190+bp.towerLevel*20,speed:145+Math.random()*18,alive:true,attack:0,flash:0,elo:bp.elo,name:bp.name,profile:bp,ai:{nextUpgradeAt:38+Math.random()*18,nextBuildAt:24+Math.random()*18,nextBarracksAt:82+Math.random()*24,nextWallAt:118+Math.random()*32}};
   bots.push(bot);
   const tx=clamp(x+Math.cos(angle)*125,TILE*2,SIZE*TILE-TILE*2),ty=clamp(y+Math.sin(angle)*125,TILE*2,SIZE*TILE-TILE*2);
@@ -76,7 +76,7 @@ function createMatch(){
  attackCooldown=0;pressed.clear();$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
  renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');drawArena();
 }
-function renderBotList(){$('bot-list').innerHTML=match.bots.map(b=>'<div class="bot" id="bot-'+b.id+'"><b>'+b.name+'</b><br><span>'+b.elo+' ELO · '+b.profile.coins+' ◆</span><div class="hpbar" style="margin-top:6px"><span id="bot-hp-'+b.id+'" style="width:100%"></span></div></div>').join('');}
+function renderBotList(){$('bot-list').innerHTML=match.bots.map(b=>'<div class="bot" id="bot-'+b.id+'"><b>'+b.name+'</b><br><span>Башня ур. '+b.profile.towerLevel+' · '+b.profile.coins+' ◆ · '+b.elo+' ELO</span><div class="hpbar" style="margin-top:6px"><span id="bot-hp-'+b.id+'" style="width:100%"></span></div></div>').join('');}
 function renderTowerList(){
  $('enemy-towers').innerHTML='<small style="color:#ff9b62">БАШНИ СОПЕРНИКОВ</small>'+match.towers.filter(t=>t.team===1).map((t,i)=>'<div class="bot" id="tower-row-'+i+'">'+t.owner.name+' · ур. '+t.level+'<div class="hpbar" style="margin-top:6px"><span id="tower-hp-'+i+'" style="width:100%"></span></div></div>').join('');
 }
@@ -370,5 +370,5 @@ document.querySelectorAll('[data-build]').forEach(b=>b.addEventListener('click',
 $('train-unit').addEventListener('click',()=>{if(!match)return;const br=match.barracks.find(x=>x.team===0);if(!br){buildMode='barracks';$('build-panel').classList.remove('hidden');$('tower-feedback').textContent='Сначала построй казарму: выбери «Дом воинов» и место на арене.';return;}if(profile.coins<100){$('tower-feedback').textContent='Для найма воина нужно 100 ◆.';return;}profile.coins-=100;spawnUnit(0,br.x,br.y);save();updateHud();});
 updateProfile();
 // Economy accrues outside battles.
-window.setInterval(()=>{if(!match||match.finished){profile.coins+=5;for(const b of botsProfile)b.coins+=5;}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent=b.elo+' ELO · '+b.profile.coins+' ◆';});updateHud();}save();},1000);
+window.setInterval(()=>{if(!match||match.finished){profile.coins+=5;for(const b of botsProfile)b.coins+=5;}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent='Башня ур. '+b.profile.towerLevel+' · '+b.profile.coins+' ◆ · '+b.elo+' ELO';});updateHud();}save();},1000);
 })();
