@@ -385,11 +385,31 @@
         ctx.beginPath();ctx.moveTo(2,-56);ctx.lineTo(36,-47);ctx.lineTo(2,-38);ctx.closePath();ctx.fill();
         ctx.fillStyle='#8bd5d9';ctx.globalAlpha=.7;ctx.fillRect(-44,33,92,3);
       }else if(item.id==='watchtower'){
-        ctx.fillStyle='#596b70';ctx.fillRect(-32,-2,64,56);ctx.fillStyle='#8e795d';ctx.fillRect(-25,-53,50,53);
-        ctx.fillStyle='#bca47a';ctx.fillRect(-42,-58,84,10);ctx.fillRect(-30,-72,12,14);ctx.fillRect(18,-72,12,14);
-        ctx.fillStyle='#513b36';ctx.fillRect(-7,24,14,29);ctx.fillStyle='#f6d78d';ctx.fillRect(-2,-41,4,7);
-        ctx.strokeStyle='#d8c18b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-72);ctx.lineTo(0,-92);ctx.stroke();
-        ctx.fillStyle='#e5a35e';ctx.beginPath();ctx.moveTo(1,-91);ctx.lineTo(22,-85);ctx.lineTo(1,-79);ctx.closePath();ctx.fill();
+        // Layered stone-and-timber watchtower with a lit beacon and a wind-driven banner.
+        const beacon=.62+.24*Math.sin(time/210);
+        const stone=ctx.createLinearGradient(-34,-4,34,55);stone.addColorStop(0,'#8a9994');stone.addColorStop(.48,'#596d70');stone.addColorStop(1,'#34494f');
+        ctx.fillStyle=stone;ctx.fillRect(-35,-4,70,59);
+        ctx.fillStyle='rgba(16,27,34,.28)';ctx.fillRect(-35,42,70,13);
+        ctx.fillStyle='#a9aaa0';ctx.fillRect(-39,-8,78,8);
+        ctx.strokeStyle='rgba(25,39,43,.55)';ctx.lineWidth=1;
+        for(let y=7;y<43;y+=12){ctx.beginPath();ctx.moveTo(-33,y);ctx.lineTo(33,y);ctx.stroke();}
+        for(let y=7;y<43;y+=24){for(let x=-24;x<30;x+=24){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+12);ctx.stroke();}}
+        ctx.fillStyle='#4a3931';ctx.fillRect(-27,-55,54,51);
+        ctx.fillStyle='#927657';ctx.fillRect(-23,-52,46,46);
+        ctx.fillStyle='#b99a6d';ctx.fillRect(-29,-57,58,7);
+        ctx.fillStyle='#5c4636';ctx.fillRect(-27,-15,54,5);
+        ctx.fillStyle='#c4a77a';ctx.fillRect(-39,-64,78,9);
+        ctx.fillStyle='#725b43';ctx.fillRect(-34,-73,13,12);ctx.fillRect(21,-73,13,12);
+        ctx.fillStyle='#d0b98d';ctx.fillRect(-38,-77,17,5);ctx.fillRect(21,-77,17,5);
+        ctx.fillStyle='#263943';ctx.fillRect(-5,-42,10,15);ctx.fillRect(-25,-35,7,12);ctx.fillRect(18,-35,7,12);
+        ctx.fillStyle='#d8c18b';ctx.fillRect(-2,-40,4,8);
+        ctx.fillStyle='#563d31';ctx.fillRect(-9,23,18,32);ctx.fillStyle='#bd9564';ctx.fillRect(-7,25,14,28);
+        ctx.strokeStyle='#d7bd8d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-77);ctx.lineTo(0,-105);ctx.stroke();
+        ctx.fillStyle='#e5a35e';ctx.beginPath();ctx.moveTo(2,-103);ctx.quadraticCurveTo(12+Math.sin(time/180)*4,-100,25+Math.sin(time/180)*5,-96);ctx.lineTo(4,-88);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='#8e6545';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-32,-5);ctx.lineTo(-32,38);ctx.moveTo(32,-5);ctx.lineTo(32,38);ctx.stroke();
+        ctx.fillStyle='rgba(255,190,94,'+beacon+')';ctx.shadowColor='#ffb75e';ctx.shadowBlur=12+beacon*8;ctx.beginPath();ctx.arc(0,-46,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+        ctx.fillStyle='rgba(255,214,139,.7)';ctx.fillRect(-1,-57,2,5);
+        ctx.fillStyle='#d5c39d';ctx.fillRect(-46,51,92,4);ctx.fillStyle='rgba(104,173,183,.28)';ctx.fillRect(-43,56,86,3);
       }else if(item.id==='sanctuary'){
         const glow=ctx.createRadialGradient(0,0,8,0,0,86);glow.addColorStop(0,'rgba(112,235,190,.35)');glow.addColorStop(1,'rgba(112,235,190,0)');
         ctx.fillStyle=glow;ctx.fillRect(-90,-90,180,150);
