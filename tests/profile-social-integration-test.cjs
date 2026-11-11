@@ -52,9 +52,9 @@ assert.ok(html.includes('id="social-presence-select"'),'Community page must expo
 assert.ok(presenceMigration.includes('presence_status')&&presenceMigration.includes("'online'")&&presenceMigration.includes("'away'")&&presenceMigration.includes("'dnd'"));
 
 assert.ok(html.includes('data-page="profile"'),'Profile must be the second launcher navigation page.');
-assert.ok(app.includes('profile-avatar-file')&&app.includes('canvas.toDataURL')&&app.includes('storage/v1/object/skyrealm-avatars'),'Custom image avatars must be resized and uploaded to the account cloud bucket.');
+assert.ok(app.includes('profile-avatar-file')&&app.includes('canvas.toDataURL')&&app.includes("new URL(API_BASE).origin+'/storage/v1/object'"),'Custom image avatars must be resized and uploaded to the account cloud bucket.');
 assert.ok(app.includes('renderPlayerProfile')&&app.includes('home-player-playtime'),'Profile data must update the compact home identity and playtime.');
 
-const avatarMigration=fs.readFileSync('supabase/migrations/20261111110000_skyrealm_custom_avatars.sql','utf8');
+const avatarMigration=fs.readFileSync('supabase/migrations/20261111084224_skyrealm_custom_avatars.sql','utf8');
 assert.ok(avatarMigration.includes("'skyrealm-avatars'")&&avatarMigration.includes('auth.uid()::text'),'Avatar storage writes must be isolated to the authenticated account.');
 assert.ok(edge.includes('avatar_url')&&edge.includes('INVALID_AVATAR_URL'),'Profile API must validate custom avatar URLs.');
