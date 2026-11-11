@@ -112,8 +112,8 @@
   function projectLevel(id){return state.projects[id]?clamp(Math.floor(Number(state.projectLevels?.[id])||1),1,3):0;}
   function seasonName(id){return ({spring:'\u0412\u0435\u0441\u043d\u0430',summer:'\u041b\u0435\u0442\u043e',autumn:'\u041e\u0441\u0435\u043d\u044c',winter:'\u0417\u0438\u043c\u0430'})[id]||'\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e';}
   function fishBonus(){return projectLevel('harbor')*.12+(state.activePet==='owl'?.08:0)+(state.activePet==='phoenix'?.04:0);}
-  function damageMultiplier(){const p=currentPet();return (p?.damageBonus||0)+projectLevel('watchtower')*.05+projectLevel('smithy')*.08+projectLevel('barracks')*.015;}
-  function defenseBonus(){const p=currentPet();return (p?.defenseBonus||0)+projectLevel('sanctuary')*.025+projectLevel('infirmary')*.02+projectLevel('watch_bell')*.015+projectLevel('walls')*.025;}
+  function damageMultiplier(){const p=currentPet();return (p?.damageBonus||0)+(state.projects.watchtower?.05:0)+(state.projects.smithy?.08:0)+Math.max(0,projectLevel('watchtower')-1)*.025+Math.max(0,projectLevel('smithy')-1)*.04+projectLevel('barracks')*.015;}
+  function defenseBonus(){const p=currentPet();return (p?.defenseBonus||0)+(state.projects.sanctuary?.025:0)+(state.projects.infirmary?.02:0)+(state.projects.watch_bell?.015:0)+Math.max(0,projectLevel('sanctuary')-1)*.015+Math.max(0,projectLevel('infirmary')-1)*.01+Math.max(0,projectLevel('watch_bell')-1)*.01+projectLevel('walls')*.025;}
   function onFishingCatch(season,weather){
     load();if(Math.random()>clamp(.36+fishBonus()+(weather==='rain'?.08:0),.05,.72))return false;
     let pool=FISH.filter(f=>f.season===season);if(!pool.length)pool=FISH.slice(0,2);
@@ -171,8 +171,7 @@
     const centers=b.getVillageCenters?.()||[],pos=b.getPlayerPosition?.();if(!centers.length){notify('Поселение не найдено.');return false;}
     const center=centers.slice().sort((a,z)=>Math.hypot(a.x-(pos?.x||0),a.y-(pos?.y||0))-Math.hypot(z.x-(pos?.x||0),z.y-(pos?.y||0)))[0];
     const eventId='town-patrol-'+encodeURIComponent(worldId())+'-'+day;
-    const patrolSize=clamp(6+Math.max(0,projectLevel('barracks')-1)+Math.max(0,projectLevel('watchtower')-1),6,8);
-    const spawned=Number(b.spawnEventEnemies?.(eventId,center.x,center.y,patrolSize))||0;if(spawned<3){b.clearEventEnemies?.(eventId);notify('Рядом слишком много существ. Освободи место и попробуй снова.');return false;}
+    const spawned=Number(b.spawnEventEnemies?.(eventId,center.x,center.y,6))||0;if(spawned<3){b.clearEventEnemies?.(eventId);notify('Рядом слишком много существ. Освободи место и попробуй снова.');return false;}
     state.town.patrol={id:eventId,day,active:true,completed:false,spawned};state.town.patrolCooldownDay=day+(state.projects.watch_bell?1:2);save();render();notify('ТРЕВОГА! На поселение напали '+spawned+' налётчиков.');return true;
   }
   function updateTownPatrol(){
