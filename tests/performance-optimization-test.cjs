@@ -8,7 +8,7 @@ assert.equal((game.match(/function drawMineGroundTile\(/g) || []).length, 1,
 assert.match(game, /let mineGroundRenderCache=null/);
 assert.match(game, /const chunkTiles=4,cacheKey=\[mineSeed,mineDepth,mineLevel,dpr/);
 assert.match(game, /const maxChunks=32;let buildBudget=2/);
-assert.match(game, /mineGroundRenderCache\.chunks\.set\(key,chunk\)/);
+assert.match(game, /cache\.chunks\.set\(key,chunk\)/);
 assert.match(game, /lanterns\}\;/);
 assert.match(game, /for\(const lantern of cache\.lanterns\)/);
 assert.match(game, /m\._minePathRefresh=\.28/);
