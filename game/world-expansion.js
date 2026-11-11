@@ -19,6 +19,20 @@
     {id:'arena_master',title:'Покоритель арен',description:'Победи ещё одного главного босса или бога.',metric:'majorDefeats',target:1,gold:30000,item:'Печать победителя арен',amount:1}
   ];
 
+  const ordinaryBoardContracts = [
+    {id:'road_repairs',title:'Дорога к заставе',description:'Подготовь материалы для ремонта дороги и укрепления дозора.',items:{'Древесина':12,'Камень':6},gold:7200,item:'Набор дорожного мастера',amount:1},
+    {id:'smith_reserve',title:'Резерв кузницы',description:'Пополняй запасы кузницы для вооружения защитников.',items:{'Железо':4,'Уголь':5},gold:8800,item:'Закалённый слиток',amount:2},
+    {id:'healers_stock',title:'Аптечки патруля',description:'Собери травы и кристаллы для полевого лекаря.',items:{'Лечебная трава':3,'Кристалл':2},gold:9400,item:'Настойка дозорного',amount:2},
+    {id:'watch_lanterns',title:'Фонари на стенах',description:'Доставь металл и древесину для освещения сторожевых постов.',items:{'Древесина':16,'Железо':2},gold:8100,item:'Сигнальный фонарь',amount:1},
+    {id:'stone_barriers',title:'Каменные заграждения',description:'Подготовь камень и железо для укрепления ворот.',items:{'Камень':14,'Железо':3},gold:9900,item:'Укреплённая плита',amount:2}
+  ];
+  const bossBoardContracts = [
+    {id:'rift_cleanup',title:'Зачистка разлома',description:'Победи 12 существ в Мире боссов.',metric:'kills',target:12,gold:9000,item:'Осколок разлома',amount:2},
+    {id:'living_forest',title:'Живой лес',description:'Пробуди два древних дерева.',metric:'awakenedTrees',target:2,gold:12500,item:'Живой корень',amount:4},
+    {id:'arena_trials',title:'Испытание арен',description:'Победи главного босса или бога.',metric:'majorDefeats',target:1,gold:18000,item:'Печать арены',amount:1},
+    {id:'wave_breaker',title:'Прорыв волны',description:'Достигни ещё двух волн испытания.',metric:'wave',target:2,gold:11000,item:'Кристалл',amount:3},
+    {id:'rift_veteran',title:'Ветеран разлома',description:'Победи 20 существ в Мире боссов.',metric:'kills',target:20,gold:15000,item:'Осколок Бездны',amount:2}
+  ];
   const VILLAGE_NAMES=Object.freeze({forest:'Лесная деревня',snow:'Снежная деревня',desert:'Пустынный посёлок',volcano:'Вулканическое поселение',blight:'Заражённая деревня'});
   const VILLAGE_IDS=Object.keys(VILLAGE_NAMES);
   const makeVillageRelations=()=>Object.fromEntries(VILLAGE_IDS.map(id=>[id,{trust:0,wanted:0,lastCrimeDay:-1,lastDecayDay:0,crimeCount:0,allyRewardClaimed:false,allied:false}]));
@@ -31,8 +45,8 @@
     return result;
   }
   const fresh = () => ({
-    version:VERSION, worldId:'', ordinary:{day:-1,accepted:null,claimedDay:-1,raid:null,expedition:null,assault:null,relations:makeVillageRelations()},
-    boss:{day:-1,accepted:null,claimedDay:-1,wardenDay:-1}
+    version:VERSION, worldId:'', ordinary:{day:-1,accepted:null,claimedDay:-1,raid:null,expedition:null,assault:null,relations:makeVillageRelations(),board:{day:-1,accepted:[],claimed:[]}},
+    boss:{day:-1,accepted:null,claimedDay:-1,wardenDay:-1,board:{day:-1,accepted:[],claimed:[]}}
   });
   let state=fresh(), activeWorld='', opened=false, uiReady=false, lastSnapshot=null;
   let button=null, panel=null, refreshClock=0;
@@ -54,6 +68,10 @@
         const assault=state.ordinary.assault;
         state.ordinary.assault=assault&&typeof assault==='object'&&typeof assault.id==='string'&&typeof assault.villageId==='string'?{id:assault.id.slice(0,160),day:Math.max(0,Math.floor(Number(assault.day)||0)),villageId:assault.villageId.slice(0,40),villageName:typeof assault.villageName==='string'?assault.villageName.slice(0,80):'Поселение',active:assault.active===true,claimed:assault.claimed===true}:null;
         state.boss={...state.boss,...(raw.boss&&typeof raw.boss==='object'?raw.boss:{})};
+        for(const side of ['ordinary','boss']){
+          const board=state[side].board&&typeof state[side].board==='object'?state[side].board:{};
+          state[side].board={day:Number.isInteger(board.day)?board.day:-1,accepted:Array.isArray(board.accepted)?board.accepted.filter(v=>v&&typeof v.id==='string').slice(0,3).map(v=>({id:v.id,baseline:v.baseline&&typeof v.baseline==='object'?v.baseline:{}})):[],claimed:Array.isArray(board.claimed)?board.claimed.filter(v=>typeof v==='string').slice(0,5):[]};
+        }
         state.worldId=id;
       }
     }catch(error){console.warn('[SkyRealm world expansion load]',error);}
@@ -83,7 +101,15 @@
       '#world-expansion-panel p{color:#aebbd2;line-height:1.55;margin:7px 0 13px}' +
       '#world-expansion-panel .we-kicker{font-size:9px;font-weight:900;letter-spacing:1.8px;color:#c1a9ef}' +
       '#world-expansion-panel .we-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px}' +
-      '#world-expansion-panel .we-card{padding:12px;border:1px solid #3a4b69;border-radius:11px;background:#0d1b2c}' +
+      '#world-expansion-panel .we-card{padding:12px;border:1px solid #3a4b69;border-radius:11px;background:linear-gradient(145deg,#12243a,#0a1727)}' +
+      '#world-expansion-panel .we-board{margin:0 0 14px;padding:12px;border:1px solid #65578b;border-radius:14px;background:linear-gradient(135deg,#1b2942,#101b2d)}' +
+      '#world-expansion-panel .we-board-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}' +
+      '#world-expansion-panel .we-board-heading h3{margin:3px 0 0;color:#f2eaff;font-size:17px}' +
+      '#world-expansion-panel .we-board-count{padding:6px 9px;border-radius:20px;background:#2b3e59;color:#c7efd9;font-size:10px;font-weight:900}' +
+      '#world-expansion-panel .we-quest{position:relative;overflow:hidden}' +
+      '#world-expansion-panel .we-quest:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(#c5a4ff,#74d6c2)}' +
+      '#world-expansion-panel .we-quest.is-complete{border-color:#5d9c83;background:linear-gradient(145deg,#12352f,#0c1e28)}' +
+      '#world-expansion-panel .we-quest .we-actions button{width:100%}' +
       '#world-expansion-panel .we-card h3{margin:0 0 6px;color:#f0e8ff;font-size:14px}' +
       '#world-expansion-panel .we-card small{display:block;color:#a9bad1;line-height:1.5}' +
       '#world-expansion-panel .we-meta{margin-top:8px;color:#cbb8ef;font-size:11px;font-weight:800}' +
@@ -124,6 +150,42 @@
   function bossMetric(snapshot,key){
     if(key==='majorDefeats')return (Number(snapshot?.defeatedBosses)||0)+(Number(snapshot?.defeatedGods)||0);
     return Math.max(0,Number(snapshot?.[key])||0);
+  }
+  function boardForDay(kind,day){
+    const list=kind==='boss'?bossBoardContracts:ordinaryBoardContracts,offset=(Math.max(0,day)*2)%list.length;
+    return [0,1,2].map(i=>list[(offset+i)%list.length]);
+  }
+  function ensureBoardDay(kind,day){
+    const board=state[kind].board;
+    if(board.day!==day){board.day=day;board.accepted=[];board.claimed=[];save();}
+    return board;
+  }
+  function boardProgress(kind,contract,snapshot){
+    const entry=state[kind].board.accepted.find(v=>v.id===contract.id);
+    if(!entry)return 0;
+    return kind==='ordinary'?progressForContract(contract,entry.baseline,snapshot):clamp(bossMetric(snapshot,contract.metric)-(Number(entry.baseline?.[contract.metric])||0),0,contract.target);
+  }
+  function acceptBoardQuest(kind,contract,snapshot,day){
+    const board=ensureBoardDay(kind,day);
+    if(board.accepted.some(v=>v.id===contract.id)||board.claimed.includes(contract.id))return;
+    const baseline=kind==='ordinary'?Object.fromEntries(Object.keys(contract.items).map(name=>[name,itemCount(snapshot,name)])):{[contract.metric]:bossMetric(snapshot,contract.metric)};
+    board.accepted.push({id:contract.id,baseline});save();render();notify('Новое задание принято: '+contract.title+'.');
+  }
+  function claimBoardQuest(kind,contract,snapshot,day){
+    const board=ensureBoardDay(kind,day),entry=board.accepted.find(v=>v.id===contract.id);
+    if(!entry||boardProgress(kind,contract,snapshot)<(kind==='ordinary'?targetForContract(contract):contract.target))return;
+    if(kind==='ordinary'){const villageId=nearestVillageId();if(villageId)recordVillageAid(villageId,'contract',false);}
+    reward(contract.gold,contract.item,contract.amount,kind==='boss'?'Награда за дополнительное испытание Мира боссов.':'Награда за дополнительное поручение поселения.');
+    board.accepted=board.accepted.filter(v=>v.id!==contract.id);board.claimed.push(contract.id);save();render();
+    notify('Задание выполнено: '+contract.title+'. Получена награда: '+contract.item+'.');
+  }
+  function renderBoard(kind,snapshot,day){
+    const board=ensureBoardDay(kind,day),list=boardForDay(kind,day);
+    return '<section class="we-board"><div class="we-board-heading"><div><span class="we-kicker">ДОПОЛНИТЕЛЬНЫЕ МИССИИ</span><h3>Доска заданий</h3></div><span class="we-board-count">'+board.claimed.length+'/3 выполнено</span></div><div class="we-grid">'+list.map(contract=>{
+      const accepted=board.accepted.some(v=>v.id===contract.id),claimed=board.claimed.includes(contract.id);
+      const progress=accepted?boardProgress(kind,contract,snapshot):0,total=kind==='ordinary'?targetForContract(contract):contract.target,ready=accepted&&progress>=total;
+      return '<article class="we-card we-quest '+(claimed?'is-complete':'')+'"><h3>'+(claimed?'✓ ':'✦ ')+esc(contract.title)+'</h3><small>'+esc(contract.description)+'</small><div class="we-meta">'+(claimed?'Выполнено сегодня':accepted?progress+' / '+total:'Награда: '+Math.floor(contract.gold/100)+' золота · '+esc(contract.item))+'</div><div class="we-meter"><i style="width:'+Math.round((accepted?progress/total:0)*100)+'%"></i></div><div class="we-actions">'+(claimed?'<button disabled>Получено</button>':accepted?(ready?'<button data-action="claim-board-'+kind+'" data-quest="'+contract.id+'">Забрать награду</button>':'<button disabled>В процессе · '+progress+'/'+total+'</button>'):'<button data-action="accept-board-'+kind+'" data-quest="'+contract.id+'">Принять задание</button>')+'</div></article>';
+    }).join('')+'</div></section>';
   }
   function acceptOrdinary(contract,snapshot,day){
     state.ordinary.accepted={id:contract.id,day,baseline:Object.fromEntries(Object.keys(contract.items).map(n=>[n,itemCount(snapshot,n)]))};
@@ -349,7 +411,7 @@
     const nearest=centers.length?centers.slice().sort((a,c)=>Math.hypot((a.x||0)-(player?.x||0),(a.y||0)-(player?.y||0))-Math.hypot((c.x||0)-(player?.x||0),(c.y||0)-(player?.y||0)))[0]:null;
     const villageNames={forest:'Лесная деревня',snow:'Снежная деревня',desert:'Пустынный посёлок',volcano:'Вулканическое поселение',blight:'Заражённая деревня'};
     const targetName=nearest?(villageNames[String(nearest.id)]||'Ближайшее поселение'):'Ближайшее поселение';
-    return '<div class="we-note">Поселения просят о помощи. Заказы обновляются каждый игровой день. Оборона поселения и экспедиции создают настоящие группы противников в текущем мире.</div>'+
+    return renderBoard('ordinary',snapshot,day)+'<div class="we-note">Поселения просят о помощи. Заказы обновляются каждый игровой день. Оборона поселения и экспедиции создают настоящие группы противников в текущем мире.</div>'+
       '<div class="we-grid">'+renderVillageRelations(nearest)+
       '<article class="we-card"><h3>📦 '+esc(contract.title)+'</h3><small>'+esc(contract.description)+'</small><div class="we-meta">'+(isAccepted?progress+'/'+total+' ресурсов':'Награда: '+Math.floor(contract.gold/100)+' золота и '+esc(contract.item))+'</div><div class="we-meter"><i style="width:'+(isAccepted?Math.round(progress/total*100):0)+'%"></i></div><div class="we-actions">'+
       (!isAccepted&&!done&&state.ordinary.claimedDay!==day?'<button data-action="accept-contract">Взять заказ</button>':'')+
@@ -370,7 +432,7 @@
     const defeated=(boss.defeatedBossNames||[]).map(esc).join(' · ')||'Пока нет побед над главными боссами';
     const gods=(boss.defeatedGodNames||[]).map(esc).join(' · ')||'Боги ещё не повержены';
     const wardenReady=state.boss.wardenDay!==day;
-    return '<div class="we-stats">'+
+    return renderBoard('boss',boss,day)+'<div class="we-stats">'+
       '<div class="we-stat"><b>'+Math.floor(Number(boss.kills)||0)+'</b><small>Побед над существами</small></div>'+
       '<div class="we-stat"><b>'+Math.floor(Number(boss.awakenedTrees)||0)+'</b><small>Пробуждений деревьев</small></div>'+
       '<div class="we-stat"><b>'+Math.floor(Number(boss.defeatedBosses)||0)+'/9</b><small>Главные боссы</small></div>'+
@@ -397,9 +459,17 @@
       content.innerHTML=renderOrdinary(lastSnapshot);
     }
     content.querySelectorAll('[data-action]').forEach(control=>control.addEventListener('click',()=>{
-      const action=control.getAttribute('data-action');
+      const action=control.getAttribute('data-action'),questId=control.getAttribute('data-quest');
       const day=Math.max(0,Number(lastSnapshot?.day)||0);
-      if(action==='accept-contract')acceptOrdinary(contractForDay(day),lastSnapshot,day);
+      if(action==='accept-board-ordinary'||action==='accept-board-boss'){
+        const kind=action.endsWith('boss')?'boss':'ordinary',contract=(kind==='boss'?bossBoardContracts:ordinaryBoardContracts).find(v=>v.id===questId);
+        if(contract)acceptBoardQuest(kind,contract,kind==='boss'?(b?.getBossRealmSnapshot?.()||{}):lastSnapshot,day);
+      }
+      else if(action==='claim-board-ordinary'||action==='claim-board-boss'){
+        const kind=action.endsWith('boss')?'boss':'ordinary',contract=(kind==='boss'?bossBoardContracts:ordinaryBoardContracts).find(v=>v.id===questId);
+        if(contract)claimBoardQuest(kind,contract,kind==='boss'?(b?.getBossRealmSnapshot?.()||{}):lastSnapshot,day);
+      }
+      else if(action==='accept-contract')acceptOrdinary(contractForDay(day),lastSnapshot,day);
       else if(action==='claim-contract')claimOrdinary(contractForDay(day),lastSnapshot,day);
       else if(action==='village-raid')startVillageRaid(day);
       else if(action==='village-assault')startVillageAssault(day);
