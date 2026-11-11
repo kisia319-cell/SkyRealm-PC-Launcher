@@ -1349,5 +1349,3 @@
   $('#minimize').addEventListener('click', () => { if (window.pywebview?.api?.minimize) window.pywebview.api.minimize(); else toast('Кнопка сворачивания работает в приложении Windows.'); });
   $('#close').addEventListener('click', () => { if (window.pywebview?.api?.close) window.pywebview.api.close(); else toast('Закрой вкладку браузера, чтобы выйти из демо.'); });
 })();
-
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
