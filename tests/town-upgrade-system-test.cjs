@@ -35,5 +35,5 @@ assert.match(expansion,/claim-board-boss/);
 assert.match(expansion,/if\\(!record\\)return '<article class="we-card">/,'Unknown nearby village records must not crash the chronicles UI.');
 
 // The movement implementation is deliberately untouched by this update.
-assert.match(game,/function updatePlayer\\(/);
+assert.ok(game.includes('function updatePlayer('),'The game must retain its player update loop.');
 console.log('SkyRealm town upgrade, civic districts and daily quest board checks passed.');
