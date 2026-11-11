@@ -135,8 +135,7 @@ jobs:
       - name: Verify PrimeLauncher bundled game UI
         shell: pwsh
         run: |
-          $viewer = ".venv/Scripts/pyi-archive_viewer.exe"
-          $listing = & $viewer -l -b "prime_launcher_dist/PrimeLauncher.exe" 2>&1 | Out-String
+          $listing = pyi-archive_viewer -l -b "prime_launcher_dist/PrimeLauncher.exe" 2>&1 | Out-String
           $normalized = $listing.ToLower().Replace("\", "/")
           foreach ($asset in @("game/competitive/index.html", "game/competitive/prime-world.js")) {
             if (-not $normalized.Contains($asset)) { throw "PrimeLauncher is missing bundled asset: $asset" }
