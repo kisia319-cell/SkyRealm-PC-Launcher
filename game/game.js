@@ -3402,48 +3402,6 @@ function setupVillageNpcs(){
       if(seed>.88){target.fillStyle='#1b252b';target.beginPath();target.moveTo(px-size*.16,y);target.lineTo(px+size*.12,y);target.lineTo(px+size*.02,y+size*.34);target.closePath();target.fill();target.fillStyle='rgba(142,151,143,.32)';target.beginPath();target.moveTo(px-size*.11,y+2);target.lineTo(px-size*.01,y+size*.17);target.lineTo(px-size*.02,y+2);target.fill();}
     }
   }
-  function drawMineGroundTile(target,col,row,x,y){
-    const cell=MINE_CELL_SIZE,size=cell,half=size/2,px=x+half,py=y+half;
-    const seed=hash(col+mineSeed*1.7,row+mineDepth*23),tone=Math.floor(seed*5);
-    if(mineMaze[row][col]){
-      const floorTones=['#665d50','#5d554a','#716655','#62594e','#585247'];
-      target.fillStyle=floorTones[tone];target.fillRect(x,y,size,size);
-      const floorLight=target.createLinearGradient(x,y,x+size,y+size);
-      floorLight.addColorStop(0,'rgba(239,218,177,.13)');floorLight.addColorStop(.48,'rgba(184,163,132,.025)');floorLight.addColorStop(1,'rgba(5,7,8,.22)');
-      target.fillStyle=floorLight;target.fillRect(x,y,size,size);
-      target.strokeStyle='rgba(224,204,169,.16)';target.lineWidth=.7;
-      target.beginPath();target.moveTo(x+size*.08,y+size*.1);target.lineTo(x+size-size*.12,y+size*.08);target.stroke();
-      target.fillStyle='rgba(20,17,14,.22)';target.fillRect(x,y+size-size*.12,size,size*.12);
-      target.strokeStyle='rgba(27,24,21,.45)';target.lineWidth=1;target.strokeRect(x,y,size,size);
-      target.fillStyle='rgba(190,169,137,.13)';target.beginPath();target.moveTo(px-size*.39,py-size*.27);target.lineTo(px-size*.12,py-size*.34);target.lineTo(px+size*.31,py-size*.18);target.lineTo(px+size*.22,py-size*.08);target.lineTo(px-size*.2,py-size*.12);target.closePath();target.fill();
-      target.strokeStyle='rgba(28,25,23,.42)';target.lineWidth=1;target.beginPath();
-      if(seed>.34){target.moveTo(px-size*.32,py+size*.16);target.lineTo(px-size*.08,py+size*.04);target.lineTo(px+size*.02,py+size*.22);target.lineTo(px+size*.28,py+size*.12);}
-      else{target.moveTo(px-size*.2,py-size*.27);target.lineTo(px-size*.03,py-size*.06);target.lineTo(px+size*.2,py-size*.02);}
-      target.stroke();
-      for(let k=0;k<3;k++){const pebble=hash(col*7+mineSeed+k*11,row*13+mineLevel+k*5),ax=px+(pebble-.5)*size*.72,ay=py+(hash(col+k*19,row+k*31)-.5)*size*.7;target.fillStyle=k===0?'rgba(211,194,163,.38)':'rgba(25,24,23,.34)';target.beginPath();target.ellipse(ax,ay,Math.max(1,size*(.018+k*.006)),Math.max(1,size*.012),pebble*3,0,Math.PI*2);target.fill();}
-      if(seed>.82){target.strokeStyle='rgba(157,130,97,.55)';target.lineWidth=1.2;target.beginPath();target.moveTo(px-size*.3,py-size*.2);target.lineTo(px-size*.12,py-size*.03);target.lineTo(px-size*.17,py+size*.15);target.stroke();}
-      if(row>0&&row<MINE_MAZE_ROWS-1&&col>0&&col<MINE_MAZE_COLS-1&&hash(col+mineSeed*5,row+mineDepth*37)>=.965){
-        target.fillStyle='rgba(0,0,0,.3)';target.fillRect(px-19,py+8,38,5);
-        target.fillStyle='#3a261b';target.fillRect(px-17,py-17,5,29);target.fillRect(px+12,py-17,5,29);target.fillRect(px-20,py-20,40,5);
-        target.fillStyle='#91633d';target.fillRect(px-15,py-16,2,25);target.fillRect(px+14,py-16,2,25);target.fillRect(px-17,py-18,34,2);
-        target.fillStyle='#b9a078';for(const [bx,by] of [[-14,-14],[14,-14],[-14,8],[14,8]]){target.beginPath();target.arc(px+bx,py+by,1.5,0,Math.PI*2);target.fill();}
-      }
-    }else{
-      target.fillStyle='#111a22';target.fillRect(x,y,size,size);
-      const wallShade=target.createLinearGradient(x,y,x+size,y+size);
-      wallShade.addColorStop(0,['#485258','#505b60','#465257','#596064','#424c51'][tone]);
-      wallShade.addColorStop(.55,['#303a40','#394247','#333d42','#41484a','#2e383d'][tone]);
-      wallShade.addColorStop(1,'#151e24');target.fillStyle=wallShade;target.beginPath();
-      target.moveTo(x,y+size*.12);target.lineTo(x+size*.12,y+size*.02);target.lineTo(x+size*.35,y+size*.07);target.lineTo(x+size-size*.1,y+size*.03);target.lineTo(x+size,y+size*.16);target.lineTo(x+size,y+size-size*.08);target.lineTo(x+size-size*.18,y+size);target.lineTo(x+size*.08,y+size-size*.02);target.closePath();target.fill();
-      target.fillStyle='rgba(125,139,139,.24)';target.beginPath();target.moveTo(x+size*.08,y+size*.1);target.lineTo(x+size*.32,y+size*.06);target.lineTo(x+size*.58,y+size*.14);target.lineTo(x+size*.44,y+size*.22);target.closePath();target.fill();
-      target.fillStyle='rgba(0,0,0,.35)';target.fillRect(x,y+size-size*.18,size,size*.18);
-      target.strokeStyle='#151d22';target.lineWidth=1.5;target.strokeRect(x,y,size,size);
-      for(let k=0;k<2;k++){const v=hash(col*17+k*9+mineSeed,row*23+k*7+mineLevel),bx=px+(v-.5)*size*.48,by=py+(hash(row*11+k,col*29+mineSeed)-.5)*size*.36,r=size*(.12+v*.1);target.fillStyle=k?'rgba(10,15,19,.36)':'rgba(119,128,126,.22)';target.beginPath();target.moveTo(bx-r,by);target.lineTo(bx-r*.35,by-r*.8);target.lineTo(bx+r*.65,by-r*.45);target.lineTo(bx+r,by+r*.2);target.lineTo(bx-r*.25,by+r*.65);target.closePath();target.fill();}
-      if(seed>.48){target.strokeStyle='rgba(8,13,17,.72)';target.lineWidth=1.4;target.beginPath();target.moveTo(px-size*.22,py-size*.22);target.lineTo(px-size*.08,py-size*.03);target.lineTo(px-size*.17,py+size*.1);target.lineTo(px+size*.02,py+size*.28);target.stroke();}
-      if(seed>.63){const seamY=py-size*(.12+hash(col+mineDepth,row+mineSeed)*.34);target.strokeStyle='rgba(165,180,174,.15)';target.lineWidth=.7;target.beginPath();target.moveTo(x+size*.16,seamY);target.lineTo(px-size*.08,seamY-size*.035);target.lineTo(x+size-size*.2,seamY+size*.02);target.stroke();}
-      if(seed>.88){target.fillStyle='#1b252b';target.beginPath();target.moveTo(px-size*.16,y);target.lineTo(px+size*.12,y);target.lineTo(px+size*.02,y+size*.34);target.closePath();target.fill();target.fillStyle='rgba(142,151,143,.32)';target.beginPath();target.moveTo(px-size*.11,y+2);target.lineTo(px-size*.01,y+size*.17);target.lineTo(px-size*.02,y+2);target.fill();}
-    }
-  }
   function drawMinePassages(){
     const g=ensureMineMaze(),cell=MINE_CELL_SIZE,time=performance.now();
     drawMineBackdrop(time);
