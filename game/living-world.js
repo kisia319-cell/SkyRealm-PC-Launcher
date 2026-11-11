@@ -167,7 +167,7 @@
     if(missing.length){notify('Для улучшения не хватает: '+missing.map(([name,count])=>name+' '+(Number(b.getItemCount?.(name))||0)+'/'+count).join(', ')+'.');return false;}
     if(Number(b.getGold?.()||0)<cost){notify('Для улучшения нужно '+cost+' золота.');return false;}
     if(b.spendGold?.(cost)!==true)return false;
-    for(const [name,count] of materials){if(b.spendItem?.(name,count)!==true){for(const [spentName,spentCount] of materials){if(spentName===name)break;b.addItem?.(spentName,spentCount,'Возврат материалов после отменённого улучшения.');}b.addGold?.(cost);notify('Не удалось списать материалы. Ресурсы и золото возвращены.');return false;}}
+    for(const [name,count] of materials){if(b.spendItem?.(name,count)!==true){for(const [spentName,spentCount] of materials){if(spentName===name)break;b.addItem?.(spentName,spentCount,'Возврат материалов после отменённого улучшения.');}b.addGold?.(cost*100);notify('Не удалось списать материалы. Ресурсы и золото возвращены.');return false;}}
     state.projectLevels[id]=level+1;state.town.renown=clamp(state.town.renown+45,0,1000000);state.town.happiness=clamp(state.town.happiness+4,0,100);
     save();notify(item.name+' улучшено до уровня '+(level+1)+'!');checkAchievements();render();return true;
   }
