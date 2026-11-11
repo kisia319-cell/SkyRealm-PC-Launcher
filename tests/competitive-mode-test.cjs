@@ -11,7 +11,7 @@ assert.match(primeHtml,/PRIME DIVISION/);for(const n of [1,2,3])assert.match(pri
 assert.match(primeHtml,/data-kind="online"/);assert.match(primeHtml,/data-kind="training"/);assert.match(primeHtml,/id="leaderboard"/);assert.match(primeHtml,/id="performance-hud"/);
 for(const id of ['home-coins','rank-coins','battle-coins','upgrade-tower','enemy-towers'])assert.ok(primeHtml.includes('id="'+id+'"'),'missing '+id);
 assert.match(primeJs,/primeLauncher\.profile\.v2/);assert.match(primeJs,/primeLauncher\.bots\.v1/);assert.match(primeJs,/profile\.coins\+=5/);
-assert.match(primeJs,/UPGRADE_COST=500/);assert.match(primeJs,/profile\.towerLevel\+\+/);assert.match(primeJs,/b\.profile\.towerLevel\+\+/);
+assert.match(primeJs,/UPGRADE_COST=500/);assert.match(primeJs,/owner\.team===0\?0:1/);assert.match(primeJs,/allies\.push\(ally\);towers\.push\(createTower/);assert.match(primeJs,/profile\.towerLevel\+\+/);assert.match(primeJs,/b\.profile\.towerLevel\+\+/);
 assert.match(primeJs,/Онлайн-режим в доработке/);assert.match(primeJs,/Зайдите в тренировку/);assert.match(primeJs,/matchKind==='online'/);
 assert.match(primeJs,/renderLeaderboard/);assert.match(primeJs,/drawTower/);assert.match(primeJs,/performance-hud/);assert.match(primeJs,/ping= офлайн/);
 assert.match(primeJs,/match\.allies\.forEach/);assert.match(primeJs,/pressed\.has\('KeyW'\)/);assert.match(primeJs,/window\.addEventListener\('keydown'/);assert.match(primeJs,/window\.addEventListener\('keyup'/);
