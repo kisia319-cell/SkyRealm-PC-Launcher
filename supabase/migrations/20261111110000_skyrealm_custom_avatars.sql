@@ -5,6 +5,11 @@ insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
 values ('skyrealm-avatars','skyrealm-avatars',true,12582912,array['image/webp'])
 on conflict (id) do update set public=true,file_size_limit=12582912,allowed_mime_types=array['image/webp'];
 
+drop policy if exists "SkyRealm avatar owner select" on storage.objects;
+create policy "SkyRealm avatar owner select" on storage.objects
+for select to authenticated
+using (bucket_id='skyrealm-avatars' and (storage.foldername(name))[1]=auth.uid()::text);
+
 drop policy if exists "SkyRealm avatar owner insert" on storage.objects;
 create policy "SkyRealm avatar owner insert" on storage.objects
 for insert to authenticated
