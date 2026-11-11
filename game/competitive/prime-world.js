@@ -17,21 +17,22 @@ function updateProfile(){
  const coins=match?Math.floor(match.playerCoins):0;
  ['home-coins','rank-coins','battle-coins','nav-coins','top-coins'].forEach(id=>{const el=$(id);if(el)el.textContent=id==='nav-coins'?coins.toLocaleString('ru-RU'):coins.toLocaleString('ru-RU')+' ◆';});
  $('home-elo').textContent=profile.elo+' ELO';$('rank-elo').textContent=profile.elo+' ELO';$('nav-elo').textContent=profile.elo;
- $('home-tower').textContent='Уровень '+match.playerTowerLevel;$('rank-tower').textContent='Уровень '+match.playerTowerLevel;
+ $('home-tower').textContent='Только в бою';$('rank-tower').textContent='Только в бою';
  $('home-matches').textContent=profile.matches+' матчей';$('home-wins').textContent=profile.wins;
- $('battle-elo').textContent=profile.elo+' ELO';$('battle-tower').textContent='Уровень '+match.playerTowerLevel+' · '+(match.playerTowerLevel>=20?'MAX':upgradeCost(match.playerTowerLevel)+' ◆');
+ $('battle-elo').textContent=profile.elo+' ELO';$('battle-tower').textContent='Уровень '+(match?.playerTowerLevel||1);
  const up=$('upgrade-tower');if(up){up.disabled=!match||match.playerCoins<upgradeCost(match.playerTowerLevel)||match.playerTowerLevel>=20;up.textContent=!match?'УЛУЧШЕНИЕ ТОЛЬКО В БОЮ':match.playerTowerLevel>=20?'БАШНЯ МАКСИМАЛЬНОГО УРОВНЯ':'УЛУЧШИТЬ БАШНЮ · '+upgradeCost(match.playerTowerLevel)+' ◆';}
  renderLeaderboard();
 }
 function renderLeaderboard(){
  const root=$('leaderboard');if(!root)return;
  const rows=[{name:'Вы',elo:profile.elo,isPlayer:true}];
- root.innerHTML=rows.map((b,i)=>'<div class="bot" style="display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px"><b style="color:'+(i<3?'#ff9b62':'#aaa')+'">#'+(i+1)+'</b><span><b>'+b.name+(b.isPlayer?' · ВЫ':'')+'</b><br><small style="color:#999">Башня ур. '+b.towerLevel+'</small></span><strong>'+b.elo+' ELO</strong></div>').join('');
+ root.innerHTML=rows.map((b,i)=>'<div class="bot" style="display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px"><b>#'+(i+1)+'</b><span><b>'+b.name+' · ВЫ</b><br><small>Личный рейтинг</small></span><strong>'+b.elo+' ELO</strong></div>').join('');
 }
+function renderHistory(){const root=$('history-list');if(!root)return;if(!profile.history.length){root.textContent='Матчей пока нет.';return;}root.innerHTML=profile.history.map((h,i)=>'<div class="bot" style="display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;margin:8px 0"><span><b>'+(h.label||'Матч')+'</b><br><small>'+String(h.date||'')+'</small><br><small>Соперники: '+(Array.isArray(h.opponents)?h.opponents.join(', '):'—')+'</small></span><strong>'+String(h.delta||'')+'</strong></div>').join('');}
 function show(page){
  scene=page;document.body.classList.toggle('battle-active',page==='battle');pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
  document.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
- if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();
+ if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();if(page==='history')renderHistory();
 }
 document.querySelectorAll('.nav button[data-page]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
 $('enter-prime').addEventListener('click',()=>show('menu'));
@@ -82,7 +83,7 @@ function renderTowerList(){
 }
 function finish(win,abandoned=false){
  if(!match||match.finished)return;match.finished=true;stopLoop();pressed.clear();
- profile.matches++;if(win&&!abandoned)profile.wins++;const eloDelta=abandoned?0:(win?20+Math.floor(Math.random()*11):-(20+Math.floor(Math.random()*16)));profile.elo=Math.max(0,profile.elo+eloDelta);profile.history.unshift({label:(win?'ПОБЕДА':abandoned?'ВЫХОД':'ПОРАЖЕНИЕ')+' · '+match.team+'×'+match.team,delta:abandoned?'Без изменения ELO':(eloDelta>0?'+'+eloDelta+' ELO':eloDelta+' ELO'),eloDelta,date:new Date().toLocaleString('ru-RU'),opponents:match.bots.map(b=>b.name)});profile.history=profile.history.slice(0,100);match.playerCoins=0;save();
+ profile.matches++;if(win&&!abandoned)profile.wins++;const eloDelta=abandoned?0:(win?20+Math.floor(Math.random()*11):-(20+Math.floor(Math.random()*16)));profile.elo=Math.max(0,profile.elo+eloDelta);profile.history.unshift({label:(win?'ПОБЕДА':abandoned?'ВЫХОД':'ПОРАЖЕНИЕ')+' · '+match.team+'×'+match.team,delta:abandoned?'Без изменения ELO':(eloDelta>0?'+'+eloDelta+' ELO':eloDelta+' ELO'),eloDelta,date:new Date().toLocaleString('ru-RU'),opponents:match.bots.map(b=>b.name)});profile.history=profile.history.slice(0,100);match.playerCoins=0;save();renderHistory();
  $('result-title').textContent=win?'ПОБЕДА':'ПОРАЖЕНИЕ';
  $('result-copy').textContent='Матч завершён. Монеты обнулены. ELO: '+(eloDelta>0?'+'+eloDelta:eloDelta)+';
  $('result-modal').classList.remove('hidden');
