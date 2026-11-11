@@ -61,7 +61,7 @@ const aiContext={
  }
 };
 aiContext.match.towers.push({x:800,y:400,owner:botProfile,team:1,level:1,hp:740,maxHp:740,range:222,damage:11});
-vm.runInNewContext(aiFunctions.join('\\n')+'\\nglobalThis.aiDirector=enemyDirector;globalThis.aiAlert=alertEnemyBase;',aiContext);
+vm.runInNewContext(aiFunctions.join('\n')+'\nglobalThis.aiDirector=enemyDirector;globalThis.aiAlert=alertEnemyBase;',aiContext);
 aiContext.aiDirector(1);
 assert.equal(botProfile.towerLevel,2,'Bot tower must upgrade from earned coins.');
 assert.equal(aiContext.match.towers[0].level,2,'The visible bot tower must receive its upgrade.');
