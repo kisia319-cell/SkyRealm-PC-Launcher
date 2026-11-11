@@ -30,7 +30,7 @@ function renderLeaderboard(){
 }
 function renderHistory(){const root=$('history-list');if(!root)return;if(!profile.history.length){root.textContent='Матчей пока нет.';return;}root.innerHTML=profile.history.map((h,i)=>'<div class="bot" style="display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;margin:8px 0"><span><b>'+(h.label||'Матч')+'</b><br><small>'+String(h.date||'')+'</small><br><small>Соперники: '+(Array.isArray(h.opponents)?h.opponents.join(', '):'—')+'</small></span><strong>'+String(h.delta||'')+'</strong></div>').join('');}
 
-const PRIME_LANG_KEY='primeLauncher.language.v1';
+const PRIME_LANG_KEY='skyrealm_language';
 const PRIME_EN={
 'Главная':'Home','Топ рейтинга':'Leaderboard','История матчей':'Match history','Настройки':'Settings',
 'Войти в Prime':'Enter Prime','Настройки Prime':'Prime settings','Язык интерфейса':'Interface language',
@@ -44,10 +44,45 @@ const PRIME_EN={
 'ТВОЙ РЕЙТИНГ':'YOUR RATING','БАЛАНС':'BALANCE','ТВОЯ БАШНЯ':'YOUR TOWER','ПРОГРЕСС':'PROGRESS','ПОБЕДЫ':'WINS','МАТЧ ЗАВЕРШЁН':'MATCH FINISHED',
 'В МЕНЮ PRIME':'BACK TO PRIME MENU','ЕЩЁ МАТЧ':'PLAY AGAIN','ТРЕНИРОВКА':'TRAINING','ВЫХОД':'EXIT'
 };
+Object.assign(PRIME_EN,{
+'Настройки Prime':'Prime settings','История матчей':'Match history','Топ рейтинга':'Rankings','Главная':'Home',
+'Выбери сражение':'Choose a battle','Твой персонаж готовится к бою среди звёзд.':'Your character is preparing for battle among the stars.',
+'ФОРМАТ КОМАНДЫ':'TEAM FORMAT','ТИП МАТЧА':'MATCH TYPE','Онлайн-режим в доработке':'Online mode in development',
+'Зайдите в тренировку. Сетевой подбор игроков пока недоступен.':'Play training mode. Online matchmaking is not available yet.',
+'Зайдите в тренировку. Онлайн-матчи пока недоступны.':'Play training mode. Online matches are not available yet.',
+'Подготовка тренировочной арены...':'Preparing training arena...','Подготовка арены...':'Preparing arena...',
+'Расстановка башен...':'Placing towers...','Формируем команды...':'Forming teams...',
+'Подбираем ботов · ELO не меняется · +5 монет каждую секунду':'Finding training opponents · ELO is unchanged · +5 coins per second',
+'Управление: WASD или стрелки · Атака: пробел / левая кнопка мыши · Выход из матча: Esc.':'Controls: WASD or arrows · Attack: Space / left mouse button · Leave match: Esc.',
+'Онлайн-режим временно недоступен: при выборе он покажет сообщение о доработке. Играть сейчас можно только в тренировке с ботами.':'Online matchmaking is not connected yet. Training against bots is available.',
+'Экономика матча: +5 монет в секунду только во время боя. Монеты и уровни построек сбрасываются после матча. Улучшения доступны только на арене.':'Match economy: +5 coins per second during battle only. Coins and structure levels reset after each match. Upgrades are available only in the arena.',
+'Последние 100 результатов с датой и изменением ELO.':'Last 100 results with date and ELO change.',
+'Здесь отображаются только игроки. Тренировочные боты не участвуют в рейтинге. Онлайн-таблица появится после запуска серверного подбора.':'Only real player accounts belong on this leaderboard. Training bots are never ranked. Online rankings will appear when server matchmaking is connected.',
+'Матчей пока нет.':'No matches yet.','Язык интерфейса':'Interface language','Настройки':'Settings',
+'Уровень 1':'Level 1','Только в бою':'Battle only','ВЫХОД':'EXIT',
+'Победа':'Victory','Поражение':'Defeat','Выход':'Exit','В бой':'Battle','В меню':'Menu',
+'ТРЕНИРОВКА':'TRAINING','БОТ: РАЗВИВАЕТ БАЗУ':'BOT: DEVELOPING BASE','АТАКА ЧЕРЕЗ 05:00':'ATTACK IN 05:00',
+'БАЗА 1':'BASE 1','БАШНЯ ур. 1':'TOWER Lv. 1','Строительство':'Build','Баланс':'Balance',
+'Нанять воина':'Hire warrior','Соперник':'Opponent','Выйти':'Leave','Стена':'Wall','Башня':'Tower','Казарма':'Barracks',
+'Не хватает':'Not enough','Матч завершён. Монеты обнулены.':'Match finished. Coins have been reset.',
+'Изменение ELO: ':'ELO change: ','Без изменения ELO.':'No ELO change.'
+});
+const PRIME_ORIGINAL_TEXT=new WeakMap(),PRIME_RENDERED_TEXT=new WeakMap();
+function translatePrimeText(root=document.body){
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;
+ while((node=walker.nextNode())){
+  const rendered=PRIME_RENDERED_TEXT.get(node);
+  let original=PRIME_ORIGINAL_TEXT.get(node);
+  if(original===undefined||(rendered!==undefined&&node.nodeValue!==rendered)){original=node.nodeValue;PRIME_ORIGINAL_TEXT.set(node,original);}
+  const trim=original.trim(),translated=document.documentElement.lang==='en'&&PRIME_EN[trim]?original.replace(trim,PRIME_EN[trim]):original;
+  if(node.nodeValue!==translated)node.nodeValue=translated;
+  PRIME_RENDERED_TEXT.set(node,translated);
+ }
+}
+let primeLanguageObserver=null;
 function applyPrimeLanguage(lang){
  const chosen=lang==='en'?'en':'ru';localStorage.setItem(PRIME_LANG_KEY,chosen);document.documentElement.lang=chosen;
- const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let node;
- while((node=walker.nextNode())){const raw=node.nodeValue,trim=raw.trim();if(!trim)continue;if(chosen==='en'&&PRIME_EN[trim])node.nodeValue=raw.replace(trim,PRIME_EN[trim]);}
+ translatePrimeText(document.body);
  const select=$('prime-language');if(select&&select.value!==chosen)select.value=chosen;
 }
 
@@ -72,7 +107,12 @@ function beginSearch(){
  let ticks=0;searchTimer=window.setInterval(()=>{ticks++;$('search-title').textContent=['Подготовка арены...','Расстановка башен...','Формируем команды...'][ticks%3];if(ticks>=3){clearInterval(searchTimer);createMatch();}},550);
 }
 $('find-match').addEventListener('click',beginSearch);
-const languageSelect=$('prime-language');if(languageSelect){languageSelect.value=localStorage.getItem(PRIME_LANG_KEY)||'ru';languageSelect.addEventListener('change',()=>applyPrimeLanguage(languageSelect.value));}applyPrimeLanguage(localStorage.getItem(PRIME_LANG_KEY)||'ru');
+const languageSelect=$('prime-language');
+const launcherLanguage=new URLSearchParams(location.search).get('lang');
+const initialPrimeLanguage=launcherLanguage||localStorage.getItem(PRIME_LANG_KEY)||localStorage.getItem('primeLauncher.language.v1')||'ru';
+if(languageSelect){languageSelect.value=initialPrimeLanguage==='en'?'en':'ru';languageSelect.addEventListener('change',()=>applyPrimeLanguage(languageSelect.value));}
+applyPrimeLanguage(initialPrimeLanguage);
+if(window.MutationObserver){primeLanguageObserver=new MutationObserver(records=>{for(const record of records){if(record.type==='childList'){record.addedNodes.forEach(node=>{if(node.nodeType===Node.TEXT_NODE){translatePrimeText(node.parentNode||document.body);}else if(node.nodeType===Node.ELEMENT_NODE)translatePrimeText(node);});}else if(record.type==='characterData')translatePrimeText(record.target.parentNode||document.body);}});primeLanguageObserver.observe(document.body,{subtree:true,childList:true,characterData:true});}
 function createTower(x,y,owner,isPlayer=false){
  const level=isPlayer?(match?.playerTowerLevel||1):owner.towerLevel;
  return {x,y,owner,isPlayer,team:isPlayer?0:(owner.team===0?0:1),level,hp:560+level*180,maxHp:560+level*180,range:210+level*12,damage:8+level*3,fire:0};
@@ -152,6 +192,7 @@ function updateHud(){
  });
 }
 function upgradeStructureAt(x,y){
+ if(!match||match.finished)return false;
  const m=match,items=[...m.walls,...m.barracks,...m.towers.filter(t=>t.team===0&&!t.isPlayer)];
  const o=items.find(v=>Math.hypot(v.x-x,v.y-y)<55);
  if(!o)return false;
