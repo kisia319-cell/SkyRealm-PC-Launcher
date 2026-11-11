@@ -14,7 +14,7 @@ assert.ok(parts.length>=4&&parts[0]===0&&parts[1]===20&&parts[2]===50&&parts[3]>
 for(const id of ['infirmary','school','smithy','watch_bell','greenhouse']){
   assert.match(living,new RegExp('\\b'+id+':\\{'),'Missing new civic building: '+id);
 }
-assert.match(living,/town:\{renown:0,happiness:55,lastIncomeDay:-1,patrolCooldownDay:0,patrol:null\}/,'Town progression must have safe legacy defaults');
+assert.match(living,/town:\{renown:0,happiness:55,lastIncomeDay:-1,patrolCooldownDay:0,patrol:null,population:15,lastPopulationDay:-1/,'Town progression must have safe legacy defaults for growth and caravans');
 assert.match(living,/const town=raw\.town&&typeof raw\.town==='object'/,'Old living-world saves must migrate town progression');
 assert.match(living,/s\.town=\{renown:clamp/,'Town reputation, happiness and patrol state must be bounded during save migration');
 assert.match(living,/b\.spendItem\?\.\(name,count\)/,'Civic buildings must consume real resources, not display-only requirements');
