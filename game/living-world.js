@@ -38,7 +38,11 @@
     school:{name:'\u0428\u043a\u043e\u043b\u0430 \u0440\u0435\u043c\u0451\u0441\u0435\u043b',icon:'\u{1F3EB}',price:850,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':18,'\u041a\u0430\u043c\u0435\u043d\u044c':8,'\u041a\u0440\u0438\u0441\u0442\u0430\u043b\u043b':1},desc:'\u041f\u043e\u043c\u043e\u0433\u0430\u0435\u0442 \u0443\u0447\u0435\u043d\u0438\u043a\u0430\u043c \u0438 \u0443\u0432\u0435\u043b\u0438\u0447\u0438\u0432\u0430\u0435\u0442 \u043d\u0430\u0433\u0440\u0430\u0434\u044b \u0437\u0430 \u043f\u043e\u0440\u0443\u0447\u0435\u043d\u0438\u044f.'},
     smithy:{name:'\u041a\u043e\u0440\u043e\u043b\u0435\u0432\u0441\u043a\u0430\u044f \u043a\u0443\u0437\u043d\u0438\u0446\u0430',icon:'\u{1F528}',price:1200,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':12,'\u041a\u0430\u043c\u0435\u043d\u044c':18,'\u0416\u0435\u043b\u0435\u0437\u043e':14,'\u0423\u0433\u043e\u043b\u044c':8},desc:'\u041a\u0443\u0437\u043d\u0438\u0446\u0430 \u0441\u043d\u0430\u0431\u0436\u0430\u0435\u0442 \u0437\u0430\u0449\u0438\u0442\u043d\u0438\u043a\u043e\u0432 \u0438 \u0432\u043e\u0438\u043d\u043e\u0432.'},
     watch_bell:{name:'\u0421\u0438\u0433\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u0431\u0430\u0448\u043d\u044f',icon:'\u{1F514}',price:1000,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':20,'\u041a\u0430\u043c\u0435\u043d\u044c':10,'\u0416\u0435\u043b\u0435\u0437\u043e':6},desc:'\u041f\u0440\u0435\u0434\u0443\u043f\u0440\u0435\u0436\u0434\u0430\u0435\u0442 \u043e \u043d\u0430\u043f\u0430\u0434\u0435\u043d\u0438\u044f\u0445 \u0438 \u0443\u0441\u043a\u043e\u0440\u044f\u0435\u0442 \u043f\u0430\u0442\u0440\u0443\u043b\u0438.'},
-    greenhouse:{name:'\u0411\u043e\u043b\u044c\u0448\u0430\u044f \u043e\u0440\u0430\u043d\u0436\u0435\u0440\u0435\u044f',icon:'\u{1F331}',price:750,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':16,'\u041a\u0430\u043c\u0435\u043d\u044c':6,'\u0416\u0435\u043b\u0435\u0437\u043e':3},desc:'\u0412\u044b\u0440\u0430\u0449\u0438\u0432\u0430\u0435\u0442 \u043f\u0440\u0438\u043f\u0430\u0441\u044b \u0434\u043b\u044f \u0433\u043e\u0440\u043e\u0434\u0430.'}
+    greenhouse:{name:'\u0411\u043e\u043b\u044c\u0448\u0430\u044f \u043e\u0440\u0430\u043d\u0436\u0435\u0440\u0435\u044f',icon:'\u{1F331}',price:750,items:{'\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043d\u0430':16,'\u041a\u0430\u043c\u0435\u043d\u044c':6,'\u0416\u0435\u043b\u0435\u0437\u043e':3},desc:'\u0412\u044b\u0440\u0430\u0449\u0438\u0432\u0430\u0435\u0442 \u043f\u0440\u0438\u043f\u0430\u0441\u044b \u0434\u043b\u044f \u0433\u043e\u0440\u043e\u0434\u0430.'},
+    barracks:{name:'Казармы защитников',icon:'🛡️',price:1450,items:{'Древесина':28,'Камень':22,'Железо':10},desc:'Увеличивают число защитников во время нападений.'},
+    fountain:{name:'Площадь с фонтаном',icon:'⛲',price:1100,items:{'Камень':24,'Железо':4},desc:'Повышает настроение и украшает центр деревни.'},
+    library:{name:'Городская библиотека',icon:'📚',price:1350,items:{'Древесина':24,'Камень':12,'Кристалл':2},desc:'Улучшает награды за поручения и открывает архив города.'},
+    walls:{name:'Каменные укрепления',icon:'🧱',price:1650,items:{'Камень':40,'Древесина':18,'Железо':8},desc:'Укрепляют периметр и помогают отражать налёты.'}
   };
   const RAIDS = {
     sky:{name:'\u0425\u0440\u0430\u043c \u043d\u0435\u0431\u0435\u0441',boss:'\u0410\u0440\u0445\u043e\u043d\u0442 \u0441\u043e\u043b\u043d\u0446\u0430',hp:1800,damage:22,reward:55000,item:'\u041f\u0435\u0447\u0430\u0442\u044c \u043d\u0435\u0431\u0435\u0441\u043d\u043e\u0433\u043e \u0440\u0435\u0439\u0434\u0430'},
@@ -57,7 +61,7 @@
   const CONTRACT_NPCS={merchant:'\u0411\u043e\u0440\u0438\u0441',builder:'\u041e\u0441\u043a\u0430\u0440',miner:'\u0422\u043e\u0440\u043d',hunter:'\u0420\u0435\u043d',alchemist:'\u041b\u0438\u0440\u0430',guard:'\u041a\u0430\u0439'};
   const defaults = () => ({
     version:VERSION, ownedPets:[], activePet:null, petLevels:{}, petX:0, petY:0, petCooldown:1.5,
-    fish:{}, projects:{}, lastSeasonKey:'', pendingSeason:'', claimedSeasons:[],
+    fish:{}, projects:{}, projectLevels:{}, lastSeasonKey:'', pendingSeason:'', claimedSeasons:[],
     seasonsSeen:[], lastMarketDay:-1, lastGranaryDay:-1, contractsDay:-1, contracts:[], raid:null, raidCooldownDay:0,
     town:{renown:0,happiness:55,lastIncomeDay:-1,patrolCooldownDay:0,patrol:null},
     achievements:{}, stats:{fishSpecies:0,petKills:0,raidsWon:0,projectsBuilt:0,contractsDone:0}
@@ -77,6 +81,7 @@
     s.petCooldown=clamp(Number(raw.petCooldown)||1.5,0,30);
     s.fish=raw.fish&&typeof raw.fish==='object'?Object.fromEntries(FISH.map(f=>[f.id,clamp(Math.floor(Number(raw.fish[f.id])||0),0,999999)])):s.fish;
     s.projects=raw.projects&&typeof raw.projects==='object'?Object.fromEntries(Object.keys(PROJECTS).map(id=>[id,raw.projects[id]===true])):s.projects;
+    s.projectLevels=raw.projectLevels&&typeof raw.projectLevels==='object'?Object.fromEntries(Object.keys(PROJECTS).map(id=>[id,s.projects[id]?clamp(Math.floor(Number(raw.projectLevels[id])||1),1,3):0])):Object.fromEntries(Object.keys(PROJECTS).map(id=>[id,s.projects[id]?1:0]));
     const town=raw.town&&typeof raw.town==='object'?raw.town:{};
     const p=town.patrol&&typeof town.patrol==='object'?town.patrol:null;
     s.town={renown:clamp(Math.floor(Number(town.renown)||0),0,1000000),happiness:clamp(Math.floor(Number(town.happiness)||55),0,100),lastIncomeDay:Number.isInteger(town.lastIncomeDay)?town.lastIncomeDay:-1,patrolCooldownDay:clamp(Math.floor(Number(town.patrolCooldownDay)||0),0,1000000),patrol:p&&typeof p.id==='string'?{id:p.id.slice(0,120),day:clamp(Math.floor(Number(p.day)||0),0,1000000),active:p.active===true,completed:p.completed===true,spawned:clamp(Math.floor(Number(p.spawned)||0),1,8)}:null};
@@ -104,10 +109,11 @@
   function premium(){return !!window.SkyRealmEdition?.isPremium?.();}
   function needPremium(feature){if(premium())return true;window.SkyRealmEdition?.requirePremium?.(feature);notify('\u042d\u0442\u0430 \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e\u0441\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432 Premium.');return false;}
   function currentPet(){return state.activePet?PETS[state.activePet]:null;}
+  function projectLevel(id){return state.projects[id]?clamp(Math.floor(Number(state.projectLevels?.[id])||1),1,3):0;}
   function seasonName(id){return ({spring:'\u0412\u0435\u0441\u043d\u0430',summer:'\u041b\u0435\u0442\u043e',autumn:'\u041e\u0441\u0435\u043d\u044c',winter:'\u0417\u0438\u043c\u0430'})[id]||'\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e';}
-  function fishBonus(){return (state.projects.harbor?.12:0)+(state.activePet==='owl'?.08:0)+(state.activePet==='phoenix'?.04:0);}
-  function damageMultiplier(){const p=currentPet();return (p?.damageBonus||0)+(state.projects.watchtower?.05:0)+(state.projects.smithy?.08:0);}
-  function defenseBonus(){const p=currentPet();return (p?.defenseBonus||0)+(state.projects.sanctuary?.025:0)+(state.projects.infirmary?.02:0)+(state.projects.watch_bell?.015:0);}
+  function fishBonus(){return projectLevel('harbor')*.12+(state.activePet==='owl'?.08:0)+(state.activePet==='phoenix'?.04:0);}
+  function damageMultiplier(){const p=currentPet();return (p?.damageBonus||0)+projectLevel('watchtower')*.05+projectLevel('smithy')*.08+projectLevel('barracks')*.015;}
+  function defenseBonus(){const p=currentPet();return (p?.defenseBonus||0)+projectLevel('sanctuary')*.025+projectLevel('infirmary')*.02+projectLevel('watch_bell')*.015+projectLevel('walls')*.025;}
   function onFishingCatch(season,weather){
     load();if(Math.random()>clamp(.36+fishBonus()+(weather==='rain'?.08:0),.05,.72))return false;
     let pool=FISH.filter(f=>f.season===season);if(!pool.length)pool=FISH.slice(0,2);
@@ -139,8 +145,21 @@
     if(Number(b.getGold?.()||0)<item.price){notify('Нужно золото: '+item.price+'.');return false;}
     if(b.spendGold?.(item.price)!==true)return false;
     for(const [name,count] of Object.entries(item.items||{})){if(b.spendItem?.(name,count)!==true){notify('Не удалось списать материалы. Проверь инвентарь.');return false;}}
-    state.projects[id]=true;state.stats.projectsBuilt++;state.town.renown=clamp(state.town.renown+35,0,1000000);state.town.happiness=clamp(state.town.happiness+6,0,100);save();
+    state.projects[id]=true;state.projectLevels[id]=1;state.stats.projectsBuilt++;state.town.renown=clamp(state.town.renown+35,0,1000000);state.town.happiness=clamp(state.town.happiness+6,0,100);save();
     notify('Постройка завершена: '+item.name+'! +35 репутации города.');checkAchievements();render();return true;
+  }
+  function upgradeProject(id){
+    const item=PROJECTS[id],level=projectLevel(id),b=bridge();
+    if(!item||!level||level>=3){notify('Это здание уже достигло максимального уровня.');return false;}
+    if(!b?.isTradeWorld?.()){notify('Улучшения доступны только в Мире торговых городов.');return false;}
+    const cost=Math.round(item.price*(.8+level*.65)),materials=Object.entries(item.items||{}).map(([name,count])=>[name,Math.max(1,Math.ceil(count*level*.65))]);
+    const missing=materials.filter(([name,count])=>(Number(b.getItemCount?.(name))||0)<count);
+    if(missing.length){notify('Для улучшения не хватает: '+missing.map(([name,count])=>name+' '+(Number(b.getItemCount?.(name))||0)+'/'+count).join(', ')+'.');return false;}
+    if(Number(b.getGold?.()||0)<cost){notify('Для улучшения нужно '+cost+' золота.');return false;}
+    if(b.spendGold?.(cost)!==true)return false;
+    for(const [name,count] of materials){if(b.spendItem?.(name,count)!==true){b.addGold?.(cost);notify('Не удалось списать материалы. Золото возвращено.');return false;}}
+    state.projectLevels[id]=level+1;state.town.renown=clamp(state.town.renown+45,0,1000000);state.town.happiness=clamp(state.town.happiness+4,0,100);
+    save();notify(item.name+' улучшено до уровня '+(level+1)+'!');checkAchievements();render();return true;
   }
   function townRank(){const r=Number(state.town?.renown)||0;return r>=900?5:r>=480?4:r>=220?3:r>=80?2:1;}
   function townRankName(){return ['','Посёлок','Деревня','Городок','Город','Столица'][townRank()];}
@@ -152,14 +171,15 @@
     const centers=b.getVillageCenters?.()||[],pos=b.getPlayerPosition?.();if(!centers.length){notify('Поселение не найдено.');return false;}
     const center=centers.slice().sort((a,z)=>Math.hypot(a.x-(pos?.x||0),a.y-(pos?.y||0))-Math.hypot(z.x-(pos?.x||0),z.y-(pos?.y||0)))[0];
     const eventId='town-patrol-'+encodeURIComponent(worldId())+'-'+day;
-    const spawned=Number(b.spawnEventEnemies?.(eventId,center.x,center.y,6))||0;if(spawned<3){b.clearEventEnemies?.(eventId);notify('Рядом слишком много существ. Освободи место и попробуй снова.');return false;}
+    const patrolSize=clamp(6+Math.max(0,projectLevel('barracks')-1)+Math.max(0,projectLevel('watchtower')-1),6,8);
+    const spawned=Number(b.spawnEventEnemies?.(eventId,center.x,center.y,patrolSize))||0;if(spawned<3){b.clearEventEnemies?.(eventId);notify('Рядом слишком много существ. Освободи место и попробуй снова.');return false;}
     state.town.patrol={id:eventId,day,active:true,completed:false,spawned};state.town.patrolCooldownDay=day+(state.projects.watch_bell?1:2);save();render();notify('ТРЕВОГА! На поселение напали '+spawned+' налётчиков.');return true;
   }
   function updateTownPatrol(){
     const patrol=state.town?.patrol,b=bridge();if(!patrol?.active||typeof b?.getEventEnemyCount!=='function')return;
     const left=Number(b.getEventEnemyCount(patrol.id));if(!Number.isFinite(left)||left!==0)return;
     patrol.active=false;patrol.completed=true;state.town.renown=clamp(state.town.renown+90,0,1000000);state.town.happiness=clamp(state.town.happiness+14,0,100);
-    const reward=state.projects.guild_hall?42000:35000;b.addGold?.(reward);b.addItem?.('Знак защитника города',1,'Трофей за оборону торгового города.');
+    const reward=Math.round(35000*(1+Math.max(0,projectLevel('guild_hall')-1)*.12));b.addGold?.(reward);b.addItem?.('Знак защитника города',1,'Трофей за оборону торгового города.');
     if(state.projects.infirmary)b.addItem?.('Настойка лесного лекаря',1,'Припасы городской лечебницы.');
     save();notify('ПОСЕЛЕНИЕ СПАСЕНО! +90 репутации и '+Math.floor(reward/100)+' золота.');if(opened)render();
   }
@@ -235,13 +255,13 @@
     }
     if(state.projects.market){
       if(state.lastMarketDay<0)state.lastMarketDay=day;
-      else if(day>state.lastMarketDay){const elapsed=Math.min(3,day-state.lastMarketDay);b?.addGold?.(elapsed*500);state.lastMarketDay=day;save();notify('\u0422\u043e\u0440\u0433\u043e\u0432\u0430\u044f \u043f\u043b\u043e\u0449\u0430\u0434\u044c \u043f\u0440\u0438\u043d\u0435\u0441\u043b\u0430 \u0434\u043e\u0445\u043e\u0434.');}
+      else if(day>state.lastMarketDay){const elapsed=Math.min(3,day-state.lastMarketDay);b?.addGold?.(elapsed*(500+Math.max(0,projectLevel('market')-1)*180));state.lastMarketDay=day;save();notify('\u0422\u043e\u0440\u0433\u043e\u0432\u0430\u044f \u043f\u043b\u043e\u0449\u0430\u0434\u044c \u043f\u0440\u0438\u043d\u0435\u0441\u043b\u0430 \u0434\u043e\u0445\u043e\u0434.');}
     }
     if(state.projects.granary){
       if(state.lastGranaryDay<0)state.lastGranaryDay=day;
-      else if(day>state.lastGranaryDay){const elapsed=Math.min(3,day-state.lastGranaryDay);b?.addGold?.(elapsed*350);state.lastGranaryDay=day;save();notify('\u0417\u0435\u0440\u043d\u043e\u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0435 \u043f\u0440\u0438\u043d\u0435\u0441\u043b\u043e \u043f\u0440\u0438\u043f\u0430\u0441\u044b \u0438 \u0434\u043e\u0445\u043e\u0434.');}
+      else if(day>state.lastGranaryDay){const elapsed=Math.min(3,day-state.lastGranaryDay);b?.addGold?.(elapsed*(350+Math.max(0,projectLevel('granary')-1)*140));state.lastGranaryDay=day;save();notify('\u0417\u0435\u0440\u043d\u043e\u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0435 \u043f\u0440\u0438\u043d\u0435\u0441\u043b\u043e \u043f\u0440\u0438\u043f\u0430\u0441\u044b \u0438 \u0434\u043e\u0445\u043e\u0434.');}
     }
-    if(state.projects.greenhouse&&state.town.lastIncomeDay<day){state.town.lastIncomeDay=day;b?.addItem?.('Лечебная трава',2,'Свежий сбор из городской оранжереи.');b?.addGold?.(150);save();notify('Оранжерея принесла припасы и немного дохода.');}
+    if(state.projects.greenhouse&&state.town.lastIncomeDay<day){state.town.lastIncomeDay=day;b?.addItem?.('Лечебная трава',1+projectLevel('greenhouse'),'Свежий сбор из городской оранжереи.');b?.addGold?.(150);save();notify('Оранжерея принесла припасы и немного дохода.');}
     if(state.contractsDay!==day){
       const offset=((day*3)%CONTRACTS.length+CONTRACTS.length)%CONTRACTS.length;
       state.contracts=[0,1,2].map(i=>({id:CONTRACTS[(offset+i*2)%CONTRACTS.length].id,completed:false}));
@@ -368,7 +388,11 @@
       {id:'school',village:'snow',dx:560,dy:-350},
       {id:'smithy',village:'volcano',dx:560,dy:-350},
       {id:'watch_bell',village:'blight',dx:560,dy:-350},
-      {id:'greenhouse',village:'forest',dx:560,dy:550}
+      {id:'greenhouse',village:'forest',dx:560,dy:550},
+      {id:'barracks',village:'snow',dx:660,dy:-350},
+      {id:'fountain',village:'forest',dx:700,dy:-350},
+      {id:'library',village:'desert',dx:700,dy:-380},
+      {id:'walls',village:'volcano',dx:700,dy:350}
     ];
     for(const item of items){
       if(!state.projects[item.id])continue;
@@ -430,6 +454,13 @@
       else if(item.id==='smithy'){ctx.fillStyle='#57483f';ctx.fillRect(-50,-2,100,47);ctx.fillStyle='#8b6550';ctx.beginPath();ctx.moveTo(-58,0);ctx.lineTo(0,-44);ctx.lineTo(58,0);ctx.closePath();ctx.fill();ctx.fillStyle='#413431';ctx.fillRect(20,-58,17,43);ctx.fillStyle='#ff9c45';ctx.shadowColor='#ff672c';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(-12,20,11,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
       else if(item.id==='watch_bell'){ctx.fillStyle='#8b795d';ctx.fillRect(-22,-2,44,70);ctx.fillStyle='#c5a875';ctx.beginPath();ctx.moveTo(-34,0);ctx.lineTo(0,-51);ctx.lineTo(34,0);ctx.closePath();ctx.fill();ctx.fillStyle='#182b39';ctx.fillRect(-12,-30,24,20);ctx.strokeStyle='#f0d58e';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,-20,8,0,Math.PI*2);ctx.stroke();}
       else if(item.id==='greenhouse'){ctx.fillStyle='rgba(99,187,159,.38)';ctx.fillRect(-54,0,108,43);ctx.strokeStyle='#b2e7d7';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-60,0);ctx.lineTo(0,-42);ctx.lineTo(60,0);ctx.lineTo(60,43);ctx.lineTo(-60,43);ctx.closePath();ctx.stroke();for(let x=-35;x<=35;x+=18){ctx.strokeStyle='#8fc9b8';ctx.beginPath();ctx.moveTo(x,3);ctx.lineTo(x,40);ctx.stroke();ctx.fillStyle='#7abf75';ctx.beginPath();ctx.arc(x,14+(x%2)*6,7,0,Math.PI*2);ctx.fill();}}
+      if(item.id==='barracks'){ctx.fillStyle='#8b6b4c';ctx.fillRect(-48,-4,96,47);ctx.fillStyle='#5b6470';ctx.beginPath();ctx.moveTo(-57,-3);ctx.lineTo(0,-49);ctx.lineTo(57,-3);ctx.closePath();ctx.fill();ctx.fillStyle='#d5c18f';ctx.fillRect(-34,7,12,23);ctx.fillRect(22,7,12,23);ctx.fillStyle='#e5b86b';ctx.fillRect(-5,-30,10,19);}
+      if(item.id==='fountain'){ctx.fillStyle='#6c9c9b';ctx.beginPath();ctx.ellipse(0,18,48,19,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b9d9d0';ctx.beginPath();ctx.ellipse(0,15,39,12,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8bd9e2';ctx.beginPath();ctx.moveTo(0,12);ctx.quadraticCurveTo(-15,-9,0,-32);ctx.quadraticCurveTo(15,-9,0,12);ctx.fill();}
+      if(item.id==='library'){ctx.fillStyle='#6e503e';ctx.fillRect(-48,-3,96,47);ctx.fillStyle='#7b91a5';ctx.beginPath();ctx.moveTo(-58,-2);ctx.lineTo(0,-50);ctx.lineTo(58,-2);ctx.closePath();ctx.fill();ctx.fillStyle='#d5c18f';for(let x=-34;x<=24;x+=29)ctx.fillRect(x,4,12,31);}
+      if(item.id==='walls'){ctx.fillStyle='#667b7e';ctx.fillRect(-64,-2,128,43);ctx.fillStyle='#a7b2a8';for(let x=-58;x<=46;x+=26)ctx.fillRect(x,-12,15,12);ctx.fillStyle='#4a626b';ctx.fillRect(-64,30,128,10);}
+      const level=projectLevel(item.id);
+      if(level>=2){ctx.save();ctx.strokeStyle=level===3?'rgba(244,207,126,.9)':'rgba(154,215,207,.75)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-47,35);ctx.lineTo(-47,-3);ctx.moveTo(47,35);ctx.lineTo(47,-3);ctx.stroke();ctx.fillStyle=level===3?'#f3cf7e':'#9ad7cf';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=level===3?12:6;for(const wx of [-27,27]){ctx.fillRect(wx-4,-27,8,10);ctx.fillRect(wx-4,7,8,9);}ctx.shadowBlur=0;ctx.fillStyle='#8b5d3e';ctx.fillRect(-54,-6,108,5);ctx.restore();}
+      if(level>=3){ctx.save();ctx.shadowColor='#f5d18a';ctx.shadowBlur=18;ctx.strokeStyle='rgba(245,209,138,.8)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-18,65+Math.sin(time/240)*3,Math.PI*1.08,Math.PI*1.92);ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#f3d48e';ctx.fillRect(-3,-96,6,12);ctx.restore();}
       ctx.globalAlpha=1;ctx.fillStyle='#f1f6e7';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';
       ctx.shadowColor='#06131a';ctx.shadowBlur=5;
       ctx.fillText(PROJECTS[item.id]?.name||item.id,0,-82);
@@ -468,8 +499,9 @@
     const stats='<div class="lw-note"><b>🏘 '+townRankName()+'</b> · Репутация '+town.renown+' · Настроение '+town.happiness+'/100<div class="lw-meter"><i style="width:'+clamp(progress,0,100)+'%"></i></div><small>18 домов · 15 гуляющих жителей · '+buildings+' построек. Репутация растёт за проекты, поручения и оборону.</small></div>';
     const patrolCard='<article class="lw-card"><div class="lw-pet-icon">🛡️</div><b>Оборона торговых улиц</b><small>Шесть настоящих налётчиков появляются возле ближайшего поселения. Сигнальная башня сокращает перерыв между патрулями.</small><div class="lw-count">'+esc(patrolText)+'</div><button type="button" '+(!trade||patrol?.active||Number(bridge()?.getGameDay?.()||0)<town.patrolCooldownDay?'disabled':'')+' data-lw-action="town-patrol">'+(patrol?.active?'Нападение идёт':!trade?'Нужен торговый мир':'Начать оборону')+'</button></article>';
     const note='<p class="lw-note">'+(trade?'Развивай торговые города: строй общественные здания, помогай жителям и защищай улицы.':'Для городских построек перейди через портал в Мир торговых городов.')+'</p>';
-    const projects='<div class="lw-grid">'+Object.entries(PROJECTS).map(([id,p])=>{const missing=Object.entries(p.items||{}).filter(([name,count])=>(Number(bridge()?.getItemCount?.(name))||0)<count);const req=p.items?Object.entries(p.items).map(([name,count])=>name+' ×'+count).join(', '):'';return '<article class="lw-card"><div class="lw-pet-icon">'+p.icon+'</div><b>'+esc(p.name)+'</b><small>'+esc(p.desc)+'</small>'+(p.items?'<small>Материалы: '+esc(req)+'</small>':'')+'<button type="button" '+(state.projects[id]||!trade||missing.length?'disabled':'')+' data-lw-action="project:'+id+'">'+(state.projects[id]?'Построено':!trade?'Нужен торговый мир':missing.length?'Не хватает материалов':'Построить · '+p.price+' золота')+'</button></article>';}).join('')+'</div>';
-    return stats+'<div class="lw-grid">'+patrolCard+'</div>'+renderContracts()+note+projects;
+     const projects='<div class="lw-grid">'+Object.entries(PROJECTS).map(([id,p])=>{const level=projectLevel(id),next=level+1,upgradeCost=Math.round(p.price*(.8+level*.65)),materials=Object.entries(p.items||{}).map(([name,count])=>[name,Math.max(1,Math.ceil(count*level*.65))]),missing=materials.filter(([name,count])=>(Number(bridge()?.getItemCount?.(name))||0)<count),req=p.items?Object.entries(p.items).map(([name,count])=>name+' ×'+count).join(', '):'';return '<article class="lw-card lw-project '+(level?'built':'')+'"><div class="lw-pet-icon">'+p.icon+'</div><b>'+esc(p.name)+'</b><small>'+esc(p.desc)+'</small><div class="lw-levels">'+[1,2,3].map(n=>'<i class="'+(level>=n?'on':'')+'"></i>').join('')+' <span>'+(level?'Уровень '+level+'/3':'Не построено')+'</span></div>'+(p.items?'<small>Материалы: '+esc(req)+'</small>':'')+(level?'<button type="button" '+(level>=3||!trade||missing.length||Number(bridge()?.getGold?.()||0)<upgradeCost?'disabled':'')+' data-lw-action="upgrade:'+id+'">'+(level>=3?'Максимальный уровень':!trade?'Нужен торговый мир':missing.length?'Не хватает материалов':'Улучшить до '+next+' уровня · '+upgradeCost+' золота')+'</button>':'<button type="button" '+(!trade||Object.entries(p.items||{}).some(([name,count])=>(Number(bridge()?.getItemCount?.(name))||0)<count)||Number(bridge()?.getGold?.()||0)<p.price?'disabled':'')+' data-lw-action="project:'+id+'">'+(!trade?'Нужен торговый мир':'Построить · '+p.price+' золота')+'</button>')+'</article>';}).join('')+'</div>';
+    const district='<div class="lw-note"><b>Развитие районов</b><small>Каждая постройка улучшается до III уровня. Новые уровни меняют внешний вид и усиливают её эффект: оборону, торговлю, лечение и награды.</small></div>';
+    return stats+'<div class="lw-grid">'+patrolCard+'</div>'+renderContracts()+note+district+projects;
   }
   function renderSeason(){
     const s=bridge()?.getSeasonInfo?.()||{},key=state.pendingSeason;
@@ -503,7 +535,7 @@
   function ensureUI(){
     if(root)return;
     const style=document.createElement('style');
-    style.textContent='#living-world-launch{position:fixed;right:18px;top:270px;z-index:36;border:1px solid #76b9bb;border-radius:11px;padding:10px 13px;background:linear-gradient(135deg,#164b4b,#172b42);color:#ecffff;font:800 12px Segoe UI;cursor:pointer;box-shadow:0 8px 25px #0008}#living-world-launch[hidden],#skyrealm-living-world[hidden]{display:none!important}#skyrealm-living-world{position:fixed;inset:0;z-index:99970;display:flex;align-items:center;justify-content:center;padding:16px;background:#020914c9;color:#edf7ff;font:13px Segoe UI,Arial}#skyrealm-living-world .lw-panel{width:min(820px,100%);max-height:90vh;overflow:hidden;border:1px solid #47717a;border-radius:18px;background:linear-gradient(150deg,#142e3d,#091723 75%);box-shadow:0 25px 90px #000d;padding:17px;display:flex;flex-direction:column}#skyrealm-living-world header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}#skyrealm-living-world header small{color:#91d9d0;font-weight:900;letter-spacing:1px}#skyrealm-living-world h2{font-size:22px;margin:5px 0;color:#efffff}#skyrealm-living-world p{color:#a9c1ce;line-height:1.55;margin:6px 0 12px}#skyrealm-living-world button{border:1px solid #4a7c87;border-radius:9px;background:#1c4c59;color:#f0ffff;padding:9px 11px;font-weight:800;cursor:pointer}#skyrealm-living-world button:disabled{opacity:.4;cursor:not-allowed}#skyrealm-living-world button.secondary{background:#172b3a}#skyrealm-living-world .lw-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}#skyrealm-living-world .lw-tabs button{background:#102537;font-size:11px}#skyrealm-living-world .lw-tabs button.active{background:#22606a;border-color:#a3e8dc}#skyrealm-living-world main{overflow:auto;min-height:120px;padding-right:4px}#skyrealm-living-world .lw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}#skyrealm-living-world .lw-card{background:#0d1e2d;border:1px solid #2e5264;border-radius:11px;padding:12px;margin:8px 0}#skyrealm-living-world .lw-card b{display:block;color:#eefaff;margin:4px 0}#skyrealm-living-world .lw-card small{display:block;color:#a8c0d1;line-height:1.5;margin:4px 0}#skyrealm-living-world .lw-card button{width:100%;margin-top:8px}#skyrealm-living-world .lw-pet-icon,#skyrealm-living-world .lw-fish-icon,#skyrealm-living-world .lw-boss-mark{font-size:28px;margin:0 0 6px}#skyrealm-living-world .lw-pet.selected{border-color:#9ae8c2;background:#102c2b}#skyrealm-living-world .lw-premium{display:inline-block;color:#f3d184;font-size:10px;font-weight:900;margin:5px 0}#skyrealm-living-world .lw-count{display:block;color:#98e2ca;font-weight:900;margin-top:5px}#skyrealm-living-world .lw-note{padding:10px 12px;border:1px solid #315265;border-radius:10px;background:#0d1d2b}#skyrealm-living-world .lw-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}#skyrealm-living-world .lw-metrics>div{padding:10px;background:#10283a;border:1px solid #31556a;border-radius:9px}#skyrealm-living-world .lw-metrics b{font-size:20px;color:#a7e8dc}#skyrealm-living-world .lw-meter{height:8px;background:#243c4e;border-radius:8px;overflow:hidden;margin:8px 0}#skyrealm-living-world .lw-meter i{display:block;height:100%;background:linear-gradient(90deg,#54b9ce,#9ee6af)}#skyrealm-living-world footer{padding-top:10px;margin-top:10px;border-top:1px solid #2c4c5d;color:#88a6b7;font-size:10px}#skyrealm-living-world .lw-card>small + button{margin-top:9px}@media(max-width:600px){#living-world-launch{top:260px;right:8px;padding:8px 10px}#skyrealm-living-world{padding:7px}#skyrealm-living-world .lw-panel{padding:12px;max-height:94vh}#skyrealm-living-world h2{font-size:19px}}';
+    style.textContent='#living-world-launch{position:fixed;right:18px;top:270px;z-index:36;border:1px solid #76b9bb;border-radius:11px;padding:10px 13px;background:linear-gradient(135deg,#164b4b,#172b42);color:#ecffff;font:800 12px Segoe UI;cursor:pointer;box-shadow:0 8px 25px #0008}#living-world-launch[hidden],#skyrealm-living-world[hidden]{display:none!important}#skyrealm-living-world{position:fixed;inset:0;z-index:99970;display:flex;align-items:center;justify-content:center;padding:16px;background:#020914c9;color:#edf7ff;font:13px Segoe UI,Arial}#skyrealm-living-world .lw-panel{width:min(820px,100%);max-height:90vh;overflow:hidden;border:1px solid #47717a;border-radius:18px;background:linear-gradient(150deg,#142e3d,#091723 75%);box-shadow:0 25px 90px #000d;padding:17px;display:flex;flex-direction:column}#skyrealm-living-world header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}#skyrealm-living-world header small{color:#91d9d0;font-weight:900;letter-spacing:1px}#skyrealm-living-world h2{font-size:22px;margin:5px 0;color:#efffff}#skyrealm-living-world p{color:#a9c1ce;line-height:1.55;margin:6px 0 12px}#skyrealm-living-world button{border:1px solid #4a7c87;border-radius:9px;background:#1c4c59;color:#f0ffff;padding:9px 11px;font-weight:800;cursor:pointer}#skyrealm-living-world button:disabled{opacity:.4;cursor:not-allowed}#skyrealm-living-world button.secondary{background:#172b3a}#skyrealm-living-world .lw-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}#skyrealm-living-world .lw-tabs button{background:#102537;font-size:11px}#skyrealm-living-world .lw-tabs button.active{background:#22606a;border-color:#a3e8dc}#skyrealm-living-world main{overflow:auto;min-height:120px;padding-right:4px}#skyrealm-living-world .lw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}#skyrealm-living-world .lw-card{background:linear-gradient(145deg,#10283a,#0b1b2a);border:1px solid #2e5264;border-radius:11px;padding:12px;margin:8px 0}#skyrealm-living-world .lw-project.built{border-color:#4c8c7b;background:linear-gradient(145deg,#12352f,#0d1e2d)}#skyrealm-living-world .lw-levels{display:flex;align-items:center;gap:5px;margin:8px 0;color:#a9c1ce;font-size:10px;font-weight:800}#skyrealm-living-world .lw-levels i{width:18px;height:5px;border-radius:5px;background:#294253}#skyrealm-living-world .lw-levels i.on{background:linear-gradient(90deg,#6dc9bd,#e6ce88);box-shadow:0 0 7px #7ad7c577}#skyrealm-living-world .lw-levels span{margin-left:4px}#skyrealm-living-world .lw-card b{display:block;color:#eefaff;margin:4px 0}#skyrealm-living-world .lw-card small{display:block;color:#a8c0d1;line-height:1.5;margin:4px 0}#skyrealm-living-world .lw-card button{width:100%;margin-top:8px}#skyrealm-living-world .lw-pet-icon,#skyrealm-living-world .lw-fish-icon,#skyrealm-living-world .lw-boss-mark{font-size:28px;margin:0 0 6px}#skyrealm-living-world .lw-pet.selected{border-color:#9ae8c2;background:#102c2b}#skyrealm-living-world .lw-premium{display:inline-block;color:#f3d184;font-size:10px;font-weight:900;margin:5px 0}#skyrealm-living-world .lw-count{display:block;color:#98e2ca;font-weight:900;margin-top:5px}#skyrealm-living-world .lw-note{padding:10px 12px;border:1px solid #315265;border-radius:10px;background:#0d1d2b}#skyrealm-living-world .lw-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}#skyrealm-living-world .lw-metrics>div{padding:10px;background:#10283a;border:1px solid #31556a;border-radius:9px}#skyrealm-living-world .lw-metrics b{font-size:20px;color:#a7e8dc}#skyrealm-living-world .lw-meter{height:8px;background:#243c4e;border-radius:8px;overflow:hidden;margin:8px 0}#skyrealm-living-world .lw-meter i{display:block;height:100%;background:linear-gradient(90deg,#54b9ce,#9ee6af)}#skyrealm-living-world footer{padding-top:10px;margin-top:10px;border-top:1px solid #2c4c5d;color:#88a6b7;font-size:10px}#skyrealm-living-world .lw-card>small + button{margin-top:9px}@media(max-width:600px){#living-world-launch{top:260px;right:8px;padding:8px 10px}#skyrealm-living-world{padding:7px}#skyrealm-living-world .lw-panel{padding:12px;max-height:94vh}#skyrealm-living-world h2{font-size:19px}}';
     document.head.appendChild(style);
     button=document.createElement('button');button.id='living-world-launch';button.type='button';button.textContent='\u{1F4D6} \u0416\u0438\u0432\u043e\u0439 \u043c\u0438\u0440';button.hidden=true;button.addEventListener('click',openPanel);document.body.appendChild(button);
     root=document.createElement('section');root.id='skyrealm-living-world';root.hidden=true;document.body.appendChild(root);
@@ -515,6 +547,7 @@
       if(action.startsWith('fish-sell:')){sellFish(action.slice(10));return;}
       if(action.startsWith('pet:')){buyOrSelectPet(action.slice(4));return;}
       if(action.startsWith('project:')){buildProject(action.slice(8));return;}
+      if(action.startsWith('upgrade:')){upgradeProject(action.slice(8));return;}
       if(action==='town-patrol'){startTownPatrol();return;}
       if(action.startsWith('raid:')){startRaid(action.slice(5));return;}
       if(action==='raid-attack'){attackRaid();return;}
@@ -541,7 +574,7 @@
   window.SkyRealmLivingWorld=Object.freeze({
     update,draw,onFishingCatch,damageMultiplier,defenseBonus,fishBonus,
     getState:()=>JSON.parse(JSON.stringify(state)),
-    getTownState:()=>JSON.parse(JSON.stringify(state.town)),buildProject,startTownPatrol,
+    getTownState:()=>JSON.parse(JSON.stringify(state.town)),buildProject,upgradeProject,startTownPatrol,
     open:openPanel
   });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
