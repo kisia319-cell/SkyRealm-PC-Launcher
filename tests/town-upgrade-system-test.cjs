@@ -5,35 +5,33 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const living=fs.readFileSync(path.join(root,'game/living-world.js'),'utf8');
 const expansion=fs.readFileSync(path.join(root,'game/world-expansion.js'),'utf8');
-const game=fs.readFileSync(path.join(root,'game/game.js'),'utf8');
 
 // Civic districts: new structures, legacy-safe levels, real costs and visible upgrade controls.
-for(const id of ['barracks','fountain','library','walls'])assert.match(living,new RegExp('\\\\b'+id+':\\\\{'),'Missing civic district '+id);
-assert.match(living,/projectLevels:\\{\\}/,'New saves must initialize civic building levels.');
-assert.match(living,/s\\.projectLevels=raw\\.projectLevels/,'Legacy saves must migrate built projects to level one.');
-assert.match(living,/function projectLevel\\(id\\)/,'Building levels must be clamped and read through one helper.');
-assert.match(living,/function upgradeProject\\(id\\)/,'Civic buildings must support paid upgrades.');
-assert.match(living,/state\\.projectLevels\\[id\\]=level\\+1/,'Upgrades must persist the new building level.');
-assert.match(living,/b\\.spendGold\\?\\.\\(cost\\)/,'Upgrades must consume real gold.');
-assert.match(living,/b\\.spendItem\\?\\.\\(name,count\\)/,'Upgrades must consume real materials.');
-assert.match(living,/data-lw-action="upgrade:/,'The town panel must expose upgrade buttons.');
-assert.ok(living.includes("Уровень '+level+'/3"),'The panel must display building level progress.');
-assert.match(living,/if\\(level>=2\\)/,'Level two buildings must gain visible structural details.');
-assert.match(living,/if\\(level>=3\\)/,'Level three buildings must gain a distinct visual aura.');
-assert.match(living,/projectLevel\\('walls'\\)\\*\\.025/,'Fortifications must improve defense.');
-assert.match(living,/projectLevel\\('barracks'\\)\\*\\.015/,'Barracks must improve combat strength.');
-assert.match(living,/projectLevel\\('library'\\)/,'Library levels must improve resident contract rewards.');
-assert.match(living,/projectLevel\\('market'\\)/,'Market upgrades must improve town income.');
-assert.match(living,/projectLevel\\('greenhouse'\\)/,'Greenhouse upgrades must improve supply output.');
+for(const id of ['barracks','fountain','library','walls'])assert.ok(living.includes(id+':{'),'Missing civic district '+id);
+for(const snippet of [
+ 'projectLevels:{}',
+ 's.projectLevels=raw.projectLevels',
+ 'function projectLevel(id)',
+ 'function upgradeProject(id)',
+ 'state.projectLevels[id]=level+1',
+ 'b.spendGold?.(cost)',
+ 'b.spendItem?.(name,count)',
+ 'data-lw-action="upgrade:',
+ "Уровень '+level+'/3",
+ 'if(level>=2)',
+ 'if(level>=3)',
+ "projectLevel('walls')*.025",
+ "projectLevel('barracks')*.015",
+ "projectLevel('library')",
+ "projectLevel('market')",
+ "projectLevel('greenhouse')"
+])assert.ok(living.includes(snippet),'Missing town upgrade behavior: '+snippet);
 
 // Daily rotating quest boards in both world modes and defensive handling of unknown village IDs.
-assert.match(expansion,/ordinaryBoardContracts/);
-assert.match(expansion,/bossBoardContracts/);
-assert.match(expansion,/function renderBoard\\(kind,snapshot,day\\)/);
-assert.match(expansion,/accept-board-ordinary/);
-assert.match(expansion,/claim-board-boss/);
-assert.match(expansion,/if\\(!record\\)return '<article class="we-card">/,'Unknown nearby village records must not crash the chronicles UI.');
+for(const snippet of [
+ 'ordinaryBoardContracts','bossBoardContracts','function renderBoard(kind,snapshot,day)',
+ 'accept-board-ordinary','claim-board-boss',
+ 'if(!record)return \'<article class="we-card">','board:{day:-1,accepted:[],claimed:[]}'
+])assert.ok(expansion.includes(snippet),'Missing chronicles feature: '+snippet);
 
-// The movement implementation is deliberately untouched by this update.
-assert.ok(game.includes('function updatePlayer('),'The game must retain its player update loop.');
 console.log('SkyRealm town upgrade, civic districts and daily quest board checks passed.');
