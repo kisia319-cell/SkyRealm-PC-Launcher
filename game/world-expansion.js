@@ -351,7 +351,9 @@
   function renderVillageRelations(nearest){
     const centers=bridge()?.getVillageCenters?.()||[];
     if(!nearest)return '<article class="we-card"><h3>🕊️ Отношения с поселениями</h3><small>Поселения появятся здесь, когда ты войдёшь в Мир торговли.</small></article>';
-    const id=String(nearest.id||''),record=relationFor(id),status=relationStatus(record),fee=record.wanted>0?villageFine(record):0;
+    const id=String(nearest.id||''),record=relationFor(id);
+    if(!record)return '<article class="we-card"><h3>🕊️ Отношения с поселениями</h3><small>Для этого поселения пока нет сохранённой дипломатической записи. Выбери одно из известных поселений, чтобы начать отношения.</small></article>';
+    const status=relationStatus(record),fee=record.wanted>0?villageFine(record):0;
     const damaged=Math.max(0,Number(bridge()?.getVillageDamageCount?.(id))||0);
     const list=centers.map(v=>{const r=relationFor(v.id);return esc(VILLAGE_NAMES[v.id]||v.id)+' · '+(r.allied?'СОЮЗНИК':relationStatus(r))+' · '+r.trust+' доверия · розыск '+r.wanted;}).join('<br>');
     const tradeBlocked=!canTrade();
