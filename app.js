@@ -1292,18 +1292,36 @@
   }
   $('#play-game').addEventListener('click', () => launchGame(null));
   let competitiveLaunchBusy = false;
-  $('#play-competitive')?.addEventListener('click', async () => {
+  const competitiveButton = $('#play-competitive');
+  const competitiveStatus = $('#competitive-launch-status');
+  async function refreshPrimeLauncherButton() {
+    if (!competitiveButton || !window.pywebview?.api?.get_competitive_launcher_status) return;
+    try {
+      const state = await window.pywebview.api.get_competitive_launcher_status();
+      if (state?.ok && !state.installed) {
+        competitiveButton.innerHTML = '<span>↓</span> Скачать PrimeLauncher <b>↗</b>';
+        if (competitiveStatus) competitiveStatus.textContent = 'PrimeLauncher ещё не установлен на этом компьютере';
+      } else if (state?.ok) {
+        competitiveButton.innerHTML = '<span>▶</span> Играть <b>↗</b>';
+        if (competitiveStatus) competitiveStatus.textContent = 'PrimeLauncher установлен · готов к запуску';
+      }
+    } catch (_) {}
+  }
+  refreshPrimeLauncherButton();
+  window.addEventListener('pywebviewready', refreshPrimeLauncherButton);
+  competitiveButton?.addEventListener('click', async () => {
     if (competitiveLaunchBusy) return;
-    const button = $('#play-competitive');
-    const status = $('#competitive-launch-status');
+    const button = competitiveButton;
+    const status = competitiveStatus;
     competitiveLaunchBusy = true;
     button.disabled = true;
-    status.textContent = currentLanguage === 'en' ? 'Starting PrimeLauncher…' : 'Запускаем PrimeLauncher…';
+    status.textContent = currentLanguage === 'en' ? 'Preparing PrimeLauncher…' : 'Подготавливаем PrimeLauncher…';
     try {
       if (window.pywebview?.api?.launch_competitive_game) {
         const result = await window.pywebview.api.launch_competitive_game();
-        if (!result || result.ok === false) throw new Error(result?.message || 'Не удалось запустить PrimeLauncher.');
-        status.textContent = currentLanguage === 'en' ? 'PrimeLauncher started' : 'PrimeLauncher запущен';
+        if (!result || result.ok === false) throw new Error(result?.message || 'Не удалось установить или запустить PrimeLauncher.');
+        status.textContent = currentLanguage === 'en' ? 'PrimeLauncher started' : 'PrimeLauncher установлен и запущен';
+        button.innerHTML = '<span>▶</span> Играть <b>↗</b>';
         await new Promise(resolve => setTimeout(resolve, 350));
         await window.pywebview.api.close();
       } else {
@@ -1331,3 +1349,5 @@
   $('#minimize').addEventListener('click', () => { if (window.pywebview?.api?.minimize) window.pywebview.api.minimize(); else toast('Кнопка сворачивания работает в приложении Windows.'); });
   $('#close').addEventListener('click', () => { if (window.pywebview?.api?.close) window.pywebview.api.close(); else toast('Закрой вкладку браузера, чтобы выйти из демо.'); });
 })();
+
+[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
