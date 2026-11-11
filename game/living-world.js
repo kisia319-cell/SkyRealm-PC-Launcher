@@ -62,7 +62,7 @@
   const defaults = () => ({
     version:VERSION, ownedPets:[], activePet:null, petLevels:{}, petX:0, petY:0, petCooldown:1.5,
     fish:{}, projects:{}, projectLevels:{}, lastSeasonKey:'', pendingSeason:'', claimedSeasons:[],
-    seasonsSeen:[], lastMarketDay:-1, lastGranaryDay:-1, contractsDay:-1, contracts:[], raid:null, raidCooldownDay:0,
+    seasonsSeen:[], lastMarketDay:-1, lastGranaryDay:-1, lastFountainDay:-1, contractsDay:-1, contracts:[], raid:null, raidCooldownDay:0,
     town:{renown:0,happiness:55,lastIncomeDay:-1,patrolCooldownDay:0,patrol:null},
     achievements:{}, stats:{fishSpecies:0,petKills:0,raidsWon:0,projectsBuilt:0,contractsDone:0}
   });
@@ -91,6 +91,7 @@
     s.seasonsSeen=Array.isArray(raw.seasonsSeen)?Array.from(new Set(raw.seasonsSeen.filter(v=>['spring','summer','autumn','winter'].includes(v)))):[];
     s.lastMarketDay=Number.isInteger(raw.lastMarketDay)?raw.lastMarketDay:-1;
     s.lastGranaryDay=Number.isInteger(raw.lastGranaryDay)?raw.lastGranaryDay:-1;
+    s.lastFountainDay=Number.isInteger(raw.lastFountainDay)?raw.lastFountainDay:-1;
     s.contractsDay=Number.isInteger(raw.contractsDay)?raw.contractsDay:-1;
     s.contracts=Array.isArray(raw.contracts)?raw.contracts.filter(v=>v&&CONTRACTS.some(c=>c.id===v.id)).slice(0,3).map(v=>({id:v.id,completed:v.completed===true})):[];
     s.raidCooldownDay=clamp(Math.floor(Number(raw.raidCooldownDay)||0),0,1000000);
@@ -217,7 +218,7 @@
     const b=bridge();
     if(Number(b?.getItemCount?.(task.item)||0)<task.amount){notify('Не хватает ресурсов: '+task.item+' ×'+task.amount+'.');return;}
     if(b?.spendItem?.(task.item,task.amount)!==true){notify('Не удалось списать предметы из инвентаря.');return;}
-    const reward=Math.round(task.reward*(state.projects.guild_hall?1.25:1)*(state.projects.school?1.1:1)*(1+Math.max(0,projectLevel('guild_hall')-1)*.12)*(1+Math.max(0,projectLevel('school')-1)*.08)*(1+Math.max(0,projectLevel('library'))*.04));
+    const reward=Math.round(task.reward*(state.projects.guild_hall?1.25:1)*(state.projects.school?1.1:1)*(1+Math.max(0,projectLevel('guild_hall')-1)*.12)*(1+Math.max(0,projectLevel('school')-1)*.08)*(1+Math.max(0,projectLevel('library'))*.04)*(1+clamp((state.town.happiness-55)/1000,-.055,.045)));
     b?.addGold?.(reward);entry.completed=true;state.stats.contractsDone++;state.town.renown=clamp(state.town.renown+18,0,1000000);state.town.happiness=clamp(state.town.happiness+3,0,100);save();
     notify('Поручение выполнено! Награда: '+Math.floor(reward/100)+' золота.');
     checkAchievements();render();
@@ -260,7 +261,8 @@
       if(state.lastGranaryDay<0)state.lastGranaryDay=day;
       else if(day>state.lastGranaryDay){const elapsed=Math.min(3,day-state.lastGranaryDay);b?.addGold?.(elapsed*(350+Math.max(0,projectLevel('granary')-1)*140));state.lastGranaryDay=day;save();notify('\u0417\u0435\u0440\u043d\u043e\u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0435 \u043f\u0440\u0438\u043d\u0435\u0441\u043b\u043e \u043f\u0440\u0438\u043f\u0430\u0441\u044b \u0438 \u0434\u043e\u0445\u043e\u0434.');}
     }
-    if(state.projects.greenhouse&&state.town.lastIncomeDay<day){state.town.lastIncomeDay=day;b?.addItem?.('Лечебная трава',1+projectLevel('greenhouse'),'Свежий сбор из городской оранжереи.');b?.addGold?.(150);save();notify('Оранжерея принесла припасы и немного дохода.');}
+    if(state.projects.greenhouse&&state.town.lastIncomeDay<day){state.town.lastIncomeDay=day;b?.addItem?.('Лечебная трава',1+projectLevel('greenhouse'),'Свежий сбор из городской оранжереи.');b?.addGold?.(150+projectLevel('greenhouse')*50);save();notify('Оранжерея принесла припасы и немного дохода.');}
+    if(projectLevel('fountain')){if(state.lastFountainDay<0)state.lastFountainDay=day;else if(day>state.lastFountainDay){const elapsed=Math.min(3,day-state.lastFountainDay);state.town.happiness=clamp(state.town.happiness+elapsed*projectLevel('fountain')*2,0,100);state.lastFountainDay=day;save();notify('Фонтан оживил площадь: настроение жителей улучшилось.');}}
     if(state.contractsDay!==day){
       const offset=((day*3)%CONTRACTS.length+CONTRACTS.length)%CONTRACTS.length;
       state.contracts=[0,1,2].map(i=>({id:CONTRACTS[(offset+i*2)%CONTRACTS.length].id,completed:false}));
@@ -483,7 +485,7 @@
   function renderContracts(){
     const day=Math.max(0,Number(bridge()?.getGameDay?.())||0);
     if(state.contractsDay!==day)return '<p class="lw-note">\u041f\u043e\u0440\u0443\u0447\u0435\u043d\u0438\u044f \u043e\u0431\u043d\u043e\u0432\u044f\u0442\u0441\u044f \u0432 \u043d\u043e\u0432\u044b\u0439 \u0438\u0433\u0440\u043e\u0432\u043e\u0439 \u0434\u0435\u043d\u044c.</p>';
-    return '<p class="lw-note">\u0415\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0435 \u0437\u0430\u0434\u0430\u043d\u0438\u044f \u0436\u0438\u0442\u0435\u043b\u0435\u0439. \u041f\u0440\u0435\u0434\u043c\u0435\u0442\u044b \u0441\u043f\u0438\u0441\u044b\u0432\u0430\u044e\u0442\u0441\u044f \u0438\u0437 \u0438\u043d\u0432\u0435\u043d\u0442\u0430\u0440\u044f \u043f\u043e\u0441\u043b\u0435 \u0441\u0434\u0430\u0447\u0438.</p><div class="lw-grid">'+state.contracts.map(entry=>{const c=CONTRACTS.find(v=>v.id===entry.id);if(!c)return '';const count=Number(bridge()?.getItemCount?.(c.item)||0),done=entry.completed;return '<article class="lw-card"><b>'+esc(CONTRACT_NPCS[c.npc]||'\u0416\u0438\u0442\u0435\u043b\u044c')+'</b><small>'+esc(c.desc)+'</small><div class="lw-meter"><i style="width:'+Math.min(100,count/c.amount*100)+'%"></i></div><small>'+esc(c.item)+': '+Math.min(count,c.amount)+' / '+c.amount+'</small><small>\u041d\u0430\u0433\u0440\u0430\u0434\u0430: '+Math.floor(c.reward*(state.projects.guild_hall?1.25:1)*(state.projects.school?1.1:1)*(1+Math.max(0,projectLevel('guild_hall')-1)*.12)*(1+Math.max(0,projectLevel('school')-1)*.08)*(1+Math.max(0,projectLevel('library'))*.04)/100)+' \u0437\u043e\u043b\u043e\u0442\u0430</small><button type="button" '+(done||count<c.amount?'disabled':'')+' data-lw-action="contract:'+c.id+'">'+(done?'\u0412\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u043e':count<c.amount?'\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u0440\u0435\u0441\u0443\u0440\u0441\u044b':'\u0421\u0434\u0430\u0442\u044c \u0440\u0435\u0441\u0443\u0440\u0441\u044b')+'</button></article>';}).join('')+'</div>';
+    return '<p class="lw-note">\u0415\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0435 \u0437\u0430\u0434\u0430\u043d\u0438\u044f \u0436\u0438\u0442\u0435\u043b\u0435\u0439. \u041f\u0440\u0435\u0434\u043c\u0435\u0442\u044b \u0441\u043f\u0438\u0441\u044b\u0432\u0430\u044e\u0442\u0441\u044f \u0438\u0437 \u0438\u043d\u0432\u0435\u043d\u0442\u0430\u0440\u044f \u043f\u043e\u0441\u043b\u0435 \u0441\u0434\u0430\u0447\u0438.</p><div class="lw-grid">'+state.contracts.map(entry=>{const c=CONTRACTS.find(v=>v.id===entry.id);if(!c)return '';const count=Number(bridge()?.getItemCount?.(c.item)||0),done=entry.completed;return '<article class="lw-card"><b>'+esc(CONTRACT_NPCS[c.npc]||'\u0416\u0438\u0442\u0435\u043b\u044c')+'</b><small>'+esc(c.desc)+'</small><div class="lw-meter"><i style="width:'+Math.min(100,count/c.amount*100)+'%"></i></div><small>'+esc(c.item)+': '+Math.min(count,c.amount)+' / '+c.amount+'</small><small>\u041d\u0430\u0433\u0440\u0430\u0434\u0430: '+Math.floor(c.reward*(state.projects.guild_hall?1.25:1)*(state.projects.school?1.1:1)*(1+Math.max(0,projectLevel('guild_hall')-1)*.12)*(1+Math.max(0,projectLevel('school')-1)*.08)*(1+Math.max(0,projectLevel('library'))*.04)*(1+clamp((state.town.happiness-55)/1000,-.055,.045))/100)+' \u0437\u043e\u043b\u043e\u0442\u0430</small><button type="button" '+(done||count<c.amount?'disabled':'')+' data-lw-action="contract:'+c.id+'">'+(done?'\u0412\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u043e':count<c.amount?'\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u0440\u0435\u0441\u0443\u0440\u0441\u044b':'\u0421\u0434\u0430\u0442\u044c \u0440\u0435\u0441\u0443\u0440\u0441\u044b')+'</button></article>';}).join('')+'</div>';
   }
   function renderContracts(){
     const day=Math.max(0,Number(bridge()?.getGameDay?.())||0);
