@@ -12,6 +12,8 @@
   const TILE = 32; let COLS = 220, ROWS = 164;
   // Reuse the deterministic Boss Realm floor between camera-tile changes.
   let bossRealmGroundCache = null;
+  // Reuse deterministic surface-ground textures instead of rebuilding hundreds of tiny paths each frame.
+  let surfaceGroundTileCache=null;
   let width = 0, height = 0, dpr = 1, last = performance.now(), paused = true;
   let adaptiveRenderScale=1,renderCostTotal=0,renderCostSamples=0,renderCostWindowAt=0;
   let inMainMenu = true;
@@ -1362,37 +1364,54 @@ let audioContext=null;
   function pathAt(x,y){if(tradeWorldMode){const sx=tradeEntranceX,sy=tradeEntranceY;if(x>=sx-3&&x<=FARMER_SHOP.x+4&&Math.abs(y-sy)<=2.1)return true;for(const v of tradeVillageLayouts()){const dx=v.x-sx,dy=v.y-sy,t=dx?(x-sx)/dx:0;if(t>=0&&t<=1&&Math.abs(y-(sy+dy*t))<=1.6)return true;}return false;}if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y;if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;if(x>=35&&x<=40&&y>=17&&y<=21)return true;const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));if((y>=25&&y<=27&&x>=34&&x<=48)||(Math.abs(y-31)<=1&&x>=44&&x<=vx)||(Math.abs(x-vx)<=1&&y>=31&&y<=vy+3))return true;return false;}
   function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';return 'snow';}
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли',jungle:'Затерянные джунгли'})[biomeAt(x,y)]||'Лесная долина';}
-  function drawGrass(x,y,sx,sy){
-    const h=hash(x,y),biome=clearedSnowTiles.has(tileKey(x,y))?'forest':biomeAt(x,y);
+  function drawGrassTexture(target,x,y,sx,sy,h,biome,quality){
     const palettes={forest:['#285b43','#2a6047','#285840','#397451','#306849','#4d8254'],snow:['#b9cbd0','#a7bdc7','#c3d4d8','#d9e7e9','#afc8d1','#f0f6f6'],desert:['#b99a58','#c4a767','#ad8d4d','#d3b875','#b89a5d','#e2c981'],blight:['#3d493c','#354438','#46503a','#52603f','#43523b','#7f8a48'],jungle:['#164d35','#1c603d','#14502f','#2e8a4e','#267544','#8bcf62'],volcano:['#43352f','#594039','#332c31','#a64b2f','#7d6650','#ff9d4f']};
-    const p=palettes[biome],quality=gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost';
-    ctx.fillStyle=h>.5?p[0]:h>.2?p[1]:p[2];ctx.fillRect(sx,sy,TILE,TILE);
-    // Soft bevels make the existing terrain read as continuous ground instead of flat color blocks.
-    ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(sx,sy,TILE,1);ctx.fillRect(sx,sy,1,TILE);
-    ctx.fillStyle='rgba(0,0,0,.075)';ctx.fillRect(sx,sy+TILE-2,TILE,2);ctx.fillRect(sx+TILE-2,sy,2,TILE);
+    const p=palettes[biome]||palettes.forest;
+    target.fillStyle=h>.5?p[0]:h>.2?p[1]:p[2];target.fillRect(sx,sy,TILE,TILE);
+    target.fillStyle='rgba(255,255,255,.035)';target.fillRect(sx,sy,TILE,1);target.fillRect(sx,sy,1,TILE);
+    target.fillStyle='rgba(0,0,0,.075)';target.fillRect(sx,sy+TILE-2,TILE,2);target.fillRect(sx+TILE-2,sy,2,TILE);
     if(quality){
-      // Stable, low-cost surface grain; coordinates are world-seeded so the pattern never flickers.
       for(let i=0;i<3;i++){
         const gx=sx+3+hash(x*17+i*13,y*19+i*7)*(TILE-7),gy=sy+3+hash(x*23+i*5,y*11+i*17)*(TILE-7);
-        ctx.fillStyle=i===0?'rgba(10,18,20,.12)':'rgba(235,232,205,.10)';
-        ctx.fillRect(gx,gy,1+(i%2),1);
+        target.fillStyle=i===0?'rgba(10,18,20,.12)':'rgba(235,232,205,.10)';target.fillRect(gx,gy,1+(i%2),1);
       }
       if(biome==='forest'||biome==='jungle'){
         const tuft=hash(x+41,y+73);
-        if(tuft>.42){const gx=sx+5+tuft*13,gy=sy+9+hash(x+91,y+17)*15;ctx.strokeStyle=biome==='jungle'?'rgba(151,215,111,.42)':'rgba(145,190,126,.32)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gx-2,gy+3);ctx.lineTo(gx,gy);ctx.lineTo(gx+2,gy+3);ctx.stroke();}
+        if(tuft>.42){const gx=sx+5+tuft*13,gy=sy+9+hash(x+91,y+17)*15;target.strokeStyle=biome==='jungle'?'rgba(151,215,111,.42)':'rgba(145,190,126,.32)';target.lineWidth=1;target.beginPath();target.moveTo(gx-2,gy+3);target.lineTo(gx,gy);target.lineTo(gx+2,gy+3);target.stroke();}
       }else if(biome==='snow'){
-        const glint=hash(x+63,y+29);if(glint>.38){ctx.fillStyle='rgba(255,255,255,.38)';ctx.fillRect(sx+4+glint*16,sy+5+hash(x+12,y+81)*18,2,1);}
+        const glint=hash(x+63,y+29);if(glint>.38){target.fillStyle='rgba(255,255,255,.38)';target.fillRect(sx+4+glint*16,sy+5+hash(x+12,y+81)*18,2,1);}
       }else if(biome==='desert'){
-        ctx.strokeStyle='rgba(255,229,166,.16)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx+4,sy+8+hash(x+7,y+9)*16);ctx.lineTo(sx+13,sy+7+hash(x+3,y+31)*16);ctx.stroke();
+        target.strokeStyle='rgba(255,229,166,.16)';target.lineWidth=1;target.beginPath();target.moveTo(sx+4,sy+8+hash(x+7,y+9)*16);target.lineTo(sx+13,sy+7+hash(x+3,y+31)*16);target.stroke();
       }else if(biome==='blight'||biome==='volcano'){
-        const fissure=hash(x+27,y+59);if(fissure>.76){ctx.strokeStyle=biome==='volcano'?'rgba(255,126,65,.25)':'rgba(157,180,91,.22)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx+7,sy+8);ctx.lineTo(sx+10,sy+12);ctx.lineTo(sx+8,sy+17);ctx.stroke();}
+        const fissure=hash(x+27,y+59);if(fissure>.76){target.strokeStyle=biome==='volcano'?'rgba(255,126,65,.25)':'rgba(157,180,91,.22)';target.lineWidth=1;target.beginPath();target.moveTo(sx+7,sy+8);target.lineTo(sx+10,sy+12);target.lineTo(sx+8,sy+17);target.stroke();}
       }
-      if(h>.68){ctx.fillStyle=p[5];ctx.fillRect(sx+21,sy+19,2,5);}
-      if(biome==='jungle'&&h>.32){ctx.fillStyle='#9fe07a';ctx.fillRect(sx+5+(h*13|0),sy+15,5,3);ctx.fillStyle='#0d3828';ctx.fillRect(sx+20,sy+5+(h*7|0),3,8);}
-      else if(biome==='snow'&&h>.35){ctx.fillStyle='#f5fbff99';ctx.fillRect(sx+5+(h*16|0),sy+7+(h*11|0),3,2);}
-      else if(biome==='desert'&&h>.55){ctx.fillStyle='#e9d49a';ctx.fillRect(sx+6,sy+23,7,2);}
-      else if(biome==='blight'&&h>.72){ctx.fillStyle='#a3bf55';ctx.fillRect(sx+19,sy+8,3,3);}
+      if(h>.68){target.fillStyle=p[5];target.fillRect(sx+21,sy+19,2,5);}
+      if(biome==='jungle'&&h>.32){target.fillStyle='#9fe07a';target.fillRect(sx+5+(h*13|0),sy+15,5,3);target.fillStyle='#0d3828';target.fillRect(sx+20,sy+5+(h*7|0),3,8);}
+      else if(biome==='snow'&&h>.35){target.fillStyle='#f5fbff99';target.fillRect(sx+5+(h*16|0),sy+7+(h*11|0),3,2);}
+      else if(biome==='desert'&&h>.55){target.fillStyle='#e9d49a';target.fillRect(sx+6,sy+23,7,2);}
+      else if(biome==='blight'&&h>.72){target.fillStyle='#a3bf55';target.fillRect(sx+19,sy+8,3,3);}
     }
+  }
+  function drawGrass(x,y,sx,sy){
+    const h=hash(x,y),biome=clearedSnowTiles.has(tileKey(x,y))?'forest':biomeAt(x,y);
+    const quality=gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost';
+    if(!surfaceGroundTileCache){
+      const atlas=document.createElement('canvas');atlas.width=2048;atlas.height=2048;
+      const atlasContext=atlas.getContext('2d');atlasContext.imageSmoothingEnabled=false;
+      surfaceGroundTileCache={canvas:atlas,context:atlasContext,slots:new Map(),order:new Array(4096),next:0};
+    }
+    const cache=surfaceGroundTileCache,key=x+':'+y+':'+biome+':'+(quality?'detail':'simple');
+    let slot=cache.slots.get(key);
+    if(slot===undefined){
+      slot=cache.next;cache.next=(cache.next+1)%4096;
+      const oldKey=cache.order[slot];if(oldKey!==undefined)cache.slots.delete(oldKey);
+      cache.order[slot]=key;cache.slots.set(key,slot);
+      const ax=(slot%64)*TILE,ay=Math.floor(slot/64)*TILE;
+      cache.context.clearRect(ax,ay,TILE,TILE);
+      drawGrassTexture(cache.context,x,y,ax,ay,h,biome,quality);
+    }
+    const ax=(slot%64)*TILE,ay=Math.floor(slot/64)*TILE;
+    ctx.drawImage(cache.canvas,ax,ay,TILE,TILE,sx,sy,TILE,TILE);
   }
     function drawGround(camX,camY){const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
     for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const sx=Math.floor(x*TILE-camX),sy=Math.floor(y*TILE-camY);drawGrass(x,y,sx,sy);if(isForestTile(x,y)&&biomeAt(x,y)!=='snow'){ctx.fillStyle=(hash(x+81,y+39)>.55?'rgba(8,43,27,.44)':'rgba(10,54,32,.32)');ctx.fillRect(sx,sy,TILE,TILE);}if(pathAt(x,y)){ctx.fillStyle='#967c54';ctx.fillRect(sx,sy,TILE,TILE);ctx.fillStyle='#b0996d';const h=hash(x,y);ctx.fillRect(sx+4,sy+4,4,2);if(h>.3)ctx.fillRect(sx+20,sy+22,5,2);ctx.fillStyle='#806845';ctx.fillRect(sx+14,sy+12,2,2);}if(waterAt(x+.5,y+.5)){ctx.fillStyle='#246786';ctx.fillRect(sx,sy,TILE,TILE);ctx.fillStyle='#398ca0';let w=hash(x,y);if(w>.25)ctx.fillRect(sx+3,sy+7+Math.floor(w*11),10+Math.floor(w*9),2);if(w>.7)ctx.fillRect(sx+17,sy+23,8,2);}}}
