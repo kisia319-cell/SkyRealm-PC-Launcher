@@ -42,7 +42,7 @@ async function db(path: string, init: RequestInit={}) {
   return data;
 }
 function orderedPair(a:string,b:string) { return a<b?{user_a:a,user_b:b}:{user_a:b,user_b:a}; }
-const profileFields="id,username,display_name,avatar_key,bio,player_class,level,experience,playtime_seconds,last_seen_at,presence_status,created_at";
+const profileFields="id,username,display_name,avatar_key,avatar_url,bio,player_class,level,experience,playtime_seconds,last_seen_at,presence_status,created_at";
 async function profiles(ids:string[]) {
   if(!ids.length) return [];
   return await db("profiles?select="+profileFields+"&id=in.("+ids.join(",")+")") || [];
@@ -129,6 +129,15 @@ Deno.serve(async(req:Request)=>{
       if(p.avatar_key!==undefined) {
         if(!["wanderer","warrior","mage","ranger","miner","farmer"].includes(String(p.avatar_key))) throw new ApiError(400,"INVALID_AVATAR","Неизвестный аватар.");
         update.avatar_key=p.avatar_key;
+      }
+      if(p.avatar_url!==undefined) {
+        if(p.avatar_url===null) update.avatar_url=null;
+        else {
+          const avatarUrl=String(p.avatar_url);
+          const expected=SUPABASE_URL+"/storage/v1/object/public/skyrealm-avatars/"+user.id+"/avatar.webp";
+          if(avatarUrl.length>600||!avatarUrl.startsWith(expected+"?v=")||!/\\?v=\\d+$/.test(avatarUrl.slice(expected.length))) throw new ApiError(400,"INVALID_AVATAR_URL","Недопустимый адрес аватарки.");
+          update.avatar_url=avatarUrl;
+        }
       }
       if(p.bio!==undefined) {
         if(typeof p.bio!=="string"||p.bio.length>160) throw new ApiError(400,"INVALID_BIO","Описание должно быть не длиннее 160 символов.");

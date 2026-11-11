@@ -6,7 +6,7 @@
   let currentLanguage = ['ru', 'en'].includes(localStorage.getItem('skyrealm_language')) ? localStorage.getItem('skyrealm_language') : 'ru';
   const LANGUAGE_TEXT = {
     ru: {
-      pageHome:'ИГРОВОЙ ЦЕНТР', pageNews:'ХРОНИКИ МИРА', pageShop:'МАГАЗИН ПРИКЛЮЧЕНИЙ', pageMods:'КАТАЛОГ МОДОВ', pageCommunity:'СООБЩЕСТВО', pageSupport:'ПОДДЕРЖКА', pageSettings:'НАСТРОЙКИ',
+      pageHome:'ИГРОВОЙ ЦЕНТР', pageProfile:'ПРОФИЛЬ ИГРОКА', pageNews:'ХРОНИКИ МИРА', pageShop:'МАГАЗИН ПРИКЛЮЧЕНИЙ', pageMods:'КАТАЛОГ МОДОВ', pageCommunity:'СООБЩЕСТВО', pageSupport:'ПОДДЕРЖКА', pageSettings:'НАСТРОЙКИ',
       loginTitle:'Войти в SkyRealm', registerTitle:'Создай аккаунт', loginIntro:'Войди, чтобы открыть свой профиль, или создай новый аккаунт.', registerIntro:'Заполни данные ниже. После регистрации мы попросим подтвердить почту кодом.',
       usernameLogin:'Почта или имя игрока', usernameRegister:'Имя игрока', usernamePlaceholderLogin:'Введите почту или имя игрока', usernamePlaceholderRegister:'Придумай имя (3–20 символов)',
       passwordPlaceholderLogin:'Введите пароль', passwordPlaceholderRegister:'Не менее 8 символов', submitLogin:'Войти в аккаунт <span>→</span>', submitRegister:'Создать аккаунт <span>→</span>', switchLogin:'Создать аккаунт <span>→</span>', switchRegister:'← Вернуться ко входу',
@@ -16,7 +16,7 @@
       busyConnect:'Подключаемся к серверу…', busyVerify:'Проверяем код…', busyResend:'Отправляем…', languageChanged:'Language saved.', statusChecking:'Проверяем сервер…', statusOnline:'Облачный сервер онлайн', statusOffline:'Нет связи с облаком', statusUnconfigured:'Сервер не настроен'
     },
     en: {
-      pageHome:'GAME CENTER', pageNews:'WORLD CHRONICLES', pageShop:'ADVENTURE SHOP', pageMods:'MOD WORKSHOP', pageCommunity:'COMMUNITY', pageSupport:'SUPPORT', pageSettings:'SETTINGS',
+      pageHome:'GAME CENTER', pageProfile:'PLAYER PROFILE', pageNews:'WORLD CHRONICLES', pageShop:'ADVENTURE SHOP', pageMods:'MOD WORKSHOP', pageCommunity:'COMMUNITY', pageSupport:'SUPPORT', pageSettings:'SETTINGS',
       loginTitle:'Sign in to SkyRealm', registerTitle:'Create your account', loginIntro:'Sign in to open your profile, or create a new account.', registerIntro:'Fill in the details below. We’ll ask you to verify your email after registration.',
       usernameLogin:'Email or player name', usernameRegister:'Player name', usernamePlaceholderLogin:'Enter email or username', usernamePlaceholderRegister:'Choose a name (3–20 characters)',
       passwordPlaceholderLogin:'Enter password', passwordPlaceholderRegister:'At least 8 characters', submitLogin:'Sign in <span>→</span>', submitRegister:'Create account <span>→</span>', switchLogin:'Create account <span>→</span>', switchRegister:'← Back to sign in',
@@ -27,7 +27,7 @@
     }
   };
   const t = (key) => LANGUAGE_TEXT[currentLanguage][key] || LANGUAGE_TEXT.ru[key] || key;
-  const getPageNames = () => ({home:t('pageHome'),news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),support:t('pageSupport'),settings:t('pageSettings')});
+  const getPageNames = () => ({home:t('pageHome'),profile:t('pageProfile'),news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),support:t('pageSupport'),settings:t('pageSettings')});
   let pageNames = getPageNames();
   let gameLaunchBusy = false;
   const toast = (message) => {
@@ -124,6 +124,7 @@
     $('#crumb-label').textContent = pageNames[name] || pageNames.home;
     $('.main').scrollTop = 0;
     if (name === 'settings') { loadSettings(); loadStaffAdminPanel(); }
+    if (name === 'profile' && currentToken()) loadPlayerProfile();
     if (name === 'community' && currentToken()) { loadSocialFriends(); refreshSocialInvites(); requestSocial('/api/social/active-room').then(x=>socialActiveRoom=x.room).catch(()=>{}); }
   }
   $$('[data-page]').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
@@ -329,6 +330,7 @@
   function setAuthEntryState(authenticated) {
     const isAuthenticated = authenticated === true;
     document.body.classList.toggle('is-authenticated', isAuthenticated);
+    const strip=$('#home-player-strip'); if(strip) strip.hidden=!isAuthenticated;
     $$('[data-auth-mode], #top-create-account').forEach(button => {
       button.hidden = isAuthenticated;
       button.setAttribute('aria-hidden', String(isAuthenticated));
@@ -353,6 +355,7 @@
     sessionStorage.removeItem('skyrealm_pending_email');
     loadPlayerProfile();
     loadSocialPresence();
+    showPage('home');
   }
 
   const SOCIAL_URL = (() => {
@@ -587,33 +590,77 @@
       }}])));
     } catch(error){setSocialMessage(error.message,true);}
   }
+  let loadedPlayerProfile=null;
+  function applyPlayerAvatar(profile) {
+    const custom=typeof profile?.avatar_url==='string'?profile.avatar_url:'';
+    const targets=['#home-player-avatar','#profile-page-avatar'];
+    targets.forEach(selector=>{const el=$(selector);if(!el)return;el.replaceChildren();if(custom){const img=document.createElement('img');img.src=custom;img.alt='Аватар игрока';el.append(img);}else{el.textContent=({warrior:'⚔',mage:'✧',ranger:'➶',miner:'⛏',farmer:'❀'})[profile?.avatar_key]||'✦';}});
+  }
+  function renderPlayerProfile(p) {
+    loadedPlayerProfile=p;
+    const name=p.display_name||p.username||'Игрок', hours=(Number(p.playtime_seconds||0)/3600).toFixed(1)+' ч';
+    ['#profile-name','#profile-page-name','#home-player-name'].forEach(id=>{const el=$(id);if(el)el.textContent=name;});
+    ['#profile-playtime','#profile-page-playtime','#home-player-playtime'].forEach(id=>{const el=$(id);if(el)el.textContent=hours;});
+    $('#profile-page-username').textContent=p.username?'@'+p.username:'Аккаунт SkyRealm';
+    $('#profile-display-name').value=p.display_name||'';
+    $('#profile-avatar').value=p.avatar_key||'wanderer';
+    $('#profile-bio').value=p.bio||'';
+    $('#profile-page-display-name').value=p.display_name||'';
+    $('#profile-page-bio').value=p.bio||'';
+    $('#profile-level').textContent=String(p.level||1);$('#profile-xp').textContent=String(p.experience||0);
+    $('#profile-class').textContent=({swordsman:'Мечник',farmer:'Фермер',ordinary:'Обычный',archer:'Лучник',mage:'Маг',miner:'Шахтёр',rich:'Богач'})[p.player_class]||'Обычный';
+    $('#profile-page-level').textContent=String(p.level||1);$('#profile-page-xp').textContent=String(p.experience||0);
+    $('#profile-page-class').textContent=$('#profile-class').textContent;
+    applyPlayerAvatar(p);
+  }
   async function loadPlayerProfile() {
     if(!currentToken())return;
-    try {
-      const data=await requestSocial('/api/social/profile'), p=data.profile||{};
-      $('#profile-display-name').value=p.display_name||'';
-      $('#profile-avatar').value=p.avatar_key||'wanderer';
-      $('#profile-bio').value=p.bio||'';
-      $('#profile-level').textContent=String(p.level||1);
-      $('#profile-xp').textContent=String(p.experience||0);
-      $('#profile-playtime').textContent=(Number(p.playtime_seconds||0)/3600).toFixed(1)+' ч';
-      const classes={swordsman:'Мечник',farmer:'Фермер',ordinary:'Обычный',archer:'Лучник',mage:'Маг',miner:'Шахтёр',rich:'Богач'};
-      $('#profile-class').textContent=classes[p.player_class]||'Обычный';
-      $('#profile-name').textContent=p.display_name||p.username||'Игрок';
-    } catch(error) { $('#profile-save-message').textContent=error.message; }
+    try { const data=await requestSocial('/api/social/profile');renderPlayerProfile(data.profile||{}); }
+    catch(error) { $('#profile-save-message').textContent=error.message;$('#profile-page-message').textContent=error.message; }
   }
-  const saveProfileButton=$('#save-profile');
-  if(saveProfileButton) saveProfileButton.addEventListener('click',async()=>{
-    const button=saveProfileButton; setBusy(button,true,'Сохраняем…');
+  async function savePlayerProfile() {
+    const button=$('#save-player-profile');if(!button||!currentToken())return;
+    setBusy(button,true,'Сохраняем…');
     try {
       const data=await requestSocial('/api/social/profile',{method:'PATCH',body:{
-        display_name:$('#profile-display-name').value,avatar_key:$('#profile-avatar').value,bio:$('#profile-bio').value
+        display_name:$('#profile-page-display-name').value.trim(),
+        avatar_key:$('#profile-avatar').value||'wanderer',
+        bio:$('#profile-page-bio').value
       }});
-      $('#profile-name').textContent=data.profile?.display_name||data.profile?.username||'Игрок';
-      $('#profile-save-message').textContent='Профиль сохранён.';
-    } catch(error) { $('#profile-save-message').textContent=error.message; }
-    finally {setBusy(button,false);}
+      renderPlayerProfile({...loadedPlayerProfile,...(data.profile||{}),display_name:$('#profile-page-display-name').value.trim(),bio:$('#profile-page-bio').value});
+      $('#profile-page-message').textContent='Профиль сохранён.';
+    } catch(error){$('#profile-page-message').textContent=error.message;}
+    finally{setBusy(button,false);}
+  }
+  $('#save-player-profile')?.addEventListener('click',savePlayerProfile);
+  $('#profile-page-logout')?.addEventListener('click',()=>$('#logout').click());
+  $('#profile-avatar-file')?.addEventListener('change',async ev=>{
+    const file=ev.target.files?.[0];if(!file)return;
+    const message=$('#profile-avatar-message');
+    if(!file.type.startsWith('image/')){message.textContent='Выбери файл изображения.';return;}
+    if(file.size>12*1024*1024){message.textContent='Файл слишком большой. Максимум 12 МБ.';ev.target.value='';return;}
+    try {
+      const source=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Не удалось прочитать изображение.'));reader.readAsDataURL(file);});
+      const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('Файл изображения повреждён.'));image.src=source;});
+      const canvas=document.createElement('canvas'),scale=Math.min(1,512/Math.max(img.width,img.height));canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      const dataUrl=canvas.toDataURL('image/webp',.84);
+      if(dataUrl.length>900000)throw new Error('Изображение получилось слишком большим. Выбери другую картинку.');
+      if(!loadedPlayerProfile?.id)throw new Error('Сначала войди в аккаунт.');
+      const token=await getValidToken();
+      const uploadUrl=API_BASE.replace(/\/+$/,'')+'/storage/v1/object/skyrealm-avatars/'+encodeURIComponent(loadedPlayerProfile.id)+'/avatar.webp';
+      const upload=await fetch(uploadUrl,{method:'POST',headers:{apikey:API_KEY,Authorization:'Bearer '+token,'Content-Type':'image/webp','x-upsert':'true'},body:await (await fetch(dataUrl)).blob()});
+      let uploadData={};try{uploadData=await upload.json();}catch(_){}
+      if(!upload.ok)throw new Error(uploadData.message||'Не удалось загрузить аватарку в облако.');
+      const publicUrl=API_BASE.replace(/\/+$/,'')+'/storage/v1/object/public/skyrealm-avatars/'+encodeURIComponent(loadedPlayerProfile.id)+'/avatar.webp?v='+Date.now();
+      const saved=await requestSocial('/api/social/profile',{method:'PATCH',body:{avatar_url:publicUrl}});
+      loadedPlayerProfile={...loadedPlayerProfile,...(saved.profile||{}),avatar_url:publicUrl};
+      applyPlayerAvatar(loadedPlayerProfile);message.textContent='Аватарка сохранена в облаке аккаунта.';
+    } catch(error){message.textContent=error.message;}
+    ev.target.value='';
   });
+  $('#profile-avatar-remove')?.addEventListener('click',async()=>{if(!loadedPlayerProfile?.id)return;try{const data=await requestSocial('/api/social/profile',{method:'PATCH',body:{avatar_url:null}});loadedPlayerProfile={...loadedPlayerProfile,...(data.profile||{}),avatar_url:null};applyPlayerAvatar(loadedPlayerProfile);$('#profile-avatar-message').textContent='Используется стандартная аватарка.';}catch(error){$('#profile-avatar-message').textContent=error.message;}});
+  $('#save-profile')?.addEventListener('click',savePlayerProfile);
   const socialSearchForm=$('#social-search-form');
   if(socialSearchForm) socialSearchForm.addEventListener('submit',ev=>{
     ev.preventDefault(); const q=$('#social-search-input').value.trim();

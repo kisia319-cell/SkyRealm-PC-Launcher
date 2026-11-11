@@ -11,7 +11,7 @@ const accessMigration=fs.readFileSync('supabase/migrations/20261031150000_deny_d
 const coopUi=fs.readFileSync('game/multiplayer-ui.js','utf8');
 const coopClient=fs.readFileSync('game/multiplayer-client.js','utf8');
 const gameHtml=fs.readFileSync('game/index.html','utf8');
-for(const id of ['profile-display-name','profile-avatar','profile-bio','save-profile','profile-level','profile-xp','profile-playtime','profile-class','social-panel','social-search-form','social-search-input','social-search-results','social-friends-list','social-refresh','social-message']) {
+for(const id of ['profile-display-name','profile-avatar','profile-bio','save-profile','profile-level','profile-xp','profile-playtime','profile-class','profile-page-avatar','profile-avatar-file','profile-page-display-name','save-player-profile','home-player-strip','home-player-name','home-player-playtime','social-panel','social-search-form','social-search-input','social-search-results','social-friends-list','social-refresh','social-message']) {
   assert.ok(html.includes('id="'+id+'"'),'Missing UI element '+id);
 }
 for(const route of ['/api/social/profile','/api/social/search','/api/social/friends','/api/social/request','/api/social/respond','/api/social/remove','/api/social/stats','/api/social/room-invites','/api/social/room-invites/respond']) {
@@ -50,3 +50,11 @@ assert.ok(app.includes("requestSocial('/api/social/presence'")&&app.includes('sa
 assert.ok(app.includes('Не беспокоить')&&app.includes('Отошёл')&&app.includes('В игре'),'Friend cards must show DND, away and in-game states');
 assert.ok(html.includes('id="social-presence-select"'),'Community page must expose a presence selector');
 assert.ok(presenceMigration.includes('presence_status')&&presenceMigration.includes("'online'")&&presenceMigration.includes("'away'")&&presenceMigration.includes("'dnd'"));
+
+assert.ok(html.includes('data-page="profile"'),'Profile must be the second launcher navigation page.');
+assert.ok(app.includes('profile-avatar-file')&&app.includes('canvas.toDataURL')&&app.includes('storage/v1/object/skyrealm-avatars'),'Custom image avatars must be resized and uploaded to the account cloud bucket.');
+assert.ok(app.includes('renderPlayerProfile')&&app.includes('home-player-playtime'),'Profile data must update the compact home identity and playtime.');
+
+const avatarMigration=fs.readFileSync('supabase/migrations/20261111110000_skyrealm_custom_avatars.sql','utf8');
+assert.ok(avatarMigration.includes("'skyrealm-avatars'")&&avatarMigration.includes('auth.uid()::text'),'Avatar storage writes must be isolated to the authenticated account.');
+assert.ok(edge.includes('avatar_url')&&edge.includes('INVALID_AVATAR_URL'),'Profile API must validate custom avatar URLs.');
