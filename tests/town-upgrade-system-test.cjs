@@ -18,6 +18,7 @@ for(const snippet of [
  'function upgradeProject(id)',
  'state.projectLevels[id]=level+1',
  'b.spendGold?.(cost)',
+ 'b.addGold?.(cost*100)',
  'b.spendItem?.(name,count)',
  'data-lw-action="upgrade:',
  "Уровень '+level+'/3",
