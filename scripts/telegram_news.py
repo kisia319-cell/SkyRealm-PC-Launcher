@@ -8,7 +8,6 @@ CHAT = os.environ.get("TELEGRAM_CHAT_ID", "@SkyRealmGame")
 EXT = (".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".html", ".css", ".py", ".json", ".xml", ".svg")
 IGNORE = re.compile(r"(^|/)(tests?|__tests__|docs|documentation|\.github)(/|$)|(^|/)(README|CHANGELOG)|(^|/)(manifest|preview-manifest)\.json$|^scripts/telegram_news\.py$|(^|/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$", re.I)
 MAJOR = re.compile(r"\[(major|big|large|важно|крупное|крупный)\]|^(major|release)\s*:|new world|новый мир|new game mode|новый режим|complete rework|полная переработка|major expansion|крупное расширение", re.I)
-MEDIUM = re.compile(r"\[(medium|среднее)\]|^(medium|среднее)\s*:", re.I)
 
 def git(*args):
     return subprocess.check_output(["git", *args], text=True, encoding="utf-8").strip()
@@ -99,14 +98,12 @@ def main():
         return
     total = sum(c["lines"] for c in commits)
     major_count = sum(bool(MAJOR.search(c["subject"])) for c in commits)
-    substantial = [c for c in commits if c["lines"] >= 20 or MEDIUM.search(c["subject"])]
     major = (major_count >= 1 and total >= 250) or total >= 1200 or (major_count >= 2 and total >= 500)
-    medium = len(substantial) >= 3 and not major
-    small = len(commits) >= 5 and not major and not medium
-    if not (major or medium or small):
-        print(f"Waiting for a real update batch: commits={len(commits)}, substantial={len(substantial)}, lines={total}.")
+    small = len(commits) >= 5 and not major
+    if not (major or small):
+        print(f"Waiting for a major update or a 5–7 change batch: commits={len(commits)}, lines={total}.")
         return
-    selected = commits if major or medium else commits[-7:]
+    selected = commits if major else commits[-7:]
     bullets = []
     for commit in selected:
         item = summarize(commit["subject"], commit["paths"])
@@ -115,8 +112,6 @@ def main():
     bullets = bullets[:7]
     if major:
         heading, intro = "🚀 <b>КРУПНОЕ ОБНОВЛЕНИЕ SKYREALM</b>", "В этом обновлении:"
-    elif medium:
-        heading, intro = "📦 <b>ОБНОВЛЕНИЕ SKYREALM</b>", "Главные изменения:"
     else:
         heading, intro = "🛠 <b>ПОДБОРКА ИЗМЕНЕНИЙ SKYREALM</b>", f"Собрали {len(commits)} небольших изменений:"
     compare = f"https://github.com/{REPO}/compare/{base}...{head}"
