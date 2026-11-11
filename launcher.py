@@ -1668,5 +1668,3 @@ if __name__ == "__main__":
         launcher_profile = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "launcher-profile"
         launcher_profile.mkdir(parents=True, exist_ok=True)
         webview.start(debug=False, private_mode=False, storage_path=str(launcher_profile))
-
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
