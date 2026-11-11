@@ -27,7 +27,7 @@
     }
   };
   const t = (key) => LANGUAGE_TEXT[currentLanguage][key] || LANGUAGE_TEXT.ru[key] || key;
-  const getPageNames = () => ({home:t('pageHome'),profile:t('pageProfile'),news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),support:t('pageSupport'),settings:t('pageSettings')});
+  const getPageNames = () => ({home:t('pageHome'),profile:t('pageProfile'),competitive:currentLanguage==='en'?'Competitive':'Соревновательный',news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),support:t('pageSupport'),settings:t('pageSettings')});
   let pageNames = getPageNames();
   let gameLaunchBusy = false;
   const toast = (message) => {
@@ -1291,6 +1291,35 @@
     }
   }
   $('#play-game').addEventListener('click', () => launchGame(null));
+  let competitiveLaunchBusy = false;
+  $('#play-competitive')?.addEventListener('click', async () => {
+    if (competitiveLaunchBusy) return;
+    const button = $('#play-competitive');
+    const status = $('#competitive-launch-status');
+    competitiveLaunchBusy = true;
+    button.disabled = true;
+    status.textContent = currentLanguage === 'en' ? 'Starting PrimeLauncher…' : 'Запускаем PrimeLauncher…';
+    try {
+      if (window.pywebview?.api?.launch_competitive_game) {
+        const result = await window.pywebview.api.launch_competitive_game();
+        if (!result || result.ok === false) throw new Error(result?.message || 'Не удалось запустить PrimeLauncher.');
+        status.textContent = currentLanguage === 'en' ? 'PrimeLauncher started' : 'PrimeLauncher запущен';
+        await new Promise(resolve => setTimeout(resolve, 350));
+        await window.pywebview.api.close();
+      } else {
+        const url = new URL('game/competitive/index.html', window.location.href);
+        const opened = window.open(url.toString(), '_blank');
+        if (!opened) window.location.href = url.toString();
+        status.textContent = currentLanguage === 'en' ? 'Competitive world opened' : 'Соревновательный мир открыт';
+        button.disabled = false;
+        competitiveLaunchBusy = false;
+      }
+    } catch (error) {
+      status.textContent = error.message || (currentLanguage === 'en' ? 'Launch failed' : 'Не удалось запустить режим');
+      button.disabled = false;
+      competitiveLaunchBusy = false;
+    }
+  });
   $$('[data-install-mod]').forEach(button => button.addEventListener('click', () => launchGame(true, button.dataset.installMod)));
   $('#open-full-mod-catalog')?.addEventListener('click', () => launchGame(true, '__catalog__'));
   $('#create-own-mod')?.addEventListener('click', () => launchGame(true, '__creator__'));
