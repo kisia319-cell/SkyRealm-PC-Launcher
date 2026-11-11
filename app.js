@@ -591,9 +591,8 @@
     } catch(error){setSocialMessage(error.message,true);}
   }
   let loadedPlayerProfile=null;
-  const customAvatarKey=(id)=>'skyrealm_custom_avatar_'+String(id||'').replace(/[^a-zA-Z0-9_-]/g,'');
   function applyPlayerAvatar(profile) {
-    const custom=profile?.id?localStorage.getItem(customAvatarKey(profile.id)):'';
+    const custom=typeof profile?.avatar_url==='string'?profile.avatar_url:'';
     const targets=['#home-player-avatar','#profile-page-avatar'];
     targets.forEach(selector=>{const el=$(selector);if(!el)return;el.replaceChildren();if(custom){const img=document.createElement('img');img.src=custom;img.alt='Аватар игрока';el.append(img);}else{el.textContent=({warrior:'⚔',mage:'✧',ranger:'➶',miner:'⛏',farmer:'❀'})[profile?.avatar_key]||'✦';}});
   }
@@ -648,11 +647,19 @@
       const dataUrl=canvas.toDataURL('image/webp',.84);
       if(dataUrl.length>900000)throw new Error('Изображение получилось слишком большим. Выбери другую картинку.');
       if(!loadedPlayerProfile?.id)throw new Error('Сначала войди в аккаунт.');
-      localStorage.setItem(customAvatarKey(loadedPlayerProfile.id),dataUrl);applyPlayerAvatar(loadedPlayerProfile);message.textContent='Аватарка установлена на этом компьютере.';
+      const token=await getValidToken();
+      const uploadUrl=API_BASE.replace(/\\/+$/,'')+'/storage/v1/object/skyrealm-avatars/'+encodeURIComponent(loadedPlayerProfile.id)+'/avatar.webp';
+      const upload=await fetch(uploadUrl,{method:'POST',headers:{apikey:API_KEY,Authorization:'Bearer '+token,'Content-Type':'image/webp','x-upsert':'true'},body:await (await fetch(dataUrl)).blob()});
+      let uploadData={};try{uploadData=await upload.json();}catch(_){}
+      if(!upload.ok)throw new Error(uploadData.message||'Не удалось загрузить аватарку в облако.');
+      const publicUrl=API_BASE.replace(/\\/+$/,'')+'/storage/v1/object/public/skyrealm-avatars/'+encodeURIComponent(loadedPlayerProfile.id)+'/avatar.webp?v='+Date.now();
+      const saved=await requestSocial('/api/social/profile',{method:'PATCH',body:{avatar_url:publicUrl}});
+      loadedPlayerProfile={...loadedPlayerProfile,...(saved.profile||{}),avatar_url:publicUrl};
+      applyPlayerAvatar(loadedPlayerProfile);message.textContent='Аватарка сохранена в облаке аккаунта.';
     } catch(error){message.textContent=error.message;}
     ev.target.value='';
   });
-  $('#profile-avatar-remove')?.addEventListener('click',()=>{if(loadedPlayerProfile?.id)localStorage.removeItem(customAvatarKey(loadedPlayerProfile.id));applyPlayerAvatar(loadedPlayerProfile);$('#profile-avatar-message').textContent='Используется стандартная аватарка.';});
+  $('#profile-avatar-remove')?.addEventListener('click',async()=>{if(!loadedPlayerProfile?.id)return;try{const data=await requestSocial('/api/social/profile',{method:'PATCH',body:{avatar_url:null}});loadedPlayerProfile={...loadedPlayerProfile,...(data.profile||{}),avatar_url:null};applyPlayerAvatar(loadedPlayerProfile);$('#profile-avatar-message').textContent='Используется стандартная аватарка.';}catch(error){$('#profile-avatar-message').textContent=error.message;}});
   $('#save-profile')?.addEventListener('click',savePlayerProfile);
   const socialSearchForm=$('#social-search-form');
   if(socialSearchForm) socialSearchForm.addEventListener('submit',ev=>{
