@@ -10,6 +10,9 @@ const expansion=fs.readFileSync(path.join(root,'game/world-expansion.js'),'utf8'
 for(const id of ['barracks','fountain','library','walls'])assert.ok(living.includes(id+':{'),'Missing civic district '+id);
 for(const snippet of [
  'projectLevels:{}',
+ 'lastFountainDay:-1',
+ 's.lastFountainDay=Number.isInteger(raw.lastFountainDay)',
+ 'state.town.happiness+elapsed*projectLevel(\'fountain\')*2',
  's.projectLevels=raw.projectLevels',
  'function projectLevel(id)',
  'function upgradeProject(id)',
