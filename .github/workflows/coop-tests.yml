@@ -52,6 +52,7 @@ jobs:
       - run: node tests/expansion-systems-test.cjs
       - run: node tests/armor-set-test.cjs
       - run: node tests/game-smoke-test.cjs
+      - run: node tests/performance-optimization-test.cjs
       - run: node tests/achievement-system-test.cjs
       - run: node tests/world-library-test.cjs
       - run: node tests/cosmetic-collection-test.cjs
