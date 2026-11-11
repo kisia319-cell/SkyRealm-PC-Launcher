@@ -215,7 +215,7 @@ function enemyDirector(dt){
   m.enemyAssaultUntil=m.elapsed+48;m.nextEnemyAttackAt=Math.max(m.nextEnemyAttackAt+300,m.elapsed+300);
   m.enemyState='АТАКА СОПЕРНИКА';m.enemyNoticeUntil=m.elapsed+8;
   for(const bot of m.bots.filter(b=>b.alive)){
-   const waveSize=Math.min(3,1+Math.floor(bot.match.playerTowerLevel/5));
+   const waveSize=Math.min(3,1+Math.floor(bot.profile.towerLevel/5));
    for(let i=0;i<waveSize;i++){
     const cost=100;
     if(bot.profile.coins>=cost){bot.profile.coins-=cost;spawnUnit(1,bot.x+(i-1)*22,bot.y+42);}
