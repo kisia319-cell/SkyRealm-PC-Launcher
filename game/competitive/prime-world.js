@@ -15,7 +15,7 @@ const pages=['home','rank','history','settings','menu','battle'];
 function save(){localStorage.setItem(SAVE,JSON.stringify(profile));localStorage.setItem(BOT_SAVE,JSON.stringify(botsProfile));updateProfile();}
 function updateProfile(){
  const coins=Math.floor(profile.coins);
- ['home-coins','rank-coins','battle-coins','nav-coins'].forEach(id=>{const el=$(id);if(el)el.textContent=id==='nav-coins'?coins.toLocaleString('ru-RU'):coins.toLocaleString('ru-RU')+' ◆';});
+ ['home-coins','rank-coins','battle-coins','nav-coins','top-coins'].forEach(id=>{const el=$(id);if(el)el.textContent=id==='nav-coins'?coins.toLocaleString('ru-RU'):coins.toLocaleString('ru-RU')+' ◆';});
  $('home-elo').textContent=profile.elo+' ELO';$('rank-elo').textContent=profile.elo+' ELO';$('nav-elo').textContent=profile.elo;
  $('home-tower').textContent='Уровень '+profile.towerLevel;$('rank-tower').textContent='Уровень '+profile.towerLevel;
  $('home-matches').textContent=profile.matches+' матчей';$('home-wins').textContent=profile.wins;
