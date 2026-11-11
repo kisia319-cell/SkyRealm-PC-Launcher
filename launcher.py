@@ -758,6 +758,19 @@ class LauncherApi:
             return {"ok": False, "message": f"Ошибка подготовки игры на этапе «{launch_stage}»: {exc}. Подробности: {error_log_hint}"}
 
 
+    def get_competitive_launcher_status(self):
+        """Report whether the standalone PrimeLauncher runner is installed."""
+        try:
+            if not getattr(sys, "frozen", False):
+                return {"ok": True, "installed": True, "development": True}
+            prime_root = skyrealm_default_data_root()
+            runner = prime_root / "bin" / "PrimeLauncher.exe"
+            game_index = prime_root / "PrimeLauncher" / "game" / "index.html"
+            installed = runner.is_file() and game_index.is_file()
+            return {"ok": True, "installed": installed}
+        except Exception as exc:
+            return {"ok": False, "installed": False, "message": str(exc)}
+
     def launch_competitive_game(self):
         """Install the isolated Prime world and start it in its own executable."""
         try:
@@ -765,6 +778,7 @@ class LauncherApi:
             source_index = source_dir / "index.html"
             if not source_index.is_file() or not (source_dir / "prime-world.js").is_file():
                 return {"ok": False, "message": "В сборке отсутствуют файлы соревновательного мира."}
+
             prime_root = skyrealm_default_data_root() / "PrimeLauncher"
             install_dir = prime_root / "game"
             install_dir.mkdir(parents=True, exist_ok=True)
@@ -779,6 +793,7 @@ class LauncherApi:
             installed_index = install_dir / "index.html"
             if not installed_index.is_file():
                 return {"ok": False, "message": "Не удалось подготовить файлы PrimeLauncher."}
+
             if getattr(sys, "frozen", False):
                 bundled_runner = Path(resource_path("bin/PrimeLauncher.exe"))
                 if not bundled_runner.is_file():
@@ -795,6 +810,7 @@ class LauncherApi:
             else:
                 command = [sys.executable, str(Path(__file__).resolve()),
                            "--prime-competitive", str(installed_index)]
+
             flags = (getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) |
                      getattr(subprocess, "DETACHED_PROCESS", 0)) if os.name == "nt" else 0
             process = subprocess.Popen(command, cwd=str(install_dir), close_fds=True, creationflags=flags)
@@ -1652,3 +1668,5 @@ if __name__ == "__main__":
         launcher_profile = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "launcher-profile"
         launcher_profile.mkdir(parents=True, exist_ok=True)
         webview.start(debug=False, private_mode=False, storage_path=str(launcher_profile))
+
+[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
