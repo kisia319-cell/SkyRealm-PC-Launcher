@@ -2,7 +2,7 @@
   'use strict';
   const canvas=document.getElementById('world');
   const ctx=canvas.getContext('2d');
-  const SIZE=190,TILE=32,KEYS=new Set();
+  const SIZE=190,TILE=32,LAST_MOVE=new Map();
   const SAVE_KEY='primeLauncher.world.v1';
   let player={x:95,y:95};
   try{const saved=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(saved&&Number.isFinite(saved.x)&&Number.isFinite(saved.y)){player.x=Math.max(0,Math.min(SIZE-1,saved.x));player.y=Math.max(0,Math.min(SIZE-1,saved.y));}}catch(_){}
@@ -36,9 +36,9 @@
   }
   function move(dx,dy){const nx=Math.max(0,Math.min(SIZE-1,player.x+dx)),ny=Math.max(0,Math.min(SIZE-1,player.y+dy));if(nx===player.x&&ny===player.y)return;player.x=nx;player.y=ny;localStorage.setItem(SAVE_KEY,JSON.stringify(player));draw();}
   const map={w:[0,-1],arrowup:[0,-1],s:[0,1],arrowdown:[0,1],a:[-1,0],arrowleft:[-1,0],d:[1,0],arrowright:[1,0]};
-  window.addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(map[key]){e.preventDefault();if(!KEYS.has(key)){KEYS.add(key);move(...map[key]);}}});
-  window.addEventListener('keyup',e=>KEYS.delete(e.key.toLowerCase()));
-  window.addEventListener('blur',()=>KEYS.clear());
+  window.addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(map[key]){e.preventDefault();const now=performance.now(),last=LAST_MOVE.get(key)||0;if(!e.repeat||now-last>=105){LAST_MOVE.set(key,now);move(...map[key]);}}});
+  window.addEventListener('keyup',e=>LAST_MOVE.delete(e.key.toLowerCase()));
+  window.addEventListener('blur',()=>LAST_MOVE.clear());
   canvas.addEventListener('click',()=>canvas.focus());
   if('ResizeObserver'in window)new ResizeObserver(resize).observe(canvas.parentElement);else window.addEventListener('resize',resize);
   resize();
