@@ -41,7 +41,7 @@ jobs:
             "launcher.py", "update_helper.py", "launcher_version.txt",
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "community-mods.css", "community-mods.js", "config.js", "realm.jpg", "icon.png",
-            "SkyRealm.ico", "game/index.html", "game/game.js", "game/version.txt", "game/bugfix_counter.txt",
+            "SkyRealm.ico", "game/competitive/index.html", "game/competitive/prime-world.js", "tests/competitive-mode-test.cjs", "game/index.html", "game/game.js", "game/version.txt", "game/bugfix_counter.txt",
             "game/edition-system.js", "game/forest-ecosystem.js", "game/world-events.js", "game/world-expansion.js", "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/living-world.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css", "game/expansion-systems.js"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
@@ -62,6 +62,8 @@ jobs:
           node --check game/challenge-mode.js
           node --check tests/sea-world-regression-test.cjs
           node --check tests/challenge-staff-regression-test.cjs
+          node --check game/competitive/prime-world.js
+          node tests/competitive-mode-test.cjs
           node --check app.js
           node --check launcher-enhancements.js
           node --check community-mods.js
@@ -144,13 +146,16 @@ jobs:
       - name: Build game window executable
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
 
+      - name: Build isolated PrimeLauncher runtime
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher launcher.py
+
       - name: Build updater helper
         run: python -m PyInstaller --noconfirm --clean --onefile --console --noupx --name SkyRealmUpdater --distpath updater_dist --workpath build_updater/work --specpath build_updater update_helper.py
 
       - name: Build launcher executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "community-mods.css;." --add-data "community-mods.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" --add-data "THIRD_PARTY_NOTICES.txt;." --add-data "ASSET_AND_LICENSE_REGISTER.md;." launcher.py
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "community-mods.css;." --add-data "community-mods.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "prime_launcher_dist/PrimeLauncher.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" --add-data "THIRD_PARTY_NOTICES.txt;." --add-data "ASSET_AND_LICENSE_REGISTER.md;." launcher.py
           if (-not (Test-Path "dist/SkyRealm.exe")) { throw "SkyRealm.exe was not created" }
 
       - name: Prepare update archives and manifest
