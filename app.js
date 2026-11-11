@@ -648,11 +648,12 @@
       if(dataUrl.length>900000)throw new Error('Изображение получилось слишком большим. Выбери другую картинку.');
       if(!loadedPlayerProfile?.id)throw new Error('Сначала войди в аккаунт.');
       const token=await getValidToken();
-      const uploadUrl=API_BASE.replace(/\/+$/,'')+'/storage/v1/object/skyrealm-avatars/'+encodeURIComponent(loadedPlayerProfile.id)+'/avatar.webp';
+      const storageBase=new URL(API_BASE).origin+'/storage/v1/object';
+      const uploadUrl=storageBase+'/skyrealm-avatars/'+encodeURIComponent(loadedPlayerProfile.id)+'/avatar.webp';
       const upload=await fetch(uploadUrl,{method:'POST',headers:{apikey:API_KEY,Authorization:'Bearer '+token,'Content-Type':'image/webp','x-upsert':'true'},body:await (await fetch(dataUrl)).blob()});
       let uploadData={};try{uploadData=await upload.json();}catch(_){}
       if(!upload.ok)throw new Error(uploadData.message||'Не удалось загрузить аватарку в облако.');
-      const publicUrl=API_BASE.replace(/\/+$/,'')+'/storage/v1/object/public/skyrealm-avatars/'+encodeURIComponent(loadedPlayerProfile.id)+'/avatar.webp?v='+Date.now();
+      const publicUrl=storageBase+'/public/skyrealm-avatars/'+encodeURIComponent(loadedPlayerProfile.id)+'/avatar.webp?v='+Date.now();
       const saved=await requestSocial('/api/social/profile',{method:'PATCH',body:{avatar_url:publicUrl}});
       loadedPlayerProfile={...loadedPlayerProfile,...(saved.profile||{}),avatar_url:publicUrl};
       applyPlayerAvatar(loadedPlayerProfile);message.textContent='Аватарка сохранена в облаке аккаунта.';
