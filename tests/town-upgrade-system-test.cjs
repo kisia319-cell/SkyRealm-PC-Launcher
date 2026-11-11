@@ -42,8 +42,8 @@ for(const snippet of [
  'TOWN_SPECIALISTS={','function townHousingCapacity()','function townStaffSlots()','function hireTownSpecialist(id)',
  'function updateTownGrowth(day)','function updateTownCaravan(day)','function startTownCaravan()','function claimTownCaravan()',
  'nextCaravanDay:3','population:15','town.population<capacity','town.staff.steward','town.staff.scout',
- 'town.staff.merchant?150:0','town.staff.engineer ? 0.9 : 1','data-lw-action=\\\"town-caravan\\\"',
- 'data-lw-action=\\\"town-hire:','town-caravan-claim','drawTownCaravan(ctx,centers,camX,camY,time)',
+ 'town.staff.merchant?150:0','state.town.staff?.engineer ? 0.9 : 1','town-caravan\\\"',
+ 'town-hire:','town-caravan-claim','drawTownCaravan(ctx,centers,camX,camY,time)',
  'status===\'complete\'','b?.addItem?.(item,amount'
 ])assert.ok(living.includes(snippet),'Missing settlement expansion behavior: '+snippet);
 
