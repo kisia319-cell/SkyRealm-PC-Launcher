@@ -89,7 +89,7 @@ function createMatch(){
  }
  for(let i=0;i<teamSize;i++){
   const angle=-Math.PI/2+(i-(teamSize-1)/2)*.55,radius=230+i*35;
-  const bp=botsProfile[i%botsProfile.length];bp.coins=Math.max(650,Number(bp.coins)||0);const x=player.x+Math.cos(angle)*radius,y=player.y+Math.sin(angle)*radius;
+  const bp=botsProfile[i%botsProfile.length];bp.coins=650;bp.towerLevel=1;const x=player.x+Math.cos(angle)*radius,y=player.y+Math.sin(angle)*radius;
   const bot={id:i+1,team:1,x,y,hp:190+bp.towerLevel*20,maxHp:190+bp.towerLevel*20,speed:145+Math.random()*18,alive:true,attack:0,flash:0,elo:bp.elo,name:bp.name,profile:bp,ai:{nextUpgradeAt:38+Math.random()*18,nextBuildAt:24+Math.random()*18,nextBarracksAt:82+Math.random()*24,nextWallAt:118+Math.random()*32}};
   bots.push(bot);
   const tx=clamp(x+Math.cos(angle)*125,TILE*2,SIZE*TILE-TILE*2),ty=clamp(y+Math.sin(angle)*125,TILE*2,SIZE*TILE-TILE*2);
