@@ -129,13 +129,26 @@ jobs:
       - name: Build game window executable
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
 
+      - name: Build PrimeLauncher runtime
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "game/competitive;game/competitive" launcher.py
+
+      - name: Verify PrimeLauncher bundled game UI
+        shell: pwsh
+        run: |
+          $viewer = ".venv/Scripts/pyi-archive_viewer.exe"
+          $listing = & $viewer -l -b "prime_launcher_dist/PrimeLauncher.exe" 2>&1 | Out-String
+          $normalized = $listing.ToLower().Replace("\", "/")
+          foreach ($asset in @("game/competitive/index.html", "game/competitive/prime-world.js")) {
+            if (-not $normalized.Contains($asset)) { throw "PrimeLauncher is missing bundled asset: $asset" }
+          }
+
       - name: Build updater helper
         run: python -m PyInstaller --noconfirm --clean --onefile --console --noupx --name SkyRealmUpdater --distpath updater_dist --workpath build_updater/work --specpath build_updater update_helper.py
 
       - name: Build launcher executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "community-mods.css;." --add-data "community-mods.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" --add-data "THIRD_PARTY_NOTICES.txt;." --add-data "ASSET_AND_LICENSE_REGISTER.md;." launcher.py
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealm --icon SkyRealm.ico --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "community-mods.css;." --add-data "community-mods.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "prime_launcher_dist/PrimeLauncher.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" --add-data "THIRD_PARTY_NOTICES.txt;." --add-data "ASSET_AND_LICENSE_REGISTER.md;." launcher.py
           if (-not (Test-Path "dist/SkyRealm.exe")) { throw "SkyRealm.exe was not created" }
 
       - name: Prepare update archives and manifest
