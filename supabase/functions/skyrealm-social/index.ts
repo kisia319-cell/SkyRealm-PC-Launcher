@@ -135,7 +135,7 @@ Deno.serve(async(req:Request)=>{
         else {
           const avatarUrl=String(p.avatar_url);
           const expected=SUPABASE_URL+"/storage/v1/object/public/skyrealm-avatars/"+user.id+"/avatar.webp";
-          if(avatarUrl.length>600||!avatarUrl.startsWith(expected+"?v=")||!/\\?v=\\d+$/.test(avatarUrl.slice(expected.length))) throw new ApiError(400,"INVALID_AVATAR_URL","Недопустимый адрес аватарки.");
+          if(avatarUrl.length>600||!avatarUrl.startsWith(expected+"?v=")||!/\?v=\d+$/.test(avatarUrl.slice(expected.length))) throw new ApiError(400,"INVALID_AVATAR_URL","Недопустимый адрес аватарки.");
           update.avatar_url=avatarUrl;
         }
       }
