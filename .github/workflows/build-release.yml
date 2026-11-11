@@ -83,6 +83,7 @@ jobs:
           node --check tests/supabase-migration-history-test.cjs
           node --check tests/time-mechanics-test.cjs
           node tests/game-smoke-test.cjs
+          node tests/performance-optimization-test.cjs
           node tests/achievement-system-test.cjs
           node tests/world-library-test.cjs
           node tests/cosmetic-collection-test.cjs
