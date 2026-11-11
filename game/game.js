@@ -13,6 +13,7 @@
   // Reuse the deterministic Boss Realm floor between camera-tile changes.
   let bossRealmGroundCache = null;
   let width = 0, height = 0, dpr = 1, last = performance.now(), paused = true;
+  let adaptiveRenderScale=1,renderCostTotal=0,renderCostSamples=0,renderCostWindowAt=0;
   let inMainMenu = true;
   let settingsOpenedFromMainMenu = false;
   const keys = new Set();
@@ -1354,7 +1355,7 @@ let audioContext=null;
   let tradeLayoutsCache=null,tradeLayoutsCols=0,tradeLayoutsRows=0;
   function tradeVillageLayouts(){if(tradeLayoutsCache&&tradeLayoutsCols===COLS&&tradeLayoutsRows===ROWS)return tradeLayoutsCache;tradeLayoutsCols=COLS;tradeLayoutsRows=ROWS;return tradeLayoutsCache=[{id:'forest',x:Math.floor(COLS*.18),y:Math.floor(ROWS*.28),name:'ЛЕСНОЙ ПРИЧАЛ',biome:'forest',houses:['merchant','farmer']},{id:'snow',x:Math.floor(COLS*.75),y:Math.floor(ROWS*.10),name:'СНЕЖНАЯ СТОЯНКА',biome:'snow',houses:['hunter','guard']},{id:'desert',x:Math.floor(COLS*.08),y:Math.floor(ROWS*.78),name:'ПЕСЧАНЫЙ БАЗАР',biome:'desert',houses:['builder']},{id:'volcano',x:Math.floor(COLS*.52),y:Math.floor(ROWS*.08),name:'УГОЛЬНАЯ КРЕПОСТЬ',biome:'volcano',houses:['miner','mage']},{id:'blight',x:Math.floor(COLS*.78),y:Math.floor(ROWS*.76),name:'ЗАРОСШАЯ ЗАСТАВА',biome:'blight',houses:['alchemist']}];}
   function nearVillage(x,y){const x2=Math.floor(COLS*.62),y2=Math.floor(ROWS*.58);return (x>29&&x<48&&y>13&&y<36)||(x>x2-8&&x<x2+9&&y>y2-8&&y<y2+9)||tradeVillageLayouts().some(v=>Math.hypot(x-v.x,y-v.y)<19);}
-  function resize(){const r=canvas.getBoundingClientRect();const deviceDpr=window.devicePixelRatio||1;const quality=gameSettings.graphicsQuality;dpr=gameSettings.performanceMode==='boost'?Math.max(.72,Math.min(deviceDpr,1)*.82):quality==='low'?Math.max(.65,Math.min(deviceDpr,1)*.72):quality==='high'?Math.min(2,deviceDpr*1.45):Math.min(deviceDpr,1.15);width=r.width;height=r.height;canvas.width=Math.max(1,Math.floor(width*dpr));canvas.height=Math.max(1,Math.floor(height*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=quality!=='low';}
+  function resize(){const r=canvas.getBoundingClientRect();const deviceDpr=window.devicePixelRatio||1;const quality=gameSettings.graphicsQuality;const baseDpr=gameSettings.performanceMode==='boost'?Math.max(.72,Math.min(deviceDpr,1)*.82):quality==='low'?Math.max(.65,Math.min(deviceDpr,1)*.72):quality==='high'?Math.min(2,deviceDpr*1.45):Math.min(deviceDpr,1.15);dpr=baseDpr*(gameSettings.performanceMode==='boost'||quality==='low'?1:adaptiveRenderScale);width=r.width;height=r.height;canvas.width=Math.max(1,Math.floor(width*dpr));canvas.height=Math.max(1,Math.floor(height*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=quality!=='low';}
   function roundedRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
   function waterAt(x,y){if(tradeWorldMode)return false;const cx=52,cy=36,dx=(x-cx)/6.5,dy=(y-cy)/4.3;return dx*dx+dy*dy<1;}
   function pathAt(x,y){if(tradeWorldMode){const sx=tradeEntranceX,sy=tradeEntranceY;if(x>=sx-3&&x<=FARMER_SHOP.x+4&&Math.abs(y-sy)<=2.1)return true;for(const v of tradeVillageLayouts()){const dx=v.x-sx,dy=v.y-sy,t=dx?(x-sx)/dx:0;if(t>=0&&t<=1&&Math.abs(y-(sy+dy*t))<=1.6)return true;}return false;}if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y;if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;if(x>=35&&x<=40&&y>=17&&y<=21)return true;const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));if((y>=25&&y<=27&&x>=34&&x<=48)||(Math.abs(y-31)<=1&&x>=44&&x<=vx)||(Math.abs(x-vx)<=1&&y>=31&&y<=vy+3))return true;return false;}
@@ -5982,6 +5983,22 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     }
     refreshSampleAt=now;
   }
+  function sampleRenderCost(costMs,now){
+    if(document.hidden||paused||inMainMenu||gameSettings.performanceMode==='boost'||gameSettings.graphicsQuality==='low')return;
+    if(!Number.isFinite(costMs)||costMs<=0||costMs>250)return;
+    renderCostTotal+=costMs;renderCostSamples++;
+    if(!renderCostWindowAt)renderCostWindowAt=now;
+    if(now-renderCostWindowAt<2200||renderCostSamples<45)return;
+    const average=renderCostTotal/renderCostSamples,previous=adaptiveRenderScale;
+    if(average>14.5)adaptiveRenderScale=Math.max(.72,adaptiveRenderScale-.08);
+    else if(average<7.5)adaptiveRenderScale=Math.min(1,adaptiveRenderScale+.04);
+    renderCostTotal=0;renderCostSamples=0;renderCostWindowAt=now;
+    if(Math.abs(adaptiveRenderScale-previous)>=.035){
+      resize();
+      // DPR is part of the render-cache key; clear caches so they rebuild at the new resolution.
+      bossRealmGroundCache=null;mineGroundRenderCache=null;
+    }
+  }
   function tick(now){
     sampleDisplayRefreshRate(now);
     const manualLimit=Number(gameSettings.fpsLimit)||0;
@@ -5991,11 +6008,14 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     else if(paused&&currentWorldId&&!inMainMenu)fpsLimit=Math.min(fpsLimit,15);
     if(fpsGateAt&&now-fpsGateAt<(1000/fpsLimit)-0.25){requestAnimationFrame(tick);return;}
     fpsGateAt=now;
+    const frameStartedAt=performance.now();
     try { tickFrame(now); } catch (error) {
       console.error('SkyRealm frame error:', error);
       try { drawEmergencyWorld(); } catch (renderError) { console.error('SkyRealm emergency render error:', renderError); }
       last = performance.now();
       requestAnimationFrame(tick);
+    } finally {
+      sampleRenderCost(performance.now()-frameStartedAt,now);
     }
   }
   function tickFrame(now){
