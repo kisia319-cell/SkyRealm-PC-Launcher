@@ -16,4 +16,55 @@ assert.match(primeJs,/Онлайн-режим в доработке/);assert.mat
 assert.match(primeJs,/renderLeaderboard/);assert.match(primeJs,/drawTower/);assert.match(primeJs,/performance-hud/);assert.match(primeJs,/ping= офлайн/);
 assert.match(primeJs,/match\.allies\.forEach/);assert.match(primeJs,/pressed\.has\('KeyW'\)/);assert.match(primeJs,/window\.addEventListener\('keydown'/);assert.match(primeJs,/window\.addEventListener\('keyup'/);
 assert.match(primeJs,/finish\(true\)/);assert.match(primeJs,/WORLD_SAVE/);assert.doesNotMatch(primeJs,/game\.js|multiplayer-core|boss-realm/);
+
+for(const id of ['build-toggle','balance-toggle','upgrade-tower','train-unit','bot-info-toggle','balance-value','hud-bot-state','hud-attack-timer'])assert.ok(primeHtml.includes('id="'+id+'"'),'battle HUD control is missing: '+id);
+assert.match(primeHtml,/body\.battle-active \.nav[^}]*display:none!important/,'Prime battle must hide launcher side navigation.');
+assert.match(primeHtml,/body\.battle-active \.main[^}]*width:100vw!important/,'Prime battle must occupy the full viewport.');
+assert.match(primeJs,/nextEnemyAttackAt:300/,'The first bot assault must be scheduled after five real-time minutes.');
+assert.match(primeJs,/function alertEnemyBase\(\)/,'Player attacks must trigger a defensive response.');
+assert.match(primeJs,/Math\.random\(\)<\.35/,'The counterattack must have the specified 35% chance.');
+assert.match(primeJs,/function upgradeBotTower\(bot\)/,'Bots must have a real tower-upgrade routine.');
+assert.match(primeJs,/function enemyDirector\(dt\)/,'Bots must have an active construction and economy director.');
+assert.match(primeJs,/if\(!aggro&&!assault\)continue/,'Bot fighters must stay at base before a scheduled or provoked attack.');
+assert.match(primeJs,/t\.team===1&&match\.enemyAggroUntil<=match\.elapsed&&match\.enemyAssaultUntil<=match\.elapsed/,'Enemy towers must stay silent until the match attack window or player provocation.');
+assert.match(primeJs,/nextBarracksAt/);assert.match(primeJs,/nextWallAt/);assert.match(primeJs,/nextUpgradeAt/);
+
+// Exercise the bot director: it builds and upgrades before the five-minute wave, then attacks on schedule.
+const aiFunctions=['upgradeBotTower','enemyDirector','alertEnemyBase'].map(extractFunction);
+const botProfile={name:'TestBot',coins:2200,towerLevel:1,elo:100};
+const aiContext={
+ Math:Object.assign(Object.create(Math),{random:()=>0.2}),
+ TILE:32,SIZE:190,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
+ upgradeCost:level=>500*level,renderTowerList:()=>{},updateHud:()=>{},
+ createTower:(x,y,owner)=>({x,y,owner,team:1,level:owner.towerLevel,hp:740,maxHp:740,range:222,damage:11,fire:0}),
+ spawnUnit:(team,x,y)=>{const unit={team,x,y,hp:100,alive:true};aiContext.match.units.push(unit);return unit;},
+ match:{
+  elapsed:130,nextEnemyAttackAt:300,enemyAssaultUntil:0,enemyAggroUntil:0,enemyDefenseBoostUntil:0,
+  enemyCounterAt:0,enemyCounterQueued:false,nextCounterRollAt:1000,enemyNoticeUntil:0,enemyState:'',
+  player:{x:3000,y:3000},team:1,units:[],walls:[],barracks:[],towers:[],
+  bots:[{name:'TestBot',alive:true,x:900,y:500,profile:botProfile,ai:{nextUpgradeAt:35,nextBuildAt:25,nextBarracksAt:80,nextWallAt:110}}]
+ }
+};
+aiContext.match.towers.push({x:800,y:400,owner:botProfile,team:1,level:1,hp:740,maxHp:740,range:222,damage:11});
+vm.runInNewContext(aiFunctions.join('\\n')+'\\nglobalThis.aiDirector=enemyDirector;globalThis.aiAlert=alertEnemyBase;',aiContext);
+aiContext.aiDirector(1);
+assert.equal(botProfile.towerLevel,2,'Bot tower must upgrade from earned coins.');
+assert.equal(aiContext.match.towers[0].level,2,'The visible bot tower must receive its upgrade.');
+assert.equal(aiContext.match.towers.length,2,'Bot must construct an additional defensive tower.');
+assert.equal(aiContext.match.barracks.length,1,'Bot must build a barracks.');
+assert.equal(aiContext.match.walls.length,1,'Bot must reinforce its base.');
+assert.equal(aiContext.match.units.length,0,'Bot must not attack immediately during the development phase.');
+assert.equal(aiContext.match.enemyAssaultUntil,0,'No assault may occur before five minutes.');
+aiContext.match.elapsed=299;aiContext.aiDirector(1);
+assert.equal(aiContext.match.units.length,0,'The bot must still wait at 4:59.');
+aiContext.match.elapsed=300;aiContext.aiDirector(1);
+assert.ok(aiContext.match.units.some(u=>u.team===1),'The first scheduled five-minute wave must spawn troops.');
+assert.equal(aiContext.match.nextEnemyAttackAt,600,'The next scheduled attack must be five minutes later.');
+aiContext.match.elapsed=20;aiContext.match.nextCounterRollAt=0;aiContext.aiAlert();
+assert.equal(aiContext.match.enemyAggroUntil,58,'Attacking the bot must trigger a defensive response.');
+assert.equal(aiContext.match.enemyDefenseBoostUntil,60,'An early attack must strengthen the bot during the first minute.');
+assert.equal(aiContext.match.enemyCounterQueued,true,'A bot with troops must perform the configured 35% counterattack roll.');
+aiContext.match.elapsed=23;aiContext.aiDirector(1);
+assert.ok(aiContext.match.units.filter(u=>u.team===1).length>=2,'A successful counterattack roll must release reserve troops.');
+
 console.log('competitive-mode-test: all assertions passed');
