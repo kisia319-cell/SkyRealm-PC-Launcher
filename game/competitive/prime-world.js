@@ -10,7 +10,7 @@ try{const s=JSON.parse(localStorage.getItem(SAVE)||'null');if(s&&Number.isFinite
 try{const b=JSON.parse(localStorage.getItem(BOT_SAVE)||'null');if(Array.isArray(b))botsProfile=botsProfile.map((x,i)=>({...x,...(b[i]||{})}));}catch(_){}
 try{const w=JSON.parse(localStorage.getItem(WORLD_SAVE)||'null');if(w&&Number.isFinite(w.seed))worldMeta={...worldMeta,...w};}catch(_){}
 profile.coins=Math.max(0,Number(profile.coins)||0);profile.towerLevel=Math.max(1,Number(profile.towerLevel)||1);
-let teamSize=1,matchKind='training',scene='home',match=null,raf=0,lastFrame=0,pressed=new Set(),attackCooldown=0,searchTimer=0,fpsFrames=0,fpsElapsed=0,currentFps=0;
+let teamSize=1,matchKind='training',scene='home',match=null,raf=0,lastFrame=0,pressed=new Set(),attackCooldown=0,searchTimer=0,fpsFrames=0,fpsElapsed=0,currentFps=0,buildMode=null;
 const pages=['home','rank','history','settings','menu','battle'];
 function save(){localStorage.setItem(SAVE,JSON.stringify(profile));localStorage.setItem(BOT_SAVE,JSON.stringify(botsProfile));updateProfile();}
 function updateProfile(){
@@ -66,15 +66,15 @@ function createMatch(){
  for(let i=0;i<teamSize;i++){
   const angle=-Math.PI/2+(i-(teamSize-1)/2)*.55,radius=230+i*35;
   const bp=botsProfile[i%botsProfile.length],x=player.x+Math.cos(angle)*radius,y=player.y+Math.sin(angle)*radius;
-  const bot={id:i+1,team:1,x,y,hp:120+bp.towerLevel*12,maxHp:120+bp.towerLevel*12,speed:125+Math.random()*22,alive:true,attack:0,flash:0,elo:bp.elo,name:bp.name,profile:bp};
+  const bot={id:i+1,team:1,x,y,hp:190+bp.towerLevel*20,maxHp:190+bp.towerLevel*20,speed:145+Math.random()*18,alive:true,attack:0,flash:0,elo:bp.elo,name:bp.name,profile:bp};
   bots.push(bot);
   const tx=clamp(x+Math.cos(angle)*125,TILE*2,SIZE*TILE-TILE*2),ty=clamp(y+Math.sin(angle)*125,TILE*2,SIZE*TILE-TILE*2);
   towers.push(createTower(tx,ty,bp,false));
  }
  worldMeta={...worldMeta,size:SIZE,lastTeam:teamSize,lastKind:matchKind};localStorage.setItem(WORLD_SAVE,JSON.stringify(worldMeta));
- match={player,bots,allies,towers,kind:'training',team:teamSize,started:performance.now(),finished:false,worldSeed:worldMeta.seed,botCoinTick:0};
+ match={player,bots,allies,towers,walls:[],barracks:[],units:[],kind:'training',team:teamSize,started:performance.now(),finished:false,worldSeed:worldMeta.seed,botCoinTick:0,elapsed:0,enemyLastAttack:0,enemyLastBuild:0,enemyAggroUntil:0,playerBaseLevel:1,unitCounter:0,enemyState:'развивается'};
  attackCooldown=0;pressed.clear();$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
- renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();show('battle');drawArena();
+ renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');drawArena();
 }
 function renderBotList(){$('bot-list').innerHTML=match.bots.map(b=>'<div class="bot" id="bot-'+b.id+'"><b>'+b.name+'</b><br><span>'+b.elo+' ELO · '+b.profile.coins+' ◆</span><div class="hpbar" style="margin-top:6px"><span id="bot-hp-'+b.id+'" style="width:100%"></span></div></div>').join('');}
 function renderTowerList(){
@@ -99,6 +99,10 @@ $('upgrade-tower').addEventListener('click',()=>{
  if(match){const t=match.towers.find(x=>x.isPlayer);if(t){t.level=profile.towerLevel;t.maxHp=560+t.level*180;t.hp=Math.min(t.maxHp,t.hp+180);t.range=210+t.level*12;t.damage=8+t.level*3;}}
  $('tower-feedback').textContent='Башня улучшена до уровня '+profile.towerLevel+'!';renderTowerList();drawArena();
 });
+function updateHud(){if(!match)return;const q=id=>document.getElementById(id);q('hud-hp').textContent=Math.ceil(match.player.hp)+' / '+match.player.maxHp;q('hud-coins').textContent=Math.floor(profile.coins);q('hud-army').textContent=match.units.filter(u=>u.team===0&&u.alive).length;q('hud-base').textContent='База ур. '+match.playerBaseLevel;}
+function upgradeStructureAt(x,y){const m=match,items=[...m.walls,...m.barracks,...m.towers.filter(t=>t.team===0)];const o=items.find(v=>Math.hypot(v.x-x,v.y-y)<55);if(!o)return false;const cost=100*(o.level||1);if(profile.coins<cost)return true;profile.coins-=cost;o.level=(o.level||1)+1;o.maxHp=(o.maxHp||260)+120;o.hp=Math.min(o.maxHp,o.hp+120);if(o.damage)o.damage+=5;if(o.range)o.range+=22;save();updateHud();return true;}
+function spawnUnit(team,x,y){const u={team,x,y,hp:100,maxHp:100,damage:team===0?5:5/1.2,range:team===0?48:40,speed:team===0?125:125/1.2,attack:0,flash:0,alive:true,name:'Воин'};match.units.push(u);return u;}
+function enemyDirector(dt){const m=match;if(!m)return;m.enemyLastBuild+=dt;m.enemyLastAttack+=dt;for(const b of m.bots){if(b.profile.coins>=300&&m.enemyLastBuild>14&&m.towers.filter(t=>t.team===1).length<3){b.profile.coins-=300;const ang=Math.atan2(b.y-m.player.y,b.x-m.player.x),tx=clamp(b.x+Math.cos(ang)*90,TILE*2,SIZE*TILE-TILE*2),ty=clamp(b.y+Math.sin(ang)*90,TILE*2,SIZE*TILE-TILE*2);m.towers.push(createTower(tx,ty,b.profile,false));m.enemyLastBuild=0;}if(b.profile.coins>=450&&!m.barracks.some(x=>x.team===1)){b.profile.coins-=450;m.barracks.push({x:b.x+70,y:b.y+70,team:1,level:1,hp:500,maxHp:500,timer:0});}if(b.profile.coins>=150&&m.elapsed>45&&m.walls.filter(w=>w.team===1).length<5&&m.enemyLastBuild>25){b.profile.coins-=150;m.walls.push({x:b.x+Math.random()*100-50,y:b.y+Math.random()*100-50,team:1,level:1,hp:260,maxHp:260});m.enemyLastBuild=0;}}if(m.elapsed<60){m.enemyState='развивается';return;}if(m.elapsed-m.enemyLastAttack>=300){m.enemyLastAttack=m.elapsed;m.enemyState='атакует';for(const b of m.bots.filter(x=>x.alive))for(let i=0;i<Math.min(3,1+Math.floor(b.profile.towerLevel/4));i++)spawnUnit(1,b.x,b.y+45);}else if(m.elapsed<m.enemyAggroUntil){m.enemyState='защищается';if(!m.counterChecked&&Math.random()<.35&&m.bots.some(x=>x.alive)){m.counterChecked=true;m.enemyState='контратака';for(const b of m.bots.filter(x=>x.alive))spawnUnit(1,b.x,b.y+35);}}else{m.counterChecked=false;m.enemyState='готовит войска';}for(const br of m.barracks){br.timer=(br.timer||0)+dt;if(br.timer>18){br.timer=0;spawnUnit(br.team,br.x,br.y);}}updateHud();}
 function stopLoop(){if(raf)cancelAnimationFrame(raf);raf=0;lastFrame=0;}
 function startLoop(){if(raf)return;lastFrame=performance.now();raf=requestAnimationFrame(loop);}
 function loop(now){
@@ -108,7 +112,7 @@ function loop(now){
  update(dt);drawArena();raf=requestAnimationFrame(loop);
 }
 function update(dt){
- const p=match.player;attackCooldown=Math.max(0,attackCooldown-dt);
+ const p=match.player;match.elapsed+=dt;match.botCoinTick+=dt;if(match.botCoinTick>=1){const n=Math.floor(match.botCoinTick);match.botCoinTick-=n;profile.coins+=n*5;for(const b of match.bots)b.profile.coins+=n*5;}enemyDirector(dt);attackCooldown=Math.max(0,attackCooldown-dt);
  let dx=(pressed.has('KeyD')||pressed.has('ArrowRight')?1:0)-(pressed.has('KeyA')||pressed.has('ArrowLeft')?1:0);
  let dy=(pressed.has('KeyS')||pressed.has('ArrowDown')?1:0)-(pressed.has('KeyW')||pressed.has('ArrowUp')?1:0);
  if(dx||dy){const len=Math.hypot(dx,dy);p.x=clamp(p.x+dx/len*p.speed*dt,TILE,SIZE*TILE-TILE);p.y=clamp(p.y+dy/len*p.speed*dt,TILE,SIZE*TILE-TILE);}
@@ -119,15 +123,16 @@ function update(dt){
   if(target){const vx=target.x-ally.x,vy=target.y-ally.y,dist=Math.hypot(vx,vy)||1;if(dist>58){ally.x+=vx/dist*ally.speed*dt;ally.y+=vy/dist*ally.speed*dt;}else if(ally.attack<=0){ally.attack=.9;target.hp=Math.max(0,target.hp-19);target.flash=.14;if(target.hp<=0)target.alive=false;}}
  }
  for(const b of match.bots){
-  if(!b.alive)continue;b.attack=Math.max(0,b.attack-dt);b.flash=Math.max(0,b.flash-dt);
+  if(!b.alive)continue;if(match.elapsed<60&&match.elapsed>=match.enemyAggroUntil)continue;if(match.elapsed<60&&match.enemyAggroUntil===0)continue;b.attack=Math.max(0,b.attack-dt);b.flash=Math.max(0,b.flash-dt);
   const playerTower=match.towers.find(t=>t.isPlayer),toTower=playerTower?Math.hypot(playerTower.x-b.x,playerTower.y-b.y):Infinity,toPlayer=Math.hypot(p.x-b.x,p.y-b.y),targetTower=playerTower&&playerTower.hp>0&&toTower<toPlayer+75;
   const tx=targetTower?playerTower.x:p.x,ty=targetTower?playerTower.y:p.y,vx=tx-b.x,vy=ty-b.y,dist=Math.hypot(vx,vy)||1;
   if(dist>(targetTower?48:40)){b.x+=vx/dist*b.speed*dt;b.y+=vy/dist*b.speed*dt;}
-  else if(b.attack<=0){b.attack=1.05;if(targetTower)playerTower.hp=Math.max(0,playerTower.hp-(12+b.profile.towerLevel*2));else{p.hp=Math.max(0,p.hp-(7+b.profile.towerLevel));p.flash=.16;}}
+  else if(b.attack<=0){b.attack=.88;if(targetTower)playerTower.hp=Math.max(0,playerTower.hp-(15+b.profile.towerLevel*2));else{p.hp=Math.max(0,p.hp-(12+b.profile.towerLevel*2));p.flash=.16;}}
  }
+ for(const u of match.units){if(!u.alive)continue;u.attack=Math.max(0,u.attack-dt);const foes=u.team===0?[...match.bots.filter(b=>b.alive),...match.units.filter(v=>v.team===1&&v.alive)]:[p,...match.allies.filter(a=>a.alive),...match.units.filter(v=>v.team===0&&v.alive)];let foe=null,near=Infinity;for(const f of foes){const d=Math.hypot(f.x-u.x,f.y-u.y);if(d<near){near=d;foe=f;}}if(foe){if(near>u.range){u.x+=(foe.x-u.x)/near*u.speed*dt;u.y+=(foe.y-u.y)/near*u.speed*dt;}else if(u.attack<=0){u.attack=1.1;foe.hp=Math.max(0,foe.hp-u.damage);foe.flash=.14;if(foe.hp<=0)foe.alive=false;}}}
  for(const t of match.towers){
   if(t.hp<=0)continue;t.fire-=dt;if(t.fire>0)continue;
-  const targets=t.team===0?match.bots.filter(b=>b.alive):[p,...match.allies.filter(a=>a.alive)];
+  const targets=t.team===0?match.bots.filter(b=>b.alive):[p,...match.allies.filter(a=>a.alive),...match.units.filter(u=>u.team===0&&u.alive)];
   let target=null,best=t.range;for(const f of targets){const d=Math.hypot(f.x-t.x,f.y-t.y);if(d<best){best=d;target=f;}}
   if(target){t.fire=Math.max(.55,1.45-t.level*.035);if(target===p){p.hp=Math.max(0,p.hp-t.damage);p.flash=.12;}else{target.hp=Math.max(0,target.hp-t.damage);target.flash=.12;if(target.hp<=0)target.alive=false;}}
  }
@@ -141,9 +146,9 @@ function attack(){
  if(!match||match.finished||attackCooldown>0)return;attackCooldown=.42;
  const p=match.player;let target=null,best=92;
  for(const b of match.bots){if(!b.alive)continue;const d=Math.hypot(b.x-p.x,b.y-p.y);if(d<best){best=d;target=b;}}
- if(target){target.hp=Math.max(0,target.hp-34);target.flash=.18;if(target.hp<=0)target.alive=false;return;}
+ if(target){target.hp=Math.max(0,target.hp-34);target.flash=.18;if(target.hp<=0)target.alive=false;match.enemyAggroUntil=match.elapsed+45;match.enemyState='защищается';return;}
  for(const t of match.towers.filter(t=>t.team===1&&t.hp>0)){const d=Math.hypot(t.x-p.x,t.y-p.y);if(d<best){best=d;target=t;}}
- if(target&&target.isPlayer===false){target.hp=Math.max(0,target.hp-48);}
+ if(target&&target.isPlayer===false){target.hp=Math.max(0,target.hp-48);match.enemyAggroUntil=match.elapsed+45;match.enemyState='защищается';}
 }
 function drawTower(ctx,t,camX,camY){
  const x=t.x-camX,y=t.y-camY,l=t.level,scale=1+Math.min(8,l-1)*.055;
@@ -172,18 +177,18 @@ function drawArena(){
   ctx.fillStyle='rgba(21,54,35,.18)';ctx.strokeRect(sx+.5,sy+.5,TILE,TILE);
   if((x*13+y*7+match.worldSeed)%47===0){ctx.fillStyle='#b9c77a';ctx.fillRect(sx+14,sy+12,3,3);}
  }
- match.towers.forEach(t=>drawTower(ctx,t,camX,camY));
+ match.walls.forEach(w=>{const x=w.x-camX,y=w.y-camY;ctx.fillStyle='#252a31';ctx.fillRect(x-25,y-10,50,22);ctx.fillStyle='#8b929b';ctx.fillRect(x-23,y-14,46,6);ctx.fillStyle=w.team===0?'#ff873d':'#d65b4a';ctx.fillRect(x-25,y+14,50*Math.max(0,w.hp/w.maxHp),4);ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText('СТЕНА ур.'+w.level,x,y-20);});match.barracks.forEach(b=>{const x=b.x-camX,y=b.y-camY;ctx.fillStyle='#49372b';ctx.fillRect(x-22,y-20,44,38);ctx.fillStyle='#9a6a43';ctx.beginPath();ctx.moveTo(x-27,y-20);ctx.lineTo(x,y-42);ctx.lineTo(x+27,y-20);ctx.fill();ctx.fillStyle='#ff9b62';ctx.fillRect(x-5,y-8,10,26);ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText('КАЗАРМА ур.'+b.level,x,y-47);});match.towers.forEach(t=>drawTower(ctx,t,camX,camY));
  function fighter(f,isPlayer,isAlly=false){
   const x=f.x-camX,y=f.y-camY;
   ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(x,y+13,13,5,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=f.flash>0?'#fff':isPlayer?'#252d42':isAlly?'#183b62':'#42251c';ctx.fillRect(x-9,y-4,18,19);
   ctx.fillStyle=isPlayer?'#ff7a2b':isAlly?'#54aaff':'#d95a36';ctx.fillRect(x-8,y-4,16,4);
   ctx.fillStyle='#e8bd96';ctx.beginPath();ctx.arc(x,y-13,8,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#2a2020';ctx.fillRect(x-8,y-21,16,6);ctx.fillStyle='#fff';ctx.fillRect(x+2,y-14,2,2);
+  ctx.fillStyle='#2a2020';ctx.fillRect(x-8,y-21,16,6);ctx.fillStyle='#fff';ctx.fillRect(x-3,y-15,2,2);ctx.fillRect(x+3,y-15,2,2);ctx.fillStyle='#39221c';ctx.fillRect(x-2,y-8,4,1);
   ctx.fillStyle='#fff';ctx.font='11px Segoe UI';ctx.textAlign='center';ctx.fillText(isPlayer?'Kisia':f.name,x,y-29);
   if(!isPlayer){ctx.fillStyle='#1a0f0d';ctx.fillRect(x-17,y-37,34,4);ctx.fillStyle='#ff6428';ctx.fillRect(x-17,y-37,34*(f.hp/f.maxHp),4);}
  }
- match.bots.forEach(b=>{if(b.alive)fighter(b,false);});match.allies.forEach(a=>{if(a.alive)fighter(a,false,true);});fighter(p,true);
+ match.bots.forEach(b=>{if(b.alive)fighter(b,false);});match.allies.forEach(a=>{if(a.alive)fighter(a,false,true);});match.units.forEach(u=>{if(u.alive){fighter(u,false,u.team===0);}});fighter(p,true);
  ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(12,12,175,29);ctx.fillStyle='#fff';ctx.font='12px Segoe UI';ctx.textAlign='left';ctx.fillText('АРЕНА PRIME · 190 × 190',22,31);
 }
 function keyDirection(code){return ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(code);}
@@ -195,11 +200,12 @@ window.addEventListener('keydown',e=>{
 },true);
 window.addEventListener('keyup',e=>{pressed.delete(e.code);},true);
 window.addEventListener('blur',()=>pressed.clear());
-$('arena').addEventListener('pointerdown',e=>{if(scene==='battle'){$('arena').focus();attack();}});
+$('arena').addEventListener('pointerdown',e=>{if(scene==='battle'){const r=$('arena').getBoundingClientRect(),x=(e.clientX-r.left)/r.width*$('arena').width,y=(e.clientY-r.top)/r.height*$('arena').height,wx=x+match.player.x-$('arena').width/2,wy=y+match.player.y-$('arena').height/2;if(buildMode){const cost={wall:150,tower:300,barracks:450}[buildMode];if(profile.coins>=cost){profile.coins-=cost;if(buildMode==='wall')match.walls.push({x:wx,y:wy,team:0,level:1,hp:260,maxHp:260});if(buildMode==='tower')match.towers.push({...createTower(wx,wy,profile,true),team:0,kind:'archer'});if(buildMode==='barracks')match.barracks.push({x:wx,y:wy,team:0,level:1,hp:500,maxHp:500});}buildMode=null;}else{if(!upgradeStructureAt(wx,wy))attack();}updateHud();$('arena').focus();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pressed.clear();});
 $('arena').addEventListener('contextmenu',e=>e.preventDefault());
 window.addEventListener('beforeunload',()=>{if(searchTimer)clearInterval(searchTimer);stopLoop();});
+$('build-toggle').addEventListener('click',()=>{$('build-panel').classList.toggle('hidden');});document.querySelectorAll('[data-build]').forEach(b=>b.addEventListener('click',()=>{buildMode=b.dataset.build;$('build-panel').classList.add('hidden');}));$('train-unit').addEventListener('click',()=>{if(!match)return;const br=match.barracks.find(x=>x.team===0);if(!br){buildMode='barracks';$('build-panel').classList.remove('hidden');return;}if(profile.coins>=100){profile.coins-=100;spawnUnit(0,br.x,br.y);updateHud();}});
 updateProfile();
-// Prime's local economy runs while the launcher is open, not only during a match.
-window.setInterval(()=>{profile.coins+=5;for(const b of botsProfile){b.coins+=5;if(b.towerLevel<20&&b.coins>=upgradeCost(b.towerLevel)){b.coins-=upgradeCost(b.towerLevel);b.towerLevel++;b.elo+=8;}}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const t=match.towers.find(x=>x.owner===b.profile);if(t&&t.level!==b.profile.towerLevel){t.level=b.profile.towerLevel;t.maxHp=560+t.level*180;t.hp=Math.min(t.maxHp,t.hp+180);t.range=210+t.level*12;t.damage=8+t.level*3;}const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent=b.elo+' ELO · '+b.profile.coins+' ◆';});}save();},1000);
+// Economy accrues outside battles.
+window.setInterval(()=>{if(!match||match.finished)profile.coins+=5;for(const b of botsProfile){b.coins+=5;if(b.towerLevel<20&&b.coins>=upgradeCost(b.towerLevel)){b.coins-=upgradeCost(b.towerLevel);b.towerLevel++;b.elo+=8;}}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const t=match.towers.find(x=>x.owner===b.profile);if(t&&t.level!==b.profile.towerLevel){t.level=b.profile.towerLevel;t.maxHp=560+t.level*180;t.hp=Math.min(t.maxHp,t.hp+180);t.range=210+t.level*12;t.damage=8+t.level*3;}const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent=b.elo+' ELO · '+b.profile.coins+' ◆';});}save();},1000);
 })();
