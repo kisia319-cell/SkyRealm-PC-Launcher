@@ -7,9 +7,9 @@ assert.equal((game.match(/function drawMineGroundTile\(/g) || []).length, 1,
   'mine static tile renderer should have one definition');
 assert.match(game, /let mineGroundRenderCache=null/);
 assert.match(game, /let surfaceGroundTileCache=null/);
-assert.match(game, /function drawGrassTexture\\(target,x,y,sx,sy,h,biome,quality\\)/);
-assert.match(game, /new Array\\(4096\\)/);
-assert.match(game, /ctx\\.drawImage\\(cache\\.canvas/);
+assert.match(game, /function drawGrassTexture\(target,x,y,sx,sy,h,biome,quality\)/);
+assert.match(game, /new Array\(4096\)/);
+assert.match(game, /ctx\.drawImage\(cache\.canvas/);
 assert.match(game, /const chunkTiles=4,cacheKey=\[mineSeed,mineDepth,mineLevel,dpr/);
 assert.match(game, /const maxChunks=32;let buildBudget=2/);
 assert.match(game, /cache\.chunks\.set\(key,chunk\)/);
