@@ -899,7 +899,7 @@
     const style=combatStyle(),reach=weaponRange()+135;
     const candidates=[...monsters.filter(m=>m&&m.hp>0&&!m.exploding),...biomeBossDefs().map(d=>({x:d.x,y:d.y,hp:biomeBosses[d.id]?.hp||0,bossDef:d})).filter(m=>m.hp>0)];
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]    if(wolfBossActive&&wolfBossHp>0)candidates.push({x:wolfBossX,y:wolfBossY,hp:wolfBossHp});
+    if(wolfBossActive&&wolfBossHp>0)candidates.push({x:wolfBossX,y:wolfBossY,hp:wolfBossHp});
     if(caveMode&&!caveBossDefeated&&caveBossHp>0)candidates.push({x:caveBossX,y:caveBossY,hp:caveBossHp});
     if(dungeonMode&&!dungeonRoomCleared())candidates.push({x:dungeonEnemyX,y:dungeonEnemyY,hp:dungeonEnemyHp||1});
     const target=candidates.filter(m=>Math.hypot(m.x-player.x,m.y-player.y)<=reach).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
@@ -1800,7 +1800,7 @@ function setupVillageNpcs(){
       });
     }
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]    const farmer=specs.find(n=>n.id==='farmer');
+    const farmer=specs.find(n=>n.id==='farmer');
     if(farmer){farmer.x=farmer.homeX=farmer.targetX=FARMER_SHOP.x*TILE+16;farmer.y=farmer.homeY=farmer.targetY=(FARMER_SHOP.y-3)*TILE+16;farmer.activity='at market';farmer.moveTimer=0;}
     const names=['Артём','Ника','Марк','Лея','Тимур','Соня','Егор','Мила','Роман','Ася','Даня','Вера','Илья','Зоя','Лука'];
     const xOffsets=[-420,-210,0,210,420],streetY=[-185,95,340];
@@ -2701,7 +2701,7 @@ function updateVillageNpcs(dt){
         if(point){worldEventShrine={x:point.x,y:point.y,life:WORLD_EVENT_CHANCES.shrineLifetime};lastWorldShrineDay=day;toast('ДРЕВНЕЕ СВЯТИЛИЩЕ ПРОСНУЛОСЬ! Найди его и выбери благословение.');playSound('portal');saveGame();}
       }
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]    }catch(error){
+    }catch(error){
       console.warn('[SkyRealm world event]',error);
       eventRollTimer=0;
     }
@@ -3602,7 +3602,7 @@ function updateVillageNpcs(dt){
     ctx.fillStyle='rgba(112,218,194,'+(.18+pulse*.14)+')';ctx.shadowColor='#74e3ce';ctx.shadowBlur=18;ctx.beginPath();ctx.ellipse(0,2,25,19,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
     for(let i=0;i<4;i++){const a=time/750+i*Math.PI/2;ctx.fillStyle='#f4d58b';ctx.beginPath();ctx.arc(Math.cos(a)*34,Math.sin(a)*13-3,2,0,Math.PI*2);ctx.fill();}
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]    ctx.fillStyle='#f4d58b';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=6;ctx.fillText(tradeWorldMode?'В ДОЛИНУ':'МИР ТОРГОВЛИ',0,-42);
+    ctx.fillStyle='#f4d58b';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#101820';ctx.shadowBlur=6;ctx.fillText(tradeWorldMode?'В ДОЛИНУ':'МИР ТОРГОВЛИ',0,-42);
     ctx.font='bold 10px Segoe UI';ctx.fillText(tradeWorldMode?'E · ВЫЙТИ':'E · ВОЙТИ',0,48);ctx.textAlign='left';ctx.restore();
   }
   function drawPlacedStructures(camX,camY){
@@ -4503,7 +4503,7 @@ function updateVillageNpcs(dt){
     };
   }
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]function updateWolfAndDog(dt){
+function updateWolfAndDog(dt){
     if(bossRealmMode||tradeWorldMode||inHouse||mineMode||caveMode||dungeonMode)return;
     if(wolfBossActive){const bounded=clampWolfBossToForest(wolfBossX,wolfBossY);wolfBossX=bounded.x;wolfBossY=bounded.y;}
     if(isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
@@ -5404,7 +5404,7 @@ function updateVillageNpcs(dt){
     }
     const selected = inventoryItems.filter(item=>item.count>0)[selectedSlot - 1];
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]    const status = document.getElementById('inventory-selected-note');
+    const status = document.getElementById('inventory-selected-note');
     if (status && selected) status.textContent = 'Выбрано: ' + selected.name + (selected.count ? ' · ' + selected.count + ' шт.' : ' · пока нет в инвентаре');
   }
   function selectSlot(number, notify = true){
@@ -6305,7 +6305,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function readWorlds(){
     let worlds=[];
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]    try{const saved=JSON.parse(localStorage.getItem(WORLD_LIST_KEY)||'[]');if(Array.isArray(saved))worlds=saved.filter(w=>w&&typeof w.id==='string'&&typeof w.name==='string');}catch(_){}
+    try{const saved=JSON.parse(localStorage.getItem(WORLD_LIST_KEY)||'[]');if(Array.isArray(saved))worlds=saved.filter(w=>w&&typeof w.id==='string'&&typeof w.name==='string');}catch(_){}
     // Preserve a pre-world-menu save by migrating it to a first world exactly once.
     if(!worlds.length&&localStorage.getItem('skyrealm_legacy_world_migrated')!=='1'){
       try{
@@ -7206,7 +7206,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   document.getElementById('admin-staff-grant').addEventListener('click',()=>changeStaffModerator('grant'));
   document.getElementById('admin-staff-revoke').addEventListener('click',()=>changeStaffModerator('revoke'));
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]  document.getElementById('admin-staff-refresh').addEventListener('click',loadStaffPlayers);
+  document.getElementById('admin-staff-refresh').addEventListener('click',loadStaffPlayers);
   document.getElementById('admin-privileges-open').addEventListener('click',openPrivilegesPanel);
   document.getElementById('menu-privileges').addEventListener('click',openPrivilegesPanel);
   document.getElementById('admin-privileges-grant').addEventListener('click',()=>submitPlayerRole('grant'));
@@ -7369,4 +7369,3 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); void refreshStaffRole(true);setInterval(()=>{if(!document.hidden)void refreshStaffRole(true);},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshStaffRole(true);}); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();applyHudPositions();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
 })();
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
