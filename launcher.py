@@ -758,6 +758,59 @@ class LauncherApi:
             return {"ok": False, "message": f"Ошибка подготовки игры на этапе «{launch_stage}»: {exc}. Подробности: {error_log_hint}"}
 
 
+    def launch_competitive_game(self):
+        """Install the isolated Prime world and start it in its own executable."""
+        try:
+            source_dir = Path(resource_path("game/competitive")).resolve()
+            source_index = source_dir / "index.html"
+            if not source_index.is_file() or not (source_dir / "prime-world.js").is_file():
+                return {"ok": False, "message": "В сборке отсутствуют файлы соревновательного мира."}
+            prime_root = skyrealm_default_data_root() / "PrimeLauncher"
+            install_dir = prime_root / "game"
+            install_dir.mkdir(parents=True, exist_ok=True)
+            for source_file in source_dir.rglob("*"):
+                if not source_file.is_file():
+                    continue
+                relative = source_file.relative_to(source_dir)
+                destination = install_dir / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if not destination.is_file() or file_sha256(destination) != file_sha256(source_file):
+                    shutil.copy2(source_file, destination)
+            installed_index = install_dir / "index.html"
+            if not installed_index.is_file():
+                return {"ok": False, "message": "Не удалось подготовить файлы PrimeLauncher."}
+            if getattr(sys, "frozen", False):
+                bundled_runner = Path(resource_path("bin/PrimeLauncher.exe"))
+                if not bundled_runner.is_file():
+                    return {"ok": False, "message": "В сборке отсутствует отдельный PrimeLauncher.exe. Пересобери лаунчер."}
+                runner_dir = skyrealm_default_data_root() / "bin"
+                runner_dir.mkdir(parents=True, exist_ok=True)
+                runner_path = runner_dir / "PrimeLauncher.exe"
+                if not runner_path.is_file() or file_sha256(runner_path) != file_sha256(bundled_runner):
+                    temporary = runner_path.with_suffix(".exe.new")
+                    shutil.copy2(bundled_runner, temporary)
+                    os.replace(temporary, runner_path)
+                command = [str(runner_path), "--prime-competitive", str(installed_index),
+                           "--return-launcher", str(Path(sys.executable).resolve())]
+            else:
+                command = [sys.executable, str(Path(__file__).resolve()),
+                           "--prime-competitive", str(installed_index)]
+            flags = (getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) |
+                     getattr(subprocess, "DETACHED_PROCESS", 0)) if os.name == "nt" else 0
+            process = subprocess.Popen(command, cwd=str(install_dir), close_fds=True, creationflags=flags)
+            try:
+                log_path = prime_root / "prime-launcher.log"
+                log_path.write_text(
+                    f"{time.strftime('%Y-%m-%d %H:%M:%S')} | PrimeLauncher started | pid={process.pid} | map=190x190\n",
+                    encoding="utf-8",
+                )
+            except OSError:
+                pass
+            return {"ok": True, "pid": process.pid}
+        except Exception as exc:
+            return {"ok": False, "message": f"Не удалось запустить PrimeLauncher: {exc}"}
+
+
 class GameApi:
     def __init__(self):
         # The launcher passes the Auth bearer only through the child process environment.
@@ -1123,6 +1176,42 @@ def run_game_window(game_html: str) -> None:
         local_server.shutdown()
         local_server.server_close()
 
+
+
+def run_prime_competitive_window(game_html: str) -> None:
+    """Run the isolated competitive world with its own HTTP origin and WebView profile."""
+    global game_window
+    file_path = Path(game_html).resolve()
+    if not file_path.is_file():
+        raise FileNotFoundError("Не найден мир PrimeLauncher: " + str(file_path))
+    handler = functools.partial(QuietGameFileHandler, directory=str(file_path.parent))
+    try:
+        local_server = http.server.ThreadingHTTPServer(("127.0.0.1", 48732), handler)
+    except OSError as exc:
+        raise RuntimeError(
+            "Не удалось открыть порт PrimeLauncher 48732. Закрой другое окно соревновательного режима."
+        ) from exc
+    local_server.daemon_threads = True
+    server_thread = threading.Thread(target=local_server.serve_forever, name="PrimeLauncherHTTP", daemon=True)
+    server_thread.start()
+    try:
+        page_url = "http://127.0.0.1:48732/" + file_path.name
+        game_window = webview.create_window(
+            "PrimeLauncher — Соревновательный мир",
+            page_url,
+            width=1440,
+            height=900,
+            min_size=(900, 620),
+            background_color="#07111d",
+            text_select=False,
+        )
+        profile_dir = (Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+                       / "SkyRealm" / "PrimeLauncher" / "webview-profile")
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        webview.start(debug=False, private_mode=False, storage_path=str(profile_dir))
+    finally:
+        local_server.shutdown()
+        local_server.server_close()
 
 
 def _skyrealm_version_tuple(value):
@@ -1497,7 +1586,7 @@ def _skyrealm_startup_update():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) >= 3 and sys.argv[1] == "--skyrealm-game":
+    if len(sys.argv) >= 3 and sys.argv[1] in ("--skyrealm-game", "--prime-competitive"):
         return_launcher = ""
         if "--return-launcher" in sys.argv:
             try:
@@ -1505,7 +1594,10 @@ if __name__ == "__main__":
             except (IndexError, ValueError):
                 return_launcher = ""
         try:
-            run_game_window(sys.argv[2])
+            if sys.argv[1] == "--prime-competitive":
+                run_prime_competitive_window(sys.argv[2])
+            else:
+                run_game_window(sys.argv[2])
             # Reopen the launcher only after the game WebView and local HTTP server exit.
             if return_launcher:
                 launcher_path = Path(return_launcher).resolve()
