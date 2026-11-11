@@ -20,7 +20,7 @@ function updateProfile(){
  $('home-tower').textContent='Уровень '+match.playerTowerLevel;$('rank-tower').textContent='Уровень '+match.playerTowerLevel;
  $('home-matches').textContent=profile.matches+' матчей';$('home-wins').textContent=profile.wins;
  $('battle-elo').textContent=profile.elo+' ELO';$('battle-tower').textContent='Уровень '+match.playerTowerLevel+' · '+(match.playerTowerLevel>=20?'MAX':upgradeCost(match.playerTowerLevel)+' ◆');
- const up=$('upgrade-tower');if(up){up.disabled=match.playerCoins<upgradeCost(match.playerTowerLevel)||match.playerTowerLevel>=20;up.textContent=match.playerTowerLevel>=20?'БАШНЯ МАКСИМАЛЬНОГО УРОВНЯ':'УЛУЧШИТЬ БАШНЮ · '+upgradeCost(match.playerTowerLevel)+' ◆';}
+ const up=$('upgrade-tower');if(up){up.disabled=!match||match.playerCoins<upgradeCost(match.playerTowerLevel)||match.playerTowerLevel>=20;up.textContent=!match?'УЛУЧШЕНИЕ ТОЛЬКО В БОЮ':match.playerTowerLevel>=20?'БАШНЯ МАКСИМАЛЬНОГО УРОВНЯ':'УЛУЧШИТЬ БАШНЮ · '+upgradeCost(match.playerTowerLevel)+' ◆';}
  renderLeaderboard();
 }
 function renderLeaderboard(){
@@ -76,7 +76,7 @@ function createMatch(){
  attackCooldown=0;pressed.clear();$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
  renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');drawArena();
 }
-function renderBotList(){$('bot-list').innerHTML=match.bots.map(b=>'<div class="bot" id="bot-'+b.id+'"><b>'+b.name+'</b><br><span>Башня ур. '+b.match.playerTowerLevel+' · '+b.match.playerCoins+' ◆ · '+b.elo+' ELO</span><div class="hpbar" style="margin-top:6px"><span id="bot-hp-'+b.id+'" style="width:100%"></span></div></div>').join('');}
+function renderBotList(){$('bot-list').innerHTML=match.bots.map(b=>'<div class="bot" id="bot-'+b.id+'"><b>'+b.name+'</b><br><span>Башня ур. '+b.profile.towerLevel+' · '+b.profile.coins+' ◆ · '+b.elo+' ELO</span><div class="hpbar" style="margin-top:6px"><span id="bot-hp-'+b.id+'" style="width:100%"></span></div></div>').join('');}
 function renderTowerList(){
  $('enemy-towers').innerHTML='<small style="color:#ff9b62">БАШНИ СОПЕРНИКОВ</small>'+match.towers.filter(t=>t.team===1).map((t,i)=>'<div class="bot" id="tower-row-'+i+'">'+t.owner.name+' · ур. '+t.level+'<div class="hpbar" style="margin-top:6px"><span id="tower-hp-'+i+'" style="width:100%"></span></div></div>').join('');
 }
@@ -91,9 +91,9 @@ $('result-menu').addEventListener('click',()=>{$('result-modal').classList.add('
 $('result-again').addEventListener('click',()=>{$('result-modal').classList.add('hidden');match=null;show('menu');beginSearch();});
 $('leave-match').addEventListener('click',()=>{if(match)finish(false,true);});
 $('upgrade-tower').addEventListener('click',()=>{
- if(match.playerTowerLevel>=20){$('tower-feedback').textContent='Башня уже максимального уровня.';return;}
+ if(!match||match.finished){$('tower-feedback').textContent='Улучшать башни можно только во время боя.';return;}if(match.playerTowerLevel>=20){$('tower-feedback').textContent='Башня уже максимального уровня.';return;}
  const cost=upgradeCost(match.playerTowerLevel);if(match.playerCoins<cost){$('tower-feedback').textContent='Не хватает '+Math.ceil(cost-match.playerCoins)+' монет.';return;}
- match.playerCoins-=cost;match.playerTowerLevel++;save();
+ match.playerCoins-=cost;match.playerTowerLevel++;
  if(match){const t=match.towers.find(x=>x.isPlayer);if(t){t.level=match.playerTowerLevel;t.maxHp=560+t.level*180;t.hp=Math.min(t.maxHp,t.hp+180);t.range=210+t.level*12;t.damage=8+t.level*3;}}
  $('tower-feedback').textContent='Башня улучшена до уровня '+match.playerTowerLevel+'!';renderTowerList();drawArena();
 });
@@ -150,7 +150,7 @@ function alertEnemyBase(){
  m.enemyState='ОБОРОНЯЕТСЯ';m.enemyNoticeUntil=m.elapsed+5;
  if(m.elapsed>=m.nextCounterRollAt){
   m.nextCounterRollAt=m.elapsed+45;
-  const hasTroops=m.units.some(u=>u.team===1&&u.alive)||m.barracks.some(br=>br.team===1)||m.bots.some(b=>b.match.playerCoins>=100);
+  const hasTroops=m.units.some(u=>u.team===1&&u.alive)||m.barracks.some(br=>br.team===1)||m.bots.some(b=>b.profile.coins>=100);
   m.enemyCounterQueued=hasTroops&&Math.random()<.35;
   m.enemyCounterAt=m.elapsed+3;
  }
@@ -206,7 +206,7 @@ function enemyDirector(dt){
   for(const bot of m.bots.filter(b=>b.alive)){
    const barracks=m.barracks.find(br=>br.team===1&&br.owner===bot.profile);
    if(barracks){spawnUnit(1,barracks.x,barracks.y);spawned++;}
-   else if(bot.match.playerCoins>=100){bot.match.playerCoins-=100;spawnUnit(1,bot.x,bot.y+35);spawned++;}
+   else if(bot.profile.coins>=100){bot.profile.coins-=100;spawnUnit(1,bot.x,bot.y+35);spawned++;}
    if(spawned>=Math.max(1,m.team))break;
   }
   if(spawned){m.enemyAssaultUntil=Math.max(m.enemyAssaultUntil,m.elapsed+34);m.enemyState='КОНТРАТАКА';m.enemyNoticeUntil=m.elapsed+8;}
@@ -218,7 +218,7 @@ function enemyDirector(dt){
    const waveSize=Math.min(3,1+Math.floor(bot.match.playerTowerLevel/5));
    for(let i=0;i<waveSize;i++){
     const cost=100;
-    if(bot.match.playerCoins>=cost){bot.match.playerCoins-=cost;spawnUnit(1,bot.x+(i-1)*22,bot.y+42);}
+    if(bot.profile.coins>=cost){bot.profile.coins-=cost;spawnUnit(1,bot.x+(i-1)*22,bot.y+42);}
    }
   }
  }
@@ -241,7 +241,7 @@ function loop(now){
  update(dt);drawArena();raf=requestAnimationFrame(loop);
 }
 function update(dt){
- const p=match.player;match.elapsed+=dt;match.botCoinTick+=dt;if(match.botCoinTick>=1){const n=Math.floor(match.botCoinTick);match.botCoinTick-=n;match.playerCoins+=n*5;for(const b of match.bots)b.match.playerCoins+=n*5;}enemyDirector(dt);attackCooldown=Math.max(0,attackCooldown-dt);
+ const p=match.player;match.elapsed+=dt;match.botCoinTick+=dt;if(match.botCoinTick>=1){const n=Math.floor(match.botCoinTick);match.botCoinTick-=n;match.playerCoins+=n*5;for(const b of match.bots)b.profile.coins+=n*5;}enemyDirector(dt);attackCooldown=Math.max(0,attackCooldown-dt);
  let dx=(pressed.has('KeyD')||pressed.has('ArrowRight')?1:0)-(pressed.has('KeyA')||pressed.has('ArrowLeft')?1:0);
  let dy=(pressed.has('KeyS')||pressed.has('ArrowDown')?1:0)-(pressed.has('KeyW')||pressed.has('ArrowUp')?1:0);
  if(dx||dy){const len=Math.hypot(dx,dy);p.x=clamp(p.x+dx/len*p.speed*dt,TILE,SIZE*TILE-TILE);p.y=clamp(p.y+dy/len*p.speed*dt,TILE,SIZE*TILE-TILE);}
@@ -261,7 +261,7 @@ function update(dt){
   const tx=targetTower?playerTower.x:p.x,ty=targetTower?playerTower.y:p.y,vx=tx-b.x,vy=ty-b.y,dist=Math.hypot(vx,vy)||1;
   const earlyBoost=match.elapsed<60&&match.enemyDefenseBoostUntil>match.elapsed?1.2:1;
   if(dist>(targetTower?48:40)){b.x=clamp(b.x+vx/dist*b.speed*earlyBoost*dt,TILE,SIZE*TILE-TILE);b.y=clamp(b.y+vy/dist*b.speed*earlyBoost*dt,TILE,SIZE*TILE-TILE);}
-  else if(b.attack<=0){b.attack=.88;if(targetTower)playerTower.hp=Math.max(0,playerTower.hp-(15+b.match.playerTowerLevel*2)*earlyBoost);else{p.hp=Math.max(0,p.hp-(12+b.match.playerTowerLevel*2)*earlyBoost);p.flash=.16;}}
+  else if(b.attack<=0){b.attack=.88;if(targetTower)playerTower.hp=Math.max(0,playerTower.hp-(15+b.profile.towerLevel*2)*earlyBoost);else{p.hp=Math.max(0,p.hp-(12+b.profile.towerLevel*2)*earlyBoost);p.flash=.16;}}
  }
  for(const u of match.units){if(!u.alive)continue;u.attack=Math.max(0,u.attack-dt);const foes=u.team===0?[...match.bots.filter(b=>b.alive),...match.units.filter(v=>v.team===1&&v.alive)]:[p,...match.allies.filter(a=>a.alive),...match.units.filter(v=>v.team===0&&v.alive)];let foe=null,near=Infinity;for(const f of foes){const d=Math.hypot(f.x-u.x,f.y-u.y);if(d<near){near=d;foe=f;}}if(foe){if(near>u.range){u.x+=(foe.x-u.x)/near*u.speed*dt;u.y+=(foe.y-u.y)/near*u.speed*dt;}else if(u.attack<=0){u.attack=1.1;foe.hp=Math.max(0,foe.hp-u.damage);foe.flash=.14;if(foe.hp<=0)foe.alive=false;}}}
  for(const t of match.towers){
@@ -365,8 +365,8 @@ $('balance-toggle').addEventListener('click',()=>{$('build-panel').classList.add
 $('bot-info-toggle').addEventListener('click',()=>{$('build-panel').classList.add('hidden');$('balance-panel').classList.add('hidden');$('bot-info-panel').classList.toggle('hidden');});
 $('build-cancel').addEventListener('click',()=>{buildMode=null;$('build-panel').classList.add('hidden');$('tower-feedback').textContent='Выбор постройки отменён.';});
 document.querySelectorAll('[data-build]').forEach(b=>b.addEventListener('click',()=>{buildMode=b.dataset.build;$('build-panel').classList.add('hidden');$('tower-feedback').textContent='Выбрано строительство. Нажми на свободное место арены.';}));
-$('train-unit').addEventListener('click',()=>{if(!match)return;const br=match.barracks.find(x=>x.team===0);if(!br){buildMode='barracks';$('build-panel').classList.remove('hidden');$('tower-feedback').textContent='Сначала построй казарму: выбери «Дом воинов» и место на арене.';return;}if(match.playerCoins<100){$('tower-feedback').textContent='Для найма воина нужно 100 ◆.';return;}match.playerCoins-=100;spawnUnit(0,br.x,br.y);save();updateHud();});
+$('train-unit').addEventListener('click',()=>{if(!match)return;const br=match.barracks.find(x=>x.team===0);if(!br){buildMode='barracks';$('build-panel').classList.remove('hidden');$('tower-feedback').textContent='Сначала построй казарму: выбери «Дом воинов» и место на арене.';return;}if(match.playerCoins<100){$('tower-feedback').textContent='Для найма воина нужно 100 ◆.';return;}match.playerCoins-=100;spawnUnit(0,br.x,br.y);updateHud();});
 updateProfile();
 // Economy accrues outside battles.
-window.setInterval(()=>{if(!match||match.finished){match.playerCoins+=5;for(const b of botsProfile)b.coins+=5;}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent='Башня ур. '+b.match.playerTowerLevel+' · '+b.match.playerCoins+' ◆ · '+b.elo+' ELO';});updateHud();}save();},1000);
+window.setInterval(()=>{if(!match||match.finished){match.playerCoins+=5;for(const b of botsProfile)b.coins+=5;}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent='Башня ур. '+b.profile.towerLevel+' · '+b.profile.coins+' ◆ · '+b.elo+' ELO';});updateHud();}save();},1000);
 })();
