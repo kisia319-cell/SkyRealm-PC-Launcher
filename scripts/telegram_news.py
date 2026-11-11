@@ -88,7 +88,12 @@ def save_state(parent_state, announced_sha, published_at):
     args = ["commit-tree", empty_tree]
     if parent_state:
         args += ["-p", parent_state]
-    commit = subprocess.check_output(["git", *args], input=message, text=True, encoding="utf-8").strip()
+    env = os.environ.copy()
+    env.setdefault("GIT_AUTHOR_NAME", "SkyRealm Telegram Bot")
+    env.setdefault("GIT_AUTHOR_EMAIL", "actions@users.noreply.github.com")
+    env.setdefault("GIT_COMMITTER_NAME", "SkyRealm Telegram Bot")
+    env.setdefault("GIT_COMMITTER_EMAIL", "actions@users.noreply.github.com")
+    commit = subprocess.check_output(["git", *args], input=message, text=True, encoding="utf-8", env=env).strip()
     git("push", "--force", "origin", commit + ":refs/heads/telegram-news-state")
     print(f"News cursor updated to {announced_sha}; last publication timestamp {published_at}.")
 
