@@ -115,7 +115,16 @@ def main():
     else:
         heading, intro = "🛠 <b>ПОДБОРКА ИЗМЕНЕНИЙ SKYREALM</b>", f"Собрали {len(commits)} небольших изменений:"
     compare = f"https://github.com/{REPO}/compare/{base}...{head}"
-    message = heading + "\n\n" + intro + "\n\n" + "\n".join("▫️ " + html.escape(item) for item in bullets)
+    try:
+        launcher_version = git("show", f"{head}:launcher_version.txt")
+    except Exception:
+        launcher_version = "—"
+    try:
+        game_version = git("show", f"{head}:game/version.txt")
+    except Exception:
+        game_version = "—"
+    version_line = f"📌 Лаунчер {launcher_version} · игра {game_version}"
+    message = heading + "\n\n" + version_line + "\n\n" + intro + "\n\n" + "\n".join("▫️ " + html.escape(item) for item in bullets)
     message += '\n\n🔗 <a href="' + html.escape(compare, quote=True) + '">Все изменения на GitHub</a>\n\n💚 Спасибо, что следите за SkyRealm!'
     payload = json.dumps({"chat_id": CHAT, "text": message, "parse_mode": "HTML", "disable_web_page_preview": True}).encode("utf-8")
     request = urllib.request.Request("https://api.telegram.org/bot" + TOKEN + "/sendMessage", data=payload, headers={"Content-Type": "application/json"}, method="POST")
