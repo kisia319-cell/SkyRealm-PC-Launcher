@@ -606,7 +606,7 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Не удалось получить показатели компьютера: " + str(exc)}
 
-    def launch_game(self, settings=None, allow_game_update=True, session_token=None, open_mod_id=None):
+    def launch_game(self, settings=None, allow_game_update=True, session_token=None, open_mod_id=None, language="ru"):
         """Install the bundled prototype into LocalAppData and start it in a new process."""
         launch_stage = "initialization"
         try:
@@ -703,10 +703,10 @@ class LauncherApi:
                     shutil.copy2(bundled_runner, temp_runner)
                     os.replace(temp_runner, runner_path)
                 # The separate runner reopens this exact launcher executable after the game window closes.
-                command = [str(runner_path), "--skyrealm-game", str(installed_index), "--return-launcher", str(Path(sys.executable).resolve())]
+                command = [str(runner_path), "--skyrealm-game", str(installed_index), "--return-launcher", str(Path(sys.executable).resolve()), "--language", ("en" if str(language).lower() == "en" else "ru")]
             else:
                 # Source-mode development still works with the current Python interpreter.
-                command = [sys.executable, str(Path(__file__).resolve()), "--skyrealm-game", str(installed_index)]
+                command = [sys.executable, str(Path(__file__).resolve()), "--skyrealm-game", str(installed_index), "--language", ("en" if str(language).lower() == "en" else "ru")]
             creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) if os.name == "nt" else 0
             launch_env = os.environ.copy()
             allowed_mod_ids = {"cartographer", "angler", "green_thumb", "miners_luck", "survivalist", "skill_expansion", "brutal_world", "blood_moon", "lost_dungeons", "sky_islands", "ancient_civs", "ocean_depths", "elemental_lords", "legendary_gear", "bounty_hunter", "arena_survival", "settlement_builder", "architect", "beast_companions", "trade_caravans", "magic_academy", "engineer_world", "banking", "parallel_dimensions", "full_magic", "swift_steps", "guardian_oath", "herbalist", "deep_reserves", "treasure_hunter", "scavenger", "marksman", "restful_camp", "merchant_guild", "scholar", "__catalog__", "__creator__"}
@@ -1141,7 +1141,7 @@ class QuietGameFileHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-def run_game_window(game_html: str) -> None:
+def run_game_window(game_html: str, language: str = "ru") -> None:
     """Run the game in its own lightweight window, serving installed files over loopback."""
     global game_window, game_fullscreen
     file_path = Path(game_html).resolve()
@@ -1166,7 +1166,7 @@ def run_game_window(game_html: str) -> None:
     server_thread.start()
 
     port = local_server.server_address[1]
-    launch_params = {"settings": json.dumps(settings, ensure_ascii=False)}
+    launch_params = {"settings": json.dumps(settings, ensure_ascii=False), "language": ("en" if language == "en" else "ru")}
     if os.environ.get("SKYREALM_OPEN_MOD_CATALOG") == "1":
         launch_params["openMods"] = "1"
         requested_mod = os.environ.get("SKYREALM_OPEN_MOD_ID", "")
@@ -1615,7 +1615,8 @@ if __name__ == "__main__":
                 prime_language = "en" if "--language" in sys.argv and sys.argv[sys.argv.index("--language") + 1:sys.argv.index("--language") + 2] == ["en"] else "ru"
                 run_prime_competitive_window(sys.argv[2], prime_language)
             else:
-                run_game_window(sys.argv[2])
+                game_language = "en" if "--language" in sys.argv and sys.argv[sys.argv.index("--language") + 1:sys.argv.index("--language") + 2] == ["en"] else "ru"
+                run_game_window(sys.argv[2], game_language)
             # Reopen the launcher only after the game WebView and local HTTP server exit.
             if return_launcher:
                 launcher_path = Path(return_launcher).resolve()
