@@ -771,7 +771,7 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "installed": False, "message": str(exc)}
 
-    def launch_competitive_game(self):
+    def launch_competitive_game(self, language="ru"):
         """Install the isolated Prime world and start it in its own executable."""
         try:
             source_dir = Path(resource_path("game/competitive")).resolve()
@@ -807,10 +807,12 @@ class LauncherApi:
                     shutil.copy2(bundled_runner, temporary)
                     os.replace(temporary, runner_path)
                 command = [str(runner_path), "--prime-competitive", str(installed_index),
-                           "--return-launcher", str(Path(sys.executable).resolve())]
+                           "--return-launcher", str(Path(sys.executable).resolve()),
+                           "--language", ("en" if str(language).lower() == "en" else "ru")]
             else:
                 command = [sys.executable, str(Path(__file__).resolve()),
-                           "--prime-competitive", str(installed_index)]
+                           "--prime-competitive", str(installed_index),
+                           "--language", ("en" if str(language).lower() == "en" else "ru")]
 
             flags = (getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) |
                      getattr(subprocess, "DETACHED_PROCESS", 0)) if os.name == "nt" else 0
@@ -1196,7 +1198,7 @@ def run_game_window(game_html: str) -> None:
 
 
 
-def run_prime_competitive_window(game_html: str) -> None:
+def run_prime_competitive_window(game_html: str, language: str = "ru") -> None:
     """Run the isolated competitive world with its own HTTP origin and WebView profile."""
     global game_window
     file_path = Path(game_html).resolve()
@@ -1213,7 +1215,7 @@ def run_prime_competitive_window(game_html: str) -> None:
     server_thread = threading.Thread(target=local_server.serve_forever, name="PrimeLauncherHTTP", daemon=True)
     server_thread.start()
     try:
-        page_url = "http://127.0.0.1:48732/" + file_path.name
+        page_url = "http://127.0.0.1:48732/" + file_path.name + "?lang=" + ("en" if language == "en" else "ru")
         game_window = webview.create_window(
             "PrimeLauncher — Соревновательный мир",
             page_url,
@@ -1610,7 +1612,8 @@ if __name__ == "__main__":
                 return_launcher = ""
         try:
             if sys.argv[1] == "--prime-competitive":
-                run_prime_competitive_window(sys.argv[2])
+                prime_language = "en" if "--language" in sys.argv and sys.argv[sys.argv.index("--language") + 1:sys.argv.index("--language") + 2] == ["en"] else "ru"
+                run_prime_competitive_window(sys.argv[2], prime_language)
             else:
                 run_game_window(sys.argv[2])
             # Reopen the launcher only after the game WebView and local HTTP server exit.
