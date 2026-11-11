@@ -51,7 +51,7 @@ function beginSearch(){
 $('find-match').addEventListener('click',beginSearch);
 function createTower(x,y,owner,isPlayer=false){
  const level=isPlayer?profile.towerLevel:owner.towerLevel;
- return {x,y,owner,isPlayer,level,hp:560+level*180,maxHp:560+level*180,range:210+level*12,damage:8+level*3,fire:0};
+ return {x,y,owner,isPlayer,team:isPlayer?0:(owner.team===0?0:1),level,hp:560+level*180,maxHp:560+level*180,range:210+level*12,damage:8+level*3,fire:0};
 }
 function createMatch(){
  $('search-box').classList.add('hidden');$('find-match').disabled=false;
@@ -61,7 +61,7 @@ function createMatch(){
  for(let i=0;i<teamSize-1;i++){
   const offset=(i-(teamSize-2)/2)*62;
   const ally={id:i+1,team:0,x:player.x-75+offset,y:player.y+65,hp:120,maxHp:120,speed:145,alive:true,attack:0,flash:0,name:['Страж','Искра'][i]||'Союзник '+(i+1)};
-  allies.push(ally);
+  allies.push(ally);towers.push(createTower(clamp(ally.x-72,TILE*2,SIZE*TILE-TILE*2),clamp(ally.y+80,TILE*2,SIZE*TILE-TILE*2),ally,false));
  }
  for(let i=0;i<teamSize;i++){
   const angle=-Math.PI/2+(i-(teamSize-1)/2)*.55,radius=230+i*35;
@@ -78,7 +78,7 @@ function createMatch(){
 }
 function renderBotList(){$('bot-list').innerHTML=match.bots.map(b=>'<div class="bot" id="bot-'+b.id+'"><b>'+b.name+'</b><br><span>'+b.elo+' ELO · '+b.profile.coins+' ◆</span><div class="hpbar" style="margin-top:6px"><span id="bot-hp-'+b.id+'" style="width:100%"></span></div></div>').join('');}
 function renderTowerList(){
- $('enemy-towers').innerHTML='<small style="color:#ff9b62">БАШНИ СОПЕРНИКОВ</small>'+match.towers.filter(t=>!t.isPlayer).map((t,i)=>'<div class="bot" id="tower-row-'+i+'">'+t.owner.name+' · ур. '+t.level+'<div class="hpbar" style="margin-top:6px"><span id="tower-hp-'+i+'" style="width:100%"></span></div></div>').join('');
+ $('enemy-towers').innerHTML='<small style="color:#ff9b62">БАШНИ СОПЕРНИКОВ</small>'+match.towers.filter(t=>t.team===1).map((t,i)=>'<div class="bot" id="tower-row-'+i+'">'+t.owner.name+' · ур. '+t.level+'<div class="hpbar" style="margin-top:6px"><span id="tower-hp-'+i+'" style="width:100%"></span></div></div>').join('');
 }
 function finish(win,abandoned=false){
  if(!match||match.finished)return;match.finished=true;stopLoop();pressed.clear();
@@ -128,22 +128,22 @@ function update(dt){
  }
  for(const t of match.towers){
   if(t.hp<=0)continue;t.fire-=dt;if(t.fire>0)continue;
-  const targets=t.isPlayer?match.bots.filter(b=>b.alive):[p,...match.allies.filter(a=>a.alive)];
+  const targets=t.team===0?match.bots.filter(b=>b.alive):[p,...match.allies.filter(a=>a.alive)];
   let target=null,best=t.range;for(const f of targets){const d=Math.hypot(f.x-t.x,f.y-t.y);if(d<best){best=d;target=f;}}
   if(target){t.fire=Math.max(.55,1.45-t.level*.035);if(target===p){p.hp=Math.max(0,p.hp-t.damage);p.flash=.12;}else{target.hp=Math.max(0,target.hp-t.damage);target.flash=.12;if(target.hp<=0)target.alive=false;}}
  }
  $('hp-fill').style.width=(p.hp/p.maxHp*100)+'%';$('hp-label').textContent=Math.ceil(p.hp)+' / '+p.maxHp;
  $('battle-coins').textContent=Math.floor(profile.coins)+' ◆';$('battle-tower').textContent='Уровень '+profile.towerLevel+' · '+(profile.towerLevel>=20?'MAX':upgradeCost(profile.towerLevel)+' ◆');
  for(const b of match.bots){const el=$('bot-hp-'+b.id);if(el)el.style.width=(b.hp/b.maxHp*100)+'%';const row=$('bot-'+b.id);if(row&&!b.alive)row.style.opacity='.35';}
- match.towers.filter(t=>!t.isPlayer).forEach((t,i)=>{const el=$('tower-hp-'+i);if(el)el.style.width=(t.hp/t.maxHp*100)+'%';});
- const ownTower=match.towers.find(t=>t.isPlayer);if(p.hp<=0||(ownTower&&ownTower.hp<=0)){finish(false);return;}if(match.bots.every(b=>!b.alive)||match.towers.filter(t=>!t.isPlayer).every(t=>t.hp<=0)){finish(true);return;}
+ match.towers.filter(t=>t.team===1).forEach((t,i)=>{const el=$('tower-hp-'+i);if(el)el.style.width=(t.hp/t.maxHp*100)+'%';});
+ const ownTower=match.towers.find(t=>t.isPlayer);if(p.hp<=0||(ownTower&&ownTower.hp<=0)){finish(false);return;}if(match.bots.every(b=>!b.alive)||match.towers.filter(t=>t.team===1).every(t=>t.hp<=0)){finish(true);return;}
 }
 function attack(){
  if(!match||match.finished||attackCooldown>0)return;attackCooldown=.42;
  const p=match.player;let target=null,best=92;
  for(const b of match.bots){if(!b.alive)continue;const d=Math.hypot(b.x-p.x,b.y-p.y);if(d<best){best=d;target=b;}}
  if(target){target.hp=Math.max(0,target.hp-34);target.flash=.18;if(target.hp<=0)target.alive=false;return;}
- for(const t of match.towers.filter(t=>!t.isPlayer&&t.hp>0)){const d=Math.hypot(t.x-p.x,t.y-p.y);if(d<best){best=d;target=t;}}
+ for(const t of match.towers.filter(t=>t.team===1&&t.hp>0)){const d=Math.hypot(t.x-p.x,t.y-p.y);if(d<best){best=d;target=t;}}
  if(target&&target.isPlayer===false){target.hp=Math.max(0,target.hp-48);}
 }
 function drawTower(ctx,t,camX,camY){
@@ -153,11 +153,11 @@ function drawTower(ctx,t,camX,camY){
  ctx.fillStyle='#25282d';ctx.beginPath();ctx.moveTo(-35,20);ctx.lineTo(-29,-7);ctx.lineTo(-23,-24);ctx.lineTo(23,-24);ctx.lineTo(29,-7);ctx.lineTo(35,20);ctx.closePath();ctx.fill();
  ctx.fillStyle='#62666b';ctx.fillRect(-29,-9,58,28);ctx.fillStyle='#85878a';ctx.fillRect(-24,-15,48,8);ctx.fillStyle='#3c4148';ctx.fillRect(-19,-39,38,27);
  ctx.fillStyle='#9a9b9c';for(let i=-2;i<=2;i++)ctx.fillRect(i*11-3,-45,6,8);
- ctx.fillStyle='#171a20';ctx.fillRect(-9,-31,18,22);ctx.fillStyle=t.isPlayer?'#ff762b':'#cf4935';ctx.fillRect(-4,-26,8,13);
+ ctx.fillStyle='#171a20';ctx.fillRect(-9,-31,18,22);ctx.fillStyle=t.team===0?'#ff762b':'#cf4935';ctx.fillRect(-4,-26,8,13);
  ctx.fillStyle='#bfc1c4';ctx.fillRect(-39,-2,9,23);ctx.fillRect(30,-2,9,23);ctx.fillRect(-15,-53,30,8);
- ctx.fillStyle=t.isPlayer?'#ff8a36':'#e45b42';ctx.beginPath();ctx.moveTo(0,-75);ctx.lineTo(0,-53);ctx.lineTo(19,-59);ctx.lineTo(0,-65);ctx.fill();
+ ctx.fillStyle=t.team===0?'#ff8a36':'#e45b42';ctx.beginPath();ctx.moveTo(0,-75);ctx.lineTo(0,-53);ctx.lineTo(19,-59);ctx.lineTo(0,-65);ctx.fill();
  ctx.fillStyle='#111';ctx.fillRect(-29,31,58,5);ctx.fillStyle='#ff6435';ctx.fillRect(-29,31,58*Math.max(0,t.hp/t.maxHp),5);
- ctx.fillStyle='#fff';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText((t.isPlayer?'ТВОЯ БАШНЯ':t.owner.name)+' · ур.'+l,0,-83);
+ ctx.fillStyle='#fff';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText((t.isPlayer?'ТВОЯ БАШНЯ':t.team===0?'СОЮЗНАЯ БАШНЯ':t.owner.name)+' · ур.'+l,0,-83);
  ctx.restore();
 }
 function drawArena(){
