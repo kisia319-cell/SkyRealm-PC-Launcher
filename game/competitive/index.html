@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111d">
+  <title>PrimeLauncher — Соревновательный мир</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,"Segoe UI",sans-serif;background:#07111d;color:#eef5ff}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#18395b 0,#0b1b2b 45%,#07111d 100%);overflow:hidden}
+    .shell{height:100vh;display:flex;flex-direction:column;padding:18px 22px 20px;gap:14px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:12px}.mark{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#7fd7ff,#5477da);color:#07111d;font-size:23px;font-weight:900;box-shadow:0 8px 28px #4b9be644}
+    .brand b{display:block;font-size:17px;letter-spacing:.12em}.brand small{display:block;color:#86a5c8;font-size:10px;letter-spacing:.22em;margin-top:3px}
+    .season{border:1px solid #31516e;border-radius:999px;padding:9px 14px;color:#a9c6e6;font-size:11px;letter-spacing:.13em}
+    .layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:16px}
+    .world-panel,.side-panel{border:1px solid #29445e;background:linear-gradient(145deg,#102438dd,#0b1928ee);border-radius:18px;box-shadow:0 18px 55px #0005}
+    .world-panel{padding:14px;display:flex;flex-direction:column;min-height:0}
+    .world-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px}
+    .world-head b{font-size:13px;letter-spacing:.12em}.world-head span{font-size:11px;color:#83a4c8}
+    .viewport{flex:1;min-height:220px;display:grid;place-items:center;overflow:hidden;border-radius:12px;background:#0a1720;border:1px solid #29445e}
+    canvas{display:block;width:100%;height:100%;image-rendering:pixelated;outline:none}
+    .world-foot{display:flex;justify-content:space-between;gap:10px;padding-top:10px;color:#85a5c6;font-size:11px}
+    .side-panel{padding:18px;display:flex;flex-direction:column;gap:14px}
+    .kicker{font-size:10px;color:#7ea7d0;letter-spacing:.2em}.side-panel h1{font-size:25px;line-height:1.08;margin:0}.side-panel p{font-size:12px;line-height:1.6;color:#a5bad0;margin:0}
+    .stat{border:1px solid #29445e;border-radius:12px;padding:12px;background:#0a1928}.stat small{display:block;color:#7e9fbe;font-size:10px;letter-spacing:.12em}.stat b{display:block;margin-top:5px;font-size:19px}
+    .play-hint{margin-top:auto;border-top:1px solid #29445e;padding-top:13px;color:#88a9c8;font-size:11px;line-height:1.6}
+    .keys{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.key{padding:5px 8px;border-radius:6px;background:#1a334a;border:1px solid #365a78;color:#d9eaff;font-size:10px}
+    @media(max-width:850px){.layout{grid-template-columns:1fr}.side-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start}.side-panel h1,.side-panel .kicker,.side-panel p,.play-hint{grid-column:1/-1}.play-hint{margin-top:0}.shell{overflow:auto}.world-panel{min-height:55vh}}
+    @media(max-width:520px){.shell{padding:10px}.side-panel{grid-template-columns:1fr 1fr}.season{display:none}.world-foot{font-size:9px}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand"><div class="mark">P</div><div><b>PRIME LAUNCHER</b><small>COMPETITIVE REALM</small></div></div>
+      <div class="season">ПЕРВЫЙ СЕЗОН · ПОДГОТОВКА</div>
+    </header>
+    <main class="layout">
+      <section class="world-panel">
+        <div class="world-head"><b>СТАРТОВАЯ АРЕНА</b><span id="world-coords">X: 95 · Y: 95</span></div>
+        <div class="viewport"><canvas id="world" width="960" height="640" tabindex="0" aria-label="Соревновательный мир 190 на 190 блоков"></canvas></div>
+        <div class="world-foot"><span>МИР 190 × 190 БЛОКОВ</span><span>ОТДЕЛЬНОЕ СОХРАНЕНИЕ</span><span id="world-status">МИР ЗАГРУЖЕН</span></div>
+      </section>
+      <aside class="side-panel">
+        <div class="kicker">НОВЫЙ РЕЖИМ SKYREALM</div>
+        <h1>Соревновательный мир</h1>
+        <p>Отдельная игровая площадка PrimeLauncher. Этот мир не связан с обычной игрой и не использует её сохранения.</p>
+        <div class="stat"><small>РАЗМЕР КАРТЫ</small><b>190 × 190</b></div>
+        <div class="stat"><small>ВАША ПОЗИЦИЯ</small><b id="position">95 : 95</b></div>
+        <div class="stat"><small>ИГРОВОЙ РЕЖИМ</small><b>Свободный старт</b></div>
+        <div class="play-hint">Управление персонажем
+          <div class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span><span class="key">↑</span><span class="key">←</span><span class="key">↓</span><span class="key">→</span></div>
+          Сейчас доступен только пустой стартовый мир. Сражения и рейтинг будут добавлены отдельными системами.
+        </div>
+      </aside>
+    </main>
+  </div>
+  <script src="prime-world.js"></script>
+</body>
+</html>
