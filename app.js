@@ -1263,7 +1263,7 @@
     $('#install-description').textContent = currentLanguage === 'en' ? 'The launcher checks the installed files and prepares the game if needed.' : 'Лаунчер проверит игровые файлы и установит игру, если её ещё нет.';
     try {
       if (window.pywebview?.api?.launch_game) {
-        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI(), allowUpdate, await getValidToken(), modId);
+        const result = await window.pywebview.api.launch_game(readGamePreferencesFromUI(), allowUpdate, await getValidToken(), modId, currentLanguage);
         if (!result || result.ok === false) throw new Error(result?.message || (currentLanguage === 'en' ? 'Could not start the game.' : 'Не удалось запустить игру.'));
         setGameProgress(100, currentLanguage === 'en' ? 'Launching SkyRealm…' : 'Запускаем SkyRealm…', currentLanguage === 'en' ? 'The launcher will close now' : 'Сейчас лаунчер закроется');
         await new Promise(resolve => setTimeout(resolve, 450));
@@ -1272,6 +1272,7 @@
         // Browser preview: play the same packaged HTML game in a new tab. Installation/auto-close is desktop-only.
         const gameUrlObject = new URL('game/index.html', window.location.href);
         gameUrlObject.searchParams.set('settings', JSON.stringify(readGamePreferencesFromUI()));
+        gameUrlObject.searchParams.set('language', currentLanguage);
         if (modId) { gameUrlObject.searchParams.set('openMods', '1'); if (modId !== '__catalog__') gameUrlObject.searchParams.set('installMod', modId); }
         const gameUrl = gameUrlObject.toString();
         setGameProgress(55, currentLanguage === 'en' ? 'Opening browser preview…' : 'Открываем игровое демо…', currentLanguage === 'en' ? 'Desktop installation runs in the EXE build' : 'Установка и закрытие лаунчера работают в EXE');
