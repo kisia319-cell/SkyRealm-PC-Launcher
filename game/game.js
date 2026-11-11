@@ -3421,6 +3421,7 @@ function setupVillageNpcs(){
       for(let k=0;k<2;k++){const v=hash(col*17+k*9+mineSeed,row*23+k*7+mineLevel),bx=px+(v-.5)*size*.48,by=py+(hash(row*11+k,col*29+mineSeed)-.5)*size*.36,r=size*(.12+v*.1);target.fillStyle=k?'rgba(10,15,19,.36)':'rgba(119,128,126,.22)';target.beginPath();target.moveTo(bx-r,by);target.lineTo(bx-r*.35,by-r*.8);target.lineTo(bx+r*.65,by-r*.45);target.lineTo(bx+r,by+r*.2);target.lineTo(bx-r*.25,by+r*.65);target.closePath();target.fill();}
       if(seed>.48){target.strokeStyle='rgba(8,13,17,.72)';target.lineWidth=1.4;target.beginPath();target.moveTo(px-size*.22,py-size*.22);target.lineTo(px-size*.08,py-size*.03);target.lineTo(px-size*.17,py+size*.1);target.lineTo(px+size*.02,py+size*.28);target.stroke();}
       if(seed>.63){const seamY=py-size*(.12+hash(col+mineDepth,row+mineSeed)*.34);target.strokeStyle='rgba(165,180,174,.15)';target.lineWidth=.7;target.beginPath();target.moveTo(x+size*.16,seamY);target.lineTo(px-size*.08,seamY-size*.035);target.lineTo(x+size-size*.2,seamY+size*.02);target.stroke();}
+      // Occasional ceiling stalactites hang over the dark rock.
       if(seed>.88){target.fillStyle='#1b252b';target.beginPath();target.moveTo(px-size*.16,y);target.lineTo(px+size*.12,y);target.lineTo(px+size*.02,y+size*.34);target.closePath();target.fill();target.fillStyle='rgba(142,151,143,.32)';target.beginPath();target.moveTo(px-size*.11,y+2);target.lineTo(px-size*.01,y+size*.17);target.lineTo(px-size*.02,y+2);target.fill();}
     }
   }
@@ -3467,6 +3468,7 @@ function setupVillageNpcs(){
         }
       }
     }
+    // A handful of animated lantern pools and drifting dust motes give the mine depth.
     // Lantern locations are precomputed with the static maze instead of rescanning every cell each frame.
     for(const lantern of cache.lanterns){
       const p=mineWorldToScreen((lantern.col+.5)*cell,(lantern.row+.5)*cell),z=p.zoom;
