@@ -937,6 +937,7 @@
   let mineMode=false, mineLevel=1, mineDepth=1, mineRocks=[], mineSeed=0, mineTileX=62, mineTileY=43, worldEarlyMonsters=false, mineHoverIndex=-1, minePlayerX=66, minePlayerY=594, mineMaze=null, mineUndercityChestOpened=false, mineUndercityLayoutCache=null;
   // Static mine geometry is cached in small world-space chunks; only lanterns and dust remain animated.
   let mineGroundRenderCache=null;
+  const mineCreaturePathCache=new WeakMap();
   let mineBarrels=[],mineCreatures=[],minePlayerAttackCooldown=0;
   let quarryProgress={mined:0,stone:0,rank:1},quarrySystemAccumulator=0,quarryAnchorCache=null;
   let caveMode=false, caveReturn={x:player.x,y:player.y}, caveChestOpened=false, caveSecretRoom=0, caveSecretRoomsOpened=[];
@@ -3523,10 +3524,11 @@ function setupVillageNpcs(){
       const current=mineFeatureWorldPosition(m),dx=minePlayerX-current.x,dy=minePlayerY-current.y,dist=Math.hypot(dx,dy);
       if(dist>58&&dist<560){
         const goal=mineCellFromWorld(minePlayerX,minePlayerY),fromKey=current.cell.y*MINE_MAZE_COLS+current.cell.x,goalKey=goal.y*MINE_MAZE_COLS+goal.x;
-        if(m._minePathFrom!==fromKey||m._minePathGoal!==goalKey||!(m._minePathRefresh>0)){
-          m._minePathNext=mineNextStepTowardPlayer(current.cell);m._minePathFrom=fromKey;m._minePathGoal=goalKey;m._minePathRefresh=.28;
-        }else m._minePathRefresh=Math.max(0,m._minePathRefresh-dt);
-        const next=m._minePathNext;
+        let pathState=mineCreaturePathCache.get(m);
+        if(!pathState||pathState.fromKey!==fromKey||pathState.goalKey!==goalKey||!(pathState.refresh>0)){
+          pathState={next:mineNextStepTowardPlayer(current.cell),fromKey,goalKey,refresh:.28};mineCreaturePathCache.set(m,pathState);
+        }else pathState.refresh=Math.max(0,pathState.refresh-dt);
+        const next=pathState.next;
         if(next&&mineCellWalkable(next.x,next.y)){const tx=(next.x+.5)*MINE_CELL_SIZE,ty=(next.y+.5)*MINE_CELL_SIZE,dd=Math.hypot(tx-current.x,ty-current.y),step=Math.min(m.speed*dt,dd);const nx=current.x+(tx-current.x)/Math.max(1,dd)*step,ny=current.y+(ty-current.y)/Math.max(1,dd)*step;m.x=nx/(MINE_MAZE_COLS*MINE_CELL_SIZE)*330;m.y=ny/(MINE_MAZE_ROWS*MINE_CELL_SIZE)*255;}
       }
       else if(dist<=58&&m.attackCooldown<=0&&!immortal){
@@ -5984,7 +5986,12 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     refreshSampleAt=now;
   }
   function sampleRenderCost(costMs,now){
-    if(document.hidden||paused||inMainMenu||gameSettings.performanceMode==='boost'||gameSettings.graphicsQuality==='low')return;
+    if(document.hidden||paused||inMainMenu){
+      renderCostTotal=0;renderCostSamples=0;renderCostWindowAt=now;return;
+    }
+    if(gameSettings.performanceMode==='boost'||gameSettings.graphicsQuality==='low'){
+      renderCostTotal=0;renderCostSamples=0;renderCostWindowAt=now;return;
+    }
     if(!Number.isFinite(costMs)||costMs<=0||costMs>250)return;
     renderCostTotal+=costMs;renderCostSamples++;
     if(!renderCostWindowAt)renderCostWindowAt=now;
