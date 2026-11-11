@@ -29,7 +29,7 @@ function renderLeaderboard(){
  root.innerHTML=rows.map((b,i)=>'<div class="bot" style="display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px"><b style="color:'+(i<3?'#ff9b62':'#aaa')+'">#'+(i+1)+'</b><span><b>'+b.name+(b.isPlayer?' · ВЫ':'')+'</b><br><small style="color:#999">Башня ур. '+b.towerLevel+'</small></span><strong>'+b.elo+' ELO</strong></div>').join('');
 }
 function show(page){
- scene=page;pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
+ scene=page;document.body.classList.toggle('battle-active',page==='battle');pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
  document.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
  if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();
 }
