@@ -111,7 +111,7 @@
   function currentPet(){return state.activePet?PETS[state.activePet]:null;}
   function projectLevel(id){return state.projects[id]?clamp(Math.floor(Number(state.projectLevels?.[id])||1),1,3):0;}
   function seasonName(id){return ({spring:'\u0412\u0435\u0441\u043d\u0430',summer:'\u041b\u0435\u0442\u043e',autumn:'\u041e\u0441\u0435\u043d\u044c',winter:'\u0417\u0438\u043c\u0430'})[id]||'\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e';}
-  function fishBonus(){return projectLevel('harbor')*.12+(state.activePet==='owl'?.08:0)+(state.activePet==='phoenix'?.04:0);}
+  function fishBonus(){return (state.projects.harbor?.12:0)+Math.max(0,projectLevel('harbor')-1)*.03+(state.activePet==='owl'?.08:0)+(state.activePet==='phoenix'?.04:0);}
   function damageMultiplier(){const p=currentPet();return (p?.damageBonus||0)+(state.projects.watchtower?.05:0)+(state.projects.smithy?.08:0)+Math.max(0,projectLevel('watchtower')-1)*.025+Math.max(0,projectLevel('smithy')-1)*.04+projectLevel('barracks')*.015;}
   function defenseBonus(){const p=currentPet();return (p?.defenseBonus||0)+(state.projects.sanctuary?.025:0)+(state.projects.infirmary?.02:0)+(state.projects.watch_bell?.015:0)+Math.max(0,projectLevel('sanctuary')-1)*.015+Math.max(0,projectLevel('infirmary')-1)*.01+Math.max(0,projectLevel('watch_bell')-1)*.01+projectLevel('walls')*.025;}
   function onFishingCatch(season,weather){
@@ -157,7 +157,7 @@
     if(missing.length){notify('Для улучшения не хватает: '+missing.map(([name,count])=>name+' '+(Number(b.getItemCount?.(name))||0)+'/'+count).join(', ')+'.');return false;}
     if(Number(b.getGold?.()||0)<cost){notify('Для улучшения нужно '+cost+' золота.');return false;}
     if(b.spendGold?.(cost)!==true)return false;
-    for(const [name,count] of materials){if(b.spendItem?.(name,count)!==true){b.addGold?.(cost);notify('Не удалось списать материалы. Золото возвращено.');return false;}}
+    for(const [name,count] of materials){if(b.spendItem?.(name,count)!==true){for(const [spentName,spentCount] of materials){if(spentName===name)break;b.addItem?.(spentName,spentCount,'Возврат материалов после отменённого улучшения.');}b.addGold?.(cost);notify('Не удалось списать материалы. Ресурсы и золото возвращены.');return false;}}
     state.projectLevels[id]=level+1;state.town.renown=clamp(state.town.renown+45,0,1000000);state.town.happiness=clamp(state.town.happiness+4,0,100);
     save();notify(item.name+' улучшено до уровня '+(level+1)+'!');checkAchievements();render();return true;
   }
@@ -178,7 +178,7 @@
     const patrol=state.town?.patrol,b=bridge();if(!patrol?.active||typeof b?.getEventEnemyCount!=='function')return;
     const left=Number(b.getEventEnemyCount(patrol.id));if(!Number.isFinite(left)||left!==0)return;
     patrol.active=false;patrol.completed=true;state.town.renown=clamp(state.town.renown+90,0,1000000);state.town.happiness=clamp(state.town.happiness+14,0,100);
-    const reward=Math.round(35000*(1+Math.max(0,projectLevel('guild_hall')-1)*.12));b.addGold?.(reward);b.addItem?.('Знак защитника города',1,'Трофей за оборону торгового города.');
+    const reward=Math.round((state.projects.guild_hall?42000:35000)*(1+Math.max(0,projectLevel('guild_hall')-1)*.12));b.addGold?.(reward);b.addItem?.('Знак защитника города',1,'Трофей за оборону торгового города.');
     if(state.projects.infirmary)b.addItem?.('Настойка лесного лекаря',1,'Припасы городской лечебницы.');
     save();notify('ПОСЕЛЕНИЕ СПАСЕНО! +90 репутации и '+Math.floor(reward/100)+' золота.');if(opened)render();
   }
