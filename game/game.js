@@ -934,6 +934,8 @@
   let dogBehavior = 'follow';
   let workbenchUsed = false;
   let mineMode=false, mineLevel=1, mineDepth=1, mineRocks=[], mineSeed=0, mineTileX=62, mineTileY=43, worldEarlyMonsters=false, mineHoverIndex=-1, minePlayerX=66, minePlayerY=594, mineMaze=null, mineUndercityChestOpened=false, mineUndercityLayoutCache=null;
+  // Static mine geometry is cached in small world-space chunks; only lanterns and dust remain animated.
+  let mineGroundRenderCache=null;
   let mineBarrels=[],mineCreatures=[],minePlayerAttackCooldown=0;
   let quarryProgress={mined:0,stone:0,rank:1},quarrySystemAccumulator=0,quarryAnchorCache=null;
   let caveMode=false, caveReturn={x:player.x,y:player.y}, caveChestOpened=false, caveSecretRoom=0, caveSecretRoomsOpened=[];
@@ -3358,73 +3360,138 @@ function setupVillageNpcs(){
       if(i%3===0){ctx.fillStyle='rgba(112,204,211,.25)';ctx.beginPath();ctx.arc(x,y,2.2+Math.sin(time/420+i)*.5,0,Math.PI*2);ctx.fill();}
     }
   }
+  function drawMineGroundTile(target,col,row,x,y){
+    const cell=MINE_CELL_SIZE,size=cell,half=size/2,px=x+half,py=y+half;
+    const seed=hash(col+mineSeed*1.7,row+mineDepth*23),tone=Math.floor(seed*5);
+    if(mineMaze[row][col]){
+      const floorTones=['#665d50','#5d554a','#716655','#62594e','#585247'];
+      target.fillStyle=floorTones[tone];target.fillRect(x,y,size,size);
+      const floorLight=target.createLinearGradient(x,y,x+size,y+size);
+      floorLight.addColorStop(0,'rgba(239,218,177,.13)');floorLight.addColorStop(.48,'rgba(184,163,132,.025)');floorLight.addColorStop(1,'rgba(5,7,8,.22)');
+      target.fillStyle=floorLight;target.fillRect(x,y,size,size);
+      target.strokeStyle='rgba(224,204,169,.16)';target.lineWidth=.7;
+      target.beginPath();target.moveTo(x+size*.08,y+size*.1);target.lineTo(x+size-size*.12,y+size*.08);target.stroke();
+      target.fillStyle='rgba(20,17,14,.22)';target.fillRect(x,y+size-size*.12,size,size*.12);
+      target.strokeStyle='rgba(27,24,21,.45)';target.lineWidth=1;target.strokeRect(x,y,size,size);
+      target.fillStyle='rgba(190,169,137,.13)';target.beginPath();target.moveTo(px-size*.39,py-size*.27);target.lineTo(px-size*.12,py-size*.34);target.lineTo(px+size*.31,py-size*.18);target.lineTo(px+size*.22,py-size*.08);target.lineTo(px-size*.2,py-size*.12);target.closePath();target.fill();
+      target.strokeStyle='rgba(28,25,23,.42)';target.lineWidth=1;target.beginPath();
+      if(seed>.34){target.moveTo(px-size*.32,py+size*.16);target.lineTo(px-size*.08,py+size*.04);target.lineTo(px+size*.02,py+size*.22);target.lineTo(px+size*.28,py+size*.12);}
+      else{target.moveTo(px-size*.2,py-size*.27);target.lineTo(px-size*.03,py-size*.06);target.lineTo(px+size*.2,py-size*.02);}
+      target.stroke();
+      for(let k=0;k<3;k++){const pebble=hash(col*7+mineSeed+k*11,row*13+mineLevel+k*5),ax=px+(pebble-.5)*size*.72,ay=py+(hash(col+k*19,row+k*31)-.5)*size*.7;target.fillStyle=k===0?'rgba(211,194,163,.38)':'rgba(25,24,23,.34)';target.beginPath();target.ellipse(ax,ay,Math.max(1,size*(.018+k*.006)),Math.max(1,size*.012),pebble*3,0,Math.PI*2);target.fill();}
+      if(seed>.82){target.strokeStyle='rgba(157,130,97,.55)';target.lineWidth=1.2;target.beginPath();target.moveTo(px-size*.3,py-size*.2);target.lineTo(px-size*.12,py-size*.03);target.lineTo(px-size*.17,py+size*.15);target.stroke();}
+      if(row>0&&row<MINE_MAZE_ROWS-1&&col>0&&col<MINE_MAZE_COLS-1&&hash(col+mineSeed*5,row+mineDepth*37)>=.965){
+        target.fillStyle='rgba(0,0,0,.3)';target.fillRect(px-19,py+8,38,5);
+        target.fillStyle='#3a261b';target.fillRect(px-17,py-17,5,29);target.fillRect(px+12,py-17,5,29);target.fillRect(px-20,py-20,40,5);
+        target.fillStyle='#91633d';target.fillRect(px-15,py-16,2,25);target.fillRect(px+14,py-16,2,25);target.fillRect(px-17,py-18,34,2);
+        target.fillStyle='#b9a078';for(const [bx,by] of [[-14,-14],[14,-14],[-14,8],[14,8]]){target.beginPath();target.arc(px+bx,py+by,1.5,0,Math.PI*2);target.fill();}
+      }
+    }else{
+      target.fillStyle='#111a22';target.fillRect(x,y,size,size);
+      const wallShade=target.createLinearGradient(x,y,x+size,y+size);
+      wallShade.addColorStop(0,['#485258','#505b60','#465257','#596064','#424c51'][tone]);
+      wallShade.addColorStop(.55,['#303a40','#394247','#333d42','#41484a','#2e383d'][tone]);
+      wallShade.addColorStop(1,'#151e24');target.fillStyle=wallShade;target.beginPath();
+      target.moveTo(x,y+size*.12);target.lineTo(x+size*.12,y+size*.02);target.lineTo(x+size*.35,y+size*.07);target.lineTo(x+size-size*.1,y+size*.03);target.lineTo(x+size,y+size*.16);target.lineTo(x+size,y+size-size*.08);target.lineTo(x+size-size*.18,y+size);target.lineTo(x+size*.08,y+size-size*.02);target.closePath();target.fill();
+      target.fillStyle='rgba(125,139,139,.24)';target.beginPath();target.moveTo(x+size*.08,y+size*.1);target.lineTo(x+size*.32,y+size*.06);target.lineTo(x+size*.58,y+size*.14);target.lineTo(x+size*.44,y+size*.22);target.closePath();target.fill();
+      target.fillStyle='rgba(0,0,0,.35)';target.fillRect(x,y+size-size*.18,size,size*.18);
+      target.strokeStyle='#151d22';target.lineWidth=1.5;target.strokeRect(x,y,size,size);
+      for(let k=0;k<2;k++){const v=hash(col*17+k*9+mineSeed,row*23+k*7+mineLevel),bx=px+(v-.5)*size*.48,by=py+(hash(row*11+k,col*29+mineSeed)-.5)*size*.36,r=size*(.12+v*.1);target.fillStyle=k?'rgba(10,15,19,.36)':'rgba(119,128,126,.22)';target.beginPath();target.moveTo(bx-r,by);target.lineTo(bx-r*.35,by-r*.8);target.lineTo(bx+r*.65,by-r*.45);target.lineTo(bx+r,by+r*.2);target.lineTo(bx-r*.25,by+r*.65);target.closePath();target.fill();}
+      if(seed>.48){target.strokeStyle='rgba(8,13,17,.72)';target.lineWidth=1.4;target.beginPath();target.moveTo(px-size*.22,py-size*.22);target.lineTo(px-size*.08,py-size*.03);target.lineTo(px-size*.17,py+size*.1);target.lineTo(px+size*.02,py+size*.28);target.stroke();}
+      if(seed>.63){const seamY=py-size*(.12+hash(col+mineDepth,row+mineSeed)*.34);target.strokeStyle='rgba(165,180,174,.15)';target.lineWidth=.7;target.beginPath();target.moveTo(x+size*.16,seamY);target.lineTo(px-size*.08,seamY-size*.035);target.lineTo(x+size-size*.2,seamY+size*.02);target.stroke();}
+      if(seed>.88){target.fillStyle='#1b252b';target.beginPath();target.moveTo(px-size*.16,y);target.lineTo(px+size*.12,y);target.lineTo(px+size*.02,y+size*.34);target.closePath();target.fill();target.fillStyle='rgba(142,151,143,.32)';target.beginPath();target.moveTo(px-size*.11,y+2);target.lineTo(px-size*.01,y+size*.17);target.lineTo(px-size*.02,y+2);target.fill();}
+    }
+  }
+  function drawMineGroundTile(target,col,row,x,y){
+    const cell=MINE_CELL_SIZE,size=cell,half=size/2,px=x+half,py=y+half;
+    const seed=hash(col+mineSeed*1.7,row+mineDepth*23),tone=Math.floor(seed*5);
+    if(mineMaze[row][col]){
+      const floorTones=['#665d50','#5d554a','#716655','#62594e','#585247'];
+      target.fillStyle=floorTones[tone];target.fillRect(x,y,size,size);
+      const floorLight=target.createLinearGradient(x,y,x+size,y+size);
+      floorLight.addColorStop(0,'rgba(239,218,177,.13)');floorLight.addColorStop(.48,'rgba(184,163,132,.025)');floorLight.addColorStop(1,'rgba(5,7,8,.22)');
+      target.fillStyle=floorLight;target.fillRect(x,y,size,size);
+      target.strokeStyle='rgba(224,204,169,.16)';target.lineWidth=.7;
+      target.beginPath();target.moveTo(x+size*.08,y+size*.1);target.lineTo(x+size-size*.12,y+size*.08);target.stroke();
+      target.fillStyle='rgba(20,17,14,.22)';target.fillRect(x,y+size-size*.12,size,size*.12);
+      target.strokeStyle='rgba(27,24,21,.45)';target.lineWidth=1;target.strokeRect(x,y,size,size);
+      target.fillStyle='rgba(190,169,137,.13)';target.beginPath();target.moveTo(px-size*.39,py-size*.27);target.lineTo(px-size*.12,py-size*.34);target.lineTo(px+size*.31,py-size*.18);target.lineTo(px+size*.22,py-size*.08);target.lineTo(px-size*.2,py-size*.12);target.closePath();target.fill();
+      target.strokeStyle='rgba(28,25,23,.42)';target.lineWidth=1;target.beginPath();
+      if(seed>.34){target.moveTo(px-size*.32,py+size*.16);target.lineTo(px-size*.08,py+size*.04);target.lineTo(px+size*.02,py+size*.22);target.lineTo(px+size*.28,py+size*.12);}
+      else{target.moveTo(px-size*.2,py-size*.27);target.lineTo(px-size*.03,py-size*.06);target.lineTo(px+size*.2,py-size*.02);}
+      target.stroke();
+      for(let k=0;k<3;k++){const pebble=hash(col*7+mineSeed+k*11,row*13+mineLevel+k*5),ax=px+(pebble-.5)*size*.72,ay=py+(hash(col+k*19,row+k*31)-.5)*size*.7;target.fillStyle=k===0?'rgba(211,194,163,.38)':'rgba(25,24,23,.34)';target.beginPath();target.ellipse(ax,ay,Math.max(1,size*(.018+k*.006)),Math.max(1,size*.012),pebble*3,0,Math.PI*2);target.fill();}
+      if(seed>.82){target.strokeStyle='rgba(157,130,97,.55)';target.lineWidth=1.2;target.beginPath();target.moveTo(px-size*.3,py-size*.2);target.lineTo(px-size*.12,py-size*.03);target.lineTo(px-size*.17,py+size*.15);target.stroke();}
+      if(row>0&&row<MINE_MAZE_ROWS-1&&col>0&&col<MINE_MAZE_COLS-1&&hash(col+mineSeed*5,row+mineDepth*37)>=.965){
+        target.fillStyle='rgba(0,0,0,.3)';target.fillRect(px-19,py+8,38,5);
+        target.fillStyle='#3a261b';target.fillRect(px-17,py-17,5,29);target.fillRect(px+12,py-17,5,29);target.fillRect(px-20,py-20,40,5);
+        target.fillStyle='#91633d';target.fillRect(px-15,py-16,2,25);target.fillRect(px+14,py-16,2,25);target.fillRect(px-17,py-18,34,2);
+        target.fillStyle='#b9a078';for(const [bx,by] of [[-14,-14],[14,-14],[-14,8],[14,8]]){target.beginPath();target.arc(px+bx,py+by,1.5,0,Math.PI*2);target.fill();}
+      }
+    }else{
+      target.fillStyle='#111a22';target.fillRect(x,y,size,size);
+      const wallShade=target.createLinearGradient(x,y,x+size,y+size);
+      wallShade.addColorStop(0,['#485258','#505b60','#465257','#596064','#424c51'][tone]);
+      wallShade.addColorStop(.55,['#303a40','#394247','#333d42','#41484a','#2e383d'][tone]);
+      wallShade.addColorStop(1,'#151e24');target.fillStyle=wallShade;target.beginPath();
+      target.moveTo(x,y+size*.12);target.lineTo(x+size*.12,y+size*.02);target.lineTo(x+size*.35,y+size*.07);target.lineTo(x+size-size*.1,y+size*.03);target.lineTo(x+size,y+size*.16);target.lineTo(x+size,y+size-size*.08);target.lineTo(x+size-size*.18,y+size);target.lineTo(x+size*.08,y+size-size*.02);target.closePath();target.fill();
+      target.fillStyle='rgba(125,139,139,.24)';target.beginPath();target.moveTo(x+size*.08,y+size*.1);target.lineTo(x+size*.32,y+size*.06);target.lineTo(x+size*.58,y+size*.14);target.lineTo(x+size*.44,y+size*.22);target.closePath();target.fill();
+      target.fillStyle='rgba(0,0,0,.35)';target.fillRect(x,y+size-size*.18,size,size*.18);
+      target.strokeStyle='#151d22';target.lineWidth=1.5;target.strokeRect(x,y,size,size);
+      for(let k=0;k<2;k++){const v=hash(col*17+k*9+mineSeed,row*23+k*7+mineLevel),bx=px+(v-.5)*size*.48,by=py+(hash(row*11+k,col*29+mineSeed)-.5)*size*.36,r=size*(.12+v*.1);target.fillStyle=k?'rgba(10,15,19,.36)':'rgba(119,128,126,.22)';target.beginPath();target.moveTo(bx-r,by);target.lineTo(bx-r*.35,by-r*.8);target.lineTo(bx+r*.65,by-r*.45);target.lineTo(bx+r,by+r*.2);target.lineTo(bx-r*.25,by+r*.65);target.closePath();target.fill();}
+      if(seed>.48){target.strokeStyle='rgba(8,13,17,.72)';target.lineWidth=1.4;target.beginPath();target.moveTo(px-size*.22,py-size*.22);target.lineTo(px-size*.08,py-size*.03);target.lineTo(px-size*.17,py+size*.1);target.lineTo(px+size*.02,py+size*.28);target.stroke();}
+      if(seed>.63){const seamY=py-size*(.12+hash(col+mineDepth,row+mineSeed)*.34);target.strokeStyle='rgba(165,180,174,.15)';target.lineWidth=.7;target.beginPath();target.moveTo(x+size*.16,seamY);target.lineTo(px-size*.08,seamY-size*.035);target.lineTo(x+size-size*.2,seamY+size*.02);target.stroke();}
+      if(seed>.88){target.fillStyle='#1b252b';target.beginPath();target.moveTo(px-size*.16,y);target.lineTo(px+size*.12,y);target.lineTo(px+size*.02,y+size*.34);target.closePath();target.fill();target.fillStyle='rgba(142,151,143,.32)';target.beginPath();target.moveTo(px-size*.11,y+2);target.lineTo(px-size*.01,y+size*.17);target.lineTo(px-size*.02,y+2);target.fill();}
+    }
+  }
   function drawMinePassages(){
     const g=ensureMineMaze(),cell=MINE_CELL_SIZE,time=performance.now();
     drawMineBackdrop(time);
-    // Every corridor is a layered stone floor; blocked cells become raised rock walls.
-    for(let row=0;row<MINE_MAZE_ROWS;row++)for(let col=0;col<MINE_MAZE_COLS;col++){
-      const p=mineWorldToScreen((col+.5)*cell,(row+.5)*cell),size=cell*p.zoom,half=size/2;
-      if(p.x+half<-8||p.x-half>width+8||p.y+half<-8||p.y-half>height+8)continue;
-      const seed=hash(col+mineSeed*1.7,row+mineDepth*23),tone=Math.floor(seed*5);
-      if(g[row][col]){
-        const floorTones=['#665d50','#5d554a','#716655','#62594e','#585247'];
-        ctx.fillStyle=floorTones[tone];ctx.fillRect(p.x-half,p.y-half,size,size);
-        // Soft directional light and a narrow bevel make each existing floor plate feel raised.
-        const floorLight=ctx.createLinearGradient(p.x-half,p.y-half,p.x+half,p.y+half);
-        floorLight.addColorStop(0,'rgba(239,218,177,.13)');floorLight.addColorStop(.48,'rgba(184,163,132,.025)');floorLight.addColorStop(1,'rgba(5,7,8,.22)');
-        ctx.fillStyle=floorLight;ctx.fillRect(p.x-half,p.y-half,size,size);
-        ctx.strokeStyle='rgba(224,204,169,.16)';ctx.lineWidth=Math.max(.7,p.zoom*.55);
-        ctx.beginPath();ctx.moveTo(p.x-half+size*.08,p.y-half+size*.1);ctx.lineTo(p.x+half-size*.12,p.y-half+size*.08);ctx.stroke();
-        ctx.fillStyle='rgba(20,17,14,.22)';ctx.fillRect(p.x-half,p.y+half-size*.12,size,size*.12);
-        ctx.strokeStyle='rgba(27,24,21,.45)';ctx.lineWidth=Math.max(1,p.zoom*.8);ctx.strokeRect(p.x-half,p.y-half,size,size);
-        // Irregular floor plates, chips and thin mineral seams.
-        ctx.fillStyle='rgba(190,169,137,.13)';ctx.beginPath();ctx.moveTo(p.x-size*.39,p.y-size*.27);ctx.lineTo(p.x-size*.12,p.y-size*.34);ctx.lineTo(p.x+size*.31,p.y-size*.18);ctx.lineTo(p.x+size*.22,p.y-size*.08);ctx.lineTo(p.x-size*.2,p.y-size*.12);ctx.closePath();ctx.fill();
-        ctx.strokeStyle='rgba(28,25,23,.42)';ctx.lineWidth=1;ctx.beginPath();
-        if(seed>.34){ctx.moveTo(p.x-size*.32,p.y+size*.16);ctx.lineTo(p.x-size*.08,p.y+size*.04);ctx.lineTo(p.x+size*.02,p.y+size*.22);ctx.lineTo(p.x+size*.28,p.y+size*.12);}
-        else{ctx.moveTo(p.x-size*.2,p.y-size*.27);ctx.lineTo(p.x-size*.03,p.y-size*.06);ctx.lineTo(p.x+size*.2,p.y-size*.02);}
-        ctx.stroke();
-        for(let k=0;k<3;k++){const pebble=hash(col*7+mineSeed+k*11,row*13+mineLevel+k*5);const px=p.x+(pebble-.5)*size*.72,py=p.y+(hash(col+k*19,row+k*31)-.5)*size*.7;ctx.fillStyle=k===0?'rgba(211,194,163,.38)':'rgba(25,24,23,.34)';ctx.beginPath();ctx.ellipse(px,py,Math.max(1,size*(.018+k*.006)),Math.max(1,size*.012),pebble*3,0,Math.PI*2);ctx.fill();}
-        if(seed>.82){ctx.strokeStyle='rgba(157,130,97,.55)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p.x-size*.3,p.y-size*.2);ctx.lineTo(p.x-size*.12,p.y-size*.03);ctx.lineTo(p.x-size*.17,p.y+size*.15);ctx.stroke();}
+    const zoom=Math.max(1.35,Math.min(1.78,Math.min(width/470,height/350)));
+    const left=Math.max(0,Math.floor((minePlayerX-width/(2*zoom))/cell)-1),right=Math.min(MINE_MAZE_COLS,Math.ceil((minePlayerX+width/(2*zoom))/cell)+1);
+    const top=Math.max(0,Math.floor((minePlayerY-height/(2*zoom))/cell)-1),bottom=Math.min(MINE_MAZE_ROWS,Math.ceil((minePlayerY+height/(2*zoom))/cell)+1);
+    const chunkTiles=4,cacheKey=[mineSeed,mineDepth,mineLevel,dpr,MINE_MAZE_COLS,MINE_MAZE_ROWS].join(':');
+    if(!mineGroundRenderCache||mineGroundRenderCache.key!==cacheKey){
+      const lanterns=[];
+      for(let row=1;row<MINE_MAZE_ROWS-1;row++)for(let col=1;col<MINE_MAZE_COLS-1;col++){
+        if(g[row][col]&&hash(col+mineSeed*11,row+mineDepth*41)>=.985)lanterns.push({col,row});
+      }
+      mineGroundRenderCache={key:cacheKey,chunks:new Map(),lanterns};
+    }
+    const cache=mineGroundRenderCache,firstChunkX=Math.floor(left/chunkTiles),lastChunkX=Math.floor(Math.max(left,right-1)/chunkTiles);
+    const firstChunkY=Math.floor(top/chunkTiles),lastChunkY=Math.floor(Math.max(top,bottom-1)/chunkTiles);
+    const maxChunks=32;let buildBudget=2;
+    for(let cy=firstChunkY;cy<=lastChunkY;cy++)for(let cx=firstChunkX;cx<=lastChunkX;cx++){
+      const key=cx+':'+cy,chunkLeft=cx*chunkTiles,chunkTop=cy*chunkTiles;
+      let chunk=cache.chunks.get(key);
+      if(chunk){cache.chunks.delete(key);cache.chunks.set(key,chunk);}
+      else if(buildBudget>0&&chunkLeft<MINE_MAZE_COLS&&chunkTop<MINE_MAZE_ROWS){
+        const tileCols=Math.min(chunkTiles,MINE_MAZE_COLS-chunkLeft),tileRows=Math.min(chunkTiles,MINE_MAZE_ROWS-chunkTop);
+        const logicalWidth=tileCols*cell,logicalHeight=tileRows*cell,chunkCanvas=document.createElement('canvas');
+        chunkCanvas.width=Math.max(1,Math.ceil(logicalWidth*dpr));chunkCanvas.height=Math.max(1,Math.ceil(logicalHeight*dpr));
+        const chunkContext=chunkCanvas.getContext('2d');chunkContext.setTransform(dpr,0,0,dpr,0,0);
+        for(let row=chunkTop;row<chunkTop+tileRows;row++)for(let col=chunkLeft;col<chunkLeft+tileCols;col++)
+          drawMineGroundTile(chunkContext,col,row,(col-chunkLeft)*cell,(row-chunkTop)*cell);
+        chunk={canvas:chunkCanvas,width:logicalWidth,height:logicalHeight,left:chunkLeft,top:chunkTop};
+        cache.chunks.set(key,chunk);buildBudget--;
+        while(cache.chunks.size>maxChunks)cache.chunks.delete(cache.chunks.keys().next().value);
+      }
+      if(chunk){
+        const sx=width/2+(chunk.left*cell-minePlayerX)*zoom,sy=height/2+(chunk.top*cell-minePlayerY)*zoom;
+        ctx.drawImage(chunk.canvas,sx,sy,chunk.width*zoom,chunk.height*zoom);
       }else{
-        // Deep, layered rock wall with a raised top lip and dark lower face.
-        ctx.fillStyle='#111a22';ctx.fillRect(p.x-half,p.y-half,size,size);
-        const wallShade=ctx.createLinearGradient(p.x-half,p.y-half,p.x+half,p.y+half);
-        wallShade.addColorStop(0,['#485258','#505b60','#465257','#596064','#424c51'][tone]);
-        wallShade.addColorStop(.55,['#303a40','#394247','#333d42','#41484a','#2e383d'][tone]);
-        wallShade.addColorStop(1,'#151e24');ctx.fillStyle=wallShade;ctx.beginPath();
-        ctx.moveTo(p.x-half,p.y-half+size*.12);ctx.lineTo(p.x-half+size*.12,p.y-half+size*.02);ctx.lineTo(p.x-half+size*.35,p.y-half+size*.07);ctx.lineTo(p.x+half-size*.1,p.y-half+size*.03);ctx.lineTo(p.x+half,p.y-half+size*.16);ctx.lineTo(p.x+half,p.y+half-size*.08);ctx.lineTo(p.x+half-size*.18,p.y+half);ctx.lineTo(p.x-half+size*.08,p.y+half-size*.02);ctx.closePath();ctx.fill();
-        ctx.fillStyle='rgba(125,139,139,.24)';ctx.beginPath();ctx.moveTo(p.x-half+size*.08,p.y-half+size*.1);ctx.lineTo(p.x-half+size*.32,p.y-half+size*.06);ctx.lineTo(p.x+size*.08,p.y-half+size*.14);ctx.lineTo(p.x-size*.06,p.y-half+size*.22);ctx.closePath();ctx.fill();
-        ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(p.x-half,p.y+half-size*.18,size,size*.18);
-        ctx.strokeStyle='#151d22';ctx.lineWidth=1.5;ctx.strokeRect(p.x-half,p.y-half,size,size);
-        // Faceted boulders and cracks on exposed wall faces.
-        for(let k=0;k<2;k++){const v=hash(col*17+k*9+mineSeed,row*23+k*7+mineLevel);const bx=p.x+(v-.5)*size*.48,by=p.y+(hash(row*11+k,col*29+mineSeed)-.5)*size*.36,r=size*(.12+v*.1);ctx.fillStyle=k?'rgba(10,15,19,.36)':'rgba(119,128,126,.22)';ctx.beginPath();ctx.moveTo(bx-r,by);ctx.lineTo(bx-r*.35,by-r*.8);ctx.lineTo(bx+r*.65,by-r*.45);ctx.lineTo(bx+r,by+r*.2);ctx.lineTo(bx-r*.25,by+r*.65);ctx.closePath();ctx.fill();}
-        if(seed>.48){ctx.strokeStyle='rgba(8,13,17,.72)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(p.x-size*.22,p.y-size*.22);ctx.lineTo(p.x-size*.08,p.y-size*.03);ctx.lineTo(p.x-size*.17,p.y+size*.1);ctx.lineTo(p.x+size*.02,p.y+size*.28);ctx.stroke();}
-        if(seed>.63){
-          const seamY=p.y-size*(.12+hash(col+mineDepth,row+mineSeed)*.34);
-          ctx.strokeStyle='rgba(165,180,174,.15)';ctx.lineWidth=Math.max(.7,p.zoom*.45);
-          ctx.beginPath();ctx.moveTo(p.x-half+size*.16,seamY);ctx.lineTo(p.x-size*.08,seamY-size*.035);ctx.lineTo(p.x+half-size*.2,seamY+size*.02);ctx.stroke();
+        const drawLeft=Math.max(left,chunkLeft),drawTop=Math.max(top,chunkTop),drawRight=Math.min(right,chunkLeft+chunkTiles),drawBottom=Math.min(bottom,chunkTop+chunkTiles);
+        for(let row=drawTop;row<drawBottom;row++)for(let col=drawLeft;col<drawRight;col++){
+          const sx=width/2+(col*cell-minePlayerX)*zoom,sy=height/2+(row*cell-minePlayerY)*zoom;
+          ctx.save();ctx.translate(sx,sy);ctx.scale(zoom,zoom);drawMineGroundTile(ctx,col,row,0,0);ctx.restore();
         }
-        // Occasional ceiling stalactites hang over the dark rock.
-        if(seed>.88){ctx.fillStyle='#1b252b';ctx.beginPath();ctx.moveTo(p.x-size*.16,p.y-half);ctx.lineTo(p.x+size*.12,p.y-half);ctx.lineTo(p.x+size*.02,p.y-half+size*.34);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(142,151,143,.32)';ctx.beginPath();ctx.moveTo(p.x-size*.11,p.y-half+2);ctx.lineTo(p.x-size*.01,p.y-half+size*.17);ctx.lineTo(p.x-size*.02,p.y-half+2);ctx.fill();}
       }
     }
-    // Wooden pit props appear at selected corridor bends, with iron bolts and warm lantern light.
-    for(let row=1;row<MINE_MAZE_ROWS-1;row++)for(let col=1;col<MINE_MAZE_COLS-1;col++){
-      if(!g[row][col]||hash(col+mineSeed*5,row+mineDepth*37)<.965)continue;
-      const p=mineWorldToScreen((col+.5)*cell,(row+.5)*cell),z=p.zoom;if(p.x<-70||p.x>width+70||p.y<-70||p.y>height+70)continue;
-      ctx.save();ctx.translate(p.x,p.y);ctx.scale(z,z);
-      ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(-19,8,38,5);
-      ctx.fillStyle='#3a261b';ctx.fillRect(-17,-17,5,29);ctx.fillRect(12,-17,5,29);ctx.fillRect(-20,-20,40,5);
-      ctx.fillStyle='#91633d';ctx.fillRect(-15,-16,2,25);ctx.fillRect(14,-16,2,25);ctx.fillRect(-17,-18,34,2);
-      ctx.fillStyle='#b9a078';for(const [bx,by] of [[-14,-14],[14,-14],[-14,8],[14,8]]){ctx.beginPath();ctx.arc(bx,by,1.5,0,Math.PI*2);ctx.fill();}
-      ctx.restore();
-    }
-    // A handful of animated lantern pools and drifting dust motes give the mine depth.
-    for(let row=1;row<MINE_MAZE_ROWS-1;row++)for(let col=1;col<MINE_MAZE_COLS-1;col++){
-      if(!g[row][col]||hash(col+mineSeed*11,row+mineDepth*41)<.985)continue;
-      const p=mineWorldToScreen((col+.5)*cell,(row+.5)*cell),z=p.zoom;if(p.x<-120||p.x>width+120||p.y<-120||p.y>height+120)continue;
-      const pulse=.78+.22*Math.sin(time/180+col*2+row);
-      // Existing lanterns now cast layered amber light with a softer outer falloff.
+    // Lantern locations are precomputed with the static maze instead of rescanning every cell each frame.
+    for(const lantern of cache.lanterns){
+      const p=mineWorldToScreen((lantern.col+.5)*cell,(lantern.row+.5)*cell),z=p.zoom;
+      if(p.x<-120||p.x>width+120||p.y<-120||p.y>height+120)continue;
+      const pulse=.78+.22*Math.sin(time/180+lantern.col*2+lantern.row);
       const outerGlow=ctx.createRadialGradient(p.x,p.y,3,p.x,p.y,92*z);
       outerGlow.addColorStop(0,'rgba(255,177,91,'+(.12*pulse)+')');outerGlow.addColorStop(.42,'rgba(235,142,70,'+(.055*pulse)+')');outerGlow.addColorStop(1,'rgba(255,150,55,0)');
       ctx.fillStyle=outerGlow;ctx.fillRect(p.x-94*z,p.y-94*z,188*z,188*z);
@@ -3433,7 +3500,7 @@ function setupVillageNpcs(){
       ctx.fillStyle=glow;ctx.fillRect(p.x-50*z,p.y-50*z,100*z,100*z);
       ctx.fillStyle='#ffc66f';ctx.shadowColor='#ffad50';ctx.shadowBlur=10*z;ctx.beginPath();ctx.arc(p.x,p.y,2.7*z,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
     }
-    for(let i=0;i<9;i++){const phase=time*.00018+i*1.73,dx=Math.sin(phase)*width*.42,dy=((time*.012+i*71)%(height+30))-15;const a=.12+.18*(.5+.5*Math.sin(phase*2));ctx.fillStyle='rgba(220,211,190,'+a+')';ctx.beginPath();ctx.arc(width/2+dx,dy,1+(i%3)*.45,0,Math.PI*2);ctx.fill();}
+    for(let i=0;i<9;i++){const phase=time*.00018+i*1.73,dx=Math.sin(phase)*width*.42,dy=((time*.012+i*71)%(height+30))-15,a=.12+.18*(.5+.5*Math.sin(phase*2));ctx.fillStyle='rgba(220,211,190,'+a+')';ctx.beginPath();ctx.arc(width/2+dx,dy,1+(i%3)*.45,0,Math.PI*2);ctx.fill();}
     const entrance=mineWorldToScreen(1.5*cell,(MINE_MAZE_ROWS-1.5)*cell),exit=mineWorldToScreen((MINE_MAZE_COLS-1.5)*cell,1.5*cell);
     ctx.save();ctx.translate(entrance.x,entrance.y);ctx.fillStyle='#182a30';ctx.strokeStyle='#7bc4a4';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,cell*.34*entrance.zoom,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#c4f0d7';ctx.font='bold '+Math.max(9,10*entrance.zoom)+'px Segoe UI';ctx.textAlign='center';ctx.fillText('ВЫХОД',0,cell*.55*entrance.zoom);ctx.restore();
     ctx.save();ctx.translate(exit.x,exit.y);ctx.fillStyle='#352b20';ctx.strokeStyle='#f3c16b';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,cell*.34*exit.zoom,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#ffe2a0';ctx.font='bold '+Math.max(9,10*exit.zoom)+'px Segoe UI';ctx.textAlign='center';ctx.fillText(mineDepth<8?'НИЖЕ':'СОКРОВИЩЕ',0,cell*.55*exit.zoom);ctx.restore();
@@ -3495,7 +3562,14 @@ function setupVillageNpcs(){
     if(!mineMode)return;minePlayerAttackCooldown=Math.max(0,minePlayerAttackCooldown-dt);
     for(const m of mineCreatures){if(m.hp<=0)continue;m.attackCooldown=Math.max(0,(m.attackCooldown||0)-dt);m.flash=Math.max(0,(m.flash||0)-dt);m.phase=(m.phase||0)+dt*2;
       const current=mineFeatureWorldPosition(m),dx=minePlayerX-current.x,dy=minePlayerY-current.y,dist=Math.hypot(dx,dy);
-      if(dist>58&&dist<560){const next=mineNextStepTowardPlayer(current.cell);if(next){const tx=(next.x+.5)*MINE_CELL_SIZE,ty=(next.y+.5)*MINE_CELL_SIZE,dd=Math.hypot(tx-current.x,ty-current.y),step=Math.min(m.speed*dt,dd);const nx=current.x+(tx-current.x)/Math.max(1,dd)*step,ny=current.y+(ty-current.y)/Math.max(1,dd)*step;m.x=nx/(MINE_MAZE_COLS*MINE_CELL_SIZE)*330;m.y=ny/(MINE_MAZE_ROWS*MINE_CELL_SIZE)*255;}}
+      if(dist>58&&dist<560){
+        const goal=mineCellFromWorld(minePlayerX,minePlayerY),fromKey=current.cell.y*MINE_MAZE_COLS+current.cell.x,goalKey=goal.y*MINE_MAZE_COLS+goal.x;
+        if(m._minePathFrom!==fromKey||m._minePathGoal!==goalKey||!(m._minePathRefresh>0)){
+          m._minePathNext=mineNextStepTowardPlayer(current.cell);m._minePathFrom=fromKey;m._minePathGoal=goalKey;m._minePathRefresh=.28;
+        }else m._minePathRefresh=Math.max(0,m._minePathRefresh-dt);
+        const next=m._minePathNext;
+        if(next&&mineCellWalkable(next.x,next.y)){const tx=(next.x+.5)*MINE_CELL_SIZE,ty=(next.y+.5)*MINE_CELL_SIZE,dd=Math.hypot(tx-current.x,ty-current.y),step=Math.min(m.speed*dt,dd);const nx=current.x+(tx-current.x)/Math.max(1,dd)*step,ny=current.y+(ty-current.y)/Math.max(1,dd)*step;m.x=nx/(MINE_MAZE_COLS*MINE_CELL_SIZE)*330;m.y=ny/(MINE_MAZE_ROWS*MINE_CELL_SIZE)*255;}
+      }
       else if(dist<=58&&m.attackCooldown<=0&&!immortal){
         const damage=10;
         player.hp=Math.max(0,player.hp-damage);m.attackCooldown=2.35;const screen=mineWorldToScreen(minePlayerX,minePlayerY);spawnVisualBurst(screen.x,screen.y,6,'spark','#f06f65');updateVitals();toast((m.name||'Пещерный монстр')+' атакует · −'+damage+' HP');saveGame();if(player.hp<=0)respawnPlayerAfterDefeat();
