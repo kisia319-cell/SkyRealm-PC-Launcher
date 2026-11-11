@@ -1127,7 +1127,8 @@
     if (measure) ctxProto.measureText = function(text){return measure.call(this,translate(text));};
     Object.defineProperty(ctxProto,'__skyRealmLanguagePatched',{value:true});
   }
-  const launchLanguage = launchSettings.language === 'en' ? 'en' : (launchSettings.language === 'ru' ? 'ru' : '');
+  const queryLanguage = PARAMS.get('language');
+  const launchLanguage = queryLanguage === 'en' || launchSettings.language === 'en' ? 'en' : (queryLanguage === 'ru' || launchSettings.language === 'ru' ? 'ru' : '');
   let stored = '', lastLauncherLanguage = '';
   try { stored = localStorage.getItem(KEY) || ''; lastLauncherLanguage = localStorage.getItem('skyrealm_launcher_language') || ''; } catch (_) {}
   if (launchLanguage && launchLanguage !== lastLauncherLanguage) {
