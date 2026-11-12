@@ -27,8 +27,14 @@ function updateProfile(){
 function renderLeaderboard(){
  const root=$('leaderboard');if(!root)return;
  root.innerHTML='<div class="bot">Загрузка онлайн-рейтинга...</div>';
- if(!PrimeOnline.hasSession()){root.innerHTML='<div class="bot">Войди в аккаунт, чтобы увидеть рейтинг реальных игроков.</div>';return;}
- PrimeOnline.leaderboard().then(data=>{const rows=data.players||[];root.innerHTML=rows.length?rows.map((b,i)=>'<div class="bot" style="display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px"><b>#'+(i+1)+'</b><span><b>'+String(b.username).replace(/[&<>\"']/g,'')+'</b><br><small>'+b.wins+' побед · '+b.losses+' поражений · '+b.matches+' матчей</small></span><strong>'+b.rating+' ELO</strong></div>').join(''):'<div class="bot">Онлайн-рейтинг пока пуст. Сыграй первый матч 1 × 1.</div>';}).catch(e=>{root.innerHTML='<div class="bot">Не удалось загрузить рейтинг: '+String(e.message).replace(/[&<>\"']/g,'')+'</div>';});
+ PrimeOnline.init().then(async ok=>{
+  if(!ok){root.innerHTML='<div class="bot">Войди в аккаунт SkyRealm, чтобы увидеть рейтинг реальных игроков.</div>';return;}
+  const [stats,data]=await Promise.all([PrimeOnline.stats(),PrimeOnline.leaderboard()]);
+  profile.elo=Number(stats.stats?.rating)||profile.elo||1000;profile.matches=Number(stats.stats?.matches)||profile.matches||0;profile.wins=Number(stats.stats?.wins)||profile.wins||0;
+  $('home-elo').textContent=profile.elo+' ELO';$('rank-elo').textContent=profile.elo+' ELO';$('nav-elo').textContent=profile.elo;$('battle-elo').textContent=profile.elo+' ELO';$('home-matches').textContent=profile.matches+' матчей';$('home-wins').textContent=profile.wins;
+  const rows=data.players||[];
+  root.innerHTML=rows.length?rows.map((b,i)=>'<div class="bot" style="display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px"><b>#'+(i+1)+'</b><span><b>'+String(b.username).replace(/[&<>"']/g,'')+'</b><br><small>'+b.wins+' побед · '+b.losses+' поражений · '+b.matches+' матчей</small></span><strong>'+b.rating+' ELO</strong></div>').join(''):'<div class="bot">Онлайн-рейтинг пока пуст. Сыграй первый матч 1 × 1.</div>';
+ }).catch(e=>{root.innerHTML='<div class="bot">Не удалось загрузить рейтинг: '+String(e.message).replace(/[&<>"']/g,'')+'</div>';});
 }
 function renderHistory(){const root=$('history-list');if(!root)return;if(!profile.history.length){root.textContent='Матчей пока нет.';return;}root.innerHTML=profile.history.map((h,i)=>'<div class="bot" style="display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;margin:8px 0"><span><b>'+(h.label||'Матч')+'</b><br><small>'+String(h.date||'')+'</small><br><small>Соперники: '+(Array.isArray(h.opponents)?h.opponents.join(', '):'—')+'</small></span><strong>'+String(h.delta||'')+'</strong></div>').join('');}
 
