@@ -615,7 +615,7 @@
     if(!$('#page-command-center')){
       const page=document.createElement('section');page.className='page inner-page command-center-page';page.id='page-command-center';
       page.innerHTML=[
-      '<div class="page-heading command-heading"><div><div class="section-kicker">PRIMELAUNCHER · ИНСТРУМЕНТЫ</div><h1>Стартовый <span>центр</span></h1><p>Быстрый запуск, профили производительности, диагностика и инструменты игровой сессии.</p></div><span class="command-build-tag">v1.2.51 · COMMAND CENTER</span></div>',
+      '<div class="page-heading command-heading"><div><div class="section-kicker">PRIMELAUNCHER · ИНСТРУМЕНТЫ</div><h1>Стартовый <span>центр</span></h1><p>Быстрый запуск, профили производительности, диагностика и инструменты игровой сессии.</p></div><span class="command-build-tag">v1.2.52 · COMMAND CENTER</span></div>',
       '<div class="command-launch-grid">',
       '<article class="command-card command-launch-card"><div class="command-icon">▶</div><div class="command-kicker">ОСНОВНАЯ ИГРА</div><h2>SkyRealm</h2><p>Запуск обычного игрового мира через штатный установщик и обновлятор.</p><button class="primary-btn" id="command-launch-game" type="button">Запустить SkyRealm ↗</button></article>',
       '<article class="command-card command-launch-card"><div class="command-icon">⚔</div><div class="command-kicker">СОРЕВНОВАНИЯ</div><h2>PrimeLauncher</h2><p>Отдельный соревновательный режим с матчами, базами и временной экономикой.</p><button class="primary-btn" id="command-launch-prime" type="button">Запустить Prime ↗</button></article>',

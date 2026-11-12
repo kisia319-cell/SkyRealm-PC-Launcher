@@ -115,3 +115,32 @@ vm.runInNewContext(occupancyFn+'\nglobalThis.allyWall=canEntityOccupy(600,600,12
 assert.equal(occupancyContext.allyWall,true);
 assert.equal(occupancyContext.allyTower,true);
 assert.equal(occupancyContext.enemyWall,false);
+
+// Russian UI integrity: build controls, pause/leave dialogs and both locale dictionaries.
+assert.equal((html.match(/\?{3,}/g)||[]).length,0,'Prime HTML must not contain question-mark replacement labels.');
+assert.equal((js.match(/'\?{3,}/g)||[]).length,0,'Prime script must not contain question-mark replacement strings.');
+for(const text of [
+ '\u{1F3D7} \u0421\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e',
+ '\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u043e\u0438\u043d\u043e\u0432',
+ '\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u0432\u043e\u0439\u0441\u043a\u0430',
+ '\u041e\u0431\u043e\u0440\u043e\u043d\u0430 \u0431\u0430\u0437\u044b: \u0412\u041a\u041b',
+ '\u0422\u043e\u0447\u043a\u0430 \u0441\u0431\u043e\u0440\u0430',
+ '\u0412\u044b\u0439\u0442\u0438 \u0438\u0437 \u043c\u0430\u0442\u0447\u0430',
+ '\u041f\u0430\u0443\u0437\u0430',
+ '\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u0431\u043e\u0439',
+ '\u0414\u0430, \u0432\u044b\u0439\u0442\u0438',
+ '\u041e\u0442\u043c\u0435\u043d\u0430 \u2014 \u043e\u0441\u0442\u0430\u0442\u044c\u0441\u044f \u0432 \u0431\u043e\u044e'
+])assert.ok(html.includes(text),'Missing readable Russian Prime UI label: '+text);
+for(const text of ['Base defense: ON','Resume battle','Leave the match?','Tavern / Barracks','Cannot build outside the arena.'])assert.ok(js.includes(text),'Missing English Prime UI translation: '+text);
+assert.ok(js.includes('\u041d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043c\u043e\u043d\u0435\u0442: '),'Build affordability feedback must be readable.');
+
+// Evaluate the actual Prime English map to catch escaped keys that render literally.
+const dictStart=js.indexOf('const PRIME_EN=')+'const PRIME_EN='.length;
+const dictEnd=js.indexOf('\n};',dictStart)+2;
+assert.ok(dictStart>0&&dictEnd>dictStart,'Prime English dictionary must be available.');
+const primeEnglish=vm.runInNewContext('('+js.slice(dictStart,dictEnd)+')');
+assert.equal(primeEnglish['\u{1F3D7} \u0421\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e'],'\u{1F3D7} Build');
+assert.equal(primeEnglish['\u041e\u0431\u043e\u0440\u043e\u043d\u0430 \u0431\u0430\u0437\u044b: \u0412\u041a\u041b'],'Base defense: ON');
+assert.equal(primeEnglish['\u041f\u0430\u0443\u0437\u0430'],'Paused');
+assert.equal(primeEnglish['\u0412\u044b\u0439\u0442\u0438 \u0438\u0437 \u043c\u0430\u0442\u0447\u0430?'],'Leave the match?');
+assert.equal(primeEnglish['\u2694 \u0414\u043e\u043c \u0432\u043e\u0438\u043d\u043e\u0432 \u00b7 450 \u25c6'],'\u2694 Tavern / Barracks \u00b7 450 \u25c6');

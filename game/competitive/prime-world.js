@@ -87,7 +87,33 @@ const PRIME_EN={
 'Не хватает ':'Not enough ',' ◆ для постройки.':' ◆ to build.',' ◆ для улучшения.':' ◆ to upgrade.',
 'Башня улучшена до уровня ':'Tower upgraded to level ','Казарма':'Barracks','Башня лучника':'Archer tower','🔥 Кузница · 650 ◆':'🔥 Forge · 650 ◆','✚ Лазарет · 600 ◆':'✚ Infirmary · 600 ◆','🏹 Стрельбище · 700 ◆':'🏹 Archery Range · 700 ◆','Кузница усиливает воинов рядом, лазарет лечит союзников, стрельбище автоматически обучает лучников. Постройки можно улучшать щелчком по ним. R — поворот, Q — отмена.':'The forge boosts nearby warriors, the infirmary heals allies, and the archery range trains archers automatically. Click a building to upgrade it. R rotates, Q cancels.','🐎 Конюшня · 800 ◆':'🐎 Stable · 800 ◆','🛠 Осадная мастерская · 950 ◆':'🛠 Siege Workshop · 950 ◆','✨ Башня магов · 900 ◆':'✨ Mage Tower · 900 ◆','⚖ Рынок · 550 ◆':'⚖ Market · 550 ◆',
 'ТАВЕРНА ур. ':'TAVERN Lv. ','КУЗНИЦА':'FORGE','ЛАЗАРЕТ':'INFIRMARY','СТРЕЛЬБИЩЕ':'ARCHERY RANGE','КОНЮШНЯ':'STABLE','ОСАДНАЯ МАСТЕРСКАЯ':'SIEGE WORKSHOP','БАШНЯ МАГОВ':'MAGE TOWER','РЫНОК':'MARKET',
-'Кузница усиливает воинов, лазарет лечит, стрельбище обучает лучников, конюшня — кавалерию, осадная мастерская — катапульты, башня магов бьёт группы врагов, рынок приносит монеты. Щёлкни по зданию для улучшения до 5 уровня. R — поворот, Q — отмена.':'The forge boosts warriors, the infirmary heals, the archery range trains archers, the stable trains cavalry, the siege workshop trains catapults, the mage tower damages groups, and the market generates coins. Click a building to upgrade it to level 5. R rotates, Q cancels.'
+'Кузница усиливает воинов, лазарет лечит, стрельбище обучает лучников, конюшня — кавалерию, осадная мастерская — катапульты, башня магов бьёт группы врагов, рынок приносит монеты. Щёлкни по зданию для улучшения до 5 уровня. R — поворот, Q — отмена.':'The forge boosts warriors, the infirmary heals, the archery range trains archers, the stable trains cavalry, the siege workshop trains catapults, the mage tower damages groups, and the market generates coins. Click a building to upgrade it to level 5. R rotates, Q cancels.',
+'\u{1F3D7} \u0421\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e':'\u{1F3D7} Build',
+'|| \u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u043e\u0438\u043d\u043e\u0432':'|| Hold troops',
+'> \u0412\u043e\u0438\u043d\u044b: \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c':'> Resume troops',
+'\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u0432\u043e\u0439\u0441\u043a\u0430':'Regroup troops',
+'\u041e\u0431\u043e\u0440\u043e\u043d\u0430 \u0431\u0430\u0437\u044b: \u0412\u041a\u041b':'Base defense: ON',
+'\u041e\u0431\u043e\u0440\u043e\u043d\u0430 \u0431\u0430\u0437\u044b: \u0412\u042b\u041a\u041b':'Base defense: OFF',
+'\u0422\u043e\u0447\u043a\u0430 \u0441\u0431\u043e\u0440\u0430':'Rally point',
+'\u0412\u044b\u0439\u0442\u0438 \u0438\u0437 \u043c\u0430\u0442\u0447\u0430':'Leave match',
+'\u041f\u0430\u0443\u0437\u0430':'Paused',
+'\u041c\u0430\u0442\u0447 \u043f\u0440\u0438\u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d. \u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u0438\u0433\u0440\u0443 \u0438\u043b\u0438 \u0432\u044b\u0439\u0442\u0438 \u0432 \u043c\u0435\u043d\u044e.':'The match is paused. Continue or return to the menu.',
+'\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u0431\u043e\u0439':'Resume battle',
+'\u0412\u044b\u0439\u0442\u0438 \u0432 \u043c\u0435\u043d\u044e':'Return to menu',
+'\u0412\u044b\u0439\u0442\u0438 \u0438\u0437 \u043c\u0430\u0442\u0447\u0430?':'Leave the match?',
+'\u041f\u043e\u0441\u043b\u0435 \u0432\u044b\u0445\u043e\u0434\u0430 \u043c\u0430\u0442\u0447 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0441\u044f, \u0430 \u043d\u0435\u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d\u043d\u044b\u0439 \u0431\u043e\u0439 \u043d\u0435 \u0431\u0443\u0434\u0435\u0442 \u0437\u0430\u0441\u0447\u0438\u0442\u0430\u043d. \u0412\u044b \u0443\u0432\u0435\u0440\u0435\u043d\u044b?':'Leaving ends this match. An unfinished match will not count. Are you sure?',
+'\u0414\u0430, \u0432\u044b\u0439\u0442\u0438':'Yes, leave',
+'\u041e\u0442\u043c\u0435\u043d\u0430 \u2014 \u043e\u0441\u0442\u0430\u0442\u044c\u0441\u044f \u0432 \u0431\u043e\u044e':'Cancel \u2014 stay in match',
+'\u041d\u0435\u043b\u044c\u0437\u044f \u0441\u0442\u0440\u043e\u0438\u0442\u044c \u0437\u0430 \u043f\u0440\u0435\u0434\u0435\u043b\u0430\u043c\u0438 \u0430\u0440\u0435\u043d\u044b.':'Cannot build outside the arena.',
+'\u041f\u043e\u0441\u0442\u0440\u043e\u0439\u043a\u0443 \u043d\u0435\u043b\u044c\u0437\u044f \u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0431\u043b\u0438\u0437\u043a\u043e \u043a \u0431\u0430\u0437\u0435.':'A structure cannot be placed too close to your base.',
+'\u041f\u043e\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u0434\u043e\u043b\u0436\u043d\u0430 \u043d\u0430\u0445\u043e\u0434\u0438\u0442\u044c\u0441\u044f \u043d\u0435 \u0434\u0430\u043b\u044c\u0448\u0435 20 \u0431\u043b\u043e\u043a\u043e\u0432 \u043e\u0442 \u0441\u0432\u043e\u0435\u0439 \u0431\u0430\u0437\u044b.':'Structures must be within 20 blocks of your base.',
+'\u042d\u0442\u043e \u043c\u0435\u0441\u0442\u043e \u0437\u0430\u043d\u044f\u0442\u043e.':'This spot is occupied.',
+'\u041d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043c\u043e\u043d\u0435\u0442: ':'Not enough coins: ',
+'\u0412\u0440\u0430\u0436\u0435\u0441\u043a\u0430\u044f \u0431\u0430\u0448\u043d\u044f ':'Enemy archer tower ',
+'\u0412\u044b\u0431\u043e\u0440 \u043f\u043e\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u043e\u0442\u043c\u0435\u043d\u0451\u043d.':'Build selection cancelled.',
+'\u2694 \u0414\u043e\u043c \u0432\u043e\u0438\u043d\u043e\u0432 \xb7 450 \u25c6':'\u2694 Tavern / Barracks \xb7 450 \u25c6',
+'\u041a\u0443\u0437\u043d\u0438\u0446\u0430 \u0443\u0441\u0438\u043b\u0438\u0432\u0430\u0435\u0442 \u0432\u043e\u0438\u043d\u043e\u0432, \u043b\u0430\u0437\u0430\u0440\u0435\u0442 \u043b\u0435\u0447\u0438\u0442, \u0441\u0442\u0440\u0435\u043b\u044c\u0431\u0438\u0449\u0435 \u043e\u0431\u0443\u0447\u0430\u0435\u0442 \u043b\u0443\u0447\u043d\u0438\u043a\u043e\u0432, \u043a\u043e\u043d\u044e\u0448\u043d\u044f \u2014 \u043a\u0430\u0432\u0430\u043b\u0435\u0440\u0438\u044e, \u043e\u0441\u0430\u0434\u043d\u0430\u044f \u043c\u0430\u0441\u0442\u0435\u0440\u0441\u043a\u0430\u044f \u2014 \u043a\u0430\u0442\u0430\u043f\u0443\u043b\u044c\u0442\u044b, \u0431\u0430\u0448\u043d\u044f \u043c\u0430\u0433\u043e\u0432 \u0431\u044c\u0451\u0442 \u0433\u0440\u0443\u043f\u043f\u044b \u0432\u0440\u0430\u0433\u043e\u0432, \u0440\u044b\u043d\u043e\u043a \u043f\u0440\u0438\u043d\u043e\u0441\u0438\u0442 \u043c\u043e\u043d\u0435\u0442\u044b. \u0429\u0451\u043b\u043a\u043d\u0438 \u043f\u043e \u0437\u0434\u0430\u043d\u0438\u044e \u0434\u043b\u044f \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u0438\u044f \u0434\u043e 5 \u0443\u0440\u043e\u0432\u043d\u044f. R \u2014 \u043f\u043e\u0432\u043e\u0440\u043e\u0442, Q \u2014 \u043e\u0442\u043c\u0435\u043d\u0430.':'The forge boosts warriors, the infirmary heals, the archery range trains archers, the stable trains cavalry, the siege workshop trains catapults, the mage tower damages groups, and the market generates coins. Click a building to upgrade it to level 5. R rotates, Q cancels.'
+
 };
 function applyPrimeLanguage(lang){
  const chosen=lang==='en'?'en':'ru';localStorage.setItem(PRIME_LANG_KEY,chosen);document.documentElement.lang=chosen;
@@ -416,7 +442,7 @@ function enemyDirector(dt){
     const y=clamp(bot.homeY+Math.sin(angle)*9*TILE,TILE*4,SIZE*TILE-TILE*4);
     const clear=!m.walls.some(o=>Math.hypot(o.x-x,o.y-y)<90)&&!m.barracks.some(o=>Math.hypot(o.x-x,o.y-y)<100)&&!m.towers.some(o=>Math.hypot(o.x-x,o.y-y)<90)&&!(m.supportBuildings||[]).some(o=>Math.hypot(o.x-x,o.y-y)<105);
     if(!clear){ai.nextBuildAt=m.elapsed+8;continue;}
-    b.coins-=300;const built=createTower(x,y,b,false);built.kind='archer';built.rotation=rotation;built.displayName='????? ?????? '+bot.name;m.towers.push(built);ai.nextBuildAt=m.elapsed+92+Math.random()*28;
+    b.coins-=300;const built=createTower(x,y,b,false);built.kind='archer';built.rotation=rotation;built.displayName='Вражеская башня '+bot.name;m.towers.push(built);ai.nextBuildAt=m.elapsed+92+Math.random()*28;
     m.enemyState=bot.name+' строит башню';m.enemyNoticeUntil=m.elapsed+7;renderTowerList();
    }else ai.nextBuildAt=m.elapsed+8;
   }
@@ -645,7 +671,7 @@ function buildPlacementAtWorld(rawX,rawY){
  const home=m.playerBase||m.player;const baseDistance=Math.hypot(x-home.x,y-home.y);const territory=baseDistance<=20*TILE;
  const tooNear=baseDistance<110,tooFar=!territory;
  const occupied=m.walls.some(o=>Math.hypot(o.x-x,o.y-y)<86)||m.barracks.some(o=>Math.hypot(o.x-x,o.y-y)<92)||(m.supportBuildings||[]).some(o=>Math.hypot(o.x-x,o.y-y)<108)||m.towers.some(o=>Math.hypot(o.x-x,o.y-y)<86);
- const reason=!bounds?'??????? ?????? ? ???? ?????.':tooNear?'?????? ??????? ?????? ????.':tooFar?'??????? ????? ?????? ? ??????? 20 ?????? ?? ????? ????.':occupied?'??? ????? ??????.':m.playerCoins<cost?'?? ??????? '+(cost-Math.floor(m.playerCoins))+' ?.':'';
+ const reason=!bounds?'Нельзя строить за пределами арены.':tooNear?'Постройку нельзя ставить слишком близко к базе.':tooFar?'Постройка должна находиться не дальше 20 блоков от своей базы.':occupied?'Это место занято.':m.playerCoins<cost?'Недостаточно монет: '+(cost-Math.floor(m.playerCoins))+' ◆.':'';
  return {x,y,cost,valid:!reason,reason,kind:buildMode,rotation:buildRotation};
 }
 function buildPlacementFromPointer(clientX,clientY){
@@ -808,7 +834,7 @@ window.addEventListener('keydown',e=>{
  if(e.code==='F11'){e.preventDefault();e.stopPropagation();if(window.pywebview?.api?.toggle_fullscreen){window.pywebview.api.toggle_fullscreen().then(r=>{if(r?.ok===false)throw new Error(r.message||'fullscreen failed');}).catch(()=>{});}else if(document.fullscreenElement){document.exitFullscreen?.().catch?.(()=>{});}else{document.documentElement.requestFullscreen?.().catch(()=>{});}return;}
  if(scene!=='battle')return;
  if(match?.paused&&e.code!=='Escape'){e.preventDefault();return;}
- if(buildMode&&e.code==='KeyQ'){buildMode=null;buildRotation=0;if(match)match.buildPreview=null;document.body.classList.remove('prime-building');$('build-panel').classList.add('hidden');$('tower-feedback').textContent='????????????? ????????.';e.preventDefault();return;}
+ if(buildMode&&e.code==='KeyQ'){buildMode=null;buildRotation=0;if(match)match.buildPreview=null;document.body.classList.remove('prime-building');$('build-panel').classList.add('hidden');$('tower-feedback').textContent='Выбор постройки отменён.';e.preventDefault();return;}
  if(buildMode&&e.code==='KeyR'){buildRotation=(buildRotation+Math.PI/2)%(Math.PI*2);if(match){match.buildPreview=match.buildPreview?{...match.buildPreview,rotation:buildRotation}:buildPlacementFromPointer(window.innerWidth/2,window.innerHeight/2);}$('tower-feedback').textContent='Поворот постройки: '+Math.round(buildRotation*180/Math.PI)+'°';e.preventDefault();e.stopPropagation();return;}
  if(e.code==='ShiftLeft'||e.code==='ShiftRight'){pressed.add(e.code);e.preventDefault();return;}
  if(keyDirection(e.code)){pressed.add(e.code);e.preventDefault();e.stopPropagation();}
