@@ -318,7 +318,7 @@ function update(dt){
   if(!aggro&&!assault){
    const phase=match.elapsed*.42+b.id*2.1,px=b.x+Math.cos(phase)*42,py=b.y+Math.sin(phase*.83)*34,pd=Math.hypot(px-b.x,py-b.y)||1;
    b.x+=((px-b.x)/pd)*b.speed*.22*dt;b.y+=((py-b.y)/pd)*b.speed*.22*dt;
-   if(Math.hypot(p.x-b.x,p.y-b.y)<245)alertEnemyBase();
+   if(Math.hypot(p.x-b.x,p.y-b.y)<145)alertEnemyBase();
    continue;
   }
   b.attack=Math.max(0,b.attack-dt);b.flash=Math.max(0,b.flash-dt);
@@ -461,5 +461,3 @@ updateProfile();
 // Economy accrues outside battles.
 window.setInterval(()=>{if(!match||match.finished){match.playerCoins+=5;for(const b of botsProfile)b.coins+=5;}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent='Башня ур. '+b.profile.towerLevel+' · '+b.profile.coins+' ◆ · '+b.elo+' ELO';});updateHud();}save();},1000);
 })();
-
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
