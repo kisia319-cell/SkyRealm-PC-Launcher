@@ -1,4 +1,3 @@
-[Reading 1000 lines from start (total: 1692 lines, 692 remaining)]
 
 """SkyRealm desktop launcher and lightweight local game installer."""
 import os
@@ -700,6 +699,7 @@ class LauncherApi:
                 runner_dir = skyrealm_default_data_root() / "bin"
                 runner_dir.mkdir(parents=True, exist_ok=True)
                 runner_path = runner_dir / ("SkyRealmGame_" + safe_version + ".exe")
+
                 if (not runner_path.is_file()) or file_sha256(runner_path) != file_sha256(bundled_runner):
                     temp_runner = runner_path.with_suffix(".exe.new")
                     shutil.copy2(bundled_runner, temp_runner)
@@ -1000,5 +1000,683 @@ class GameApi:
             if not temporary_data.startswith(b"MZ"):
                 return {"ok": False, "message": "Скачанный файл не является приложением Windows."}
             destination_dir = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "ModStudio"
+            destination_dir.mkdir(parents=True, exist_ok=True)
+            destination = destination_dir / "SkyRealmModStudio.exe"
+            temporary = destination.with_suffix(".exe.download")
+            temporary.write_bytes(temporary_data)
+            temporary.replace(destination)
+            subprocess.Popen([str(destination)], cwd=str(destination_dir),
+                             creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
+            return {"ok": True, "path": str(destination), "version": release.get("tag_name", ""),
+                    "message": "SkyRealmStudio установлена и запущена."}
+        except urllib.error.HTTPError as exc:
+            return {"ok": False, "message": "GitHub не смог отдать установочный файл (HTTP " + str(exc.code) + ")."}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось установить SkyRealmStudio: " + str(exc)}
 
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
+    def save_screenshot(self, data_url):
+        """Save a validated PNG screenshot from the game canvas."""
+        try:
+            if not isinstance(data_url, str) or len(data_url) > 12_000_000 or not data_url.startswith("data:image/png;base64,"):
+                return {"ok": False, "message": "Некорректный формат скриншота."}
+            raw = base64.b64decode(data_url.split(",", 1)[1], validate=True)
+            if not raw.startswith(b"\x89PNG\r\n\x1a\n") or len(raw) > 8 * 1024 * 1024:
+                return {"ok": False, "message": "Скриншот повреждён или превышает лимит 8 МБ."}
+            directory = skyrealm_screenshot_dir()
+            name = "SkyRealm_" + time.strftime("%Y%m%d_%H%M%S") + "-" + str(time.time_ns() % 1_000_000_000).zfill(9) + ".png"
+            destination = directory / name
+            destination.write_bytes(raw)
+            return {"ok": True, "name": name, "bytes": len(raw), "path": str(destination)}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось сохранить скриншот: " + str(exc)}
+
+    def sync_profile_stats(self, stats):
+        """Send bounded, non-sensitive game progress to the authenticated profile API."""
+        try:
+            if not self._session_token:
+                return {"ok": False, "message": "Войди в аккаунт в лаунчере, чтобы синхронизировать профиль."}
+            endpoint = "https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-social?route=%2Fapi%2Fsocial%2Fstats"
+            publishable_key = "sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL"
+            payload = json.dumps(stats if isinstance(stats, dict) else {}, ensure_ascii=False).encode("utf-8")
+            request = urllib.request.Request(endpoint, data=payload, method="POST", headers={
+                "apikey": publishable_key,
+                "Authorization": "Bearer " + self._session_token,
+                "Content-Type": "application/json",
+                "User-Agent": "SkyRealm-Game/1.0"
+            })
+            with urllib.request.urlopen(request, timeout=8) as response:
+                data = json.loads(response.read(64 * 1024).decode("utf-8"))
+            return {"ok": True, "profile": data.get("profile")}
+        except urllib.error.HTTPError as exc:
+            try:
+                detail = json.loads(exc.read(16 * 1024).decode("utf-8"))
+                message = detail.get("message", "Облачный профиль временно недоступен.")
+            except Exception:
+                message = "Облачный профиль временно недоступен."
+            return {"ok": False, "message": message}
+        except Exception:
+            return {"ok": False, "message": "Не удалось синхронизировать профиль. Проверь интернет."}
+
+    def _cloud_save_request(self, method="GET", body=None):
+        if not self._session_token:
+            return {"ok": False, "message": "Войди в аккаунт в лаунчере, чтобы использовать облачные сохранения."}
+        endpoint = "https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-auth?route=%2Fapi%2Fcloud%2Fsave"
+        publishable_key = "sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL"
+        raw = json.dumps(body, ensure_ascii=False).encode("utf-8") if body is not None else None
+        if raw is not None and len(raw) > 1_900_000:
+            return {"ok": False, "message": "Архив миров слишком большой для облачной копии (лимит около 1,9 МБ)."}
+        request = urllib.request.Request(endpoint, data=raw, method=method, headers={
+            "apikey": publishable_key, "Authorization": "Bearer " + self._session_token,
+            "Content-Type": "application/json", "User-Agent": "SkyRealm-Game/1.0",
+        })
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                data = json.loads(response.read(2_100_000).decode("utf-8"))
+            return {"ok": True, **data}
+        except urllib.error.HTTPError as exc:
+            try:
+                data = json.loads(exc.read(32_000).decode("utf-8"))
+                message = data.get("detail", {}).get("message") or data.get("message") or "Облачное сохранение отклонено."
+                code = data.get("detail", {}).get("code") or data.get("code") or ""
+            except Exception:
+                message, code = "Облачное сохранение отклонено сервером.", ""
+            return {"ok": False, "message": message, "code": code, "status": exc.code}
+        except Exception:
+            return {"ok": False, "message": "Не удалось связаться с облаком. Проверь интернет."}
+
+    def get_cloud_save(self):
+        return self._cloud_save_request("GET")
+
+    def upload_cloud_save(self, bundle, expected_revision):
+        if not isinstance(bundle, dict) or not isinstance(expected_revision, int) or expected_revision < 0:
+            return {"ok": False, "message": "Некорректные данные облачного архива."}
+        return self._cloud_save_request("POST", {"bundle": bundle, "expected_revision": expected_revision})
+
+    def close(self):
+        try:
+            game_window.destroy()
+        except Exception:
+            pass
+
+    def apply_settings(self, settings):
+        global game_fullscreen
+        try:
+            saved = save_user_settings(settings)
+            desired_fullscreen = saved["windowMode"] == "fullscreen"
+            width, height = resolution_size(saved)
+            if game_window is not None:
+                if game_fullscreen and not desired_fullscreen:
+                    game_window.toggle_fullscreen()
+                    game_fullscreen = False
+                    time.sleep(0.12)
+                    game_window.resize(width, height)
+                elif not game_fullscreen and desired_fullscreen:
+                    game_window.resize(width, height)
+                    time.sleep(0.12)
+                    game_window.toggle_fullscreen()
+                    game_fullscreen = True
+                elif not game_fullscreen:
+                    game_window.resize(width, height)
+            return {"ok": True, "settings": saved}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось применить настройки окна: " + str(exc)}
+
+    def toggle_fullscreen(self):
+        settings = read_user_settings()
+        settings["windowMode"] = "windowed" if settings.get("windowMode") == "fullscreen" else "fullscreen"
+        result = self.apply_settings(settings)
+        result["windowMode"] = settings["windowMode"]
+        return result
+
+
+class QuietGameFileHandler(http.server.SimpleHTTPRequestHandler):
+    """Serve local game assets over loopback HTTP instead of a file:// URL.
+
+    WebView2 on some Windows setups can fail to open a file URL after a one-file
+    executable has unpacked/cleaned its temporary directory. The game is installed
+    in LocalAppData, and this server only binds to 127.0.0.1.
+    """
+    def log_message(self, format, *args):
+        pass
+
+
+def run_game_window(game_html: str) -> None:
+    """Run the game in its own lightweight window, serving installed files over loopback."""
+    global game_window, game_fullscreen
+    file_path = Path(game_html).resolve()
+    if not file_path.is_file():
+        raise FileNotFoundError("Не найден файл игры: " + str(file_path))
+    settings = read_user_settings()
+    width, height = resolution_size(settings)
+    game_fullscreen = settings["windowMode"] == "fullscreen"
+
+    # Keep the origin stable: browser localStorage is keyed by host + port.
+    # Silently switching to a random port makes every saved world look missing.
+    handler = functools.partial(QuietGameFileHandler, directory=str(file_path.parent))
+    try:
+        local_server = http.server.ThreadingHTTPServer(("127.0.0.1", 48731), handler)
+    except OSError as exc:
+        raise RuntimeError(
+            "Не удалось открыть игровой порт 48731. Закрой другое окно SkyRealm "
+            "и попробуй снова. Порт нельзя менять автоматически: от него зависят сохранения миров."
+        ) from exc
+    local_server.daemon_threads = True
+    server_thread = threading.Thread(target=local_server.serve_forever, name="SkyRealmGameHTTP", daemon=True)
+    server_thread.start()
+
+    port = local_server.server_address[1]
+    launch_params = {"settings": json.dumps(settings, ensure_ascii=False)}
+    if os.environ.get("SKYREALM_OPEN_MOD_CATALOG") == "1":
+        launch_params["openMods"] = "1"
+        requested_mod = os.environ.get("SKYREALM_OPEN_MOD_ID", "")
+        if requested_mod:
+            launch_params["installMod"] = requested_mod
+    if os.environ.get("SKYREALM_OPEN_CLOUD_SAVES") == "1":
+        launch_params["cloudSaves"] = "1"
+    page_url = "http://127.0.0.1:" + str(port) + "/" + file_path.name + "?" + urlencode(launch_params)
+    try:
+        game_window = webview.create_window(
+            "SkyRealm — Первый рассвет",
+            page_url,
+            width=width,
+            height=height,
+            min_size=(850, 540),
+            background_color="#07111f",
+            text_select=False,
+            fullscreen=game_fullscreen,
+            js_api=GameApi(),
+        )
+        # Explicit persistent WebView2 profile: keep localStorage (world saves) across
+        # launcher/game updates instead of relying on pywebview's private-mode default.
+        profile_dir = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "webview-profile"
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        webview.start(debug=False, private_mode=False, storage_path=str(profile_dir))
+    finally:
+        local_server.shutdown()
+        local_server.server_close()
+
+
+
+class PrimeWindowApi:
+    """Small native bridge for the isolated Prime window."""
+    def toggle_fullscreen(self):
+        try:
+            if game_window is None:
+                return {"ok": False, "message": "Окно Prime ещё не готово."}
+            game_window.toggle_fullscreen()
+            return {"ok": True}
+        except Exception as exc:
+            return {"ok": False, "message": str(exc)}
+
+
+def run_prime_competitive_window(game_html: str) -> None:
+    """Run the isolated competitive world with its own HTTP origin and WebView profile."""
+    global game_window
+    file_path = Path(game_html).resolve()
+    if not file_path.is_file():
+        raise FileNotFoundError("Не найден мир PrimeLauncher: " + str(file_path))
+    handler = functools.partial(QuietGameFileHandler, directory=str(file_path.parent))
+    try:
+        local_server = http.server.ThreadingHTTPServer(("127.0.0.1", 48732), handler)
+    except OSError as exc:
+        raise RuntimeError(
+            "Не удалось открыть порт PrimeLauncher 48732. Закрой другое окно соревновательного режима."
+        ) from exc
+    local_server.daemon_threads = True
+    server_thread = threading.Thread(target=local_server.serve_forever, name="PrimeLauncherHTTP", daemon=True)
+    server_thread.start()
+    try:
+        page_url = "http://127.0.0.1:48732/" + file_path.name
+        game_window = webview.create_window(
+            "PrimeLauncher — Соревновательный мир",
+            page_url,
+            width=1440,
+            height=900,
+            min_size=(900, 620),
+            background_color="#07111d",
+            text_select=False,
+            js_api=PrimeWindowApi(),
+        )
+        profile_dir = (Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+                       / "SkyRealm" / "PrimeLauncher" / "webview-profile")
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        webview.start(debug=False, private_mode=False, storage_path=str(profile_dir))
+    finally:
+        local_server.shutdown()
+        local_server.server_close()
+
+
+def _skyrealm_version_tuple(value):
+    try:
+        parts = tuple(int(part) for part in str(value).strip().split("."))
+        return parts if parts and all(part >= 0 for part in parts) else ()
+    except (TypeError, ValueError):
+        return ()
+
+
+
+def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update: bool = True, force: bool = False) -> str:
+    """Download and atomically install the latest game package before launching it."""
+    root = install_dir.parent
+    version_file = install_dir / "version.txt"
+    installed_version = ""
+    try:
+        installed_version = version_file.read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
+
+    def write_update_log(message):
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with (root / "update.log").open("a", encoding="utf-8") as log:
+                log.write(time.strftime("%Y-%m-%d %H:%M:%S") + " | " + message + "\n")
+        except OSError:
+            pass
+
+    def fallback_version():
+        installed_tuple = _skyrealm_version_tuple(installed_version)
+        bundled_tuple = _skyrealm_version_tuple(bundled_version)
+        # Never keep an older installed game when this EXE already contains a newer one.
+        if bundled_tuple and (not installed_tuple or bundled_tuple > installed_tuple):
+            selected = bundled_version
+        else:
+            selected = installed_version or bundled_version
+        write_update_log(
+            f"game update fallback: installed={installed_version or 'missing'}, "
+            f"bundled={bundled_version}, selected={selected}"
+        )
+        return selected
+
+    stage = install_dir.with_name("game.update-staging")
+    backup = install_dir.with_name("game.previous")
+    archive_path = root / "updates" / "SkyRealm_Game.zip"
+    try:
+        config_path = Path(resource_path("updater_config.json"))
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        manifest_url = str(config.get("manifest_url", "")).strip()
+        if not manifest_url.startswith("https://"):
+            return fallback_version()
+        request = urllib.request.Request(
+            manifest_url,
+            headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0", "Cache-Control": "no-cache"},
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
+
+        latest = str(manifest.get("game_version", "")).strip()
+        latest_tuple = _skyrealm_version_tuple(latest)
+        if not latest_tuple:
+            return fallback_version()
+
+        required_game_files = ("index.html", "game.js", "version.txt", "multiplayer-core.js", "multiplayer-client.js", "multiplayer-ui.js")
+        game_ok = all((install_dir / name).is_file() for name in required_game_files)
+        installed_tuple = _skyrealm_version_tuple(installed_version)
+        if not allow_update and latest_tuple > max(_skyrealm_version_tuple(installed_version), _skyrealm_version_tuple(bundled_version)):
+            selected = installed_version if game_ok and installed_version else bundled_version
+            write_update_log(f"game update declined: installed={installed_version or 'missing'}, latest={latest}, selected={selected}")
+            return selected
+        if game_ok and installed_tuple and installed_tuple >= latest_tuple and not force:
+            write_update_log(f"game update already current: installed={installed_version}, latest={latest}")
+            return installed_version
+
+        download_url = str(manifest.get("game_download_url", "")).strip()
+        expected_hash = str(manifest.get("game_sha256", "")).strip().lower()
+        if not download_url.startswith("https://"):
+            raise ValueError("В манифесте отсутствует HTTPS-ссылка на обновление игры")
+        if len(expected_hash) != 64 or any(ch not in "0123456789abcdef" for ch in expected_hash):
+            raise ValueError("Некорректный SHA-256 архива игры")
+
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.sha256()
+        total_downloaded = 0
+        request = urllib.request.Request(download_url, headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0"})
+        with urllib.request.urlopen(request, timeout=30) as response, archive_path.open("wb") as output:
+            while True:
+                chunk = response.read(1024 * 1024)
+                if not chunk:
+                    break
+                total_downloaded += len(chunk)
+                if total_downloaded > 1024 * 1024 * 1024:
+                    raise ValueError("Архив игры превышает лимит 1 ГБ")
+                digest.update(chunk)
+                output.write(chunk)
+        if digest.hexdigest().lower() != expected_hash:
+            raise ValueError("SHA-256 архива игры не совпал")
+
+        if stage.exists():
+            shutil.rmtree(stage, ignore_errors=True)
+        stage.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            total_unpacked = sum(info.file_size for info in archive.infolist() if not info.is_dir())
+            if total_unpacked > 1024 * 1024 * 1024:
+                raise ValueError("Распакованный архив игры превышает лимит 1 ГБ")
+            for info in archive.infolist():
+                if info.is_dir():
+                    continue
+                normalized = info.filename.replace("\\", "/")
+                relative = Path(*normalized.split("/"))
+                if relative.is_absolute() or not relative.parts or any(part in ("", ".", "..") for part in relative.parts):
+                    raise ValueError("В архиве игры обнаружен небезопасный путь")
+                if ":" in relative.parts[0]:
+                    raise ValueError("В архиве игры обнаружен небезопасный путь")
+                if ((info.external_attr >> 16) & 0o170000) == 0o120000:
+                    raise ValueError("Символические ссылки в архиве игры запрещены")
+                destination = stage.joinpath(*relative.parts)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with archive.open(info, "r") as source, destination.open("wb") as target:
+                    shutil.copyfileobj(source, target)
+
+        staged_version_file = stage / "version.txt"
+        if not (stage / "index.html").is_file() or not (stage / "game.js").is_file() or not staged_version_file.is_file():
+            raise ValueError("В архиве обновления отсутствуют основные файлы игры")
+        if staged_version_file.read_text(encoding="utf-8").strip() != latest:
+            raise ValueError("Версия в архиве игры не совпадает с манифестом")
+
+        if backup.exists():
+            shutil.rmtree(backup, ignore_errors=True)
+        if install_dir.exists():
+            os.replace(install_dir, backup)
+        try:
+            os.replace(stage, install_dir)
+        except Exception:
+            if backup.exists() and not install_dir.exists():
+                os.replace(backup, install_dir)
+            raise
+        # Keep one previous installation so the user can roll back if the new build
+        # has a runtime problem. It contains game binaries only; world saves live elsewhere.
+        archive_path.unlink(missing_ok=True)
+        write_update_log(f"game update installed successfully: {installed_version or 'missing'} -> {latest}; previous build preserved={backup.exists()}")
+        return latest
+    except Exception as exc:
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with (root / "update.log").open("a", encoding="utf-8") as log:
+                log.write(time.strftime("%Y-%m-%d %H:%M:%S") + " | game update: " + str(exc) + "\n")
+        except OSError:
+            pass
+        shutil.rmtree(stage, ignore_errors=True)
+        try:
+            archive_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return fallback_version()
+
+
+
+
+def _skyrealm_startup_game_update():
+    """Ask about a newer game build as soon as the launcher opens."""
+    if not getattr(sys, "frozen", False):
+        return False
+
+    root = skyrealm_data_root()
+    install_dir = root / "game"
+    version_file = install_dir / "version.txt"
+    try:
+        config = json.loads(Path(resource_path("updater_config.json")).read_text(encoding="utf-8"))
+        manifest_url = str(config.get("manifest_url", "")).strip()
+        if not manifest_url.startswith("https://"):
+            return False
+        request = urllib.request.Request(
+            manifest_url,
+            headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0", "Cache-Control": "no-cache"},
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
+
+        latest = str(manifest.get("game_version", "")).strip()
+        latest_tuple = _skyrealm_version_tuple(latest)
+        if not latest_tuple:
+            return False
+
+        required = ("index.html", "game.js", "version.txt", "multiplayer-core.js",
+                    "multiplayer-client.js", "multiplayer-ui.js")
+        if not all((install_dir / name).is_file() for name in required):
+            # A fresh installation is handled by the Play button, not presented as an update.
+            return False
+        installed = version_file.read_text(encoding="utf-8").strip()
+        if _skyrealm_version_tuple(installed) >= latest_tuple:
+            return False
+
+        message = (
+            f"Внимание! Вышло обновление игры SkyRealm (версия {latest}).\\n"
+            f"Установлена версия: {installed}.\\n\\n"
+            "Хотите ли вы скачать и установить обновление сейчас?"
+        )
+        answer = 0
+        try:
+            if os.name == "nt":
+                import ctypes
+                answer = ctypes.windll.user32.MessageBoxW(
+                    None, message, "Обновление SkyRealm",
+                    0x00000004 | 0x00000040 | 0x00010000
+                )
+            else:
+                import tkinter
+                from tkinter import messagebox
+                dialog_root = tkinter.Tk()
+                dialog_root.withdraw()
+                answer = 6 if messagebox.askyesno("Обновление SkyRealm", message, parent=dialog_root) else 7
+                dialog_root.destroy()
+        except Exception as dialog_error:
+            try:
+                root.mkdir(parents=True, exist_ok=True)
+                with (root / "update.log").open("a", encoding="utf-8") as log:
+                    log.write(time.strftime("%Y-%m-%d %H:%M:%S") +
+                              " | game update prompt failed: " + str(dialog_error) + "\\n")
+            except OSError:
+                pass
+            return False
+
+        if answer != 6:  # IDYES
+            try:
+                root.mkdir(parents=True, exist_ok=True)
+                with (root / "update.log").open("a", encoding="utf-8") as log:
+                    log.write(time.strftime("%Y-%m-%d %H:%M:%S") +
+                              f" | game update declined: {installed} -> {latest}\\n")
+            except OSError:
+                pass
+            return False
+
+        result = _skyrealm_update_game(install_dir, latest, allow_update=True)
+        return _skyrealm_version_tuple(result) >= latest_tuple
+    except Exception as exc:
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with (root / "update.log").open("a", encoding="utf-8") as log:
+                log.write(time.strftime("%Y-%m-%d %H:%M:%S") +
+                          " | startup game update check: " + str(exc) + "\\n")
+        except OSError:
+            pass
+        return False
+
+
+def _skyrealm_create_prime_shortcut():
+    """Install/update a desktop shortcut that always enters through the auto-updater."""
+    if os.name != "nt" or not getattr(sys, "frozen", False):
+        return False
+    try:
+        desktop = Path(os.environ.get("USERPROFILE") or Path.home()) / "Desktop"
+        desktop.mkdir(parents=True, exist_ok=True)
+        shortcut = desktop / "PrimeLauncher.lnk"
+        target = str(Path(sys.executable).resolve())
+        working = str(Path(sys.executable).resolve().parent)
+        appdata = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+        icon_source = Path(resource_path("PrimeLauncher.ico"))
+        icon_target = appdata / "SkyRealm" / "PrimeLauncher.ico"
+        try:
+            if icon_source.is_file():
+                icon_target.parent.mkdir(parents=True, exist_ok=True)
+                icon_target.write_bytes(icon_source.read_bytes())
+        except OSError:
+            pass
+        icon_file = str(icon_target) if icon_target.is_file() else target
+        ps = ("$w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut('" +
+              str(shortcut).replace("'", "''") + "'); $s.TargetPath='" +
+              target.replace("'", "''") + "'; $s.Arguments='--open-prime'; $s.WorkingDirectory='" +
+              working.replace("'", "''") + "'; $s.IconLocation='" + icon_file.replace("'", "''") +
+              ",0'; $s.Save()")
+        encoded = base64.b64encode(ps.encode("utf-16le")).decode("ascii")
+        result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+                                capture_output=True, timeout=10, check=False)
+        return result.returncode == 0 and shortcut.is_file()
+    except Exception:
+        return False
+
+
+def _skyrealm_startup_update():
+    """Check GitHub Releases and apply a verified update before opening the UI."""
+    if not getattr(sys, "frozen", False):
+        return False
+    appdata = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+    root = appdata / "SkyRealm"
+    try:
+        config = json.loads(Path(resource_path("updater_config.json")).read_text(encoding="utf-8"))
+        manifest_url = str(config.get("manifest_url", "")).strip()
+        if not manifest_url.startswith("https://"):
+            return False
+        cache_buster = ("&" if "?" in manifest_url else "?") + "cache=" + str(time.time_ns())
+        request = urllib.request.Request(manifest_url + cache_buster, headers={"User-Agent": "SkyRealmLauncher-Updater/1.0", "Cache-Control": "no-cache", "Pragma": "no-cache"})
+        with urllib.request.urlopen(request, timeout=8) as response:
+            manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
+        version = str(manifest.get("version", "")).strip()
+        version_path = Path(resource_path("launcher_version.txt"))
+        current = version_path.read_text(encoding="utf-8").strip() if version_path.is_file() else "0.9.5"
+        latest_tuple = _skyrealm_version_tuple(version)
+        current_tuple = _skyrealm_version_tuple(current)
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with (root / "update.log").open("a", encoding="utf-8") as log:
+                log.write(time.strftime("%Y-%m-%d %H:%M:%S") +
+                          f" | startup launcher update check: current={current or 'unknown'}, latest={version or 'missing'}\n")
+        except OSError:
+            pass
+        if not latest_tuple:
+            raise ValueError("В манифесте отсутствует корректная версия лаунчера")
+        if latest_tuple <= current_tuple:
+            return False
+
+        # Install verified updates automatically; helper waits for this process to exit.
+        accepted = True
+
+        url = str(manifest.get("download_url", "")).strip()
+        expected = str(manifest.get("sha256", "")).strip().lower()
+        if not url.startswith("https://") or len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected):
+            raise ValueError("Некорректный URL или SHA-256 в manifest.json")
+        updates = root / "updates"
+        updates.mkdir(parents=True, exist_ok=True)
+        archive_path = updates / "SkyRealm_Update.zip"
+        request = urllib.request.Request(url, headers={"User-Agent": "SkyRealmLauncher-Updater/1.0"})
+        digest = hashlib.sha256()
+        with urllib.request.urlopen(request, timeout=30) as response, archive_path.open("wb") as output:
+            while True:
+                chunk = response.read(1024 * 1024)
+                if not chunk:
+                    break
+                digest.update(chunk)
+                output.write(chunk)
+        if digest.hexdigest().lower() != expected:
+            archive_path.unlink(missing_ok=True)
+            raise ValueError("SHA-256 архива не совпал")
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            candidates = [i for i in archive.infolist() if Path(i.filename.replace("\\", "/")).name.lower() == "skyrealm.exe" and not i.is_dir()]
+            if len(candidates) != 1 or candidates[0].file_size < 100_000:
+                raise ValueError("В ZIP нет корректного SkyRealm.exe")
+            versions = [i for i in archive.infolist() if Path(i.filename.replace("\\", "/")).name.lower() == "launcher_version.txt" and not i.is_dir()]
+            if not versions or archive.read(versions[0]).decode("utf-8").strip() != version:
+                raise ValueError("Версия ZIP не совпадает с манифестом")
+        helper_source = Path(resource_path("bin/SkyRealmUpdater.exe"))
+        if not helper_source.is_file():
+            raise FileNotFoundError("В сборке отсутствует SkyRealmUpdater.exe")
+        helper_dir = root / "bin"
+        helper_dir.mkdir(parents=True, exist_ok=True)
+        helper_target = helper_dir / "SkyRealmUpdater.exe"
+        shutil.copy2(helper_source, helper_target)
+        subprocess.Popen(
+            [str(helper_target), str(archive_path), str(Path(sys.executable).resolve()), str(os.getpid()), version,
+             json.dumps(sys.argv[1:], ensure_ascii=False)],
+            cwd=str(root), close_fds=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+        )
+        return True
+    except Exception as exc:
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with (root / "update.log").open("a", encoding="utf-8") as log:
+                log.write(time.strftime("%Y-%m-%d %H:%M:%S") + " | " + str(exc) + "\\n")
+        except OSError:
+            pass
+        return False
+
+
+
+if __name__ == "__main__":
+    if len(sys.argv) >= 2 and sys.argv[1] == "--open-prime":
+        # Shortcut entry: update the main launcher, then refresh and start PrimeLauncher.
+        if _skyrealm_startup_update():
+            raise SystemExit(0)
+        # Prime uses its own bundled world; do not block its shortcut on the separate single-player game updater.
+        result = LauncherApi().launch_competitive_game()
+        if not result.get("ok"):
+            try:
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(0, str(result.get("message", "Не удалось открыть PrimeLauncher")),
+                                                  "PrimeLauncher", 0x10)
+            except Exception:
+                pass
+            raise SystemExit(1)
+        raise SystemExit(0)
+    if len(sys.argv) >= 3 and sys.argv[1] in ("--skyrealm-game", "--prime-competitive"):
+        return_launcher = ""
+        if "--return-launcher" in sys.argv:
+            try:
+                return_launcher = sys.argv[sys.argv.index("--return-launcher") + 1]
+            except (IndexError, ValueError):
+                return_launcher = ""
+        try:
+            if sys.argv[1] == "--prime-competitive":
+                run_prime_competitive_window(sys.argv[2])
+            else:
+                run_game_window(sys.argv[2])
+            # Reopen the launcher only after the game WebView and local HTTP server exit.
+            if return_launcher:
+                launcher_path = Path(return_launcher).resolve()
+                if launcher_path.is_file() and launcher_path.suffix.lower() == ".exe":
+                    subprocess.Popen(
+                        [str(launcher_path)],
+                        cwd=str(launcher_path.parent),
+                        close_fds=True,
+                        creationflags=(getattr(subprocess, "DETACHED_PROCESS", 0) |
+                                       getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)),
+                    )
+        except Exception as exc:
+            details = traceback.format_exc()
+            log_hint = "не удалось записать журнал"
+            try:
+                log_path = skyrealm_default_data_root() / "launch-errors.log"
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+                with log_path.open("a", encoding="utf-8") as log:
+                    log.write(f"\n{time.strftime('%Y-%m-%d %H:%M:%S')} | GAME WINDOW FAILED | {type(exc).__name__}: {exc}\n")
+                    log.write(details + "\n")
+                log_hint = str(log_path)
+            except Exception:
+                pass
+            try:
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(
+                    0,
+                    f"Не удалось открыть окно SkyRealm.\n\n{type(exc).__name__}: {exc}\n\nЖурнал ошибки: {log_hint}",
+                    "Ошибка запуска SkyRealm",
+                    0x10,
+                )
+            except Exception:
+                pass
+            raise
+    else:
+        _skyrealm_create_prime_shortcut()
+        if _skyrealm_startup_update():
+            raise SystemExit(0)
+        _skyrealm_startup_game_update()
+        html = Path(resource_path("index.html")).resolve().as_uri()
+        api = LauncherApi()
+        window = webview.create_window(

@@ -1,4 +1,3 @@
-[Reading 744 lines from start (total: 744 lines, 0 remaining)]
 
 (() => {
 'use strict';
@@ -700,6 +699,7 @@ window.addEventListener('keydown',e=>{
  if(e.code==='F11'){e.preventDefault();e.stopPropagation();if(window.pywebview?.api?.toggle_fullscreen){window.pywebview.api.toggle_fullscreen().then(r=>{if(r?.ok===false)throw new Error(r.message||'fullscreen failed');}).catch(()=>{});}else if(document.fullscreenElement){document.exitFullscreen?.().catch?.(()=>{});}else{document.documentElement.requestFullscreen?.().catch(()=>{});}return;}
  if(scene!=='battle')return;
  if(buildMode&&e.code==='KeyR'){buildRotation=(buildRotation+Math.PI/2)%(Math.PI*2);if(match){match.buildPreview=match.buildPreview?{...match.buildPreview,rotation:buildRotation}:buildPlacementFromPointer(window.innerWidth/2,window.innerHeight/2);}$('tower-feedback').textContent='Поворот постройки: '+Math.round(buildRotation*180/Math.PI)+'°';e.preventDefault();e.stopPropagation();return;}
+
  if(e.code==='ShiftLeft'||e.code==='ShiftRight'){pressed.add(e.code);e.preventDefault();return;}
  if(keyDirection(e.code)){pressed.add(e.code);e.preventDefault();e.stopPropagation();}
  else if(e.code==='Space'){e.preventDefault();attack();}
@@ -744,5 +744,3 @@ updateProfile();
 // Economy accrues outside battles.
 window.setInterval(()=>{if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent='Башня ур. '+b.profile.towerLevel+' · '+b.profile.coins+' ◆ · '+b.elo+' ELO';});updateHud();save();}},1000);
 })();
-
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]

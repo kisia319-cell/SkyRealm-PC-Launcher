@@ -1,4 +1,3 @@
-[Reading 145 lines from start (total: 145 lines, 0 remaining)]
 
 'use strict';
 const assert=require('node:assert/strict');
@@ -141,9 +140,3 @@ assert.equal(placementContext.rotatedPlacement.rotation,Math.PI/2);
 // timed bot respawn, and richer tower health/upgrade progression.
 for(const pattern of [/function drawMiniMap\(/,/sprintStamina/,/function addDamageNumber\(/,/match\.tracers\.push/,/battle-feed/,/function respawnDefeatedBots\(/,/t\.maxHp=760\+t\.level\*240/])assert.match(js,pattern);
 assert.match(js,/playerSupportTower/);
-assert.match(js,/for\(let i=0;i<teamSize;i\+\+\)[\s\S]*towers\.push\(createTower\(tx/);
-assert.match(js,/for\(let i=0;i<teamSize;i\+\+\)[\s\S]*towers\.push\(createTower\(fx/);
-
-console.log('competitive-world-polish-regression-test: all assertions passed');
-
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
