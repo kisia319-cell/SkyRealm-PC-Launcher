@@ -72,12 +72,24 @@ const PRIME_EN={
 'Онлайн-режим в доработке':'Online mode under development','Зайдите в тренировку. Сетевой подбор игроков пока недоступен.':'Try training mode. Online matchmaking is not available yet.',
 'Зайдите в тренировку. Онлайн-матчи пока недоступны.':'Try training mode. Online matches are not available yet.',
 'ПОБЕДА':'VICTORY','ПОРАЖЕНИЕ':'DEFEAT','ВЫХОД':'EXIT',
-'БАЛАНС · ':'BALANCE · ','БАШНЯ ур. ':'TOWER Lv. ','БАЗА ':'BASE '
+'БАЛАНС · ':'BALANCE · ','БАШНЯ ур. ':'TOWER Lv. ','БАЗА ':'BASE ',
+'Онлайн-рейтинг появится после запуска сетевой игры':'Online rating will appear when online play launches',
+'+5 монет каждую секунду':'+5 coins every second','Улучшение: 500 монет':'Upgrade: 500 coins',
+'Профиль игрока':'Player profile','Тренировки против ботов не меняют ELO':'Bot training does not change ELO',
+'Соперники: ':'Opponents: ','БАШНИ СОПЕРНИКОВ':'ENEMY TOWERS','ур. ':'Lv. ',
+'Доход начисляется каждую секунду. Башня усиливает урон, дальность и прочность.':'Income is added every second. Towers increase damage, range and durability.',
+'+5 ◆ / сек (только в этом бою)':'+5 ◆ / sec (this match only)',
+'FPS -- · офлайн':'FPS -- · offline',' · офлайн':' · offline',
+'РАЗВИВАЕТ БАЗУ':'DEVELOPING BASE','АТАКА СОПЕРНИКА':'ENEMY ATTACK',
+'КОНТРАТАКА':'COUNTERATTACK','ОБОРОНЯЕТСЯ':'DEFENDING','АТАКУЕТ ВОЛНОЙ':'WAVE ATTACK',
+'Выбери постройку':'Choose a structure','Постройка улучшена до уровня ':'Structure upgraded to level ',
+'Не хватает ':'Not enough ',' ◆ для постройки.':' ◆ to build.',' ◆ для улучшения.':' ◆ to upgrade.',
+'Башня улучшена до уровня ':'Tower upgraded to level ','Казарма':'Barracks','Башня лучника':'Archer tower'
 };
 function applyPrimeLanguage(lang){
  const chosen=lang==='en'?'en':'ru';localStorage.setItem(PRIME_LANG_KEY,chosen);document.documentElement.lang=chosen;
  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let node;
- while((node=walker.nextNode())){if(node.__primeRendered!==undefined&&node.nodeValue!==node.__primeRendered)node.__primeOriginal=node.nodeValue;if(node.__primeOriginal===undefined)node.__primeOriginal=node.nodeValue;const original=node.__primeOriginal,trim=original.trim();if(!trim)continue;const translated=chosen==='en'?(PRIME_EN[trim]||trim):trim;node.__primeRendered=original.replace(trim,translated);if(node.nodeValue!==node.__primeRendered)node.nodeValue=node.__primeRendered;}
+ while((node=walker.nextNode())){if(node.__primeRendered!==undefined&&node.nodeValue!==node.__primeRendered)node.__primeOriginal=node.nodeValue;if(node.__primeOriginal===undefined)node.__primeOriginal=node.nodeValue;const original=node.__primeOriginal,trim=original.trim();if(!trim)continue;let translated=trim;if(chosen==='en'){translated=PRIME_EN[trim]||trim;if(translated===trim){const keys=Object.keys(PRIME_EN).filter(k=>k.length>2&&trim.startsWith(k)).sort((a,b)=>b.length-a.length);if(keys.length)translated=PRIME_EN[keys[0]]+trim.slice(keys[0].length);}}node.__primeRendered=original.replace(trim,translated);if(node.nodeValue!==node.__primeRendered)node.nodeValue=node.__primeRendered;}
  const select=$('prime-language');if(select&&select.value!==chosen)select.value=chosen;
 }
 
