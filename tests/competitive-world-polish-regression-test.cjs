@@ -153,4 +153,4 @@ console.log('competitive-world-polish-regression-test: all assertions passed');
 
 assert.match(js,/function pauseMatch/);assert.match(js,/function resumeMatch/);assert.match(js,/function confirmLeaveMatch/);assert.match(js,/function findDraggableAt/);assert.match(js,/e\.code===\'KeyQ\'/);assert.match(js,/20\*TILE/);assert.match(js,/profile\.botElo/);assert.match(js,/function canEntityOccupy\(x,y,radius=12,mover=null\)/);assert.match(js,/mover\.team===0&&wall\.team===0/);assert.match(js,/barracksLevel-1\)\*3/);assert.match(js,/const interval=building\\.trainInterval\\|\\|/);assert.match(js,/d\.object\.x=safeX/);
 
-assert.match(js,/if\(!d\.moved&&d\.type===\'tower\'\)upgradeStructureAt/);assert.match(js,/d\.startX/);
+assert.match(js,/if\(d\.type===\'base\'\)\{match\.playerBase\.x=safeX/);assert.match(js,/d\.startX/);
