@@ -143,7 +143,7 @@ assert.match(js,/towers\.push\(createTower\(player\.x-230/);
 assert.match(js,/const enemyBaseTower=createTower/);
 assert.doesNotMatch(js,/towers\.push\(createTower\(tx/);
 assert.doesNotMatch(js,/towers\.push\(createTower\(fx/);
-assert.match(js,/function setTroopsHalted/);assert.match(js,/function regroupTroops/);assert.match(js,/function toggleGuardMode/);assert.match(js,/function rallyTroops/);
+assert.match(js,/function setTroopsHalted/);assert.match(js,/function regroupTroops/);assert.match(js,/function toggleGuardMode/);assert.match(js,/function rallyTroops/);assert.match(js,/t\.displayName\|\|t\.owner\.name/);assert.doesNotMatch(js,/const vx=p\.x-ally\.x/);
 for(const id of ['troops-halt','regroup-troops','guard-mode','rally-troops'])assert.ok(html.includes('id=\"'+id+'\"'),'Missing tactical command '+id);
 assert.match(js,/terrainCanvas=buildTerrainCache/);assert.match(js,/function buildTerrainCache/);
 assert.match(js,/attackRange:112,damage:48/);assert.match(js,/speed:190,attackRange:112,damage:48/);
