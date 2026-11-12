@@ -26,8 +26,9 @@ function updateProfile(){
 }
 function renderLeaderboard(){
  const root=$('leaderboard');if(!root)return;
- const rows=[{name:'Вы',elo:profile.elo,isPlayer:true}];
- root.innerHTML=rows.map((b,i)=>'<div class="bot" style="display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px"><b>#'+(i+1)+'</b><span><b>'+b.name+' · ВЫ</b><br><small>Личный рейтинг</small></span><strong>'+b.elo+' ELO</strong></div>').join('');
+ root.innerHTML='<div class="bot">Загрузка онлайн-рейтинга...</div>';
+ if(!PrimeOnline.hasSession()){root.innerHTML='<div class="bot">Войди в аккаунт, чтобы увидеть рейтинг реальных игроков.</div>';return;}
+ PrimeOnline.leaderboard().then(data=>{const rows=data.players||[];root.innerHTML=rows.length?rows.map((b,i)=>'<div class="bot" style="display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px"><b>#'+(i+1)+'</b><span><b>'+String(b.username).replace(/[&<>\"']/g,'')+'</b><br><small>'+b.wins+' побед · '+b.losses+' поражений · '+b.matches+' матчей</small></span><strong>'+b.rating+' ELO</strong></div>').join(''):'<div class="bot">Онлайн-рейтинг пока пуст. Сыграй первый матч 1 × 1.</div>';}).catch(e=>{root.innerHTML='<div class="bot">Не удалось загрузить рейтинг: '+String(e.message).replace(/[&<>\"']/g,'')+'</div>';});
 }
 function renderHistory(){const root=$('history-list');if(!root)return;if(!profile.history.length){root.textContent='Матчей пока нет.';return;}root.innerHTML=profile.history.map((h,i)=>'<div class="bot" style="display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;margin:8px 0"><span><b>'+(h.label||'Матч')+'</b><br><small>'+String(h.date||'')+'</small><br><small>Соперники: '+(Array.isArray(h.opponents)?h.opponents.join(', '):'—')+'</small></span><strong>'+String(h.delta||'')+'</strong></div>').join('');}
 
@@ -393,6 +394,7 @@ function applyCombatDamage(target,amount,attacker){
  target.hp=Math.max(0,target.hp-damage);target.flash=.24;addDamageNumber(target,damage,attacker?.team??0);
  if(target.hp<=0&&wasAlive&&target!==match.player){
   if(target.team===1&&target.profile&&!target.isPlayer&&!target.isTower){
+   if(target.isRemotePlayer){target.alive=false;target.retreating=false;target.respawnAt=0;addCombatFeed(target.name+' повержен');return true;}
    target.alive=false;target.retreating=false;target.respawnAt=match.elapsed+12;target.deaths=(target.deaths||0)+1;
    addCombatFeed(target.name+' выбит · возвращение через 12 сек');
   }else{
