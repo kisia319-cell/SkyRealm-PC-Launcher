@@ -10,7 +10,7 @@ assert.match(build,/--name PrimeLauncher/);assert.match(build,/prime_launcher_di
 assert.match(primeHtml,/PRIME DIVISION/);for(const n of [1,2,3])assert.match(primeHtml,new RegExp('data-team="'+n+'"'));
 assert.match(primeHtml,/data-kind="online"/);assert.match(primeHtml,/data-kind="training"/);assert.match(primeHtml,/id="leaderboard"/);assert.match(primeHtml,/id="performance-hud"/);
 for(const id of ['home-coins','rank-coins','battle-coins','nav-coins','top-coins','upgrade-tower','enemy-towers'])assert.ok(primeHtml.includes('id="'+id+'"'),'missing '+id);
-assert.match(primeJs,/primeLauncher\.profile\.v2/);assert.match(primeJs,/primeLauncher\.bots\.v1/);assert.match(primeJs,/match\.playerCoins\+=n\*5/);assert.match(primeJs,/profile\.history\.unshift/);assert.match(primeJs,/20\+Math\.floor\(Math\.random\(\)\*11\)/);assert.match(primeJs,/20\+Math\.floor\(Math\.random\(\)\*16\)/);assert.match(primeJs,/primeLauncher\.language\.v1/);
+assert.match(primeJs,/primeLauncher\.profile\.v2/);assert.match(primeJs,/primeLauncher\.bots\.v1/);assert.match(primeJs,/COINS_PER_SECOND=10/);assert.match(primeJs,/match\.playerCoins\+=count\*COINS_PER_SECOND/);assert.match(primeJs,/profile\.coins\+=count\*COINS_PER_SECOND/);assert.match(primeJs,/profile\.history\.unshift/);assert.match(primeJs,/20\+Math\.floor\(Math\.random\(\)\*11\)/);assert.match(primeJs,/20\+Math\.floor\(Math\.random\(\)\*16\)/);assert.match(primeJs,/primeLauncher\.language\.v1/);
 assert.match(primeJs,/UPGRADE_COST=500/);assert.match(primeJs,/owner\.team===0\?0:1/);assert.match(primeJs,/allies\.push\(ally\);towers\.push\(createTower/);assert.match(primeJs,/match\.playerTowerLevel\+\+/);assert.match(primeJs,/playerCoins:0,playerTowerLevel:1/);assert.doesNotMatch(primeJs,/profile\.coins\+\+/);assert.doesNotMatch(primeJs,/profile\.towerLevel\+\+/);assert.match(primeJs,/const rows=\[\{name:'Вы',elo:profile\.elo,isPlayer:true\}\]/);assert.match(primeJs,/b\.towerLevel<20&&b\.coins>=upgradeCost\(b\.towerLevel\)/);assert.match(primeJs,/b\.elo\+=8/);
 assert.match(primeJs,/Онлайн-режим в доработке/);assert.match(primeJs,/Зайдите в тренировку/);assert.match(primeJs,/matchKind==='online'/);
 assert.match(primeJs,/renderLeaderboard/);assert.match(primeJs,/drawTower/);assert.match(primeJs,/performance-hud/);assert.match(primeJs,/ping= офлайн/);
@@ -25,8 +25,8 @@ assert.match(primeJs,/function alertEnemyBase\(\)/,'Player attacks must trigger 
 assert.match(primeJs,/Math\.random\(\)<\.35/,'The counterattack must have the specified 35% chance.');
 assert.match(primeJs,/function upgradeBotTower\(bot\)/,'Bots must have a real tower-upgrade routine.');
 assert.match(primeJs,/function enemyDirector\(dt\)/,'Bots must have an active construction and economy director.');
-assert.match(primeJs,/if\(!aggro&&!assault\)\{/,'Bots must patrol their base before a scheduled or provoked attack.');
-assert.match(primeJs,/t\.team===1&&match\.enemyAggroUntil<=match\.elapsed&&match\.enemyAssaultUntil<=match\.elapsed/,'Enemy towers must stay silent until the match attack window or player provocation.');
+assert.match(primeJs,/if\(!aggro&&!assault&&playerDistance>360\)/,'Bots must patrol until the player enters their 360-unit defensive radius.');
+assert.match(primeJs,/const targets=tower\.team===0\?/,'Both sides towers must acquire opposing fighters in range.');
 assert.match(primeJs,/nextBarracksAt/);assert.match(primeJs,/nextWallAt/);assert.match(primeJs,/nextUpgradeAt/);
 
 function extractFunction(source,name){
@@ -49,9 +49,9 @@ const aiFunctions=['upgradeBotTower','enemyDirector','alertEnemyBase'].map(name=
 const botProfile={name:'TestBot',coins:2200,towerLevel:1,elo:100};
 const aiContext={
  Math:Object.assign(Object.create(Math),{random:()=>0.2}),
- TILE:32,SIZE:190,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
+ TILE:32,SIZE:100,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
  upgradeCost:level=>500*level,renderTowerList:()=>{},updateHud:()=>{},
- createTower:(x,y,owner)=>({x,y,owner,team:1,level:owner.towerLevel,hp:740,maxHp:740,range:222,damage:11,fire:0}),
+ createTower:(x,y,owner)=>({x,y,owner,team:1,level:owner.towerLevel,hp:1000,maxHp:1000,range:222,damage:11,fire:0,isTower:true}),
  spawnUnit:(team,x,y)=>{const unit={team,x,y,hp:100,alive:true};aiContext.match.units.push(unit);return unit;},
  match:{
   elapsed:130,nextEnemyAttackAt:300,enemyAssaultUntil:0,enemyAggroUntil:0,enemyDefenseBoostUntil:0,
@@ -60,7 +60,7 @@ const aiContext={
   bots:[{name:'TestBot',alive:true,x:900,y:500,profile:botProfile,ai:{nextUpgradeAt:35,nextBuildAt:25,nextBarracksAt:80,nextWallAt:110}}]
  }
 };
-aiContext.match.towers.push({x:800,y:400,owner:botProfile,team:1,level:1,hp:740,maxHp:740,range:222,damage:11});
+aiContext.match.towers.push({x:800,y:400,owner:botProfile,team:1,level:1,hp:1000,maxHp:1000,range:222,damage:11,isTower:true});
 vm.runInNewContext(aiFunctions.join('\n')+'\nglobalThis.aiDirector=enemyDirector;globalThis.aiAlert=alertEnemyBase;',aiContext);
 aiContext.aiDirector(1);
 assert.equal(botProfile.towerLevel,2,'Bot tower must upgrade from earned coins.');

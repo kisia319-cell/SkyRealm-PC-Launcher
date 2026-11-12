@@ -45,6 +45,15 @@ body.battle-active .arena canvas{display:block;width:100vw!important;height:100v
  #bot-info-panel{top:68px!important;bottom:auto!important}
 }
 body.battle-active #hud-balance-center{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:40;font-size:14px;padding:10px 20px;border-color:#ff9b62;background:#101714f2;white-space:nowrap}
+body.prime-building #arena{cursor:crosshair}
+#hud-base-distance{border-color:#84b98a;color:#e2ffe6}
+.sprint-track{display:inline-block;width:65px;height:5px;margin-left:6px;vertical-align:middle;background:#26332a;border-radius:5px;overflow:hidden}
+.sprint-track i{display:block;height:100%;background:linear-gradient(90deg,#64ce85,#d7f5a2);box-shadow:0 0 7px #78ea9b;transition:width .08s linear}
+#arena-minimap{position:absolute!important;right:14px!important;bottom:78px!important;z-index:13!important;width:220px!important;height:140px!important;max-width:32vw;border:1px solid #d3e7d9!important;border-radius:10px;background:#07131a!important;box-shadow:0 8px 24px #000a;pointer-events:none}
+#battle-feed{position:absolute;right:16px;top:78px;z-index:14;width:min(290px,34vw);pointer-events:none;text-align:right}
+.feed-line{display:inline-block;max-width:100%;margin:2px 0;padding:5px 9px;border-radius:7px;background:#08110ddd;border:1px solid #dceee31b;color:#d9e8dc;font:700 10px/1.3 Segoe UI,sans-serif;text-shadow:0 1px 2px #000;opacity:.78}
+.feed-line.latest{border-color:#ffb36e88;color:#fff;opacity:1}
+@media(max-width:680px){#arena-minimap{width:145px!important;height:92px!important;right:8px!important;bottom:67px!important}#battle-feed{right:8px;top:74px;width:44vw}.feed-line{font-size:9px}}
 </style></head>
 <body>
 <div class="shell">
@@ -60,11 +69,11 @@ body.battle-active #hud-balance-center{position:fixed;left:50%;top:10px;transfor
  <div class="top"><div><div class="eyebrow">SKYREALM · PRIME DIVISION</div><div style="font-size:12px;color:#999;margin-top:5px">Соревновательная платформа</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><div class="season">БАЛАНС · <b id="top-coins">0 ◆</b></div><div class="season">СЕЗОН 01 · ЛОКАЛЬНЫЙ РЕЖИМ</div></div></div>
  <section id="home-page">
   <div class="hero"><div class="hero-copy"><div class="eyebrow">НОВАЯ ЭРА СРАЖЕНИЙ</div><h1>Войди в Prime.</h1><p>Отдельный мир, тактические матчи и рейтинг ELO. Начни с тренировок против ботов или проверь себя в локальном рейтинговом режиме.</p><button class="primary" id="enter-prime">▶ ЗАПУСТИТЬ PRIME</button></div><div class="hero-orb"></div></div>
-  <div class="cards"><div class="card"><small>ТВОЙ РЕЙТИНГ</small><b id="home-elo">0 ELO</b><p>Онлайн-рейтинг появится после запуска сетевой игры</p></div><div class="card"><small>БАЛАНС</small><b id="home-coins">0 ◆</b><p>+5 монет каждую секунду</p></div><div class="card"><small>ТВОЯ БАШНЯ</small><b id="home-tower">Уровень 1</b><p>Улучшение: 500 монет</p></div></div><div class="card" style="margin-top:14px"><small>ПРОГРЕСС</small><b id="home-matches">0 матчей</b><p><span id="home-wins">0</span> побед · тренировки против ботов не меняют ELO</p></div>
+  <div class="cards"><div class="card"><small>ТВОЙ РЕЙТИНГ</small><b id="home-elo">0 ELO</b><p>Онлайн-рейтинг появится после запуска сетевой игры</p></div><div class="card"><small>БАЛАНС</small><b id="home-coins">0 ◆</b><p>+10 монет каждую секунду</p></div><div class="card"><small>ТВОЯ БАШНЯ</small><b id="home-tower">Уровень 1</b><p>Улучшение: 500 монет</p></div></div><div class="card" style="margin-top:14px"><small>ПРОГРЕСС</small><b id="home-matches">0 матчей</b><p><span id="home-wins">0</span> побед · тренировки против ботов не меняют ELO</p></div>
  </section>
  <section id="rank-page" class="hidden"><div class="card"><div class="eyebrow">PRIME LEADERBOARD</div><h1>Топ рейтинга</h1><p>Здесь отображаются только игроки. Тренировочные боты не участвуют в рейтинге. Онлайн-таблица появится после запуска серверного подбора.</p><div class="cards" style="margin-top:12px"><div class="card"><small>ТВОЙ ELO</small><b id="rank-elo">0 ELO</b></div><div class="card"><small>ТВОИ МОНЕТЫ</small><b id="rank-coins">0 ◆</b></div><div class="card"><small>ТВОЯ БАШНЯ</small><b id="rank-tower">Уровень 1</b></div></div><div id="leaderboard" style="display:grid;gap:7px;margin-top:16px"></div></div></section>
  <section id="history-page" class="hidden"><div class="card"><h2>История матчей</h2><p>Последние 100 результатов с датой и изменением ELO.</p><div id="history-list">Матчей пока нет.</div></div></section>
- <section id="settings-page" class="hidden"><div class="card"><h2>Настройки Prime</h2><label for="prime-language">Язык интерфейса</label><select id="prime-language" style="display:block;margin:10px 0 18px;padding:10px;background:#242424;color:#fff;border:1px solid #555;border-radius:8px"><option value="ru">Русский</option><option value="en">English</option></select><p>Управление: WASD или стрелки · Атака: пробел / левая кнопка мыши · Выход из матча: Esc · Полный экран: F11.</p><p>Онлайн-режим временно недоступен: при выборе он покажет сообщение о доработке. Играть сейчас можно только в тренировке с ботами.</p><p>Экономика матча: +5 монет в секунду только во время боя. Монеты и уровни построек сбрасываются после матча. Улучшения доступны только на арене.</p></div></section>
+ <section id="settings-page" class="hidden"><div class="card"><h2>Настройки Prime</h2><label for="prime-language">Язык интерфейса</label><select id="prime-language" style="display:block;margin:10px 0 18px;padding:10px;background:#242424;color:#fff;border:1px solid #555;border-radius:8px"><option value="ru">Русский</option><option value="en">English</option></select><p>Управление: WASD или стрелки · Бег: Shift · Атака: пробел / левая кнопка мыши · Поворот постройки: R · Выход: Esc · Полный экран: F11.</p><p>Онлайн-режим временно недоступен: при выборе он покажет сообщение о доработке. Играть сейчас можно только в тренировке с ботами.</p><p>Экономика матча: +10 монет в секунду только во время боя. Монеты и уровни построек сбрасываются после матча. Улучшения доступны только на арене.</p></div></section>
  <section id="menu-page" class="hidden"><div class="menu-stage"><div class="stars"></div><div class="planet"></div><div class="floating-char"><div class="char-head"></div><div class="char-body"></div><div class="char-leg l"></div><div class="char-leg r"></div></div><div class="menu-content"><div class="eyebrow">PRIME · BATTLE ARENA</div><h1>Выбери сражение</h1><p>Твой персонаж готовится к бою среди звёзд.</p><div class="eyebrow">ФОРМАТ КОМАНДЫ</div><div class="mode-row"><button class="mode-btn selected" data-team="1">1 × 1</button><button class="mode-btn" data-team="2">2 × 2</button><button class="mode-btn" data-team="3">3 × 3</button></div><div class="eyebrow">ТИП МАТЧА</div><div class="choice-row"><button class="choice-btn" data-kind="online">★ Онлайн-рейтинг</button><button class="choice-btn selected" data-kind="training">⚔ Тренировка с ботами</button></div><div class="menu-actions"><button class="primary" id="find-match">НАЙТИ МАТЧ</button><button class="secondary" id="back-home">НАЗАД</button></div><div id="search-box" class="search-box hidden"><span class="search-pulse"></span><b id="search-title">Поиск соперников...</b><div id="search-detail" style="font-size:11px;margin-top:7px;color:#ba9a88"></div></div></div></div></section>
  <section id="battle-page" class="hidden"><div class="battle"><div class="arena">
  <div class="battle-hud">
@@ -75,11 +84,15 @@ body.battle-active #hud-balance-center{position:fixed;left:50%;top:10px;transfor
   <div class="hud-chip"><b id="hud-tower">БАШНЯ ур. 1</b></div>
   <div class="hud-chip"><b id="hud-elo">0 ELO</b></div><div class="hud-chip" id="hud-balance-center">БАЛАНС · <b id="hud-balance-value">0 ◆</b></div>
   <div class="hud-chip" id="battle-title">ТРЕНИРОВКА</div>
+  <div class="hud-chip" id="hud-base-distance">БАЗА СОПЕРНИКА · 40 БЛОКОВ</div>
   <div class="hud-chip hidden" id="hud-bot-state"></div>
   <div class="hud-chip hidden" id="hud-attack-timer"></div>
+  <div class="hud-chip" id="hud-sprint">БЕГ · 100% <span class="sprint-track"><i style="width:100%"></i></span></div>
   <div class="hud-chip" id="performance-hud">FPS -- · офлайн</div>
  </div>
  <canvas id="arena" width="960" height="640" tabindex="0" aria-label="Арена Prime"></canvas>
+ <canvas id="arena-minimap" width="220" height="140" aria-label="Мини-карта арены"></canvas>
+ <div id="battle-feed" aria-live="polite"></div>
  <div class="battle-tools">
   <button class="tool-btn" id="build-toggle">🏗 Строительство</button>\n  <button class="tool-btn hidden" id="balance-toggle">Balance</button><button class="tool-btn hidden" id="upgrade-tower">Upgrade</button><button class="tool-btn hidden" id="train-unit">Train</button><button class="tool-btn hidden" id="bot-info-toggle">Opponent</button><button class="tool-btn hidden" id="leave-match">Leave</button>
 
@@ -89,13 +102,13 @@ body.battle-active #hud-balance-center{position:fixed;left:50%;top:10px;transfor
   <button class="build-option" data-build="wall">🧱 Стена · 150 ◆</button>
   <button class="build-option" data-build="tower">🏹 Башня лучника · 300 ◆</button>
   <button class="build-option" data-build="barracks">⚔ Дом воинов · 450 ◆</button>
-  <p class="build-note">Выбери постройку, затем нажми на свободное место арены. Постройку можно улучшать нажатием по ней.</p>
+  <p class="build-note">Наведи мышь на место установки — зелёный призрак покажет результат. R — повернуть на 90°. Нажми мышью, чтобы построить. Щелчок по башне улучшает её.</p>
   <button class="build-option" id="build-cancel">Отмена</button>
  </div>
  <div class="battle-panel hidden" id="balance-panel">
   <h3>Баланс и развитие</h3>
   <div class="balance-line"><span>Монеты</span><b id="balance-value">0 ◆</b></div>
-  <div class="balance-line"><span>Доход</span><b id="balance-income">+5 ◆ / сек</b></div>
+  <div class="balance-line"><span>Доход</span><b id="balance-income">+10 ◆ / сек</b></div>
   <div class="balance-line"><span>Твоя башня</span><b id="balance-tower">Башня ур. 1</b></div>
   <div class="balance-line"><span>Улучшение</span><b id="balance-next-upgrade">Следующее улучшение: 500 ◆</b></div>
   <div class="balance-line"><span>Армия</span><b id="balance-troops">0 воинов</b></div>

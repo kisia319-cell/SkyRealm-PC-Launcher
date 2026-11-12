@@ -1488,10 +1488,20 @@ def _skyrealm_create_prime_shortcut():
         shortcut = desktop / "PrimeLauncher.lnk"
         target = str(Path(sys.executable).resolve())
         working = str(Path(sys.executable).resolve().parent)
+        appdata = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+        icon_source = Path(resource_path("PrimeLauncher.ico"))
+        icon_target = appdata / "SkyRealm" / "PrimeLauncher.ico"
+        try:
+            if icon_source.is_file():
+                icon_target.parent.mkdir(parents=True, exist_ok=True)
+                icon_target.write_bytes(icon_source.read_bytes())
+        except OSError:
+            pass
+        icon_file = str(icon_target) if icon_target.is_file() else target
         ps = ("$w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut('" +
               str(shortcut).replace("'", "''") + "'); $s.TargetPath='" +
               target.replace("'", "''") + "'; $s.Arguments='--open-prime'; $s.WorkingDirectory='" +
-              working.replace("'", "''") + "'; $s.IconLocation='" + target.replace("'", "''") +
+              working.replace("'", "''") + "'; $s.IconLocation='" + icon_file.replace("'", "''") +
               ",0'; $s.Save()")
         encoded = base64.b64encode(ps.encode("utf-16le")).decode("ascii")
         result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
