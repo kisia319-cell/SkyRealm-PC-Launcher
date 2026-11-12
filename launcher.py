@@ -771,7 +771,7 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "installed": False, "message": str(exc)}
 
-    def launch_competitive_game(self):
+    def launch_competitive_game(self, session_token=None):
         """Install the isolated Prime world and start it in its own executable."""
         try:
             source_dir = Path(resource_path("game/competitive")).resolve()
@@ -814,7 +814,13 @@ class LauncherApi:
 
             flags = (getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) |
                      getattr(subprocess, "DETACHED_PROCESS", 0)) if os.name == "nt" else 0
-            process = subprocess.Popen(command, cwd=str(install_dir), close_fds=True, creationflags=flags)
+            launch_env = os.environ.copy()
+            safe_session_token = session_token.strip() if isinstance(session_token, str) else ""
+            if safe_session_token and len(safe_session_token) <= 4096:
+                launch_env["SKYREALM_SESSION_TOKEN"] = safe_session_token
+            else:
+                launch_env.pop("SKYREALM_SESSION_TOKEN", None)
+            process = subprocess.Popen(command, cwd=str(install_dir), close_fds=True, creationflags=flags, env=launch_env)
             try:
                 log_path = prime_root / "prime-launcher.log"
                 log_path.write_text(
@@ -1197,6 +1203,11 @@ def run_game_window(game_html: str) -> None:
 
 class PrimeWindowApi:
     """Small native bridge for the isolated Prime window."""
+    def __init__(self):
+        self._session_token = os.environ.pop("SKYREALM_SESSION_TOKEN", "")
+
+    def get_auth_session(self):
+        return {"token": self._session_token}
     def toggle_fullscreen(self):
         try:
             if game_window is None:
