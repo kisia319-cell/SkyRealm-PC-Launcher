@@ -48,7 +48,10 @@ const expected = [
   '20261107165757_skyrealm_public_mod_catalog.sql',
   '20261107180303_skyrealm_roadmap_voting.sql',
   '20261107180626_skyrealm_roadmap_voting_user_indexes.sql',
-  '20261111084224_skyrealm_custom_avatars.sql'
+  '20261111084224_skyrealm_custom_avatars.sql',
+  '20261112130449_prime_online_1v1.sql',
+  '20261112131547_prime_online_presence.sql',
+  '20261112132846_prime_online_queue_keepalive.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
@@ -114,6 +117,10 @@ assert.ok(read(expected[41]).includes('unique(idea_id,user_id)'));
 assert.ok(read(expected[42]).includes('skyrealm_roadmap_submissions_user_created_idx'));
 assert.ok(read(expected[42]).includes('skyrealm_roadmap_votes_user_idx'));
 assert.ok(read(expected[43]).includes("'skyrealm-avatars'")&&read(expected[43]).includes('auth.uid()::text'));
+assert.ok(read(expected[44]).includes('create table if not exists public.prime_match_queue'));
+assert.ok(read(expected[44]).includes('prime_finish_match'));
+assert.ok(read(expected[45]).includes('host_seen_at'));
+assert.ok(read(expected[46]).includes("last_seen_at < now()-interval '45 seconds'"));
 
 console.log('SkyRealm Supabase migration history tests passed.');
 
