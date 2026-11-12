@@ -54,8 +54,16 @@ def summarize(subject, paths):
     detail = next((value for pattern, value in rules if re.search(pattern, low)), "внесены изменения в игровые функции")
     return f"{area}: {detail}"
 
+def parse_commit_row(row):
+    """Split a git log row using the actual unit-separator character."""
+    if "\x1f" not in row:
+        return None
+    return row.split("\x1f", 1)
+
 def self_test():
     assert stats_test_tab()
+    assert parse_commit_row("abc123\\x1fAdd a feature") == ["abc123", "Add a feature"]
+    assert "\\n" not in ("\\n".join(["one", "two"]))
     assert "PrimeLauncher:" in summarize("Add tower upgrades", ["game/competitive/prime-world.js"])
     assert "рейтинг" in summarize("Improve leaderboard", ["game/competitive/prime-world.js"])
     assert "визуальные эффекты" not in summarize("Add new economy flow", ["game/competitive/prime-world.js"])
@@ -72,7 +80,7 @@ def read_state():
         state_commit = git("rev-parse", state_ref)
         message = git("show", "-s", "--format=%B", state_ref)
         announced = re.search(r"Announced-SHA: ([0-9a-f]{40})", message)
-        published = re.search(r"Published-At: (\\d+)", message)
+        published = re.search(r"Published-At: (\d+)", message)
         if announced and published:
             return state_commit, announced.group(1), int(published.group(1))
         # Backward-compatible migration from the previous state branch format.
@@ -84,7 +92,7 @@ def read_state():
 def save_state(parent_state, announced_sha, published_at):
     # Keep the cursor and the real publication timestamp independently of main's commit dates.
     empty_tree = git("mktree")
-    message = f"Telegram publication state\\n\\nAnnounced-SHA: {announced_sha}\\nPublished-At: {published_at}\\n"
+    message = f"Telegram publication state\n\nAnnounced-SHA: {announced_sha}\nPublished-At: {published_at}\n"
     args = ["commit-tree", empty_tree]
     if parent_state:
         args += ["-p", parent_state]
@@ -116,9 +124,10 @@ def main():
         return
     commits = []
     for row in git("log", "--reverse", "--format=%H%x1f%s", base + ".." + head).splitlines():
-        if "\\x1f" not in row:
+        parsed = parse_commit_row(row)
+        if not parsed:
             continue
-        sha, subject = row.split("\\x1f", 1)
+        sha, subject = parsed
         paths, changed = stats(sha)
         if paths:
             commits.append({"sha": sha, "subject": subject.strip(), "paths": paths, "lines": changed})
@@ -157,8 +166,8 @@ def main():
     except Exception:
         game_version = "—"
     version_line = f"📌 Лаунчер {launcher_version} · игра {game_version}"
-    message = heading + "\\n\\n" + version_line + "\\n\\n" + intro + "\\n\\n" + "\\n".join("▫️ " + html.escape(item) for item in bullets)
-    message += '\\n\\n🔗 <a href="' + html.escape(compare, quote=True) + '">Все изменения на GitHub</a>\\n\\n💚 Спасибо, что следите за SkyRealm!'
+    message = heading + "\n\n" + version_line + "\n\n" + intro + "\n\n" + "\n".join("▫️ " + html.escape(item) for item in bullets)
+    message += '\n\n🔗 <a href="' + html.escape(compare, quote=True) + '">Все изменения на GitHub</a>\n\n💚 Спасибо, что следите за SkyRealm!'
     payload = json.dumps({"chat_id": CHAT, "text": message, "parse_mode": "HTML", "disable_web_page_preview": True}).encode("utf-8")
     request = urllib.request.Request("https://api.telegram.org/bot" + TOKEN + "/sendMessage", data=payload, headers={"Content-Type": "application/json"}, method="POST")
     with urllib.request.urlopen(request, timeout=30) as response:
