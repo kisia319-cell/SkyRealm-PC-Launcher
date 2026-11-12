@@ -44,6 +44,7 @@ body.battle-active .arena canvas{display:block;width:100vw!important;height:100v
  .battle-panel{bottom:72px!important;max-height:42vh}
  #bot-info-panel{top:68px!important;bottom:auto!important}
 }
+body.battle-active #hud-balance-center{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:40;font-size:14px;padding:10px 20px;border-color:#ff9b62;background:#101714f2;white-space:nowrap}
 </style></head>
 <body>
 <div class="shell">
@@ -111,5 +112,3 @@ body.battle-active .arena canvas{display:block;width:100vw!important;height:100v
 <div class="hidden" id="legacy-battle-data"><b id="battle-elo">0 ELO</b><b id="battle-coins">0 ◆</b><b id="battle-tower">Уровень 1</b><span id="hp-fill"></span><span id="hp-label"></span></div></main></div>
 <div id="result-modal" class="modal hidden"><div class="modal-box"><div class="eyebrow">МАТЧ ЗАВЕРШЁН</div><h2 id="result-title">ПОБЕДА</h2><p id="result-copy"></p><div class="modal-actions"><button class="primary" id="result-menu">В МЕНЮ PRIME</button><button class="secondary" id="result-again">ЕЩЁ МАТЧ</button></div></div></div>
 <script src="prime-world.js"></script></body></html>
-
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
