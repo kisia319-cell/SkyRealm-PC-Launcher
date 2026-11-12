@@ -24,6 +24,7 @@ window.PrimeOnline={
   stopTransport();seq=0;let lastSent=0,lastReceived=0,lastInputSent="",busy=false;
   const role=config.role,matchId=config.match_id;
   transportTimer=setInterval(async()=>{
+   if(busy)return;busy=true;
    try{
     if(role==="host"){
      if(window.PrimeGameFinished?.())return;
@@ -43,10 +44,11 @@ window.PrimeOnline={
      }
      if(state.status!=="active"&&state.result)window.PrimeOnlineFinished?.(state);
     }
-   }catch(e){window.PrimeOnlineError?.(e.message);}
+   }catch(e){window.PrimeOnlineError?.(e.message);}finally{busy=false;}
   },role==="host"?240:200);
  },
  stopQueue,stopTransport,
- finish: (matchId,winnerId,reason)=>call("/api/prime/finish","POST",{match_id:matchId,winner_id:winnerId,reason}),\n leave: matchId=>call("/api/prime/leave","POST",{match_id:matchId})
+ finish: (matchId,winnerId,reason)=>call("/api/prime/finish","POST",{match_id:matchId,winner_id:winnerId,reason}),
+ leave: matchId=>call("/api/prime/leave","POST",{match_id:matchId})
 };
 })();
