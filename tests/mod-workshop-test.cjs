@@ -36,7 +36,7 @@ const launcherHtml=fs.readFileSync('index.html','utf8');
 const launcherPy=fs.readFileSync('launcher.py','utf8');
 assert.ok(launcherHtml.includes('id="page-mods"'),'Launcher must expose a dedicated Mods page');
 for(const id of ['cartographer','angler','green_thumb','miners_luck','survivalist','skill_expansion','brutal_world','blood_moon'])assert.ok(launcherHtml.includes('data-install-mod="'+id+'"'),'Launcher catalog missing '+id);
-assert.ok(launcher.includes("launch_game(readGamePreferencesFromUI(), allowUpdate, await getValidToken(), modId, currentLanguage)"),'Launcher must pass the selected mod to native game launch');
+assert.ok(launcher.includes("launch_game(readGamePreferencesFromUI(), allowUpdate, await getValidToken(), modId)"),'Launcher must pass the selected mod to native game launch');
 assert.ok(launcherPy.includes('open_mod_id=None')&&launcherPy.includes('SKYREALM_OPEN_MOD_CATALOG'),'Native launcher must validate and forward mod launch requests');
 assert.ok(game.includes("launcherModParams.get('openMods')==='1'")&&game.includes("!isModInstalled(requestedMod)"),'Game must open catalog and install requested known mod idempotently');
 console.log('Launcher mod workshop handoff checks passed.');
