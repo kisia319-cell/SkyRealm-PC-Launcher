@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
-const launcherHtml=read('index.html'),app=read('app.js'),launcherPy=read('launcher.py'),build=read('build_exe.bat'),primeOnline=read('game/competitive/prime-online.js'),primeApi=read('supabase/functions/skyrealm-prime/index.ts'),primeMigration=read('supabase/migrations/20261112140000_prime_online_1v1.sql');
+const launcherHtml=read('index.html'),app=read('app.js'),launcherPy=read('launcher.py'),build=read('build_exe.bat'),primeOnline=read('game/competitive/prime-online.js'),primeApi=read('supabase/functions/skyrealm-prime/index.ts'),primeMigration=read('supabase/migrations/20261112130449_prime_online_1v1.sql');
 const primeHtml=read('game/competitive/index.html'),primeJs=read('game/competitive/prime-world.js'),workflow=read('.github/workflows/build-release.yml');
 assert.match(launcherHtml,/data-page="competitive"/);assert.match(launcherHtml,/id="page-competitive"/);assert.match(launcherHtml,/id="play-competitive"/);
 assert.match(app,/launch_competitive_game/);assert.match(app,/game\/competitive\/index\.html/);
