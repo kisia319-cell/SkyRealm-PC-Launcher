@@ -32,6 +32,7 @@ window.PrimeOnline={
      const snap=window.PrimeGameSnapshot?.();
      if(!snap)return;
      const response=await call("/api/prime/state","POST",{match_id:matchId,seq:++seq,state:snap});
+     if(response.status&&response.status!=="active"){window.PrimeOnlineFinished?.(response);return;}
      if(response.guest_seq>lastReceived){lastReceived=response.guest_seq;window.PrimeApplyRemoteInput?.(response.guest_input||{});}
     }else{
      const current=window.PrimeReadInput?.()||{};
