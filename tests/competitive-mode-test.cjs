@@ -5,7 +5,7 @@ const launcherHtml=read('index.html'),app=read('app.js'),launcherPy=read('launch
 const primeHtml=read('game/competitive/index.html'),primeJs=read('game/competitive/prime-world.js'),workflow=read('.github/workflows/build-release.yml');
 assert.match(launcherHtml,/data-page="competitive"/);assert.match(launcherHtml,/id="page-competitive"/);assert.match(launcherHtml,/id="play-competitive"/);
 assert.match(app,/launch_competitive_game/);assert.match(app,/game\/competitive\/index\.html/);
-assert.match(launcherPy,/def launch_competitive_game\(self\)/);assert.match(launcherPy,/def get_competitive_launcher_status\(self\)/);assert.match(launcherPy,/--prime-competitive/);
+assert.match(launcherPy,/def launch_competitive_game\(self, session_token=None\)/);assert.match(launcherPy,/SKYREALM_SESSION_TOKEN/);assert.match(launcherPy,/def get_auth_session\(self\)/);assert.match(launcherPy,/def get_competitive_launcher_status\(self\)/);assert.match(launcherPy,/--prime-competitive/);
 const primeShortcutStart=launcherPy.indexOf('if len(sys.argv) >= 2 and sys.argv[1] == "--open-prime":');
 const primeShortcutEnd=launcherPy.indexOf('if len(sys.argv) >= 3',primeShortcutStart);
 assert.ok(primeShortcutStart>=0&&primeShortcutEnd>primeShortcutStart,'Prime desktop shortcut entrypoint must exist.');
