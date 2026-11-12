@@ -1317,7 +1317,7 @@
     status.textContent = currentLanguage === 'en' ? 'Preparing PrimeLauncher…' : 'Подготавливаем PrimeLauncher…';
     try {
       if (window.pywebview?.api?.launch_competitive_game) {
-        const result = await window.pywebview.api.launch_competitive_game();
+        const result = await window.pywebview.api.launch_competitive_game(await getValidToken());
         if (!result || result.ok === false) throw new Error(result?.message || 'Не удалось установить или запустить PrimeLauncher.');
         status.textContent = currentLanguage === 'en' ? 'PrimeLauncher started' : 'PrimeLauncher установлен и запущен';
         button.innerHTML = '<span>▶</span> Играть <b>↗</b>';
