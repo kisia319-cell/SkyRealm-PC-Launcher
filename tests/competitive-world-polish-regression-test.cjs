@@ -1,4 +1,3 @@
-
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -34,7 +33,7 @@ assert.match(js,/function drawPrimeFighter\(/);
 assert.match(js,/SKYREALM_DEFAULT_LOOK/);
 assert.match(js,/requestFullscreen/);
 assert.match(js,/toggle_fullscreen\(\)/);
-assert.match(js,/depth=Math\.max/);
+assert.match(js,/function buildTerrainCache/);assert.match(js,/terrainCanvas=buildTerrainCache/);
 assert.match(js,/function buildPlacementAtWorld\(/);
 assert.match(js,/function buildPlacementFromPointer\(/);
 assert.match(js,/function drawBuildPreview\(/);
@@ -139,4 +138,15 @@ assert.equal(placementContext.rotatedPlacement.rotation,Math.PI/2);
 // Seven bonus systems: minimap, stamina, hit numbers, shot tracers, combat feed,
 // timed bot respawn, and richer tower health/upgrade progression.
 for(const pattern of [/function drawMiniMap\(/,/sprintStamina/,/function addDamageNumber\(/,/match\.tracers\.push/,/battle-feed/,/function respawnDefeatedBots\(/,/t\.maxHp=760\+t\.level\*240/])assert.match(js,pattern);
-assert.match(js,/playerSupportTower/);
+assert.doesNotMatch(js,/playerSupportTower/);
+assert.match(js,/towers\.push\(createTower\(player\.x-230/);
+assert.match(js,/const enemyBaseTower=createTower/);
+assert.doesNotMatch(js,/towers\.push\(createTower\(tx/);
+assert.doesNotMatch(js,/towers\.push\(createTower\(fx/);
+assert.match(js,/function setTroopsHalted/);assert.match(js,/function regroupTroops/);assert.match(js,/function toggleGuardMode/);assert.match(js,/function rallyTroops/);
+for(const id of ['troops-halt','regroup-troops','guard-mode','rally-troops'])assert.ok(html.includes('id=\"'+id+'\"'),'Missing tactical command '+id);
+assert.match(js,/terrainCanvas=buildTerrainCache/);assert.match(js,/function buildTerrainCache/);
+assert.match(js,/attackRange:112,damage:48/);assert.match(js,/speed:190,attackRange:112,damage:48/);
+assert.match(js,/if\(unit\.team===0&&match\.troopsHalted\)continue/);
+
+console.log('competitive-world-polish-regression-test: all assertions passed');
