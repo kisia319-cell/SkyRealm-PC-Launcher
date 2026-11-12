@@ -1,4 +1,3 @@
-
 """SkyRealm desktop launcher and lightweight local game installer."""
 import os
 import csv
@@ -699,7 +698,6 @@ class LauncherApi:
                 runner_dir = skyrealm_default_data_root() / "bin"
                 runner_dir.mkdir(parents=True, exist_ok=True)
                 runner_path = runner_dir / ("SkyRealmGame_" + safe_version + ".exe")
-
                 if (not runner_path.is_file()) or file_sha256(runner_path) != file_sha256(bundled_runner):
                     temp_runner = runner_path.with_suffix(".exe.new")
                     shutil.copy2(bundled_runner, temp_runner)
@@ -1403,7 +1401,6 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
 
 
 
-
 def _skyrealm_startup_game_update():
     """Ask about a newer game build as soon as the launcher opens."""
     if not getattr(sys, "frozen", False):
@@ -1680,3 +1677,16 @@ if __name__ == "__main__":
         html = Path(resource_path("index.html")).resolve().as_uri()
         api = LauncherApi()
         window = webview.create_window(
+            "SkyRealm Launcher",
+            html,
+            width=1440,
+            height=940,
+            min_size=(900, 680),
+            background_color="#071020",
+            text_select=False,
+            js_api=api,
+        )
+        # Keep launcher auth storage separate from the game WebView profile.
+        launcher_profile = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "launcher-profile"
+        launcher_profile.mkdir(parents=True, exist_ok=True)
+        webview.start(debug=False, private_mode=False, storage_path=str(launcher_profile))
