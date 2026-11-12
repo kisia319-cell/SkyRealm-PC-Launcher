@@ -21,7 +21,7 @@ window.PrimeOnline={
  leaderboard:()=>call("/api/prime/leaderboard"),
  stats:()=>call("/api/prime/stats"),
  startTransport(config){
-  stopTransport();seq=0;let lastSent=0,lastReceived=0,lastInputSent="";
+  stopTransport();seq=0;let lastSent=0,lastReceived=0,lastInputSent="",busy=false;
   const role=config.role,matchId=config.match_id;
   transportTimer=setInterval(async()=>{
    try{
@@ -47,6 +47,6 @@ window.PrimeOnline={
   },role==="host"?240:200);
  },
  stopQueue,stopTransport,
- finish: (matchId,winnerId,reason)=>call("/api/prime/finish","POST",{match_id:matchId,winner_id:winnerId,reason})
+ finish: (matchId,winnerId,reason)=>call("/api/prime/finish","POST",{match_id:matchId,winner_id:winnerId,reason}),\n leave: matchId=>call("/api/prime/leave","POST",{match_id:matchId})
 };
 })();
