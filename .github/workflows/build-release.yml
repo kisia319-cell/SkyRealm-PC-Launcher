@@ -42,7 +42,7 @@ jobs:
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "community-mods.css", "community-mods.js", "config.js", "realm.jpg", "icon.png",
             "SkyRealm.ico", "PrimeLauncher.ico", "game/index.html", "game/game.js", "game/version.txt", "game/bugfix_counter.txt",
-            "game/edition-system.js", "game/forest-ecosystem.js", "game/world-expansion.js", "game/competitive/index.html", "game/competitive/prime-world.js", "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/living-world.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css", "game/expansion-systems.js"
+            "game/edition-system.js", "game/forest-ecosystem.js", "game/world-expansion.js", "game/competitive/index.html", "game/competitive/prime-world.js", "game/competitive/prime-online.js", "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/living-world.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css", "game/expansion-systems.js"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
           if ($missing.Count -gt 0) {
@@ -80,7 +80,7 @@ jobs:
           node --check tests/supabase-migration-history-test.cjs
           node --check tests/time-mechanics-test.cjs
           node tests/game-smoke-test.cjs
-          node --check game/competitive/prime-world.js
+          node --check game/competitive/prime-online.js\n          node --check game/competitive/prime-world.js
           node --check tests/competitive-mode-test.cjs
           node tests/competitive-mode-test.cjs
           node --check tests/competitive-world-polish-regression-test.cjs
@@ -143,7 +143,7 @@ jobs:
         run: |
           $listing = python -m PyInstaller.utils.cliutils.archive_viewer -l -b "prime_launcher_dist/PrimeLauncher.exe" 2>&1 | Out-String
           $normalized = $listing.ToLower().Replace("\", "/")
-          foreach ($asset in @("game/competitive/index.html", "game/competitive/prime-world.js")) {
+          foreach ($asset in @("game/competitive/index.html", "game/competitive/prime-world.js", "game/competitive/prime-online.js")) {
             if (-not $normalized.Contains($asset)) { throw "PrimeLauncher is missing bundled asset: $asset" }
           }
 
