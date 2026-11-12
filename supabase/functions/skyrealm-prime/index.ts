@@ -60,7 +60,7 @@ Deno.serve(async(req:Request)=>{
   if(route==="/api/prime/state"&&req.method==="POST"){
    const p=await readBody(req),m=await memberMatch(String(p.match_id||""),user.id);
    if(m.user_a!==user.id)throw new ApiError(403,"HOST_ONLY","Только ведущий матча отправляет состояние боя.");
-   if(m.status!=="active")throw new ApiError(409,"MATCH_FINISHED","Матч уже завершён.");
+   if(m.status!=="active")return reply({status:m.status,winner_id:m.winner_id,result:m.result});
    const disconnected=await resolveDisconnect(m,user.id);if(disconnected)return reply({ok:true,...disconnected});
    if(!p.state||typeof p.state!=="object"||Array.isArray(p.state))throw new ApiError(400,"INVALID_STATE","Некорректное состояние боя.");
    const payload=JSON.stringify(p.state);if(payload.length>85000)throw new ApiError(413,"STATE_TOO_LARGE","Состояние боя слишком большое.");
