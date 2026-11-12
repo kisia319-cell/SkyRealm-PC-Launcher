@@ -62,8 +62,8 @@ def parse_commit_row(row):
 
 def self_test():
     assert stats_test_tab()
-    assert parse_commit_row("abc123\\x1fAdd a feature") == ["abc123", "Add a feature"]
-    assert "\\n" not in ("\\n".join(["one", "two"]))
+    assert parse_commit_row("abc123\x1fAdd a feature") == ["abc123", "Add a feature"]
+    assert "\n" in "\n".join(["one", "two"])
     assert "PrimeLauncher:" in summarize("Add tower upgrades", ["game/competitive/prime-world.js"])
     assert "рейтинг" in summarize("Improve leaderboard", ["game/competitive/prime-world.js"])
     assert "визуальные эффекты" not in summarize("Add new economy flow", ["game/competitive/prime-world.js"])
