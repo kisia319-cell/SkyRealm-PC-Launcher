@@ -47,7 +47,7 @@ window.PrimeOnline={
      }
      if(state.status!=="active"&&state.result)window.PrimeOnlineFinished?.(state);
     }
-   }catch(e){window.PrimeOnlineError?.(e.message);}finally{busy=false;}
+   }catch(e){window.PrimeOnlineError?.(e.message);}finally{window.PrimeOnlinePing=Math.round(performance.now()-started);busy=false;}
   },role==="host"?240:200);
  },
  stopQueue,stopTransport,
