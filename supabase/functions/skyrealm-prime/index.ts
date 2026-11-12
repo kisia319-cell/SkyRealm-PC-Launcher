@@ -67,6 +67,12 @@ Deno.serve(async(req:Request)=>{
    await db("prime_matches?id=eq."+m.id,{method:"PATCH",body:JSON.stringify({guest_input:input,guest_seq:seq,updated_at:new Date().toISOString()})});
    return reply({ok:true,seq});
   }
+  if(route==="/api/prime/leave"&&req.method==="POST"){
+   const p=await readBody(req,3000),m=await memberMatch(String(p.match_id||""),user.id);
+   const winner=m.user_a===user.id?m.user_b:m.user_a;
+   const result=await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:m.user_a,p_winner:winner,p_reason:"abandoned"})});
+   return reply({ok:true,...result});
+  }
   if(route==="/api/prime/finish"&&req.method==="POST"){
    const p=await readBody(req,3000),m=await memberMatch(String(p.match_id||""),user.id);
    if(m.user_a!==user.id)throw new ApiError(403,"HOST_ONLY","Результат подтверждает ведущий матча.");
