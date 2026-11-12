@@ -141,7 +141,7 @@ document.querySelectorAll('[data-kind]').forEach(b=>b.addEventListener('click',(
 let onlineQueueActive=false,onlineQueueTimer=0;
 async function beginOnlineQueue(){
  if(teamSize!==1){teamSize=1;document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x.dataset.team==='1'));}
- if(!PrimeOnline.hasSession()){$('search-box').classList.remove('hidden');$('search-title').textContent='Нужен аккаунт SkyRealm';$('search-detail').textContent='Войди в подтверждённый аккаунт в лаунчере, затем попробуй снова.';return;}
+ await PrimeOnline.init();if(!PrimeOnline.hasSession()){$('search-box').classList.remove('hidden');$('search-title').textContent='Нужен аккаунт SkyRealm';$('search-detail').textContent='Войди в подтверждённый аккаунт в лаунчере, затем попробуй снова.';return;}
  try{const onlineStats=await PrimeOnline.stats();profile.elo=Number(onlineStats.stats?.rating)||1000;profile.matches=Number(onlineStats.stats?.matches)||0;profile.wins=Number(onlineStats.stats?.wins)||0;}catch(e){$('search-box').classList.remove('hidden');$('search-title').textContent='Ошибка профиля';$('search-detail').textContent=e.message;return;}
  $('find-match').disabled=true;$('search-box').classList.remove('hidden');$('search-title').textContent='Ищем соперника...';$('search-detail').textContent='Подбор реальных игроков 1 × 1 · рейтинг ±250';onlineQueueActive=true;
  try{await pollPrimeQueue();}catch(e){$('search-title').textContent='Не удалось подключиться';$('search-detail').textContent=e.message;onlineQueueActive=false;$('find-match').disabled=false;}
