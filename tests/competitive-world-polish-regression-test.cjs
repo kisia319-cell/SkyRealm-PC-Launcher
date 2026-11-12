@@ -120,6 +120,12 @@ assert.equal(deadBot.hp,deadBot.maxHp,'Respawn must restore health.');
 assert.equal(deadBot.x,deadBot.homeX,'Respawn must place the bot on its base.');
 assert.equal(deadBot.respawnAt,0,'Respawn timer must reset.');
 
+// Soldiers must leave the barracks collision volume immediately after recruitment.
+const spawnFunction=extractFunction(js,'spawnUnit');
+const spawnContext={match:{unitCounter:0,units:[],bots:[],walls:[],towers:[],barracks:[{team:0,x:500,y:500,hp:500}]}};
+vm.runInNewContext(spawnFunction+'\nglobalThis.spawned=spawnUnit(0,500,500);',spawnContext);
+assert.ok(Math.hypot(spawnContext.spawned.x-500,spawnContext.spawned.y-500)>40,'A newly recruited unit must spawn outside the barracks collision volume.');
+
 // Building orientation is captured in the ghost and in the placed object.
 placementContext.buildRotation=Math.PI/2;
 vm.runInNewContext('globalThis.rotatedPlacement=buildPlacementAtWorld(1400,1400);',placementContext);

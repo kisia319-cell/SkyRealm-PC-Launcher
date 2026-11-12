@@ -176,7 +176,7 @@ $('upgrade-tower').addEventListener('click',()=>{
  if(!match||match.finished){$('tower-feedback').textContent='Улучшать башни можно только во время боя.';return;}if(match.playerTowerLevel>=20){$('tower-feedback').textContent='Башня уже максимального уровня.';return;}
  const cost=upgradeCost(match.playerTowerLevel);if(match.playerCoins<cost){$('tower-feedback').textContent='Не хватает '+Math.ceil(cost-match.playerCoins)+' монет.';return;}
  match.playerCoins-=cost;match.playerTowerLevel++;
- if(match){const t=match.towers.find(x=>x.isPlayer);if(t){t.level=match.playerTowerLevel;t.maxHp=760+t.level*240;t.hp=Math.min(t.maxHp,t.hp+300);t.range=210+t.level*12;t.damage=8+t.level*3;}}
+ if(match){for(const t of match.towers.filter(x=>x.team===0&&x.owner===profile)){t.level=match.playerTowerLevel;t.maxHp=760+t.level*240;t.hp=Math.min(t.maxHp,t.hp+300);t.range=210+t.level*12;t.damage=8+t.level*3;}}
  $('tower-feedback').textContent='Башня улучшена до уровня '+match.playerTowerLevel+' · +300 HP!';renderTowerList();drawArena();
 });
 function formatMatchTime(seconds){
@@ -223,8 +223,10 @@ function upgradeStructureAt(x,y){
  save();updateHud();return true;
 }
 function spawnUnit(team,x,y){
- const homeBot=team===1&&match?.bots?.length?match.bots.reduce((best,b)=>!best||Math.hypot(b.x-x,b.y-y)<Math.hypot(best.x-x,best.y-y)?b:best,null):null;
- const u={id:++match.unitCounter,team,x,y,homeX:homeBot?.homeX??x,homeY:homeBot?.homeY??y,ownerBot:homeBot?.id??null,retreating:false,hp:110,maxHp:110,damage:team===0?12:13,range:team===0?52:48,speed:team===0?138:132,attack:0,flash:0,alive:true,name:team===0?'Воин союзника':'Вражеский воин'};
+ const sourceBarracks=match.barracks.find(br=>br.team===team&&Math.hypot(br.x-x,br.y-y)<4);
+ const spawnX=sourceBarracks?x+(team===0?44:-44):x,spawnY=sourceBarracks?y+8:y;
+ const homeBot=team===1&&match?.bots?.length?match.bots.reduce((best,b)=>!best||Math.hypot(b.x-spawnX,b.y-spawnY)<Math.hypot(best.x-spawnX,best.y-spawnY)?b:best,null):null;
+ const u={id:++match.unitCounter,team,x:spawnX,y:spawnY,homeX:homeBot?.homeX??spawnX,homeY:homeBot?.homeY??spawnY,ownerBot:homeBot?.id??null,retreating:false,hp:110,maxHp:110,damage:team===0?12:13,range:team===0?52:48,speed:team===0?138:132,attack:0,flash:0,alive:true,name:team===0?'Воин союзника':'Вражеский воин'};
  match.units.push(u);return u;
 }
 function alertEnemyBase(){
