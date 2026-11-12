@@ -83,5 +83,3 @@ aiContext.match.elapsed=23;aiContext.aiDirector(1);
 assert.ok(aiContext.match.units.filter(u=>u.team===1).length>=2,'A successful counterattack roll must release reserve troops.');
 
 console.log('competitive-mode-test: all assertions passed');
-
-[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
