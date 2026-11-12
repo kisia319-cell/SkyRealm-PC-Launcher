@@ -136,5 +136,16 @@ body.prime-building #arena{cursor:crosshair}
 <div id="pause-overlay" class="prime-overlay hidden"><div class="prime-dialog"><h2>Пауза</h2><p>Матч приостановлен. Продолжить игру или выйти в меню.</p><button class="tool-btn" id="pause-resume">Продолжить бой</button><button class="tool-btn" id="pause-leave">Выйти в меню</button></div></div>
 <div id="leave-confirm" class="prime-overlay hidden"><div class="prime-dialog"><h2>Выйти из матча?</h2><p>После выхода матч завершится, а незавершённый бой не будет засчитан. Вы уверены?</p><button class="tool-btn" id="leave-confirm-yes">Да, выйти</button><button class="tool-btn" id="leave-confirm-cancel">Отмена — остаться в бою</button></div></div>
 <style>.prime-overlay{position:fixed;inset:0;z-index:120;background:#03070bd9;display:grid;place-items:center;padding:20px}.prime-overlay.hidden{display:none}.prime-dialog{width:min(420px,100%);padding:26px;border:1px solid #d58b58;border-radius:16px;background:linear-gradient(145deg,#1b242b,#090e12);box-shadow:0 20px 80px #000c;text-align:center;color:#fff}.prime-dialog h2{margin:0 0 12px;color:#ffc18e;letter-spacing:.12em}.prime-dialog p{color:#c9d1d8;line-height:1.5}.prime-dialog .tool-btn{display:block;width:100%;margin-top:10px}</style>
+<style>
+/* Prime visual pass: material-rich, tactile arena and polished upgrade silhouettes. */
+.arena{background:radial-gradient(ellipse at 50% 42%,#28402a 0,#122016 72%,#08120e 100%)}
+#arena{filter:saturate(1.08) contrast(1.035)}
+.hud-chip{backdrop-filter:blur(7px);box-shadow:0 4px 15px #0008,inset 0 1px #ffffff12}
+.battle-tools{backdrop-filter:blur(9px);border-color:#c68a5a66}
+.tool-btn{transition:transform .14s ease,border-color .14s ease,filter .14s ease}
+.tool-btn:hover{transform:translateY(-2px);filter:brightness(1.18);border-color:#f3b37d}
+.build-panel,.battle-panel{backdrop-filter:blur(12px)}
+@media(prefers-reduced-motion:reduce){.tool-btn{transition:none}}
+</style>
 <script src="prime-world.js"></script>
 </body></html>
