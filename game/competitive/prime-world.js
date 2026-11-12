@@ -617,7 +617,7 @@ function loop(now){
  if(scene!=='battle'||!match||match.finished){raf=0;return;}
  if(match.paused){lastFrame=now;drawArena();raf=requestAnimationFrame(loop);return;}
  const dt=Math.min(.04,(now-lastFrame)/1000||0);lastFrame=now;fpsFrames++;fpsElapsed+=dt;
- if(fpsElapsed>=1){currentFps=Math.round(fpsFrames/fpsElapsed);fpsFrames=0;fpsElapsed=0;$('performance-hud').innerHTML='FPS '+currentFps+'<br>Ping '+(match.online?'онлайн':'офлайн');}
+ if(fpsElapsed>=1){currentFps=Math.round(fpsFrames/fpsElapsed);fpsFrames=0;fpsElapsed=0;$('performance-hud').innerHTML='FPS '+currentFps+'<br>Ping '+(match.online?(window.PrimeOnlinePing??'—')+' ms':'офлайн');}
  if(match.online?.role==='guest'){drawArena();}else{update(dt);if(match.online?.role==='host'){const rival=match.bots[0];if(match.player.hp<=0)finish(false);else if(rival&&!rival.alive)finish(true);}drawArena();}
  raf=requestAnimationFrame(loop);
 }
