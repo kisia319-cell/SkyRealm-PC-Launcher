@@ -1,7 +1,7 @@
 (()=>{"use strict";
 const URL="https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-prime";
 const KEY="sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL";
-function token(){return localStorage.getItem("skyrealm_token")||sessionStorage.getItem("skyrealm_token")||"";}
+function token(){return localStorage.getItem("skyrealm_token")||sessionStorage.getItem("skyrealm_token")||"";}\nfunction userId(){try{return JSON.parse(atob(token().split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||"";}catch(_){return "";}}
 async function call(route,method="GET",body=null,params={}){
  const access=token();if(!access)throw new Error("Сначала войди в аккаунт SkyRealm.");
  const query=new URLSearchParams({route,...params});const response=await fetch(URL+"?"+query.toString(),{method,headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json"},body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
@@ -13,7 +13,7 @@ let queueTimer=0,transportTimer=0,seq=0,lastInput="";
 function stopQueue(){if(queueTimer)clearInterval(queueTimer);queueTimer=0;}
 function stopTransport(){if(transportTimer)clearInterval(transportTimer);transportTimer=0;}
 window.PrimeOnline={
- hasSession:()=>!!token(),
+ hasSession:()=>!!token(),userId,
  queue:rating=>call("/api/prime/queue","POST",{rating}),
  cancelQueue:()=>call("/api/prime/queue","DELETE"),
  status:matchId=>call("/api/prime/match","GET",null,{match_id:matchId}),
