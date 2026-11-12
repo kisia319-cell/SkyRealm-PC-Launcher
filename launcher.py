@@ -1602,7 +1602,7 @@ if __name__ == "__main__":
         # Shortcut entry: update the main launcher, then refresh and start PrimeLauncher.
         if _skyrealm_startup_update():
             raise SystemExit(0)
-        _skyrealm_startup_game_update()
+        # Prime uses its own bundled world; do not block its shortcut on the separate single-player game updater.
         result = LauncherApi().launch_competitive_game()
         if not result.get("ok"):
             try:

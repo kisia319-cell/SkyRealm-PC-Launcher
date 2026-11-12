@@ -5,7 +5,11 @@ const launcherHtml=read('index.html'),app=read('app.js'),launcherPy=read('launch
 const primeHtml=read('game/competitive/index.html'),primeJs=read('game/competitive/prime-world.js'),workflow=read('.github/workflows/build-release.yml');
 assert.match(launcherHtml,/data-page="competitive"/);assert.match(launcherHtml,/id="page-competitive"/);assert.match(launcherHtml,/id="play-competitive"/);
 assert.match(app,/launch_competitive_game/);assert.match(app,/game\/competitive\/index\.html/);
-assert.match(launcherPy,/def launch_competitive_game\(self\)/);assert.match(launcherPy,/def get_competitive_launcher_status\(self\)/);assert.match(launcherPy,/--prime-competitive/);assert.match(launcherPy,/127\.0\.0\.1", 48732/);assert.match(launcherPy,/PrimeLauncher.*webview-profile/s);
+assert.match(launcherPy,/def launch_competitive_game\(self\)/);assert.match(launcherPy,/def get_competitive_launcher_status\(self\)/);assert.match(launcherPy,/--prime-competitive/);
+const primeShortcutStart=launcherPy.indexOf('if len(sys.argv) >= 2 and sys.argv[1] == "--open-prime":');
+const primeShortcutEnd=launcherPy.indexOf('if len(sys.argv) >= 3',primeShortcutStart);
+assert.ok(primeShortcutStart>=0&&primeShortcutEnd>primeShortcutStart,'Prime desktop shortcut entrypoint must exist.');
+assert.doesNotMatch(launcherPy.slice(primeShortcutStart,primeShortcutEnd),/_skyrealm_startup_game_update\(\)/,'Prime shortcut must not wait on the separate single-player update prompt.');assert.match(launcherPy,/127\.0\.0\.1", 48732/);assert.match(launcherPy,/PrimeLauncher.*webview-profile/s);
 assert.match(build,/--name PrimeLauncher/);assert.match(build,/prime_launcher_dist\\PrimeLauncher\.exe;bin/);assert.match(build,/%CD%\\game\\competitive;game\\competitive/);assert.match(workflow,/Build PrimeLauncher runtime/);assert.match(workflow,/prime_launcher_dist\/PrimeLauncher\.exe;bin/);assert.match(workflow,/game\/competitive\/prime-world\.js/);
 assert.match(primeHtml,/PRIME DIVISION/);for(const n of [1,2,3])assert.match(primeHtml,new RegExp('data-team="'+n+'"'));
 assert.match(primeHtml,/data-kind="online"/);assert.match(primeHtml,/data-kind="training"/);assert.match(primeHtml,/id="leaderboard"/);assert.match(primeHtml,/id="performance-hud"/);
