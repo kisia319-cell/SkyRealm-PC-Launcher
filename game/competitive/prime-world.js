@@ -696,17 +696,17 @@ window.addEventListener('keyup',e=>{pressed.delete(e.code);},true);
 window.addEventListener('blur',()=>pressed.clear());
 $('arena').addEventListener('pointermove',e=>{
  if(scene!=='battle'||!match)return;
- if(match.dragging){const rect=$('arena').getBoundingClientRect(),wx=e.clientX-rect.left+match.player.x-rect.width/2,wy=e.clientY-rect.top+match.player.y-rect.height/2;const d=match.dragging;const safeX=clamp(wx,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4)),safeY=clamp(wy,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4));d.object.x=safeX;d.object.y=safeY;if(d.type==='base'){match.playerBase.x=safeX;match.playerBase.y=safeY;}drawArena();return;}
+ if(match.dragging){const rect=$('arena').getBoundingClientRect(),wx=e.clientX-rect.left+match.player.x-rect.width/2,wy=e.clientY-rect.top+match.player.y-rect.height/2;const d=match.dragging;if(Math.hypot(wx-d.startX,wy-d.startY)>8)d.moved=true;if(d.moved){const safeX=clamp(wx,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4)),safeY=clamp(wy,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4));d.object.x=safeX;d.object.y=safeY;if(d.type==='base'){match.playerBase.x=safeX;match.playerBase.y=safeY;}}drawArena();return;}
  if(!buildMode)return;
  match.buildPreview=buildPlacementFromPointer(e.clientX,e.clientY);
 });
 $('arena').addEventListener('pointerleave',()=>{if(match&&buildMode)match.buildPreview=null;});
-$('arena').addEventListener('pointerup',()=>{if(match&&match.dragging){match.dragging=null;save();updateHud();}});$('arena').addEventListener('pointercancel',()=>{if(match)match.dragging=null;});
+$('arena').addEventListener('pointerup',()=>{if(match&&match.dragging){const d=match.dragging;match.dragging=null;if(!d.moved&&d.type==='tower')upgradeStructureAt(d.startX,d.startY);save();updateHud();drawArena();}});$('arena').addEventListener('pointercancel',()=>{if(match)match.dragging=null;});
 $('arena').addEventListener('pointerdown',e=>{
  if(scene!=='battle'||!match||e.button!==0)return;
  const rect=$('arena').getBoundingClientRect(),sx=e.clientX-rect.left,sy=e.clientY-rect.top;
  const wx=sx+match.player.x-rect.width/2,wy=sy+match.player.y-rect.height/2;
- if(!buildMode){const drag=findDraggableAt(wx,wy);if(drag){match.dragging=drag;try{$('arena').setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();return;}}
+ if(!buildMode){const drag=findDraggableAt(wx,wy);if(drag){match.dragging={...drag,startX:wx,startY:wy,moved:false};try{$('arena').setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();return;}}
  if(buildMode){
   const placement=buildPlacementAtWorld(wx,wy);
   match.buildPreview=placement;
