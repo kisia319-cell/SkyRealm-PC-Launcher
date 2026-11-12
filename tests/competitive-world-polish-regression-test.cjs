@@ -1,3 +1,5 @@
+[Reading 145 lines from start (total: 145 lines, 0 remaining)]
+
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -30,6 +32,10 @@ function extractFunction(source,name){
 assert.match(js,/function resizeArenaCanvas\(\)/);
 assert.match(js,/ctx\.setTransform\(dpr,0,0,dpr,0,0\)/);
 assert.match(js,/function drawPrimeFighter\(/);
+assert.match(js,/SKYREALM_DEFAULT_LOOK/);
+assert.match(js,/requestFullscreen/);
+assert.match(js,/toggle_fullscreen\(\)/);
+assert.match(js,/depth=Math\.max/);
 assert.match(js,/function buildPlacementAtWorld\(/);
 assert.match(js,/function buildPlacementFromPointer\(/);
 assert.match(js,/function drawBuildPreview\(/);
@@ -39,10 +45,10 @@ assert.match(html,/body\.prime-building #arena\{cursor:crosshair\}/);
 
 // Player and enemy bases begin exactly forty world tiles apart.
 assert.match(js,/const playerBaseX=SIZE\*TILE\/2-20\*TILE/);
-assert.match(js,/const enemyBaseX=player\.x\+40\*TILE/);
+assert.match(js,/const enemyBaseX=player\.x\+ENEMY_BASE_DISTANCE_BLOCKS\*TILE/);
 assert.doesNotMatch(js,/perimeter\(player\.x/);
 assert.match(js,/const walls=\[\]/);
-const TILE=32,SIZE=100,playerBaseX=SIZE*TILE/2-20*TILE,enemyBaseX=playerBaseX+40*TILE;
+const TILE=32,SIZE=100,ENEMY_BASE_DISTANCE_BLOCKS=40,playerBaseX=SIZE*TILE/2-20*TILE,enemyBaseX=playerBaseX+ENEMY_BASE_DISTANCE_BLOCKS*TILE;
 assert.equal((enemyBaseX-playerBaseX)/TILE,40);
 
 // Placement snaps to tile centers and rejects unsafe or occupied locations.
@@ -139,3 +145,5 @@ assert.match(js,/for\(let i=0;i<teamSize;i\+\+\)[\s\S]*towers\.push\(createTower
 assert.match(js,/for\(let i=0;i<teamSize;i\+\+\)[\s\S]*towers\.push\(createTower\(fx/);
 
 console.log('competitive-world-polish-regression-test: all assertions passed');
+
+[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]

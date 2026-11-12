@@ -1,7 +1,10 @@
+[Reading 744 lines from start (total: 744 lines, 0 remaining)]
+
 (() => {
 'use strict';
 const $=id=>document.getElementById(id), SAVE='primeLauncher.profile.v2', WORLD_SAVE='primeLauncher.world.v1', BOT_SAVE='primeLauncher.bots.v1';
-const SIZE=100,TILE=32,WATER_BORDER=15,UPGRADE_COST=500,COINS_PER_SECOND=10,SPRINT_MULTIPLIER=1.65,upgradeCost=level=>UPGRADE_COST*level,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const SIZE=100,TILE=32,WATER_BORDER=15,ENEMY_BASE_DISTANCE_BLOCKS=40,UPGRADE_COST=500,COINS_PER_SECOND=10,SPRINT_MULTIPLIER=1.65,upgradeCost=level=>UPGRADE_COST*level,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const SKYREALM_DEFAULT_LOOK={skin:'#e8b88c',hair:'#352d3d',armor:'#526fba',accent:'#9cb9ff',eye:'#26334c',face:'normal',hairStyle:'short'};
 const botNames=['Рейвен','Фокс','Нокс','Вега','Шторм','Мира','Дрейк','Сайфер'];
 let profile={elo:0,matches:0,wins:0,history:[]};
 let botsProfile=botNames.map((name,i)=>({name,elo:120+i*85,coins:0,towerLevel:1,wins:0}));
@@ -143,7 +146,7 @@ function createMatch(){
  for(let i=0;i<teamSize;i++){
   const angle=-Math.PI/2+(i-(teamSize-1)/2)*.55;
   const bp=botsProfile[i%botsProfile.length];bp.coins=650;bp.towerLevel=1;
-  const enemyBaseX=player.x+40*TILE,formationY=[0,-64,64][i]||0,x=enemyBaseX+(i===0?0:16),y=player.y+formationY;
+  const enemyBaseX=player.x+ENEMY_BASE_DISTANCE_BLOCKS*TILE,formationY=[0,-64,64][i]||0,x=enemyBaseX+(i===0?0:16),y=player.y+formationY;
   const bot={id:i+1,team:1,x,y,homeX:x,homeY:y,retreating:false,respawnAt:0,deaths:0,hp:220+bp.towerLevel*35,maxHp:220+bp.towerLevel*35,speed:155+Math.random()*18,alive:true,attack:0,flash:0,elo:bp.elo,name:bp.name,profile:bp,ai:{nextUpgradeAt:38+Math.random()*18,nextBuildAt:24+Math.random()*18,nextBarracksAt:82+Math.random()*24,nextWallAt:118+Math.random()*32}};
   bots.push(bot);
   const tx=clamp(x+Math.cos(angle)*125,TILE*2,SIZE*TILE-TILE*2),ty=clamp(y+Math.sin(angle)*125,TILE*2,SIZE*TILE-TILE*2);
@@ -153,7 +156,7 @@ function createMatch(){
  }
  worldMeta={...worldMeta,size:SIZE,lastTeam:teamSize,lastKind:matchKind};localStorage.setItem(WORLD_SAVE,JSON.stringify(worldMeta));
  const walls=[];
- match={player,bots,allies,towers,walls,barracks:[],units:[],tracers:[],damageTexts:[],combatFeed:[],buildPreview:null,playerBase:{x:player.x,y:player.y},enemyBase:{x:player.x+40*TILE,y:player.y},playerCoins:0,playerTowerLevel:1,kind:'training',team:teamSize,started:performance.now(),finished:false,worldSeed:worldMeta.seed,botCoinTick:0,elapsed:0,nextEnemyAttackAt:300,enemyAssaultUntil:0,enemyAggroUntil:0,enemyDefenseBoostUntil:0,playerHasEngaged:false,enemyCounterAt:0,enemyCounterQueued:false,nextCounterRollAt:0,enemyNoticeUntil:0,playerBaseLevel:1,unitCounter:0,enemyState:'РАЗВИВАЕТ БАЗУ'};
+ match={player,bots,allies,towers,walls,barracks:[],units:[],tracers:[],damageTexts:[],combatFeed:[],buildPreview:null,playerBase:{x:player.x,y:player.y},enemyBase:{x:player.x+ENEMY_BASE_DISTANCE_BLOCKS*TILE,y:player.y},playerCoins:0,playerTowerLevel:1,kind:'training',team:teamSize,started:performance.now(),finished:false,worldSeed:worldMeta.seed,botCoinTick:0,elapsed:0,nextEnemyAttackAt:300,enemyAssaultUntil:0,enemyAggroUntil:0,enemyDefenseBoostUntil:0,playerHasEngaged:false,enemyCounterAt:0,enemyCounterQueued:false,nextCounterRollAt:0,enemyNoticeUntil:0,playerBaseLevel:1,unitCounter:0,enemyState:'РАЗВИВАЕТ БАЗУ'};
  attackCooldown=0;pressed.clear();$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
  $('battle-feed').innerHTML='';
  renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');resizeArenaCanvas();drawArena();
@@ -565,55 +568,32 @@ function drawBuildPreview(ctx,camX,camY){
  ctx.restore();
 }
 function drawPrimeFighter(ctx,f,camX,camY,isPlayer,isAlly=false){
- const x=f.x-camX,y=f.y-camY,seed=Math.abs((f.id||1)*17+(f.team||0)*31),phase=(f.walkPhase||performance.now()/180)+(f.id||0),step=Math.sin(phase)*2.8,flap=Math.sin(phase*.7)*3;
- const blues=['#4666a5','#327b8b','#4e6078','#8469a8','#536f9c'],reds=['#8a4544','#965c35','#71465a','#5b5a75','#a65d45'];
- const accents=['#a8c8ff','#87e4ed','#d5c7a1','#d6b6ff','#f1cb88'],armor=f.team===0?blues[seed%blues.length]:reds[seed%reds.length],accent=f.team===0?accents[seed%accents.length]:['#ffad8e','#ffcd85','#e9a9bd','#c1b3ff','#ffd0a3'][seed%5];
- const skins=['#f0c69e','#d9a17b','#f3d2b4','#b9785d','#e6b68e'],skin=skins[seed%skins.length],hair=['#292536','#443329','#1f2933','#6b3c32','#d1ad76'][seed%5],boots=['#202633','#382d32','#303a45'][seed%3];
- const cape=f.team===0?'#253e78':'#642f3a',metal='#d3dce7';
- ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.42,1.42);
- ctx.fillStyle='rgba(2,7,12,.4)';ctx.beginPath();ctx.ellipse(0,15,15,6,0,0,Math.PI*2);ctx.fill();
- // Layered, animated cape with a bright stitched edge.
- ctx.fillStyle='#111c31';ctx.beginPath();ctx.moveTo(-7,-4);ctx.quadraticCurveTo(-17,1,-14,19+flap);ctx.lineTo(0,14+flap*.5);ctx.lineTo(13,19-flap);ctx.quadraticCurveTo(16,1,7,-4);ctx.closePath();ctx.fill();
- ctx.fillStyle=cape;ctx.beginPath();ctx.moveTo(-6,-3);ctx.quadraticCurveTo(-14,1,-11,15+flap);ctx.lineTo(0,11+flap*.5);ctx.lineTo(10,15-flap);ctx.quadraticCurveTo(13,1,6,-3);ctx.closePath();ctx.fill();
- ctx.strokeStyle=accent;ctx.globalAlpha=.78;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-6,0);ctx.lineTo(-9,13+flap);ctx.moveTo(6,0);ctx.lineTo(8,13-flap);ctx.stroke();ctx.globalAlpha=1;
- // Legs, knee guards and boots.
- ctx.strokeStyle='#26303b';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-4,6);ctx.lineTo(-5+step,17);ctx.moveTo(4,6);ctx.lineTo(5-step,17);ctx.stroke();
- ctx.fillStyle=boots;ctx.fillRect(-10+step,14,9,7);ctx.fillRect(2-step,14,9,7);
- ctx.fillStyle=metal;ctx.fillRect(-10+step,14,9,1);ctx.fillRect(2-step,14,9,1);
- ctx.fillStyle=accent;ctx.fillRect(-7+step,9,5,3);ctx.fillRect(2-step,9,5,3);
- // Tunic and chestplate with bevels, straps, seams and a colored crest.
- const body=ctx.createLinearGradient(-12,-6,11,12);body.addColorStop(0,'#dbe4ef');body.addColorStop(.16,accent);body.addColorStop(.42,armor);body.addColorStop(1,'#182536');
- ctx.fillStyle='#1a2432';ctx.beginPath();ctx.moveTo(-8,-7);ctx.lineTo(-12,-2);ctx.lineTo(-10,10);ctx.lineTo(10,10);ctx.lineTo(12,-2);ctx.lineTo(8,-7);ctx.closePath();ctx.fill();
- ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(-7,-7);ctx.lineTo(-10,-1);ctx.lineTo(-8,9);ctx.lineTo(8,9);ctx.lineTo(10,-1);ctx.lineTo(7,-7);ctx.closePath();ctx.fill();
- ctx.strokeStyle=metal;ctx.globalAlpha=.65;ctx.lineWidth=1;ctx.strokeRect(-7,-5,14,12);ctx.globalAlpha=1;
- ctx.fillStyle='#17253a';ctx.fillRect(-2,-5,4,13);ctx.fillStyle=accent;ctx.fillRect(-1,-4,2,10);
- ctx.fillStyle=metal;ctx.fillRect(-7,-5,2,7);ctx.fillRect(5,-5,2,7);
- ctx.fillStyle='#e7c574';ctx.beginPath();ctx.moveTo(0,-1);ctx.lineTo(4,3);ctx.lineTo(0,7);ctx.lineTo(-4,3);ctx.closePath();ctx.fill();
- ctx.fillStyle='#f9e7ac';ctx.fillRect(-1,2,2,2);
- // Shoulder pauldrons and moving arms.
- ctx.fillStyle='#26384e';ctx.beginPath();ctx.moveTo(-9,-6);ctx.lineTo(-15,-4);ctx.lineTo(-13,2);ctx.lineTo(-8,2);ctx.closePath();ctx.fill();
- ctx.beginPath();ctx.moveTo(9,-6);ctx.lineTo(15,-4);ctx.lineTo(13,2);ctx.lineTo(8,2);ctx.closePath();ctx.fill();
- ctx.fillStyle=armor;ctx.fillRect(-14,-4,5,5);ctx.fillRect(9,-4,5,5);ctx.fillStyle=accent;ctx.fillRect(-14,-4,5,1);ctx.fillRect(9,-4,5,1);
- ctx.strokeStyle=skin;ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(-11,-1);ctx.lineTo(-13-step*.35,7);ctx.moveTo(11,-1);ctx.lineTo(13+step*.35,7);ctx.stroke();
- ctx.fillStyle='#35445b';ctx.fillRect(-15-step*.35,5,4,4);ctx.fillRect(11+step*.35,5,4,4);
- // Neck, face, eyebrows and individual hair/helmet silhouettes.
- ctx.fillStyle=skin;ctx.fillRect(-3,-12,6,6);ctx.fillRect(-7,-23,14,14);
- ctx.fillStyle=hair;ctx.beginPath();ctx.moveTo(-8,-19);ctx.lineTo(-8,-27);ctx.quadraticCurveTo(0,-32,8,-26);ctx.lineTo(8,-18);ctx.lineTo(5,-22);ctx.lineTo(-5,-22);ctx.closePath();ctx.fill();
- if(seed%4===0){ctx.fillStyle='#485b70';ctx.fillRect(-10,-25,20,5);ctx.fillStyle=metal;ctx.fillRect(-11,-22,22,3);ctx.fillStyle=accent;ctx.fillRect(-2,-25,4,5);}
- else if(seed%4===1){ctx.fillStyle='#6d4f34';ctx.fillRect(-8,-28,16,4);ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(-8,-27);ctx.lineTo(-11,-33);ctx.lineTo(-3,-29);ctx.lineTo(0,-36);ctx.lineTo(3,-29);ctx.lineTo(11,-33);ctx.lineTo(8,-27);ctx.fill();}
- else if(seed%4===2){ctx.fillStyle=hair;ctx.fillRect(-9,-21,4,11);ctx.fillRect(5,-21,4,11);ctx.fillRect(-8,-12,3,7);}
- ctx.fillStyle='#f8f3e8';ctx.fillRect(-4,-16,2.5,2);ctx.fillRect(2,-16,2.5,2);ctx.fillStyle=f.team===0?'#263e6d':'#7b282e';ctx.fillRect(-3,-16,1.3,2);ctx.fillRect(3,-16,1.3,2);
- ctx.fillStyle='#583b35';ctx.fillRect(-2,-10,4,1);ctx.fillRect(-1,-9,3,1);
- // Sword, crossguard, pommel and glowing blade edge; it swings while attacking.
- const swing=f.attack>0?Math.sin(performance.now()/45)*.6:Math.sin(phase*.7)*.08;
- ctx.save();ctx.translate(10,1);ctx.rotate(-.22+swing);ctx.strokeStyle='#8d6944';ctx.lineWidth=3.2;ctx.beginPath();ctx.moveTo(-2,1);ctx.lineTo(4,4);ctx.stroke();
- ctx.strokeStyle='#d4b878';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-1,-1);ctx.lineTo(6,5);ctx.stroke();
- ctx.strokeStyle=metal;ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(4,2);ctx.lineTo(8,-16);ctx.stroke();
- ctx.strokeStyle=accent;ctx.lineWidth=1;ctx.shadowColor=accent;ctx.shadowBlur=7;ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(9,-15);ctx.stroke();ctx.restore();
- if(f.flash>0){ctx.globalAlpha=.5;ctx.fillStyle='#fff';ctx.fillRect(-16,-31,32,54);ctx.globalAlpha=1;}
+ const x=f.x-camX,y=f.y-camY,phase=(f.walkPhase||performance.now()/105)+(f.id||0),step=Math.sin(phase)*2.2;
+ const look=isPlayer?SKYREALM_DEFAULT_LOOK:{...SKYREALM_DEFAULT_LOOK,armor:isAlly?'#287ca0':'#874d46',accent:isAlly?'#83dcf2':'#e6a078',hair:isAlly?'#26364a':'#35282c',skin:isAlly?'#d9ad86':'#d4a07d'};
+ const armor=look.armor,accent=look.accent,skin=look.skin;
+ ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.22,1.22);
+ ctx.fillStyle='rgba(16,24,28,.40)';ctx.beginPath();ctx.ellipse(0,13,13,7,0,0,Math.PI*2);ctx.fill();
+ // Same compact pixel-proportioned body, armor panels, face and equipment layout as the main SkyRealm player.
+ ctx.fillStyle=armor;ctx.fillRect(-9,-3,18,15);ctx.fillStyle=accent;ctx.fillRect(-7,-2,14,13);
+ ctx.fillStyle='#394b89';ctx.beginPath();ctx.moveTo(-9,-3);ctx.lineTo(0,7);ctx.lineTo(9,-3);ctx.lineTo(7,10);ctx.lineTo(0,15);ctx.lineTo(-7,10);ctx.closePath();ctx.fill();
+ ctx.fillStyle='#c5d6ef';ctx.fillRect(-2,-1,4,12);
+ ctx.fillStyle='#3b2837';ctx.fillRect(-7,7+step,5,8);ctx.fillRect(2,7-step,5,8);
+ ctx.fillStyle='#d5b887';ctx.fillRect(-8,13+step,7,4);ctx.fillRect(1,13-step,7,4);
+ ctx.fillStyle=skin;ctx.fillRect(-6,-17,12,13);
+ ctx.fillStyle=look.hair;ctx.fillRect(-7,-20,14,5);ctx.fillRect(-9,-16,4,7);ctx.fillRect(5,-16,4,7);
+ if(isPlayer){ctx.fillStyle=look.eye;ctx.fillRect(-4,-12,2,2);ctx.fillRect(3,-12,2,2);}
+ else{ctx.fillStyle=look.eye;ctx.fillRect(-4,-12,2,2);ctx.fillRect(3,-12,2,2);ctx.fillStyle='#5a3b32';ctx.fillRect(-2,-8,4,1);}
+ // Equipment silhouette follows the main game's helmet and chestplate proportions.
+ if(f.helmet){ctx.fillStyle='#d7dfe8';ctx.fillRect(-9,-20,18,5);ctx.fillRect(-11,-16,22,3);}
+ if(f.armorTier>0){ctx.strokeStyle=accent;ctx.lineWidth=2;ctx.strokeRect(-10,-4,20,16);ctx.fillStyle=accent;ctx.fillRect(-3,-2,6,7);}
+ ctx.fillStyle=accent;ctx.fillRect(-10,-4,4,5);ctx.fillRect(6,-4,4,5);
+ ctx.strokeStyle=skin;ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(-10,-1);ctx.lineTo(-13-step*.3,7);ctx.moveTo(10,-1);ctx.lineTo(13+step*.3,7);ctx.stroke();
+ const swing=f.attack>0?Math.sin(performance.now()/45)*.5:Math.sin(phase*.7)*.06;
+ ctx.save();ctx.translate(10,1);ctx.rotate(-.22+swing);ctx.strokeStyle='#8d6944';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-2,1);ctx.lineTo(4,4);ctx.stroke();ctx.strokeStyle='#d4b878';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-1,-1);ctx.lineTo(6,5);ctx.stroke();ctx.strokeStyle='#dbe8f5';ctx.lineWidth=2.8;ctx.beginPath();ctx.moveTo(4,2);ctx.lineTo(8,-16);ctx.stroke();ctx.strokeStyle=accent;ctx.lineWidth=1;ctx.shadowColor=accent;ctx.shadowBlur=7;ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(9,-15);ctx.stroke();ctx.restore();
+ if(f.flash>0){ctx.globalAlpha=.5;ctx.fillStyle='#fff';ctx.fillRect(-13,-23,26,42);ctx.globalAlpha=1;}
  ctx.restore();
- ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(isPlayer?'Kisia':(f.name||'Воин'),x,y-41);ctx.shadowBlur=0;
- if(!isPlayer){ctx.fillStyle='#120d12';ctx.fillRect(x-20,y-49,40,5);ctx.fillStyle=f.team===0?'#70d8ff':'#ff765f';ctx.fillRect(x-20,y-49,40*Math.max(0,f.hp/f.maxHp),5);ctx.strokeStyle='#f2eee4';ctx.globalAlpha=.45;ctx.strokeRect(x-20,y-49,40,5);ctx.globalAlpha=1;}
+ ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(isPlayer?'Kisia':(f.name||'Воин'),x,y-35);ctx.shadowBlur=0;
+ if(!isPlayer){ctx.fillStyle='#140d0b';ctx.fillRect(x-18,y-42,36,4);ctx.fillStyle=f.team===0?'#70d8ff':'#ff765f';ctx.fillRect(x-18,y-42,36*Math.max(0,f.hp/f.maxHp),4);}
 }
 function drawArena(){
  const c=$('arena'),ctx=c.getContext('2d');if(!ctx)return;
@@ -627,14 +607,17 @@ function drawArena(){
   const n=(x*17+y*31+(x*y)%23+match.worldSeed)%9,seed=(x*73856093^y*19349663^match.worldSeed)>>>0;
   const sx=x*TILE-camX,sy=y*TILE-camY,edge=Math.min(x,y,SIZE-1-x,SIZE-1-y);
   if(edge<WATER_BORDER){
+   const depth=Math.max(0,Math.min(1,(WATER_BORDER-edge)/WATER_BORDER));
    const water=ctx.createLinearGradient(sx,sy,sx+TILE,sy+TILE);
-   water.addColorStop(0,edge%2?'#287d9c':'#246f90');water.addColorStop(.55,'#1f6689');water.addColorStop(1,'#164e72');
+   water.addColorStop(0,depth<.35?'#3aa4b4':'#167b9c');water.addColorStop(.34,depth<.35?'#258ca8':'#11688f');water.addColorStop(1,depth<.35?'#176d91':'#082e57');
    ctx.fillStyle=water;ctx.fillRect(sx,sy,TILE+1,TILE+1);
-   ctx.save();ctx.globalAlpha=.20;ctx.strokeStyle='#c7f4ff';ctx.lineWidth=1.15;
+   const shimmer=.5+.5*Math.sin(waveTime*1.4+x*.31-y*.22);
+   ctx.save();ctx.globalAlpha=.10+shimmer*.08;ctx.fillStyle='#b6f5ff';ctx.beginPath();ctx.ellipse(sx+8+((seed>>>3)%18),sy+8+((seed>>>9)%17),5+shimmer*5,1.4,Math.sin(waveTime+x*.2)*.18,0,Math.PI*2);ctx.fill();
+   ctx.globalAlpha=.22;ctx.strokeStyle='#b9f5ff';ctx.lineWidth=1.2;
    const waveY=sy+8+Math.sin(waveTime+x*.65+y*.24)*4;
    ctx.beginPath();ctx.moveTo(sx-2,waveY);ctx.quadraticCurveTo(sx+8,waveY-3,sx+17,waveY+1);ctx.quadraticCurveTo(sx+25,waveY+4,sx+34,waveY-1);ctx.stroke();
-   ctx.globalAlpha=.13;ctx.beginPath();ctx.moveTo(sx+((seed>>>4)%12),sy+22+Math.sin(waveTime*.72+y)*2);ctx.lineTo(sx+19+((seed>>>9)%10),sy+20+Math.sin(waveTime*.72+y)*2);ctx.stroke();
-   if(edge===WATER_BORDER-1&&seed%3===0){ctx.globalAlpha=.44;ctx.fillStyle='#e6f5e9';ctx.fillRect(sx+((seed>>>3)%20),sy+((seed>>>8)%TILE),5,1.5);}
+   ctx.globalAlpha=.14;ctx.beginPath();ctx.moveTo(sx+((seed>>>4)%12),sy+22+Math.sin(waveTime*.72+y)*2);ctx.quadraticCurveTo(sx+17,sy+18+Math.sin(waveTime*.72+y)*2,sx+29,sy+21);ctx.stroke();
+   if(edge===WATER_BORDER-1){ctx.globalAlpha=.55;ctx.strokeStyle='#e7fff6';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(sx+((seed>>>3)%15),sy+((seed>>>8)%TILE));ctx.quadraticCurveTo(sx+17,sy+((seed>>>8)%TILE)-2,sx+27,sy+((seed>>>8)%TILE)+1);ctx.stroke();}
    ctx.restore();
   }else if(edge<WATER_BORDER+3){
    ctx.fillStyle=['#b9a16c','#c1a875','#ae9868'][n%3];ctx.fillRect(sx,sy,TILE+1,TILE+1);
@@ -714,7 +697,7 @@ function drawMiniMap(){
 }
 function keyDirection(code){return ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(code);}
 window.addEventListener('keydown',e=>{
- if(e.code==='F11'){e.preventDefault();if(document.fullscreenElement){document.exitFullscreen?.();}else{document.documentElement.requestFullscreen?.().catch(()=>{});}return;}
+ if(e.code==='F11'){e.preventDefault();e.stopPropagation();if(window.pywebview?.api?.toggle_fullscreen){window.pywebview.api.toggle_fullscreen().then(r=>{if(r?.ok===false)throw new Error(r.message||'fullscreen failed');}).catch(()=>{});}else if(document.fullscreenElement){document.exitFullscreen?.().catch?.(()=>{});}else{document.documentElement.requestFullscreen?.().catch(()=>{});}return;}
  if(scene!=='battle')return;
  if(buildMode&&e.code==='KeyR'){buildRotation=(buildRotation+Math.PI/2)%(Math.PI*2);if(match){match.buildPreview=match.buildPreview?{...match.buildPreview,rotation:buildRotation}:buildPlacementFromPointer(window.innerWidth/2,window.innerHeight/2);}$('tower-feedback').textContent='Поворот постройки: '+Math.round(buildRotation*180/Math.PI)+'°';e.preventDefault();e.stopPropagation();return;}
  if(e.code==='ShiftLeft'||e.code==='ShiftRight'){pressed.add(e.code);e.preventDefault();return;}
@@ -761,3 +744,5 @@ updateProfile();
 // Economy accrues outside battles.
 window.setInterval(()=>{if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent='Башня ур. '+b.profile.towerLevel+' · '+b.profile.coins+' ◆ · '+b.elo+' ELO';});updateHud();save();}},1000);
 })();
+
+[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
