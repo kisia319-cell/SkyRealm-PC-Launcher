@@ -31,6 +31,11 @@ Deno.serve(async(req:Request)=>{
   if(route==="/api/prime/queue"&&req.method==="DELETE"){
    await db("prime_match_queue?user_id=eq."+user.id,{method:"DELETE"});return reply({ok:true});
   }
+  if(route==="/api/prime/stats"&&req.method==="GET"){
+   await db("prime_player_stats?user_id=eq."+user.id,{method:"POST",body:JSON.stringify({user_id:user.id}),headers:{Prefer:"resolution=merge-duplicates,return=representation"}});
+   const rows=await db("prime_player_stats?select=user_id,rating,matches,wins,losses&user_id=eq."+user.id+"&limit=1");
+   return reply({stats:rows?.[0]||{user_id:user.id,rating:1000,matches:0,wins:0,losses:0}});
+  }
   if(route==="/api/prime/leaderboard"&&req.method==="GET"){
    const stats=await db("prime_player_stats?select=user_id,rating,matches,wins,losses&order=rating.desc,matches.desc&limit=50");
    const ids=(stats||[]).map((x:any)=>x.user_id);
