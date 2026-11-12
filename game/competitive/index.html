@@ -55,6 +55,7 @@ body.prime-building #arena{cursor:crosshair}
 .feed-line.latest{border-color:#ffb36e88;color:#fff;opacity:1}
 @media(max-width:680px){#arena-minimap{width:145px!important;height:92px!important;right:8px!important;bottom:67px!important}#battle-feed{right:8px;top:74px;width:44vw}.feed-line{font-size:9px}}
 #balance-panel,#balance-toggle{display:none!important}
+#ability-warcry,#ability-shield,#ability-volley{border-color:#b58c54;background:linear-gradient(180deg,#4b3823,#20170f)}#hire-mercenaries{border-color:#6d9b73;background:linear-gradient(180deg,#294b35,#15271c)}#hud-outposts{color:#a9eaff}#hud-weather{color:#e0e6cc}
 </style></head>
 <body>
 <div class="shell">
@@ -85,7 +86,7 @@ body.prime-building #arena{cursor:crosshair}
   <div class="hud-chip"><b id="hud-tower">БАШНЯ ур. 1</b></div>
   <div class="hud-chip"><b id="hud-elo">0 ELO</b></div><div class="hud-chip" id="hud-balance-center">БАЛАНС · <b id="hud-balance-value">0 ◆</b></div>
   <div class="hud-chip" id="battle-title">ТРЕНИРОВКА</div>
-  <div class="hud-chip" id="hud-base-distance">БАЗА СОПЕРНИКА · 40 БЛОКОВ</div>
+  <div class="hud-chip" id="hud-base-distance">БАЗА СОПЕРНИКА · 40 БЛОКОВ</div><div class="hud-chip" id="hud-outposts">АВАНПОСТЫ 0/3 · ВРАГ 0</div><div class="hud-chip" id="hud-weather">ПОГОДА · ЯСНО</div>
   <div class="hud-chip hidden" id="hud-bot-state"></div>
   <div class="hud-chip hidden" id="hud-attack-timer"></div>
   <div class="hud-chip" id="hud-sprint">БЕГ · 100% <span class="sprint-track"><i style="width:100%"></i></span></div>
@@ -95,7 +96,7 @@ body.prime-building #arena{cursor:crosshair}
  <canvas id="arena-minimap" width="220" height="140" aria-label="Мини-карта арены"></canvas>
  <div id="battle-feed" aria-live="polite"></div>
  <div class="battle-tools">
-  <button class="tool-btn" id="build-toggle">🏗 Строительство</button> <button class="tool-btn" id="troops-halt">|| Остановить воинов</button> <button class="tool-btn" id="regroup-troops">Собрать войска</button> <button class="tool-btn" id="guard-mode">Оборона базы: ВКЛ</button> <button class="tool-btn" id="rally-troops">Точка сбора</button> <button class="tool-btn" id="leave-match">Выйти из матча</button>
+  <button class="tool-btn" id="build-toggle">🏗 Строительство</button> <button class="tool-btn" id="troops-halt">|| Остановить воинов</button> <button class="tool-btn" id="regroup-troops">Собрать войска</button> <button class="tool-btn" id="guard-mode">Оборона базы: ВКЛ</button> <button class="tool-btn" id="rally-troops">Точка сбора</button> <button class="tool-btn" id="ability-warcry">⚔ Клич · ГОТОВО</button> <button class="tool-btn" id="ability-shield">🛡 Щит · ГОТОВО</button> <button class="tool-btn" id="ability-volley">☄ Залп · ГОТОВО</button> <button class="tool-btn" id="hire-mercenaries">🏕 Наёмники · 120 ◆ / боец</button> <button class="tool-btn" id="leave-match">Выйти из матча</button>
   <button class="tool-btn hidden" id="balance-toggle">Баланс</button><button class="tool-btn hidden" id="upgrade-tower">Улучшить башню</button><button class="tool-btn hidden" id="train-unit">Нанять воина</button><button class="tool-btn hidden" id="bot-info-toggle">Соперник</button>
 
  </div>
