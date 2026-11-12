@@ -4,7 +4,7 @@ const $=id=>document.getElementById(id), SAVE='primeLauncher.profile.v2', WORLD_
 const SIZE=100,TILE=32,WATER_BORDER=15,ENEMY_BASE_DISTANCE_BLOCKS=40,UPGRADE_COST=500,COINS_PER_SECOND=10,SPRINT_MULTIPLIER=1.65,upgradeCost=level=>UPGRADE_COST*level,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const SKYREALM_DEFAULT_LOOK={skin:'#e8b88c',hair:'#352d3d',armor:'#526fba',accent:'#9cb9ff',eye:'#26334c',face:'normal',hairStyle:'short'};
 const botNames=['Рейвен','Фокс','Нокс','Вега','Шторм','Мира','Дрейк','Сайфер'];
-let profile={elo:0,matches:0,wins:0,history:[]};
+let profile={elo:0,botElo:0,matches:0,wins:0,history:[]};
 let botsProfile=botNames.map((name,i)=>({name,elo:120+i*85,coins:0,towerLevel:1,wins:0}));
 let worldMeta={seed:20261111,size:100,lastTeam:1,lastKind:'training'};
 try{const s=JSON.parse(localStorage.getItem(SAVE)||'null');if(s&&Number.isFinite(s.elo))profile={...profile,...s};}catch(_){}
@@ -13,7 +13,7 @@ try{const w=JSON.parse(localStorage.getItem(WORLD_SAVE)||'null');if(w&&Number.is
 profile.history=Array.isArray(profile.history)?profile.history:[];
 let teamSize=1,matchKind='training',scene='home',match=null,raf=0,lastFrame=0,pressed=new Set(),attackCooldown=0,searchTimer=0,fpsFrames=0,fpsElapsed=0,currentFps=0,buildMode=null,buildRotation=0;
 const pages=['home','rank','history','settings','menu','battle'];
-function save(){localStorage.setItem(SAVE,JSON.stringify({elo:profile.elo,matches:profile.matches,wins:profile.wins,history:profile.history}));localStorage.setItem(BOT_SAVE,JSON.stringify(botsProfile));updateProfile();}
+function save(){localStorage.setItem(SAVE,JSON.stringify({elo:profile.elo,botElo:profile.botElo||0,matches:profile.matches,wins:profile.wins,history:profile.history}));localStorage.setItem(BOT_SAVE,JSON.stringify(botsProfile));updateProfile();}
 function updateProfile(){
  const coins=match?Math.floor(match.playerCoins):0;
  ['home-coins','rank-coins','battle-coins','nav-coins','top-coins'].forEach(id=>{const el=$(id);if(el)el.textContent=id==='nav-coins'?coins.toLocaleString('ru-RU'):coins.toLocaleString('ru-RU')+' ◆';});
@@ -163,14 +163,15 @@ function renderTowerList(){
 }
 function finish(win,abandoned=false){
  if(!match||match.finished)return;match.finished=true;stopLoop();pressed.clear();
- profile.matches++;if(win&&!abandoned)profile.wins++;const eloDelta=abandoned?0:(win?20+Math.floor(Math.random()*11):-(20+Math.floor(Math.random()*16)));profile.elo=Math.max(0,profile.elo+eloDelta);profile.history.unshift({label:(win?'ПОБЕДА':abandoned?'ВЫХОД':'ПОРАЖЕНИЕ')+' · '+match.team+'×'+match.team,delta:abandoned?'Без изменения ELO':(eloDelta>0?'+'+eloDelta+' ELO':eloDelta+' ELO'),eloDelta,date:new Date().toLocaleString('ru-RU'),opponents:match.bots.map(b=>b.name)});profile.history=profile.history.slice(0,100);match.playerCoins=0;save();renderHistory();
+ profile.matches++;if(win&&!abandoned)profile.wins++;const eloDelta=abandoned?0:(win?20+Math.floor(Math.random()*11):-(20+Math.floor(Math.random()*16)));if(match.kind==='training')profile.botElo=Math.max(0,(profile.botElo||0)+eloDelta);else profile.elo=Math.max(0,profile.elo+eloDelta);profile.history.unshift({mode:match.kind==='training'?'BOT':'PLAYER',label:(win?'ПОБЕДА':abandoned?'ВЫХОД':'ПОРАЖЕНИЕ')+' · '+match.team+'×'+match.team,delta:abandoned?'Без изменения ELO':(eloDelta>0?'+'+eloDelta+' ELO':eloDelta+' ELO'),eloDelta,date:new Date().toLocaleString('ru-RU'),opponents:match.bots.map(b=>b.name)});profile.history=profile.history.slice(0,100);match.playerCoins=0;save();renderHistory();
  $('result-title').textContent=win?'ПОБЕДА':'ПОРАЖЕНИЕ';
  $('result-copy').textContent='Матч завершён. Монеты обнулены. '+(abandoned?'ELO без изменений.':'Изменение ELO: '+(eloDelta>0?'+':'')+eloDelta);
  $('result-modal').classList.remove('hidden');
 }
 $('result-menu').addEventListener('click',()=>{$('result-modal').classList.add('hidden');match=null;show('menu');});
 $('result-again').addEventListener('click',()=>{$('result-modal').classList.add('hidden');match=null;show('menu');beginSearch();});
-$('leave-match').addEventListener('click',()=>{if(match)finish(false,true);});
+$('leave-match').addEventListener('click',requestLeaveMatch);
+$('pause-resume').addEventListener('click',resumeMatch);$('pause-leave').addEventListener('click',requestLeaveMatch);$('leave-confirm-cancel').addEventListener('click',cancelLeaveMatch);$('leave-confirm-yes').addEventListener('click',confirmLeaveMatch);
 $('upgrade-tower').addEventListener('click',()=>{
  if(!match||match.finished){$('tower-feedback').textContent='Улучшать башни можно только во время боя.';return;}if(match.playerTowerLevel>=20){$('tower-feedback').textContent='Башня уже максимального уровня.';return;}
  const cost=upgradeCost(match.playerTowerLevel);if(match.playerCoins<cost){$('tower-feedback').textContent='Не хватает '+Math.ceil(cost-match.playerCoins)+' монет.';return;}
@@ -192,7 +193,7 @@ function updateHud(){
  const baseDistance=m.enemyBase?Math.round(Math.hypot(m.enemyBase.x-m.player.x,m.enemyBase.y-m.player.y)/TILE):40;
  q('hud-base-distance').textContent='БАЗА СОПЕРНИКА · '+baseDistance+' БЛОКОВ';
  q('hud-tower').textContent='БАШНЯ ур. '+match.playerTowerLevel;
- q('hud-elo').textContent=profile.elo+' ELO';
+ q('hud-elo').textContent=(m.kind==='training'?'BOT ELO '+(profile.botElo||0):profile.elo+' ELO');
  const assault=m.enemyAssaultUntil>m.elapsed,defending=m.enemyAggroUntil>m.elapsed;
  const state=assault?'АТАКУЕТ ВОЛНОЙ':defending?(m.elapsed<60?'УСИЛЕННАЯ ОБОРОНА':'ОБОРОНЯЕТСЯ'):(m.elapsed<m.enemyNoticeUntil?m.enemyState:'РАЗВИВАЕТ БАЗУ');
  q('hud-bot-state').textContent='БОТ: '+state;
@@ -216,8 +217,8 @@ function upgradeStructureAt(x,y){
  if(!o)return false;
  const cost=100*(o.level||1);
  if(match.playerCoins<cost){$('tower-feedback').textContent='Не хватает '+(cost-Math.floor(match.playerCoins))+' ◆ для улучшения.';return true;}
- match.playerCoins-=cost;o.level=(o.level||1)+1;o.maxHp=(o.maxHp||260)+120;o.hp=Math.min(o.maxHp,o.hp+120);
- if(o.damage)o.damage+=5;if(o.range)o.range+=22;
+ match.playerCoins-=cost;o.level=(o.level||1)+1;const beforeMax=o.maxHp||260;o.maxHp=Math.round(beforeMax*1.28);o.hp=Math.min(o.maxHp,o.hp+Math.round(beforeMax*.28));
+ if(o.damage)o.damage=Math.round(o.damage*1.22);if(o.range)o.range=Math.round(o.range*1.10);if(o.isTower)o.fire=Math.max(0,(o.fire||0)-.12);if(o.timer!==undefined)o.timer=Math.min(o.timer||0,Math.max(4,18-(o.level-1)*2));if(o.team===0&&o.kind==='archer')o.damage=(o.damage||18)+8;
  $('tower-feedback').textContent='Постройка улучшена до уровня '+o.level+'.';
  save();updateHud();return true;
 }
@@ -225,7 +226,7 @@ function spawnUnit(team,x,y){
  const sourceBarracks=match.barracks.find(br=>br.team===team&&Math.hypot(br.x-x,br.y-y)<4);
  const spawnX=sourceBarracks?x+(team===0?44:-44):x,spawnY=sourceBarracks?y+8:y;
  const homeBot=team===1&&match?.bots?.length?match.bots.reduce((best,b)=>!best||Math.hypot(b.x-spawnX,b.y-spawnY)<Math.hypot(best.x-spawnX,best.y-spawnY)?b:best,null):null;
- const u={id:++match.unitCounter,team,x:spawnX,y:spawnY,homeX:homeBot?.homeX??spawnX,homeY:homeBot?.homeY??spawnY,ownerBot:homeBot?.id??null,retreating:false,hp:130,maxHp:130,damage:48,range:112,speed:190,attack:0,flash:0,alive:true,name:team===0?'Воин союзника':'Вражеский воин'};
+ const barracksLevel=sourceBarracks?.level||1;const u={id:++match.unitCounter,team,x:spawnX,y:spawnY,homeX:homeBot?.homeX??spawnX,homeY:homeBot?.homeY??spawnY,ownerBot:homeBot?.id??null,retreating:false,hp:130+(barracksLevel-1)*24,maxHp:130+(barracksLevel-1)*24,damage:48+(barracksLevel-1)*8,range:112+(barracksLevel-1)*4,speed:190,attack:0,flash:0,alive:true,name:team===0?'Воин союзника':'Вражеский воин'};
  match.units.push(u);return u;
 }
 function alertEnemyBase(){
@@ -267,18 +268,20 @@ function applyCombatDamage(target,amount,attacker){
  }
  return true;
 }
-function canEntityOccupy(x,y,radius=12){
+function canEntityOccupy(x,y,radius=12,mover=null){
  const m=match;if(!m)return true;
  const min=TILE*(WATER_BORDER+1)+radius,max=SIZE*TILE-min;
  if(x<min||y<min||x>max||y>max)return false;
  for(const wall of m.walls){
   if(wall.hp<=0)continue;
+  if(mover&&mover.team===0&&wall.team===0)continue;
   const dx=x-wall.x,dy=y-wall.y,angle=wall.rotation||0,c=Math.cos(angle),s=Math.sin(angle);
   const lx=dx*c+dy*s,ly=-dx*s+dy*c;
   if(Math.abs(lx)<25+radius&&Math.abs(ly)<11+radius)return false;
  }
  for(const structure of [...m.towers,...m.barracks]){
   if(structure.hp<=0)continue;
+  if(mover&&mover.team===0&&structure.team===0&&structure.kind==='archer')continue;
   const size=structure.isTower?36:30;
   if(Math.hypot(x-structure.x,y-structure.y)<size+radius)return false;
  }
@@ -289,8 +292,8 @@ function moveEntity(entity,dx,dy,radius=12){
  let moved=false;
  const nx=clamp(entity.x+dx,TILE*(WATER_BORDER+1),SIZE*TILE-TILE*(WATER_BORDER+1));
  const ny=clamp(entity.y+dy,TILE*(WATER_BORDER+1),SIZE*TILE-TILE*(WATER_BORDER+1));
- if(canEntityOccupy(nx,entity.y,radius)){entity.x=nx;moved=moved||Math.abs(dx)>.001;}
- if(canEntityOccupy(entity.x,ny,radius)){entity.y=ny;moved=moved||Math.abs(dy)>.001;}
+ if(canEntityOccupy(nx,entity.y,radius,entity)){entity.x=nx;moved=moved||Math.abs(dx)>.001;}
+ if(canEntityOccupy(entity.x,ny,radius,entity)){entity.y=ny;moved=moved||Math.abs(dy)>.001;}
  return moved;
 }
 function respawnDefeatedBots(){
@@ -329,27 +332,32 @@ function enemyDirector(dt){
    else ai.nextUpgradeAt=m.elapsed+8;
   }
   if(m.elapsed>=ai.nextBuildAt){
-   const owned=m.towers.filter(t=>t.team===1).length;
+   const owned=m.towers.filter(t=>t.team===1&&t.kind==='archer').length;
    if(b.coins>=300&&owned<1){
-    b.coins-=300;const angle=Math.atan2(bot.y-m.player.y,bot.x-m.player.x);
-    const x=clamp(bot.x+Math.cos(angle)*115,TILE*2,SIZE*TILE-TILE*2);
-    const y=clamp(bot.y+Math.sin(angle)*115,TILE*2,SIZE*TILE-TILE*2);
-    m.towers.push(createTower(x,y,b,false));ai.nextBuildAt=m.elapsed+92+Math.random()*28;
+    const angle=(bot.id%2?Math.PI/2:0),rotation=Math.round(Math.random()*3)*Math.PI/2;
+    const x=clamp(bot.homeX+Math.cos(angle)*9*TILE,TILE*4,SIZE*TILE-TILE*4);
+    const y=clamp(bot.homeY+Math.sin(angle)*9*TILE,TILE*4,SIZE*TILE-TILE*4);
+    const clear=!m.walls.some(o=>Math.hypot(o.x-x,o.y-y)<90)&&!m.barracks.some(o=>Math.hypot(o.x-x,o.y-y)<100)&&!m.towers.some(o=>Math.hypot(o.x-x,o.y-y)<90);
+    if(!clear){ai.nextBuildAt=m.elapsed+8;continue;}
+    b.coins-=300;const built=createTower(x,y,b,false);built.kind='archer';built.rotation=rotation;built.displayName='????? ?????? '+bot.name;m.towers.push(built);ai.nextBuildAt=m.elapsed+92+Math.random()*28;
     m.enemyState=bot.name+' строит башню';m.enemyNoticeUntil=m.elapsed+7;renderTowerList();
    }else ai.nextBuildAt=m.elapsed+8;
   }
   if(m.elapsed>=ai.nextBarracksAt){
    const ownsBarracks=m.barracks.some(br=>br.team===1&&br.owner===b);
    if(b.coins>=450&&!ownsBarracks){
-    b.coins-=450;const x=clamp(bot.x+76,TILE*2,SIZE*TILE-TILE*2),y=clamp(bot.y+60,TILE*2,SIZE*TILE-TILE*2);
-    m.barracks.push({x,y,team:1,owner:b,level:1,hp:500,maxHp:500,timer:0});
+    b.coins-=450;const x=clamp(bot.homeX-8*TILE,TILE*4,SIZE*TILE-TILE*4),y=clamp(bot.homeY+8*TILE,TILE*4,SIZE*TILE-TILE*4);
+    const clear=!m.walls.some(o=>Math.hypot(o.x-x,o.y-y)<90)&&!m.towers.some(o=>Math.hypot(o.x-x,o.y-y)<95)&&!m.barracks.some(o=>Math.hypot(o.x-x,o.y-y)<95);
+    if(!clear){ai.nextBarracksAt=m.elapsed+12;continue;}m.barracks.push({x,y,team:1,owner:b,level:1,hp:500,maxHp:500,timer:0,rotation:Math.PI/2});
     ai.nextBarracksAt=m.elapsed+240;m.enemyState=bot.name+' строит казарму';m.enemyNoticeUntil=m.elapsed+7;
    }else ai.nextBarracksAt=m.elapsed+10;
   }
   if(m.elapsed>=ai.nextWallAt){
    const ownWalls=m.walls.filter(w=>w.team===1&&w.owner===b).length;
    if(b.coins>=150&&ownWalls<3){
-    b.coins-=150;m.walls.push({x:clamp(bot.x+Math.random()*100-50,TILE*2,SIZE*TILE-TILE*2),y:clamp(bot.y+Math.random()*100-50,TILE*2,SIZE*TILE-TILE*2),team:1,owner:b,level:1,hp:260,maxHp:260});
+    const angle=(Math.floor(Math.random()*4))*Math.PI/2,side=8+Math.floor(Math.random()*4),x=clamp(bot.homeX+Math.cos(angle)*side*TILE,TILE*4,SIZE*TILE-TILE*4),y=clamp(bot.homeY+Math.sin(angle)*side*TILE,TILE*4,SIZE*TILE-TILE*4);
+    const clear=!m.walls.some(o=>Math.hypot(o.x-x,o.y-y)<86)&&!m.barracks.some(o=>Math.hypot(o.x-x,o.y-y)<90)&&!m.towers.some(o=>Math.hypot(o.x-x,o.y-y)<90);
+    if(!clear){ai.nextWallAt=m.elapsed+10;continue;}b.coins-=150;m.walls.push({x,y,team:1,owner:b,level:1,hp:260,maxHp:260,rotation:angle});
     ai.nextWallAt=m.elapsed+70+Math.random()*30;m.enemyState=bot.name+' укрепляет базу';m.enemyNoticeUntil=m.elapsed+6;
    }else ai.nextWallAt=m.elapsed+10;
   }
@@ -379,7 +387,7 @@ function enemyDirector(dt){
  for(const br of m.barracks){
   if(br.team===0||aggro||assault){
    br.timer=(br.timer||0)+dt;
-   if(br.timer>18){br.timer=0;spawnUnit(br.team,br.x,br.y);}
+   const interval=Math.max(6,18-(br.level-1)*2);if(br.timer>interval){br.timer=0;spawnUnit(br.team,br.x,br.y);}
   }
  }
  if(!aggro&&!assault&&m.elapsed>=m.enemyNoticeUntil)m.enemyState='РАЗВИВАЕТ БАЗУ';
@@ -395,10 +403,18 @@ function setTroopsHalted(value){if(!match)return;match.troopsHalted=value??!matc
 function regroupTroops(){if(!match)return;match.regroupOrder=true;match.rallyUntil=match.elapsed+99999;match.troopsHalted=false;for(const u of match.units){if(u.team===0&&u.alive){u.attack=0;u.rallyTarget={x:match.playerBase.x+80,y:match.playerBase.y};}}$('tower-feedback').textContent='\u0412\u043e\u0438\u043d\u044b \u0441\u043e\u0431\u0438\u0440\u0430\u044e\u0442\u0441\u044f \u0443 \u0432\u0430\u0448\u0435\u0439 \u0431\u0430\u0437\u044b.';}
 function toggleGuardMode(){if(!match)return;match.guardMode=!match.guardMode;const b=$('guard-mode');if(b)b.textContent=match.guardMode?'\u041e\u0431\u043e\u0440\u043e\u043d\u0430 \u0431\u0430\u0437\u044b: \u0412\u041a\u041b':'\u041e\u0431\u043e\u0440\u043e\u043d\u0430 \u0431\u0430\u0437\u044b: \u0412\u042b\u041a\u041b';$('tower-feedback').textContent=match.guardMode?'\u0421\u043e\u044e\u0437\u043d\u0438\u043a\u0438 \u0437\u0430\u0449\u0438\u0449\u0430\u044e\u0442 \u0431\u0430\u0437\u0443.':'\u0421\u043e\u044e\u0437\u043d\u0438\u043a\u0438 \u0430\u0442\u0430\u043a\u0443\u044e\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0431\u043b\u0438\u0437\u043a\u0438\u0445 \u0432\u0440\u0430\u0433\u043e\u0432.';}
 function rallyTroops(){if(!match)return;match.rallyUntil=match.elapsed+30;match.regroupOrder=false;match.troopsHalted=false;for(const u of match.units){if(u.team===0&&u.alive)u.rallyTarget={x:match.enemyBase.x-170,y:match.enemyBase.y};}$('tower-feedback').textContent='\u0422\u043e\u0447\u043a\u0430 \u0441\u0431\u043e\u0440\u0430 \u0443 \u0432\u0440\u0430\u0436\u0435\u0441\u043a\u043e\u0439 \u0431\u0430\u0437\u044b \u043d\u0430 30 \u0441\u0435\u043a\u0443\u043d\u0434.';}
+
+function pauseMatch(){if(!match||match.finished||match.paused)return;match.paused=true;pressed.clear();$('pause-overlay').classList.remove('hidden');}
+function resumeMatch(){if(!match||!match.paused)return;match.paused=false;$('pause-overlay').classList.add('hidden');lastFrame=performance.now();}
+function requestLeaveMatch(){if(!match)return;$('leave-confirm').classList.remove('hidden');}
+function cancelLeaveMatch(){$('leave-confirm').classList.add('hidden');}
+function confirmLeaveMatch(){if(!match)return;$('leave-confirm').classList.add('hidden');$('pause-overlay').classList.add('hidden');finish(false,true);}
+function findDraggableAt(x,y){const m=match;if(!m)return null;for(const t of m.towers.filter(t=>t.team===0)){if(Math.hypot(t.x-x,t.y-y)<48)return {type:'tower',object:t};}if(Math.hypot(m.playerBase.x-x,m.playerBase.y-y)<82)return {type:'base',object:m.playerBase};return null;}
 function stopLoop(){if(raf)cancelAnimationFrame(raf);raf=0;lastFrame=0;}
 function startLoop(){if(raf)return;lastFrame=performance.now();raf=requestAnimationFrame(loop);}
 function loop(now){
  if(scene!=='battle'||!match||match.finished){raf=0;return;}
+ if(match.paused){lastFrame=now;drawArena();raf=requestAnimationFrame(loop);return;}
  const dt=Math.min(.04,(now-lastFrame)/1000||0);lastFrame=now;fpsFrames++;fpsElapsed+=dt;
  if(fpsElapsed>=1){currentFps=Math.round(fpsFrames/fpsElapsed);fpsFrames=0;fpsElapsed=0;$('performance-hud').innerHTML='fps= '+currentFps+'<br>ping= офлайн';}
  update(dt);drawArena();raf=requestAnimationFrame(loop);
@@ -470,7 +486,8 @@ function update(dt){
   }
   if(unit.team===0&&unit.rallyTarget&&match.elapsed<match.rallyUntil){const rx=unit.rallyTarget.x-unit.x,ry=unit.rallyTarget.y-unit.y,rd=Math.hypot(rx,ry)||1;if(rd>28){moveEntity(unit,rx/rd*unit.speed*dt,ry/rd*unit.speed*dt,10);continue;}unit.rallyTarget=null;}
   const foes=unit.team===0?[...match.bots.filter(b=>b.alive),...match.units.filter(other=>other.team===1&&other.alive)]:[p,...match.allies.filter(a=>a.alive),...match.units.filter(other=>other.team===0&&other.alive)];
-  const found=chooseNearestTarget(unit,foes);
+  let found=chooseNearestTarget(unit,foes);
+  if(!found&&unit.team===0){const base=match.towers.find(t=>t.team===1&&t.hp>0)||match.barracks.find(b=>b.team===1&&b.hp>0)||match.walls.find(w=>w.team===1&&w.hp>0);if(base){const distance=Math.hypot(base.x-unit.x,base.y-unit.y);if(distance>unit.range)moveEntity(unit,(base.x-unit.x)/(distance||1)*unit.speed*dt,(base.y-unit.y)/(distance||1)*unit.speed*dt,10);else if(unit.attack<=0){unit.attack=.42;applyCombatDamage(base,unit.damage,unit);}continue;}}
   if(!found)continue;
   if(found.distance>unit.range){
    const moved=moveEntity(unit,(found.target.x-unit.x)/found.distance*unit.speed*dt,(found.target.y-unit.y)/found.distance*unit.speed*dt,10);
@@ -537,9 +554,10 @@ function buildPlacementAtWorld(rawX,rawY){
  const cost={wall:150,tower:300,barracks:450}[buildMode]||0;
  const min=TILE*(WATER_BORDER+1)+20,max=SIZE*TILE-min;
  const bounds=x>=min&&y>=min&&x<=max&&y<=max&&canEntityOccupy(x,y,12);
- const tooNear=Math.hypot(x-m.player.x,y-m.player.y)<85;
- const occupied=[...m.walls,...m.barracks,...m.towers].some(o=>Math.hypot(o.x-x,o.y-y)<75);
- const reason=!bounds?'Слишком близко к краю карты.':tooNear?'Слишком близко к персонажу.':occupied?'Это место занято.':m.playerCoins<cost?'Не хватает '+(cost-Math.floor(m.playerCoins))+' ◆.':'';
+ const home=m.playerBase||m.player;const baseDistance=Math.hypot(x-home.x,y-home.y);const territory=baseDistance<=20*TILE;
+ const tooNear=baseDistance<110,tooFar=!territory;
+ const occupied=m.walls.some(o=>Math.hypot(o.x-x,o.y-y)<86)||m.barracks.some(o=>Math.hypot(o.x-x,o.y-y)<92)||m.towers.some(o=>Math.hypot(o.x-x,o.y-y)<86);
+ const reason=!bounds?'??????? ?????? ? ???? ?????.':tooNear?'?????? ??????? ?????? ????.':tooFar?'??????? ????? ?????? ? ??????? 20 ?????? ?? ????? ????.':occupied?'??? ????? ??????.':m.playerCoins<cost?'?? ??????? '+(cost-Math.floor(m.playerCoins))+' ?.':'';
  return {x,y,cost,valid:!reason,reason,kind:buildMode,rotation:buildRotation};
 }
 function buildPlacementFromPointer(clientX,clientY){
@@ -601,8 +619,9 @@ function drawArena(){
  if(!match.terrainCanvas)match.terrainCanvas=buildTerrainCache(match.worldSeed);ctx.drawImage(match.terrainCanvas,camX,camY,w,h,0,0,w,h);
  const x0=Math.max(0,Math.floor(camX/TILE)),y0=Math.max(0,Math.floor(camY/TILE)),x1=Math.min(SIZE,Math.ceil((camX+w)/TILE)+1),y1=Math.min(SIZE,Math.ceil((camY+h)/TILE)+1);
  const waveTime=performance.now()/720;
+ const base=match.playerBase;ctx.save();ctx.translate(base.x-camX,base.y-camY);ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,20,82,24,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#343d48';ctx.fillRect(-65,-22,130,48);ctx.fillStyle='#68798a';ctx.fillRect(-58,-30,116,12);ctx.fillStyle='#b4c4d3';for(let k=-2;k<=2;k++)ctx.fillRect(k*24-7,-39,14,10);ctx.fillStyle='#ff9a4d';ctx.fillRect(-8,-18,16,38);ctx.fillStyle='#f8d08a';ctx.fillRect(-3,-14,6,22);ctx.strokeStyle='#ffbf78';ctx.lineWidth=3;ctx.strokeRect(-65,-22,130,48);ctx.restore();
  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const edge=Math.min(x,y,SIZE-1-x,SIZE-1-y);if(edge>=WATER_BORDER)continue;const sx=x*TILE-camX,sy=y*TILE-camY,seed=(x*73856093^y*19349663^match.worldSeed)>>>0,shimmer=.5+.5*Math.sin(waveTime*1.4+x*.31-y*.22);ctx.save();ctx.globalAlpha=.10+shimmer*.08;ctx.fillStyle='#b6f5ff';ctx.beginPath();ctx.ellipse(sx+8+((seed>>>3)%18),sy+8+((seed>>>9)%17),5+shimmer*5,1.4,Math.sin(waveTime+x*.2)*.18,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.22;ctx.strokeStyle='#b9f5ff';ctx.lineWidth=1.2;const wy=sy+8+Math.sin(waveTime+x*.65+y*.24)*4;ctx.beginPath();ctx.moveTo(sx-2,wy);ctx.quadraticCurveTo(sx+8,wy-3,sx+17,wy+1);ctx.quadraticCurveTo(sx+25,wy+4,sx+34,wy-1);ctx.stroke();ctx.restore();}
- match.walls.forEach(w=>{const x=w.x-camX,y=w.y-camY;ctx.save();ctx.translate(x,y);ctx.rotate(w.rotation||0);ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(-27,-7,54,22);ctx.fillStyle='#252a31';ctx.fillRect(-25,-11,50,22);ctx.fillStyle='#8b929b';ctx.fillRect(-23,-15,46,6);ctx.fillStyle=w.team===0?'#ff873d':'#d65b4a';ctx.fillRect(-25,13,50*Math.max(0,w.hp/w.maxHp),4);ctx.strokeStyle='#b8c5cf';ctx.lineWidth=1.5;ctx.strokeRect(-25,-11,50,22);ctx.restore();ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText((localStorage.getItem(PRIME_LANG_KEY)==='en'?'WALL Lv. ':'СТЕНА ур.')+w.level,x,y-20);});match.barracks.forEach(b=>{const x=b.x-camX,y=b.y-camY;ctx.save();ctx.translate(x,y);ctx.rotate(b.rotation||0);ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(-24,-18,48,42);ctx.fillStyle='#49372b';ctx.fillRect(-22,-20,44,38);ctx.fillStyle='#9a6a43';ctx.beginPath();ctx.moveTo(-27,-20);ctx.lineTo(0,-42);ctx.lineTo(27,-20);ctx.fill();ctx.fillStyle='#c5a57a';ctx.fillRect(-18,-17,36,5);ctx.fillStyle='#ff9b62';ctx.fillRect(-5,-8,10,26);ctx.fillStyle='#f5d8ad';ctx.fillRect(-2,-5,4,15);ctx.restore();ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText((localStorage.getItem(PRIME_LANG_KEY)==='en'?'BARRACKS Lv. ':'КАЗАРМА ур.')+b.level,x,y-47);});match.towers.forEach(t=>drawTower(ctx,t,camX,camY));
+ match.walls.forEach(w=>{const x=w.x-camX,y=w.y-camY;ctx.save();ctx.translate(x,y);ctx.rotate(w.rotation||0);const ws=1+Math.min(6,(w.level||1)-1)*.055;ctx.scale(ws,ws);ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(-27,-7,54,22);ctx.fillStyle=(w.level||1)>=4?'#596d7b':(w.level||1)>=2?'#3b4651':'#252a31';ctx.fillRect(-25,-11,50,22);ctx.fillStyle=(w.level||1)>=4?'#c9d7df':'#8b929b';ctx.fillRect(-23,-15,46,6);if((w.level||1)>=3){ctx.fillStyle='#b5c4ce';for(let k=-2;k<=2;k++)ctx.fillRect(k*9-2,-18,4,4);}ctx.fillStyle=w.team===0?'#ff873d':'#d65b4a';ctx.fillRect(-25,13,50*Math.max(0,w.hp/w.maxHp),4);ctx.strokeStyle='#b8c5cf';ctx.lineWidth=1.5;ctx.strokeRect(-25,-11,50,22);ctx.restore();ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText((localStorage.getItem(PRIME_LANG_KEY)==='en'?'WALL Lv. ':'СТЕНА ур.')+w.level,x,y-20);});match.barracks.forEach(b=>{const x=b.x-camX,y=b.y-camY;ctx.save();ctx.translate(x,y);ctx.rotate(b.rotation||0);const bs=1+Math.min(8,(b.level||1)-1)*.075;ctx.scale(bs,bs);ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(-24,-18,48,42);ctx.fillStyle=(b.level||1)>=4?'#6b5740':(b.level||1)>=2?'#594333':'#49372b';ctx.fillRect(-22,-20,44,38);ctx.fillStyle='#9a6a43';ctx.beginPath();ctx.moveTo(-27,-20);ctx.lineTo(0,-42);ctx.lineTo(27,-20);ctx.fill();ctx.fillStyle=(b.level||1)>=4?'#e6c36d':'#c5a57a';ctx.fillRect(-18,-17,36,5);ctx.fillStyle='#8b9ba6';if((b.level||1)>=2){ctx.fillRect(-28,-8,6,22);ctx.fillRect(22,-8,6,22);}if((b.level||1)>=4){ctx.fillStyle='#f2cf75';ctx.fillRect(-3,-47,6,10);}ctx.fillStyle='#ff9b62';ctx.fillRect(-5,-8,10,26);ctx.fillStyle='#f5d8ad';ctx.fillRect(-2,-5,4,15);ctx.restore();ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText((localStorage.getItem(PRIME_LANG_KEY)==='en'?'BARRACKS Lv. ':'КАЗАРМА ур.')+b.level,x,y-47);});match.towers.forEach(t=>drawTower(ctx,t,camX,camY));
  if(buildMode&&match.buildPreview)drawBuildPreview(ctx,camX,camY);
  function fighter(f,isPlayer,isAlly=false){
   const x=f.x-camX,y=f.y-camY,phase=(f.walkPhase||performance.now()/190)+(f.id||0),step=Math.sin(phase)*3.2;
@@ -665,23 +684,29 @@ function keyDirection(code){return ['KeyW','KeyA','KeyS','KeyD','ArrowUp','Arrow
 window.addEventListener('keydown',e=>{
  if(e.code==='F11'){e.preventDefault();e.stopPropagation();if(window.pywebview?.api?.toggle_fullscreen){window.pywebview.api.toggle_fullscreen().then(r=>{if(r?.ok===false)throw new Error(r.message||'fullscreen failed');}).catch(()=>{});}else if(document.fullscreenElement){document.exitFullscreen?.().catch?.(()=>{});}else{document.documentElement.requestFullscreen?.().catch(()=>{});}return;}
  if(scene!=='battle')return;
+ if(match?.paused&&e.code!=='Escape'){e.preventDefault();return;}
+ if(buildMode&&e.code==='KeyQ'){buildMode=null;buildRotation=0;if(match)match.buildPreview=null;document.body.classList.remove('prime-building');$('build-panel').classList.add('hidden');$('tower-feedback').textContent='????????????? ????????.';e.preventDefault();return;}
  if(buildMode&&e.code==='KeyR'){buildRotation=(buildRotation+Math.PI/2)%(Math.PI*2);if(match){match.buildPreview=match.buildPreview?{...match.buildPreview,rotation:buildRotation}:buildPlacementFromPointer(window.innerWidth/2,window.innerHeight/2);}$('tower-feedback').textContent='Поворот постройки: '+Math.round(buildRotation*180/Math.PI)+'°';e.preventDefault();e.stopPropagation();return;}
  if(e.code==='ShiftLeft'||e.code==='ShiftRight'){pressed.add(e.code);e.preventDefault();return;}
  if(keyDirection(e.code)){pressed.add(e.code);e.preventDefault();e.stopPropagation();}
  else if(e.code==='Space'){e.preventDefault();attack();}
- else if(e.code==='Escape'){e.preventDefault();finish(false,true);}
+ else if(e.code==='Escape'){e.preventDefault();if(match.paused)resumeMatch();else pauseMatch();}
 },true);
 window.addEventListener('keyup',e=>{pressed.delete(e.code);},true);
 window.addEventListener('blur',()=>pressed.clear());
 $('arena').addEventListener('pointermove',e=>{
- if(scene!=='battle'||!match||!buildMode)return;
+ if(scene!=='battle'||!match)return;
+ if(match.dragging){const rect=$('arena').getBoundingClientRect(),wx=e.clientX-rect.left+match.player.x-rect.width/2,wy=e.clientY-rect.top+match.player.y-rect.height/2;const d=match.dragging;const safeX=clamp(wx,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4)),safeY=clamp(wy,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4));d.object.x=safeX;d.object.y=safeY;if(d.type==='base'){match.playerBase.x=safeX;match.playerBase.y=safeY;}drawArena();return;}
+ if(!buildMode)return;
  match.buildPreview=buildPlacementFromPointer(e.clientX,e.clientY);
 });
 $('arena').addEventListener('pointerleave',()=>{if(match&&buildMode)match.buildPreview=null;});
+$('arena').addEventListener('pointerup',()=>{if(match&&match.dragging){match.dragging=null;save();updateHud();}});$('arena').addEventListener('pointercancel',()=>{if(match)match.dragging=null;});
 $('arena').addEventListener('pointerdown',e=>{
  if(scene!=='battle'||!match||e.button!==0)return;
  const rect=$('arena').getBoundingClientRect(),sx=e.clientX-rect.left,sy=e.clientY-rect.top;
  const wx=sx+match.player.x-rect.width/2,wy=sy+match.player.y-rect.height/2;
+ if(!buildMode){const drag=findDraggableAt(wx,wy);if(drag){match.dragging=drag;try{$('arena').setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();return;}}
  if(buildMode){
   const placement=buildPlacementAtWorld(wx,wy);
   match.buildPreview=placement;

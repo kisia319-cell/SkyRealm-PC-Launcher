@@ -69,7 +69,9 @@ vm.runInNewContext(aiFunctions.join('\n')+'\nglobalThis.aiDirector=enemyDirector
 aiContext.aiDirector(1);
 assert.equal(botProfile.towerLevel,2,'Bot tower must upgrade from earned coins.');
 assert.equal(aiContext.match.towers[0].level,2,'The visible bot tower must receive its upgrade.');
-assert.equal(aiContext.match.towers.length,1,'The entire enemy team must have exactly one shared base tower.');
+assert.equal(aiContext.match.towers.filter(t=>!t.kind).length,1,'The entire enemy team must have exactly one shared base tower.');
+assert.ok(aiContext.match.towers.some(t=>t.kind==='archer'),'Bot should be able to build a separate rotated archer tower.');
+assert.ok((aiContext.match.towers.find(t=>t.kind==='archer')?.rotation||0)% (Math.PI/2)===0,'Bot tower rotation must be snapped to 90 degrees.');
 assert.equal(aiContext.match.barracks.length,1,'Bot must build a barracks.');
 assert.equal(aiContext.match.walls.length,1,'Bot must reinforce its base.');
 assert.equal(aiContext.match.units.length,0,'Bot must not attack immediately during the development phase.');

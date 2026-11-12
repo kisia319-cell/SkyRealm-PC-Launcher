@@ -54,6 +54,7 @@ body.prime-building #arena{cursor:crosshair}
 .feed-line{display:inline-block;max-width:100%;margin:2px 0;padding:5px 9px;border-radius:7px;background:#08110ddd;border:1px solid #dceee31b;color:#d9e8dc;font:700 10px/1.3 Segoe UI,sans-serif;text-shadow:0 1px 2px #000;opacity:.78}
 .feed-line.latest{border-color:#ffb36e88;color:#fff;opacity:1}
 @media(max-width:680px){#arena-minimap{width:145px!important;height:92px!important;right:8px!important;bottom:67px!important}#battle-feed{right:8px;top:74px;width:44vw}.feed-line{font-size:9px}}
+#balance-panel,#balance-toggle{display:none!important}
 </style></head>
 <body>
 <div class="shell">
@@ -94,7 +95,8 @@ body.prime-building #arena{cursor:crosshair}
  <canvas id="arena-minimap" width="220" height="140" aria-label="Мини-карта арены"></canvas>
  <div id="battle-feed" aria-live="polite"></div>
  <div class="battle-tools">
-  <button class="tool-btn" id="build-toggle">🏗 Строительство</button> <button class="tool-btn" id="troops-halt">? Stop troops</button><button class="tool-btn" id="regroup-troops">? Regroup</button><button class="tool-btn" id="guard-mode">?? Base defense: ON</button><button class="tool-btn" id="rally-troops">? Rally point</button> <button class="tool-btn" id="troops-halt">? Stop troops</button><button class="tool-btn" id="regroup-troops">? Regroup</button><button class="tool-btn" id="guard-mode">?? Base defense: ON</button><button class="tool-btn" id="rally-troops">? Rally point</button>\n  <button class="tool-btn hidden" id="balance-toggle">Balance</button><button class="tool-btn hidden" id="upgrade-tower">Upgrade</button><button class="tool-btn hidden" id="train-unit">Train</button><button class="tool-btn hidden" id="bot-info-toggle">Opponent</button><button class="tool-btn hidden" id="leave-match">Leave</button>
+  <button class="tool-btn" id="build-toggle">?? ?????????????</button> <button class="tool-btn" id="troops-halt">|| ?????????? ??????</button><button class="tool-btn" id="regroup-troops">?????????</button><button class="tool-btn" id="guard-mode">??????? ????: ???</button><button class="tool-btn" id="rally-troops">????? ?????</button> <button class="tool-btn" id="leave-match">????? ?? ???</button>
+\n  <button class="tool-btn hidden" id="balance-toggle">Balance</button><button class="tool-btn hidden" id="upgrade-tower">Upgrade</button><button class="tool-btn hidden" id="train-unit">Train</button><button class="tool-btn hidden" id="bot-info-toggle">Opponent</button><button class="tool-btn hidden" id="leave-match">Leave</button>
 
  </div>
  <div class="build-panel hidden battle-panel" id="build-panel">
@@ -124,4 +126,8 @@ body.prime-building #arena{cursor:crosshair}
 </div></div></section>
 <div class="hidden" id="legacy-battle-data"><b id="battle-elo">0 ELO</b><b id="battle-coins">0 ◆</b><b id="battle-tower">Уровень 1</b><span id="hp-fill"></span><span id="hp-label"></span></div></main></div>
 <div id="result-modal" class="modal hidden"><div class="modal-box"><div class="eyebrow">МАТЧ ЗАВЕРШЁН</div><h2 id="result-title">ПОБЕДА</h2><p id="result-copy"></p><div class="modal-actions"><button class="primary" id="result-menu">В МЕНЮ PRIME</button><button class="secondary" id="result-again">ЕЩЁ МАТЧ</button></div></div></div>
-<script src="prime-world.js"></script></body></html>
+<div id="pause-overlay" class="prime-overlay hidden"><div class="prime-dialog"><h2>?????</h2><p>???? ?????????????. ???????? ??? ????????.</p><button class="tool-btn" id="pause-resume">?????????? ???</button><button class="tool-btn" id="pause-leave">????? ?? ???</button></div></div>
+<div id="leave-confirm" class="prime-overlay hidden"><div class="prime-dialog"><h2>????? ?? ????</h2><p>???? ????? ????????, ? ???????????? ? ??? ?????? ?????????. ?? ????????</p><button class="tool-btn" id="leave-confirm-yes">??, ?????</button><button class="tool-btn" id="leave-confirm-cancel">???????? ? ???</button></div></div>
+<style>.prime-overlay{position:fixed;inset:0;z-index:120;background:#03070bd9;display:grid;place-items:center;padding:20px}.prime-overlay.hidden{display:none}.prime-dialog{width:min(420px,100%);padding:26px;border:1px solid #d58b58;border-radius:16px;background:linear-gradient(145deg,#1b242b,#090e12);box-shadow:0 20px 80px #000c;text-align:center;color:#fff}.prime-dialog h2{margin:0 0 12px;color:#ffc18e;letter-spacing:.12em}.prime-dialog p{color:#c9d1d8;line-height:1.5}.prime-dialog .tool-btn{display:block;width:100%;margin-top:10px}</style>
+<script src="prime-world.js"></script>
+</body></html>

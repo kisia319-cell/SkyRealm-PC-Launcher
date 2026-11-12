@@ -54,7 +54,7 @@ const placementFunction=extractFunction(js,'buildPlacementAtWorld');
 const occupancyFunction=extractFunction(js,'canEntityOccupy');
 const placementContext={
  TILE,SIZE,WATER_BORDER:15,buildRotation:0,buildMode:'wall',
- match:{player:{x:1200,y:1200},playerCoins:900,walls:[],barracks:[],towers:[]}
+ match:{player:{x:1200,y:1200},playerBase:{x:1200,y:1200},playerCoins:900,walls:[],barracks:[],towers:[]}
 };
 vm.runInNewContext(occupancyFunction+'\n'+placementFunction+'\nglobalThis.result=buildPlacementAtWorld(1400,1400);',placementContext);
 assert.equal(placementContext.result.x,Math.floor(1400/TILE)*TILE+TILE/2);
@@ -150,3 +150,5 @@ assert.match(js,/attackRange:112,damage:48/);assert.match(js,/speed:190,attackRa
 assert.match(js,/if\(unit\.team===0&&match\.troopsHalted\)continue/);
 
 console.log('competitive-world-polish-regression-test: all assertions passed');
+
+assert.match(js,/function pauseMatch/);assert.match(js,/function resumeMatch/);assert.match(js,/function confirmLeaveMatch/);assert.match(js,/function findDraggableAt/);assert.match(js,/e\.code===\'KeyQ\'/);assert.match(js,/20\*TILE/);assert.match(js,/profile\.botElo/);assert.match(js,/function canEntityOccupy\(x,y,radius=12,mover=null\)/);assert.match(js,/mover\.team===0&&wall\.team===0/);assert.match(js,/barracksLevel-1\)\*8/);assert.match(js,/const interval=Math\.max\(6,18-\(br\.level-1\)\*2\)/);assert.match(js,/d\.object\.x=safeX/);
