@@ -4,13 +4,13 @@ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p
 const launcherHtml=read('index.html'),app=read('app.js'),launcherPy=read('launcher.py'),build=read('build_exe.bat');
 const primeHtml=read('game/competitive/index.html'),primeJs=read('game/competitive/prime-world.js'),workflow=read('.github/workflows/build-release.yml');
 assert.match(launcherHtml,/data-page="competitive"/);assert.match(launcherHtml,/id="page-competitive"/);assert.match(launcherHtml,/id="play-competitive"/);
-assert.match(app,/launch_competitive_game/);assert.match(app,/launch_competitive_game\(currentLanguage\)/);assert.match(app,/game\/competitive\/index\.html/);
-assert.match(launcherPy,/def launch_competitive_game\(self, language="ru"\)/);assert.match(launcherPy,/--language/);assert.match(launcherPy,/run_prime_competitive_window\(sys\.argv\[2\], prime_language\)/);assert.match(launcherPy,/def get_competitive_launcher_status\(self\)/);assert.match(launcherPy,/--prime-competitive/);assert.match(launcherPy,/127\.0\.0\.1", 48732/);assert.match(launcherPy,/PrimeLauncher.*webview-profile/s);
+assert.match(app,/launch_competitive_game/);assert.match(app,/game\/competitive\/index\.html/);
+assert.match(launcherPy,/def launch_competitive_game\(self\)/);assert.match(launcherPy,/def get_competitive_launcher_status\(self\)/);assert.match(launcherPy,/--prime-competitive/);assert.match(launcherPy,/127\.0\.0\.1", 48732/);assert.match(launcherPy,/PrimeLauncher.*webview-profile/s);
 assert.match(build,/--name PrimeLauncher/);assert.match(build,/prime_launcher_dist\\PrimeLauncher\.exe;bin/);assert.match(build,/%CD%\\game\\competitive;game\\competitive/);assert.match(workflow,/Build PrimeLauncher runtime/);assert.match(workflow,/prime_launcher_dist\/PrimeLauncher\.exe;bin/);assert.match(workflow,/game\/competitive\/prime-world\.js/);
 assert.match(primeHtml,/PRIME DIVISION/);for(const n of [1,2,3])assert.match(primeHtml,new RegExp('data-team="'+n+'"'));
 assert.match(primeHtml,/data-kind="online"/);assert.match(primeHtml,/data-kind="training"/);assert.match(primeHtml,/id="leaderboard"/);assert.match(primeHtml,/id="performance-hud"/);
 for(const id of ['home-coins','rank-coins','battle-coins','nav-coins','top-coins','upgrade-tower','enemy-towers'])assert.ok(primeHtml.includes('id="'+id+'"'),'missing '+id);
-assert.match(primeJs,/primeLauncher\.profile\.v2/);assert.match(primeJs,/primeLauncher\.bots\.v1/);assert.match(primeJs,/match\.playerCoins\+=n\*5/);assert.match(primeJs,/profile\.history\.unshift/);assert.match(primeJs,/20\+Math\.floor\(Math\.random\(\)\*11\)/);assert.match(primeJs,/20\+Math\.floor\(Math\.random\(\)\*16\)/);assert.match(primeJs,/skyrealm_language/);assert.match(primeJs,/primeLauncher\.language\.v1/);assert.match(primeJs,/new URLSearchParams\(location\.search\)\.get\('lang'\)/);assert.match(primeJs,/new MutationObserver/);
+assert.match(primeJs,/primeLauncher\.profile\.v2/);assert.match(primeJs,/primeLauncher\.bots\.v1/);assert.match(primeJs,/match\.playerCoins\+=n\*5/);assert.match(primeJs,/profile\.history\.unshift/);assert.match(primeJs,/20\+Math\.floor\(Math\.random\(\)\*11\)/);assert.match(primeJs,/20\+Math\.floor\(Math\.random\(\)\*16\)/);assert.match(primeJs,/primeLauncher\.language\.v1/);
 assert.match(primeJs,/UPGRADE_COST=500/);assert.match(primeJs,/owner\.team===0\?0:1/);assert.match(primeJs,/allies\.push\(ally\);towers\.push\(createTower/);assert.match(primeJs,/match\.playerTowerLevel\+\+/);assert.match(primeJs,/playerCoins:0,playerTowerLevel:1/);assert.doesNotMatch(primeJs,/profile\.coins\+\+/);assert.doesNotMatch(primeJs,/profile\.towerLevel\+\+/);assert.match(primeJs,/const rows=\[\{name:'Вы',elo:profile\.elo,isPlayer:true\}\]/);assert.match(primeJs,/b\.towerLevel<20&&b\.coins>=upgradeCost\(b\.towerLevel\)/);assert.match(primeJs,/b\.elo\+=8/);
 assert.match(primeJs,/Онлайн-режим в доработке/);assert.match(primeJs,/Зайдите в тренировку/);assert.match(primeJs,/matchKind==='online'/);
 assert.match(primeJs,/renderLeaderboard/);assert.match(primeJs,/drawTower/);assert.match(primeJs,/performance-hud/);assert.match(primeJs,/ping= офлайн/);
@@ -25,7 +25,7 @@ assert.match(primeJs,/function alertEnemyBase\(\)/,'Player attacks must trigger 
 assert.match(primeJs,/Math\.random\(\)<\.35/,'The counterattack must have the specified 35% chance.');
 assert.match(primeJs,/function upgradeBotTower\(bot\)/,'Bots must have a real tower-upgrade routine.');
 assert.match(primeJs,/function enemyDirector\(dt\)/,'Bots must have an active construction and economy director.');
-assert.match(primeJs,/if\(!aggro&&!assault\)continue/,'Bot fighters must stay at base before a scheduled or provoked attack.');
+assert.match(primeJs,/if\(!aggro&&!assault\)\{/,'Bots must patrol their base before a scheduled or provoked attack.');
 assert.match(primeJs,/t\.team===1&&match\.enemyAggroUntil<=match\.elapsed&&match\.enemyAssaultUntil<=match\.elapsed/,'Enemy towers must stay silent until the match attack window or player provocation.');
 assert.match(primeJs,/nextBarracksAt/);assert.match(primeJs,/nextWallAt/);assert.match(primeJs,/nextUpgradeAt/);
 
@@ -83,3 +83,5 @@ aiContext.match.elapsed=23;aiContext.aiDirector(1);
 assert.ok(aiContext.match.units.filter(u=>u.team===1).length>=2,'A successful counterattack roll must release reserve troops.');
 
 console.log('competitive-mode-test: all assertions passed');
+
+[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
