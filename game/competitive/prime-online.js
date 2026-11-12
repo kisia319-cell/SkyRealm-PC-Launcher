@@ -26,7 +26,7 @@ window.PrimeOnline={
   stopTransport();seq=0;let lastSent=0,lastReceived=0,lastInputSent="",busy=false;
   const role=config.role,matchId=config.match_id;
   transportTimer=setInterval(async()=>{
-   if(busy)return;busy=true;
+   if(busy)return;busy=true;const started=performance.now();
    try{
     if(role==="host"){
      if(window.PrimeGameFinished?.())return;
