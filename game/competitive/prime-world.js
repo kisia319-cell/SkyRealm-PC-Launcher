@@ -30,7 +30,7 @@ function renderLeaderboard(){
 }
 function renderHistory(){const root=$('history-list');if(!root)return;if(!profile.history.length){root.textContent='Матчей пока нет.';return;}root.innerHTML=profile.history.map((h,i)=>'<div class="bot" style="display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;margin:8px 0"><span><b>'+(h.label||'Матч')+'</b><br><small>'+String(h.date||'')+'</small><br><small>Соперники: '+(Array.isArray(h.opponents)?h.opponents.join(', '):'—')+'</small></span><strong>'+String(h.delta||'')+'</strong></div>').join('');}
 
-const PRIME_LANG_KEY='skyrealm_language';
+const PRIME_LANG_KEY='primeLauncher.language.v1';
 const PRIME_EN={
 'Главная':'Home','Топ рейтинга':'Leaderboard','История матчей':'Match history','Настройки':'Settings',
 'Войти в Prime':'Enter Prime','Настройки Prime':'Prime settings','Язык интерфейса':'Interface language',
@@ -42,50 +42,46 @@ const PRIME_EN={
 'Управление: WASD или стрелки · Атака: пробел / левая кнопка мыши · Выход из матча: Esc.':'Controls: WASD or arrows · Attack: Space / left mouse button · Leave match: Esc.',
 'Онлайн-режим временно недоступен: при выборе он покажет сообщение о доработке. Играть сейчас можно только в тренировке с ботами.':'Online mode is not available yet. You can currently play training matches against bots.',
 'ТВОЙ РЕЙТИНГ':'YOUR RATING','БАЛАНС':'BALANCE','ТВОЯ БАШНЯ':'YOUR TOWER','ПРОГРЕСС':'PROGRESS','ПОБЕДЫ':'WINS','МАТЧ ЗАВЕРШЁН':'MATCH FINISHED',
-'В МЕНЮ PRIME':'BACK TO PRIME MENU','ЕЩЁ МАТЧ':'PLAY AGAIN','ТРЕНИРОВКА':'TRAINING','ВЫХОД':'EXIT'
-};
-Object.assign(PRIME_EN,{
-'Настройки Prime':'Prime settings','История матчей':'Match history','Топ рейтинга':'Rankings','Главная':'Home',
+'В МЕНЮ PRIME':'BACK TO PRIME MENU','ЕЩЁ МАТЧ':'PLAY AGAIN','ТРЕНИРОВКА':'TRAINING','ВЫХОД':'EXIT',
+'Войди в Prime.':'Enter Prime.','Отдельный мир, тактические матчи и рейтинг ELO. Начни с тренировок против ботов или проверь себя в локальном рейтинговом режиме.':'A separate world, tactical matches and ELO rating. Train against bots or test yourself in local ranked play.',
+'▶ ЗАПУСТИТЬ PRIME':'▶ LAUNCH PRIME','Соревновательная платформа':'Competitive platform','СЕЗОН 01 · ЛОКАЛЬНЫЙ РЕЖИМ':'SEASON 01 · LOCAL MODE',
+'НОВАЯ ЭРА СРАЖЕНИЙ':'A NEW ERA OF BATTLES','ТВОИ МОНЕТЫ':'YOUR COINS','ТВОЯ БАШНЯ':'YOUR TOWER',
+'Уровень 1':'Level 1','Только в бою':'In battle only','0 матчей':'0 matches','побед · тренировки против ботов не меняют ELO':'wins · bot training does not change ELO',
+'Профиль игрока':'Player profile','монет':'coins','Войди в Prime.':'Enter Prime.',
+'Отображаются только игроки.':'Only players are shown.','Онлайн-режим временно недоступен: при выборе он покажет сообщение о доработке. Играть сейчас можно только в тренировке с ботами.':'Online mode is temporarily unavailable. You can currently play training matches against bots.',
 'Выбери сражение':'Choose a battle','Твой персонаж готовится к бою среди звёзд.':'Your character is preparing for battle among the stars.',
-'ФОРМАТ КОМАНДЫ':'TEAM FORMAT','ТИП МАТЧА':'MATCH TYPE','Онлайн-режим в доработке':'Online mode in development',
-'Зайдите в тренировку. Сетевой подбор игроков пока недоступен.':'Play training mode. Online matchmaking is not available yet.',
-'Зайдите в тренировку. Онлайн-матчи пока недоступны.':'Play training mode. Online matches are not available yet.',
-'Подготовка тренировочной арены...':'Preparing training arena...','Подготовка арены...':'Preparing arena...',
-'Расстановка башен...':'Placing towers...','Формируем команды...':'Forming teams...',
-'Подбираем ботов · ELO не меняется · +5 монет каждую секунду':'Finding training opponents · ELO is unchanged · +5 coins per second',
-'Управление: WASD или стрелки · Атака: пробел / левая кнопка мыши · Выход из матча: Esc.':'Controls: WASD or arrows · Attack: Space / left mouse button · Leave match: Esc.',
-'Онлайн-режим временно недоступен: при выборе он покажет сообщение о доработке. Играть сейчас можно только в тренировке с ботами.':'Online matchmaking is not connected yet. Training against bots is available.',
-'Экономика матча: +5 монет в секунду только во время боя. Монеты и уровни построек сбрасываются после матча. Улучшения доступны только на арене.':'Match economy: +5 coins per second during battle only. Coins and structure levels reset after each match. Upgrades are available only in the arena.',
-'Последние 100 результатов с датой и изменением ELO.':'Last 100 results with date and ELO change.',
-'Здесь отображаются только игроки. Тренировочные боты не участвуют в рейтинге. Онлайн-таблица появится после запуска серверного подбора.':'Only real player accounts belong on this leaderboard. Training bots are never ranked. Online rankings will appear when server matchmaking is connected.',
-'Матчей пока нет.':'No matches yet.','Язык интерфейса':'Interface language','Настройки':'Settings',
-'Уровень 1':'Level 1','Только в бою':'Battle only','ВЫХОД':'EXIT',
-'Победа':'Victory','Поражение':'Defeat','Выход':'Exit','В бой':'Battle','В меню':'Menu',
-'ТРЕНИРОВКА':'TRAINING','БОТ: РАЗВИВАЕТ БАЗУ':'BOT: DEVELOPING BASE','АТАКА ЧЕРЕЗ 05:00':'ATTACK IN 05:00',
-'БАЗА 1':'BASE 1','БАШНЯ ур. 1':'TOWER Lv. 1','Строительство':'Build','Баланс':'Balance',
-'Нанять воина':'Hire warrior','Соперник':'Opponent','Выйти':'Leave','Стена':'Wall','Башня':'Tower','Казарма':'Barracks',
-'Не хватает':'Not enough','Матч завершён. Монеты обнулены.':'Match finished. Coins have been reset.',
-'Изменение ELO: ':'ELO change: ','Без изменения ELO.':'No ELO change.'
-});
-const PRIME_ORIGINAL_TEXT=new WeakMap(),PRIME_RENDERED_TEXT=new WeakMap();
-function translatePrimeText(root=document.body){
- const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;
- while((node=walker.nextNode())){
-  const rendered=PRIME_RENDERED_TEXT.get(node);
-  let original=PRIME_ORIGINAL_TEXT.get(node);
-  if(original===undefined||(rendered!==undefined&&node.nodeValue!==rendered)){original=node.nodeValue;PRIME_ORIGINAL_TEXT.set(node,original);}
-  const trim=original.trim(),translated=document.documentElement.lang==='en'&&PRIME_EN[trim]?original.replace(trim,PRIME_EN[trim]):original;
-  if(node.nodeValue!==translated)node.nodeValue=translated;
-  PRIME_RENDERED_TEXT.set(node,translated);
- }
-}
-let primeLanguageObserver=null;
+'ФОРМАТ КОМАНДЫ':'TEAM FORMAT','ТИП МАТЧА':'MATCH TYPE','★ Онлайн-рейтинг':'★ Online ranked','⚔ Тренировка с ботами':'⚔ Bot training',
+'НАЙТИ МАТЧ':'FIND MATCH','НАЗАД':'BACK','Поиск соперников...':'Searching for opponents...',
+'БАЗА 1':'BASE 1','БАШНЯ ур. 1':'TOWER Lv. 1','ТРЕНИРОВКА':'TRAINING',
+'Строительство базы':'Base construction','🧱 Стена · 150 ◆':'🧱 Wall · 150 ◆','🏹 Башня лучника · 300 ◆':'🏹 Archer tower · 300 ◆',
+'⚔ Дом воинов · 450 ◆':'⚔ Barracks · 450 ◆','Выбери постройку, затем нажми на свободное место арены. Постройку можно улучшать нажатием по ней.':'Choose a structure, then click an empty place in the arena. Click a structure to upgrade it.',
+'Отмена':'Cancel','Баланс и развитие':'Balance and upgrades','Монеты':'Coins','Доход':'Income','Твоя башня':'Your tower',
+'Улучшение':'Upgrade','Армия':'Army','Соперник':'Opponent','База соперника':'Opponent base',
+'Соперник сначала строит и улучшает защиту. Плановая атака — раз в 5 минут. При нападении игрока может ответить раньше.':'The opponent builds and upgrades defenses first. Scheduled attacks occur every 5 minutes; it can retaliate if attacked.',
+'Управление: WASD или стрелки · Атака: пробел / левая кнопка мыши · Выход из матча: Esc · Полный экран: F11.':'Controls: WASD or arrows · Attack: Space / left mouse button · Leave match: Esc · Fullscreen: F11.',
+'Матч завершён. Монеты обнулены. ':'Match finished. Coins reset. ','Изменение ELO: ':'ELO change: ',
+'Не хватает ':'Not enough ',' монет.':' coins.','Башня уже максимального уровня.':'The tower is already at max level.',
+'Башня улучшена до уровня ':'Tower upgraded to level ','!':'!','Слишком близко к краю карты. Выбери место внутри арены.':'Too close to the map edge. Choose a spot inside the arena.',
+'Это место занято. Выбери свободную площадку.':'This spot is occupied. Choose an empty area.',
+'Стена построена.':'Wall built.','Башня лучника построена.':'Archer tower built.','Казарма построена.':'Barracks built.',
+'Выбор постройки отменён.':'Build selection cancelled.','Выбрано строительство. Нажми на свободное место арены.':'Build selected. Click an empty spot in the arena.',
+'Сначала построй казарму: выбери «Дом воинов» и место на арене.':'Build a barracks first: choose Barracks and a place in the arena.',
+'Для найма воина нужно 100 ◆.':'Recruiting a soldier costs 100 ◆.',
+'Подготовка тренировочной арены...':'Preparing training arena...','Подбираем ботов · ELO не меняется · +5 монет каждую секунду':'Finding bots · ELO unchanged · +5 coins per second',
+'Подготовка арены...':'Preparing arena...','Расстановка башен...':'Placing towers...','Формируем команды...':'Forming teams...',
+'Онлайн-режим в доработке':'Online mode under development','Зайдите в тренировку. Сетевой подбор игроков пока недоступен.':'Try training mode. Online matchmaking is not available yet.',
+'Зайдите в тренировку. Онлайн-матчи пока недоступны.':'Try training mode. Online matches are not available yet.',
+'ПОБЕДА':'VICTORY','ПОРАЖЕНИЕ':'DEFEAT','ВЫХОД':'EXIT',
+'БАЛАНС · ':'BALANCE · ','БАШНЯ ур. ':'TOWER Lv. ','БАЗА ':'BASE '
+};
 function applyPrimeLanguage(lang){
  const chosen=lang==='en'?'en':'ru';localStorage.setItem(PRIME_LANG_KEY,chosen);document.documentElement.lang=chosen;
- translatePrimeText(document.body);
+ const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let node;
+ while((node=walker.nextNode())){if(node.__primeRendered!==undefined&&node.nodeValue!==node.__primeRendered)node.__primeOriginal=node.nodeValue;if(node.__primeOriginal===undefined)node.__primeOriginal=node.nodeValue;const original=node.__primeOriginal,trim=original.trim();if(!trim)continue;const translated=chosen==='en'?(PRIME_EN[trim]||trim):trim;node.__primeRendered=original.replace(trim,translated);if(node.nodeValue!==node.__primeRendered)node.nodeValue=node.__primeRendered;}
  const select=$('prime-language');if(select&&select.value!==chosen)select.value=chosen;
 }
 
+const primeLanguageObserver=new MutationObserver(()=>{const lang=localStorage.getItem(PRIME_LANG_KEY)||'ru';if(lang==='en')applyPrimeLanguage(lang);});primeLanguageObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
 function show(page){
  scene=page;document.body.classList.toggle('battle-active',page==='battle');pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
  document.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
@@ -107,12 +103,7 @@ function beginSearch(){
  let ticks=0;searchTimer=window.setInterval(()=>{ticks++;$('search-title').textContent=['Подготовка арены...','Расстановка башен...','Формируем команды...'][ticks%3];if(ticks>=3){clearInterval(searchTimer);createMatch();}},550);
 }
 $('find-match').addEventListener('click',beginSearch);
-const languageSelect=$('prime-language');
-const launcherLanguage=new URLSearchParams(location.search).get('lang');
-const initialPrimeLanguage=launcherLanguage||localStorage.getItem(PRIME_LANG_KEY)||localStorage.getItem('primeLauncher.language.v1')||'ru';
-if(languageSelect){languageSelect.value=initialPrimeLanguage==='en'?'en':'ru';languageSelect.addEventListener('change',()=>applyPrimeLanguage(languageSelect.value));}
-applyPrimeLanguage(initialPrimeLanguage);
-if(window.MutationObserver){primeLanguageObserver=new MutationObserver(records=>{for(const record of records){if(record.type==='childList'){record.addedNodes.forEach(node=>{if(node.nodeType===Node.TEXT_NODE){translatePrimeText(node.parentNode||document.body);}else if(node.nodeType===Node.ELEMENT_NODE)translatePrimeText(node);});}else if(record.type==='characterData')translatePrimeText(record.target.parentNode||document.body);}});primeLanguageObserver.observe(document.body,{subtree:true,childList:true,characterData:true});}
+const languageSelect=$('prime-language');if(languageSelect){languageSelect.value=localStorage.getItem(PRIME_LANG_KEY)||'ru';languageSelect.addEventListener('change',()=>applyPrimeLanguage(languageSelect.value));}applyPrimeLanguage(localStorage.getItem(PRIME_LANG_KEY)||'ru');
 function createTower(x,y,owner,isPlayer=false){
  const level=isPlayer?(match?.playerTowerLevel||1):owner.towerLevel;
  return {x,y,owner,isPlayer,team:isPlayer?0:(owner.team===0?0:1),level,hp:560+level*180,maxHp:560+level*180,range:210+level*12,damage:8+level*3,fire:0};
@@ -134,9 +125,14 @@ function createMatch(){
   bots.push(bot);
   const tx=clamp(x+Math.cos(angle)*125,TILE*2,SIZE*TILE-TILE*2),ty=clamp(y+Math.sin(angle)*125,TILE*2,SIZE*TILE-TILE*2);
   towers.push(createTower(tx,ty,bp,false));
+  const fx=clamp(x-Math.cos(angle)*145,TILE*3,SIZE*TILE-TILE*3),fy=clamp(y-Math.sin(angle)*145,TILE*3,SIZE*TILE-TILE*3);
+  towers.push(createTower(fx,fy,bp,false));
  }
  worldMeta={...worldMeta,size:SIZE,lastTeam:teamSize,lastKind:matchKind};localStorage.setItem(WORLD_SAVE,JSON.stringify(worldMeta));
- match={player,bots,allies,towers,walls:[],barracks:[],units:[],playerCoins:0,playerTowerLevel:1,kind:'training',team:teamSize,started:performance.now(),finished:false,worldSeed:worldMeta.seed,botCoinTick:0,elapsed:0,nextEnemyAttackAt:300,enemyAssaultUntil:0,enemyAggroUntil:0,enemyDefenseBoostUntil:0,playerHasEngaged:false,enemyCounterAt:0,enemyCounterQueued:false,nextCounterRollAt:0,enemyNoticeUntil:0,playerBaseLevel:1,unitCounter:0,enemyState:'РАЗВИВАЕТ БАЗУ'};
+ const walls=[];
+ const perimeter=(cx,cy,team,owner)=>{for(let k=0;k<8;k++){const a=k*Math.PI/4;walls.push({x:clamp(cx+Math.cos(a)*105,TILE*2,SIZE*TILE-TILE*2),y:clamp(cy+Math.sin(a)*105,TILE*2,SIZE*TILE-TILE*2),team,owner,level:1,hp:340,maxHp:340});}};
+ perimeter(player.x,player.y,0,profile);for(const b of bots)perimeter(b.x,b.y,1,b.profile);
+ match={player,bots,allies,towers,walls,barracks:[],units:[],playerCoins:0,playerTowerLevel:1,kind:'training',team:teamSize,started:performance.now(),finished:false,worldSeed:worldMeta.seed,botCoinTick:0,elapsed:0,nextEnemyAttackAt:300,enemyAssaultUntil:0,enemyAggroUntil:0,enemyDefenseBoostUntil:0,playerHasEngaged:false,enemyCounterAt:0,enemyCounterQueued:false,nextCounterRollAt:0,enemyNoticeUntil:0,playerBaseLevel:1,unitCounter:0,enemyState:'РАЗВИВАЕТ БАЗУ'};
  attackCooldown=0;pressed.clear();$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
  renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');drawArena();
 }
@@ -169,7 +165,7 @@ function updateHud(){
  if(!match)return;
  const q=id=>document.getElementById(id),m=match,coins=Math.floor(m.playerCoins),upgrade=upgradeCost(m.playerTowerLevel);
  q('hud-hp').textContent=Math.ceil(m.player.hp)+' / '+m.player.maxHp;
- q('hud-coins').textContent=coins.toLocaleString('ru-RU');
+ q('hud-coins').textContent=coins.toLocaleString('ru-RU');q('hud-balance-value').textContent=coins.toLocaleString('ru-RU')+' ◆';
  q('hud-army').textContent=m.units.filter(u=>u.team===0&&u.alive).length;
  q('hud-base').textContent='БАЗА '+m.playerBaseLevel;
  q('hud-tower').textContent='БАШНЯ ур. '+match.playerTowerLevel;
@@ -192,7 +188,6 @@ function updateHud(){
  });
 }
 function upgradeStructureAt(x,y){
- if(!match||match.finished)return false;
  const m=match,items=[...m.walls,...m.barracks,...m.towers.filter(t=>t.team===0&&!t.isPlayer)];
  const o=items.find(v=>Math.hypot(v.x-x,v.y-y)<55);
  if(!o)return false;
@@ -310,17 +305,22 @@ function update(dt){
  let dx=(pressed.has('KeyD')||pressed.has('ArrowRight')?1:0)-(pressed.has('KeyA')||pressed.has('ArrowLeft')?1:0);
  let dy=(pressed.has('KeyS')||pressed.has('ArrowDown')?1:0)-(pressed.has('KeyW')||pressed.has('ArrowUp')?1:0);
  if(dx||dy){const len=Math.hypot(dx,dy);p.x=clamp(p.x+dx/len*p.speed*dt,TILE,SIZE*TILE-TILE);p.y=clamp(p.y+dy/len*p.speed*dt,TILE,SIZE*TILE-TILE);}
- p.flash=Math.max(0,p.flash-dt);
+ p.flash=Math.max(0,p.flash-dt);p.walkPhase=(p.walkPhase||0)+(dx||dy?dt*10:0);
  for(const ally of match.allies){
-  if(!ally.alive)continue;ally.attack=Math.max(0,ally.attack-dt);ally.flash=Math.max(0,ally.flash-dt);
+  if(!ally.alive)continue;ally.walkPhase=(ally.walkPhase||0)+dt*8;ally.attack=Math.max(0,ally.attack-dt);ally.flash=Math.max(0,ally.flash-dt);
   if(!match.playerHasEngaged&&match.enemyAssaultUntil<=match.elapsed){const dx=p.x-ally.x,dy=p.y-ally.y,dist=Math.hypot(dx,dy)||1;if(dist>78){ally.x+=dx/dist*ally.speed*.78*dt;ally.y+=dy/dist*ally.speed*.78*dt;}continue;}
   const target=match.bots.filter(b=>b.alive).sort((a,b)=>Math.hypot(a.x-ally.x,a.y-ally.y)-Math.hypot(b.x-ally.x,b.y-ally.y))[0];
   if(target){const vx=target.x-ally.x,vy=target.y-ally.y,dist=Math.hypot(vx,vy)||1;if(dist>58){ally.x+=vx/dist*ally.speed*dt;ally.y+=vy/dist*ally.speed*dt;}else if(ally.attack<=0){ally.attack=.9;alertEnemyBase();target.hp=Math.max(0,target.hp-19);target.flash=.14;if(target.hp<=0)target.alive=false;}}
  }
  for(const b of match.bots){
-  if(!b.alive)continue;
+  if(!b.alive)continue;b.walkPhase=(b.walkPhase||0)+dt*8;
   const aggro=match.enemyAggroUntil>match.elapsed,assault=match.enemyAssaultUntil>match.elapsed;
-  if(!aggro&&!assault)continue;
+  if(!aggro&&!assault){
+   const phase=match.elapsed*.42+b.id*2.1,px=b.x+Math.cos(phase)*42,py=b.y+Math.sin(phase*.83)*34,pd=Math.hypot(px-b.x,py-b.y)||1;
+   b.x+=((px-b.x)/pd)*b.speed*.22*dt;b.y+=((py-b.y)/pd)*b.speed*.22*dt;
+   if(Math.hypot(p.x-b.x,p.y-b.y)<245)alertEnemyBase();
+   continue;
+  }
   b.attack=Math.max(0,b.attack-dt);b.flash=Math.max(0,b.flash-dt);
   const playerTower=match.towers.find(t=>t.isPlayer),toTower=playerTower?Math.hypot(playerTower.x-b.x,playerTower.y-b.y):Infinity,toPlayer=Math.hypot(p.x-b.x,p.y-b.y),targetTower=playerTower&&playerTower.hp>0&&toTower<toPlayer+75;
   const tx=targetTower?playerTower.x:p.x,ty=targetTower?playerTower.y:p.y,vx=tx-b.x,vy=ty-b.y,dist=Math.hypot(vx,vy)||1;
@@ -328,7 +328,7 @@ function update(dt){
   if(dist>(targetTower?48:40)){b.x=clamp(b.x+vx/dist*b.speed*earlyBoost*dt,TILE,SIZE*TILE-TILE);b.y=clamp(b.y+vy/dist*b.speed*earlyBoost*dt,TILE,SIZE*TILE-TILE);}
   else if(b.attack<=0){b.attack=.88;if(targetTower)playerTower.hp=Math.max(0,playerTower.hp-(15+b.profile.towerLevel*2)*earlyBoost);else{p.hp=Math.max(0,p.hp-(12+b.profile.towerLevel*2)*earlyBoost);p.flash=.16;}}
  }
- for(const u of match.units){if(!u.alive)continue;u.attack=Math.max(0,u.attack-dt);const foes=u.team===0?[...match.bots.filter(b=>b.alive),...match.units.filter(v=>v.team===1&&v.alive)]:[p,...match.allies.filter(a=>a.alive),...match.units.filter(v=>v.team===0&&v.alive)];let foe=null,near=Infinity;for(const f of foes){const d=Math.hypot(f.x-u.x,f.y-u.y);if(d<near){near=d;foe=f;}}if(foe){if(near>u.range){u.x+=(foe.x-u.x)/near*u.speed*dt;u.y+=(foe.y-u.y)/near*u.speed*dt;}else if(u.attack<=0){u.attack=1.1;foe.hp=Math.max(0,foe.hp-u.damage);foe.flash=.14;if(foe.hp<=0)foe.alive=false;}}}
+ for(const u of match.units){if(!u.alive)continue;u.walkPhase=(u.walkPhase||0)+dt*9;u.attack=Math.max(0,u.attack-dt);const foes=u.team===0?[...match.bots.filter(b=>b.alive),...match.units.filter(v=>v.team===1&&v.alive)]:[p,...match.allies.filter(a=>a.alive),...match.units.filter(v=>v.team===0&&v.alive)];let foe=null,near=Infinity;for(const f of foes){const d=Math.hypot(f.x-u.x,f.y-u.y);if(d<near){near=d;foe=f;}}if(foe){if(near>u.range){u.x+=(foe.x-u.x)/near*u.speed*dt;u.y+=(foe.y-u.y)/near*u.speed*dt;}else if(u.attack<=0){u.attack=1.1;foe.hp=Math.max(0,foe.hp-u.damage);foe.flash=.14;if(foe.hp<=0)foe.alive=false;}}}
  for(const t of match.towers){
   if(t.hp<=0)continue;
   if(t.team===1&&match.enemyAggroUntil<=match.elapsed&&match.enemyAssaultUntil<=match.elapsed)continue;
@@ -337,11 +337,12 @@ function update(dt){
   let target=null,best=t.range;for(const f of targets){const d=Math.hypot(f.x-t.x,f.y-t.y);if(d<best){best=d;target=f;}}
   if(target){t.fire=Math.max(.55,1.45-t.level*.035);if(target===p){p.hp=Math.max(0,p.hp-t.damage);p.flash=.12;}else{if(t.team===0&&target.team===1)alertEnemyBase();target.hp=Math.max(0,target.hp-t.damage);target.flash=.12;if(target.hp<=0)target.alive=false;}}
  }
+ if(p.hp<=0){p.hp=p.maxHp;p.flash=1;p.x=SIZE*TILE/2-230;p.y=SIZE*TILE/2+155;}
  $('hp-fill').style.width=(p.hp/p.maxHp*100)+'%';$('hp-label').textContent=Math.ceil(p.hp)+' / '+p.maxHp;
  $('battle-coins').textContent=Math.floor(match.playerCoins)+' ◆';$('battle-tower').textContent='Уровень '+match.playerTowerLevel+' · '+(match.playerTowerLevel>=20?'MAX':upgradeCost(match.playerTowerLevel)+' ◆');
  for(const b of match.bots){const el=$('bot-hp-'+b.id);if(el)el.style.width=(b.hp/b.maxHp*100)+'%';const row=$('bot-'+b.id);if(row&&!b.alive)row.style.opacity='.35';}
  match.towers.filter(t=>t.team===1).forEach((t,i)=>{const el=$('tower-hp-'+i);if(el)el.style.width=(t.hp/t.maxHp*100)+'%';});
- const ownTower=match.towers.find(t=>t.isPlayer);if(p.hp<=0||(ownTower&&ownTower.hp<=0)){finish(false);return;}if(match.bots.every(b=>!b.alive)||match.towers.filter(t=>t.team===1).every(t=>t.hp<=0)){finish(true);return;}
+ const ownTower=match.towers.find(t=>t.isPlayer);if(ownTower&&ownTower.hp<=0){finish(false);return;}if(match.towers.filter(t=>t.team===1).every(t=>t.hp<=0)){finish(true);return;}
 }
 function attack(){
  if(!match||match.finished||attackCooldown>0)return;attackCooldown=.42;
@@ -362,7 +363,7 @@ function drawTower(ctx,t,camX,camY){
  ctx.fillStyle='#bfc1c4';ctx.fillRect(-39,-2,9,23);ctx.fillRect(30,-2,9,23);ctx.fillRect(-15,-53,30,8);
  ctx.fillStyle=t.team===0?'#ff8a36':'#e45b42';ctx.beginPath();ctx.moveTo(0,-75);ctx.lineTo(0,-53);ctx.lineTo(19,-59);ctx.lineTo(0,-65);ctx.fill();
  ctx.fillStyle='#111';ctx.fillRect(-29,31,58,5);ctx.fillStyle='#ff6435';ctx.fillRect(-29,31,58*Math.max(0,t.hp/t.maxHp),5);
- ctx.fillStyle='#fff';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText((t.isPlayer?'ТВОЯ БАШНЯ':t.team===0?'СОЮЗНАЯ БАШНЯ':t.owner.name)+' · ур.'+l,0,-83);
+ ctx.fillStyle='#fff';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText((localStorage.getItem(PRIME_LANG_KEY)==='en'?(t.isPlayer?'YOUR TOWER':t.team===0?'ALLY TOWER':t.owner.name)+' · Lv. '+l:(t.isPlayer?'ТВОЯ БАШНЯ':t.team===0?'СОЮЗНАЯ БАШНЯ':t.owner.name)+' · ур.'+l),0,-83);
  ctx.restore();
 }
 function drawArena(){
@@ -374,26 +375,51 @@ function drawArena(){
   const n=(x*17+y*31+(x*y)%23+match.worldSeed)%9;
   ctx.fillStyle=['#568d4b','#5b934f','#609853','#548849','#639b55','#5a914d','#5d9551','#568c49','#629651'][n];
   const sx=x*TILE-camX,sy=y*TILE-camY;ctx.fillRect(sx,sy,TILE+1,TILE+1);
-  ctx.fillStyle='rgba(255,255,255,.055)';ctx.fillRect(sx+3,sy+3,7,2);ctx.fillRect(sx+20,sy+19,5,2);
-  ctx.fillStyle='rgba(21,54,35,.18)';ctx.strokeRect(sx+.5,sy+.5,TILE,TILE);
+  const seed=(x*73856093^y*19349663^match.worldSeed)>>>0;
+  ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(sx+((seed>>>2)%25),sy+((seed>>>7)%25),2+(seed%4),2);
+  ctx.fillStyle='rgba(20,48,28,.24)';ctx.fillRect(sx+((seed>>>11)%27),sy+((seed>>>16)%27),3,2);
+  ctx.fillStyle='rgba(132,112,70,.28)';ctx.fillRect(sx+((seed>>>20)%29),sy+((seed>>>24)%27),2,2);
+  if(seed%11===0){ctx.strokeStyle='rgba(32,72,35,.4)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx+8,sy+22);ctx.lineTo(sx+11,sy+15);ctx.moveTo(sx+12,sy+23);ctx.lineTo(sx+15,sy+17);ctx.stroke();}
+  if(seed%37===0){ctx.fillStyle='#a3a08a';ctx.beginPath();ctx.ellipse(sx+18,sy+13,3,2,seed%3,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle='rgba(21,54,35,.10)';ctx.strokeRect(sx+.5,sy+.5,TILE,TILE);
   if((x*13+y*7+match.worldSeed)%47===0){ctx.fillStyle='#b9c77a';ctx.fillRect(sx+14,sy+12,3,3);}
  }
- match.walls.forEach(w=>{const x=w.x-camX,y=w.y-camY;ctx.fillStyle='#252a31';ctx.fillRect(x-25,y-10,50,22);ctx.fillStyle='#8b929b';ctx.fillRect(x-23,y-14,46,6);ctx.fillStyle=w.team===0?'#ff873d':'#d65b4a';ctx.fillRect(x-25,y+14,50*Math.max(0,w.hp/w.maxHp),4);ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText('СТЕНА ур.'+w.level,x,y-20);});match.barracks.forEach(b=>{const x=b.x-camX,y=b.y-camY;ctx.fillStyle='#49372b';ctx.fillRect(x-22,y-20,44,38);ctx.fillStyle='#9a6a43';ctx.beginPath();ctx.moveTo(x-27,y-20);ctx.lineTo(x,y-42);ctx.lineTo(x+27,y-20);ctx.fill();ctx.fillStyle='#ff9b62';ctx.fillRect(x-5,y-8,10,26);ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText('КАЗАРМА ур.'+b.level,x,y-47);});match.towers.forEach(t=>drawTower(ctx,t,camX,camY));
+ match.walls.forEach(w=>{const x=w.x-camX,y=w.y-camY;ctx.fillStyle='#252a31';ctx.fillRect(x-25,y-10,50,22);ctx.fillStyle='#8b929b';ctx.fillRect(x-23,y-14,46,6);ctx.fillStyle=w.team===0?'#ff873d':'#d65b4a';ctx.fillRect(x-25,y+14,50*Math.max(0,w.hp/w.maxHp),4);ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText((localStorage.getItem(PRIME_LANG_KEY)==='en'?'WALL Lv. ':'СТЕНА ур.')+w.level,x,y-20);});match.barracks.forEach(b=>{const x=b.x-camX,y=b.y-camY;ctx.fillStyle='#49372b';ctx.fillRect(x-22,y-20,44,38);ctx.fillStyle='#9a6a43';ctx.beginPath();ctx.moveTo(x-27,y-20);ctx.lineTo(x,y-42);ctx.lineTo(x+27,y-20);ctx.fill();ctx.fillStyle='#ff9b62';ctx.fillRect(x-5,y-8,10,26);ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText((localStorage.getItem(PRIME_LANG_KEY)==='en'?'BARRACKS Lv. ':'КАЗАРМА ур.')+b.level,x,y-47);});match.towers.forEach(t=>drawTower(ctx,t,camX,camY));
  function fighter(f,isPlayer,isAlly=false){
-  const x=f.x-camX,y=f.y-camY;
-  ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(x,y+13,13,5,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=f.flash>0?'#fff':isPlayer?'#252d42':isAlly?'#183b62':'#42251c';ctx.fillRect(x-9,y-4,18,19);
-  ctx.fillStyle=isPlayer?'#ff7a2b':isAlly?'#54aaff':'#d95a36';ctx.fillRect(x-8,y-4,16,4);
-  ctx.fillStyle='#e8bd96';ctx.beginPath();ctx.arc(x,y-13,8,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#2a2020';ctx.fillRect(x-8,y-21,16,6);ctx.fillStyle='#fff';ctx.fillRect(x-3,y-15,2,2);ctx.fillRect(x+3,y-15,2,2);ctx.fillStyle='#39221c';ctx.fillRect(x-2,y-8,4,1);
-  ctx.fillStyle='#fff';ctx.font='11px Segoe UI';ctx.textAlign='center';ctx.fillText(isPlayer?'Kisia':f.name,x,y-29);
-  if(!isPlayer){ctx.fillStyle='#1a0f0d';ctx.fillRect(x-17,y-37,34,4);ctx.fillStyle='#ff6428';ctx.fillRect(x-17,y-37,34*(f.hp/f.maxHp),4);}
+  const x=f.x-camX,y=f.y-camY,phase=(f.walkPhase||performance.now()/190)+(f.id||0),step=Math.sin(phase)*3.2;
+  const skin=isPlayer?'#e8bd98':isAlly?'#d9ad86':'#d4a07d',cloth=isPlayer?'#263d59':isAlly?'#17618b':'#5b3027',trim=isPlayer?'#ff8a36':isAlly?'#63c8ff':'#e36a42';
+  ctx.save();ctx.translate(x,y);
+  ctx.fillStyle='rgba(0,0,0,.34)';ctx.beginPath();ctx.ellipse(0,15,15,5,0,0,Math.PI*2);ctx.fill();
+  // articulated boots and legs
+  ctx.strokeStyle='#20242b';ctx.lineWidth=6;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-4,7);ctx.lineTo(-5+step,18);ctx.moveTo(4,7);ctx.lineTo(5-step,18);ctx.stroke();
+  ctx.fillStyle='#15191f';ctx.fillRect(-10+step,16,9,4);ctx.fillRect(2-step,16,9,4);
+  // torso with layered armor and shoulders
+  const body=ctx.createLinearGradient(-10,-5,10,10);body.addColorStop(0,'#aab5c3');body.addColorStop(.18,cloth);body.addColorStop(.75,'#202a37');body.addColorStop(1,'#111820');
+  ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(-8,-7);ctx.lineTo(-12,-1);ctx.lineTo(-9,9);ctx.lineTo(9,9);ctx.lineTo(12,-1);ctx.lineTo(8,-7);ctx.closePath();ctx.fill();
+  ctx.fillStyle=trim;ctx.fillRect(-2,-5,4,13);ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(-7,-5,3,9);
+  ctx.fillStyle=cloth;ctx.beginPath();ctx.arc(-10,-3,4,0,Math.PI*2);ctx.arc(10,-3,4,0,Math.PI*2);ctx.fill();
+  // arms swing while walking
+  ctx.strokeStyle=skin;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-10,-1);ctx.lineTo(-13-step*.45,7);ctx.moveTo(10,-1);ctx.lineTo(13+step*.45,7);ctx.stroke();
+  // neck and head with hair/helmet silhouette
+  ctx.fillStyle=skin;ctx.fillRect(-3,-12,6,6);
+  const head=ctx.createRadialGradient(-3,-22,1,0,-19,11);head.addColorStop(0,'#ffe0bd');head.addColorStop(.7,skin);head.addColorStop(1,'#9b624d');
+  ctx.fillStyle=head;ctx.beginPath();ctx.ellipse(0,-19,8,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=isPlayer?'#202b3a':isAlly?'#142c43':'#30201e';ctx.beginPath();ctx.moveTo(-9,-20);ctx.quadraticCurveTo(-10,-32,0,-30);ctx.quadraticCurveTo(10,-31,9,-19);ctx.lineTo(5,-23);ctx.lineTo(-5,-24);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#f4eee4';ctx.beginPath();ctx.ellipse(-3,-19,2.1,1.6,0,0,Math.PI*2);ctx.ellipse(3,-19,2.1,1.6,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#263d50';ctx.beginPath();ctx.arc(-2.7,-19,1,0,Math.PI*2);ctx.arc(3.3,-19,1,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#754638';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-2,-13);ctx.quadraticCurveTo(0,-12,2,-13);ctx.stroke();
+  if(f.flash>0){ctx.globalAlpha=.65;ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(0,-10,14,21,0,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+  ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(isPlayer?'Kisia':(f.name||'Воин'),x,y-36);ctx.shadowBlur=0;
+  if(!isPlayer){ctx.fillStyle='#140d0b';ctx.fillRect(x-18,y-43,36,4);ctx.fillStyle=trim;ctx.fillRect(x-18,y-43,36*Math.max(0,f.hp/f.maxHp),4);}
  }
  match.bots.forEach(b=>{if(b.alive)fighter(b,false);});match.allies.forEach(a=>{if(a.alive)fighter(a,false,true);});match.units.forEach(u=>{if(u.alive){fighter(u,false,u.team===0);}});fighter(p,true);
- ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(12,12,175,29);ctx.fillStyle='#fff';ctx.font='12px Segoe UI';ctx.textAlign='left';ctx.fillText('АРЕНА PRIME · 190 × 190',22,31);
+ // Arena title removed.
 }
 function keyDirection(code){return ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(code);}
 window.addEventListener('keydown',e=>{
+ if(e.code==='F11'){e.preventDefault();if(document.fullscreenElement){document.exitFullscreen?.();}else{document.documentElement.requestFullscreen?.().catch(()=>{});}return;}
  if(scene!=='battle')return;
  if(keyDirection(e.code)){pressed.add(e.code);e.preventDefault();e.stopPropagation();}
  else if(e.code==='Space'){e.preventDefault();attack();}
@@ -435,3 +461,5 @@ updateProfile();
 // Economy accrues outside battles.
 window.setInterval(()=>{if(!match||match.finished){match.playerCoins+=5;for(const b of botsProfile)b.coins+=5;}if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent='Башня ур. '+b.profile.towerLevel+' · '+b.profile.coins+' ◆ · '+b.elo+' ELO';});updateHud();}save();},1000);
 })();
+
+[executed on device: DESKTOP-J3FNV3N (393b286a-047d-423b-ad40-4dc164e17a6c)]
