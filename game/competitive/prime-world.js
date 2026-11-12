@@ -216,7 +216,7 @@ function renderTowerList(){
 function finish(win,abandoned=false,serverResult=null){
  if(!match||match.finished)return;const online=match.online;match.finished=true;stopLoop();pressed.clear();if(online)PrimeOnline.stopTransport();
  profile.matches++;if(win&&!abandoned)profile.wins++;const eloDelta=abandoned?0:(win?20+Math.floor(Math.random()*11):-(20+Math.floor(Math.random()*16)));if(!online){if(match.kind==='training')profile.botElo=Math.max(0,(profile.botElo||0)+eloDelta);else profile.elo=Math.max(0,profile.elo+eloDelta);}profile.history.unshift({mode:match.kind==='training'?'BOT':online?'ONLINE':'PLAYER',label:(win?'ПОБЕДА':abandoned?'ВЫХОД':'ПОРАЖЕНИЕ')+' · 1×1',delta:online?'Рейтинг обновляется сервером':abandoned?'Без изменения ELO':(eloDelta>0?'+'+eloDelta+' ELO':eloDelta+' ELO'),eloDelta,date:new Date().toLocaleString('ru-RU'),opponents:match.bots.map(b=>b.name)});profile.history=profile.history.slice(0,100);match.playerCoins=0;save();renderHistory();
- if(online&&online.role==='host'&&!serverResult){const winner=abandoned?null:(win?online.selfId:online.opponentId);PrimeOnline.finish(online.match_id,winner,abandoned?'abandoned':'completed').then(r=>{const copy=$('result-copy');if(copy)copy.textContent='Матч завершён. Рейтинг изменён сервером: '+(r.rating_delta_a>0?'+':'')+(r.rating_delta_a??0)+' ELO у первого игрока.';}).catch(e=>console.error(e));}
+ if(online&&online.role==='host'&&!serverResult){const winner=abandoned?online.opponentId:(win?online.selfId:online.opponentId);PrimeOnline.finish(online.match_id,winner,abandoned?'abandoned':'completed').then(async r=>{const stats=await PrimeOnline.stats();profile.elo=Number(stats.stats?.rating)||profile.elo;profile.matches=Number(stats.stats?.matches)||profile.matches;profile.wins=Number(stats.stats?.wins)||profile.wins;save();renderLeaderboard();const copy=$('result-copy');if(copy)copy.textContent='Матч завершён. Рейтинг обновлён сервером.';}).catch(e=>console.error(e));}if(online&&online.role==='guest'&&abandoned){PrimeOnline.leave(online.match_id).catch(e=>console.error(e));}
  $('result-title').textContent=win?'ПОБЕДА':'ПОРАЖЕНИЕ';
  $('result-copy').textContent='Матч завершён. Монеты обнулены. '+(abandoned?'ELO без изменений.':'Изменение ELO: '+(eloDelta>0?'+':'')+eloDelta);
  $('result-modal').classList.remove('hidden');
@@ -724,8 +724,7 @@ function update(dt){
  $('battle-coins').textContent=Math.floor(match.playerCoins)+' ◆';$('battle-tower').textContent='Уровень '+match.playerTowerLevel+' · '+(match.playerTowerLevel>=20?'MAX':upgradeCost(match.playerTowerLevel)+' ◆');
  for(const bot of match.bots){const bar=$('bot-hp-'+bot.id);if(bar)bar.style.width=(bot.hp/bot.maxHp*100)+'%';const row=$('bot-'+bot.id);if(row)row.style.opacity=bot.alive?'1':'.35';}
  match.towers.filter(t=>t.team===1).forEach((tower,i)=>{const bar=$('tower-hp-'+i);if(bar)bar.style.width=(tower.hp/tower.maxHp*100)+'%';});
- const ownTower=match.towers.find(t=>t.isPlayer);if(ownTower&&ownTower.hp<=0){finish(false);return;}
- if(match.towers.filter(t=>t.team===1).every(t=>t.hp<=0)){finish(true);return;}
+ if(!match.online||match.online.role==='host'){const ownTower=match.towers.find(t=>t.isPlayer);if(ownTower&&ownTower.hp<=0){finish(false);return;}if(match.towers.filter(t=>t.team===1).every(t=>t.hp<=0)){finish(true);return;}}
  drawMiniMap();}
 }
 function attack(){
