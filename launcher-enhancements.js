@@ -579,11 +579,125 @@
   async function loadRoadmapContent(){await Promise.all([loadRoadmapVotes(),loadRoadmapHistory()]);}
   function openRoadmapPage(){ensureRoadmapPage();document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-roadmap'));document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page==='roadmap'));if($('#crumb-label'))$('#crumb-label').textContent='ГОЛОСОВАНИЯ И ДОРОЖНАЯ КАРТА';if($('.main'))$('.main').scrollTop=0;switchRoadmapTab('voting');loadRoadmapContent();}
 
+  // Practical Start Center tools, all wired to native launcher APIs or persisted preferences.
+  const COMMAND_SESSION_KEY='skyrealm_launcher_session_planner_v1',COMMAND_THEME_KEY='skyrealm_launcher_accent_v1',COMMAND_PRESET_KEY='skyrealm_launcher_perf_profile_v1';
+  const commandThemes={ember:{label:'Огонь',accent:'#ff7438',soft:'rgba(255,116,56,.13)',line:'rgba(255,144,84,.42)'},violet:{label:'Аметист',accent:'#b18aff',soft:'rgba(177,138,255,.14)',line:'rgba(177,138,255,.42)'},ice:{label:'Лёд',accent:'#62cfff',soft:'rgba(98,207,255,.14)',line:'rgba(98,207,255,.42)'},emerald:{label:'Изумруд',accent:'#55d6a2',soft:'rgba(85,214,162,.14)',line:'rgba(85,214,162,.42)'}};
+  function applyCommandTheme(name){
+    const key=commandThemes[name]?name:'ember',theme=commandThemes[key],root=document.documentElement;
+    root.style.setProperty('--orange',theme.accent);root.style.setProperty('--orange2',theme.accent);root.style.setProperty('--command-accent',theme.accent);root.style.setProperty('--command-soft',theme.soft);root.style.setProperty('--command-line',theme.line);root.dataset.commandTheme=key;
+    localStorage.setItem(COMMAND_THEME_KEY,key);
+    document.querySelectorAll('[data-command-theme]').forEach(b=>b.classList.toggle('selected',b.dataset.commandTheme===key));
+  }
+  function readCommandSession(){
+    try{const r=JSON.parse(localStorage.getItem(COMMAND_SESSION_KEY)||'{}');return {duration:[25,45,60,90].includes(Number(r.duration))?Number(r.duration):45,remainingMs:Math.max(0,Number(r.remainingMs)||0),endsAt:Math.max(0,Number(r.endsAt)||0),running:r.running===true,completed:Array.isArray(r.completed)?r.completed.slice(-30):[]};}
+    catch(_){return {duration:45,remainingMs:0,endsAt:0,running:false,completed:[]};}
+  }
+  let commandSession=readCommandSession(),commandSessionTimer=null;
+  function saveCommandSession(){localStorage.setItem(COMMAND_SESSION_KEY,JSON.stringify(commandSession));}
+  function commandSessionRemaining(){return commandSession.running?Math.max(0,commandSession.endsAt-Date.now()):commandSession.remainingMs;}
+  function commandTime(ms){const n=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');}
+  function renderCommandSession(){
+    const clock=$('#command-session-clock');if(!clock)return;
+    const rem=commandSessionRemaining();clock.textContent=commandTime(rem);
+    const state=$('#command-session-state');if(state)state.textContent=commandSession.running?'Сессия идёт':rem>0?'Пауза':'Готов к запуску';
+    const fill=$('#command-session-fill');if(fill){const total=commandSession.duration*60000;fill.style.width=(rem>0?Math.max(0,Math.min(100,(1-rem/total)*100)):0)+'%';}
+    const history=$('#command-session-history');if(history)history.textContent=commandSession.completed.length?'Завершено сессий: '+commandSession.completed.length+' · Всего: '+commandSession.completed.reduce((n,x)=>n+(Number(x.minutes)||0),0)+' мин':'Завершённых сессий пока нет.';
+    const start=$('#command-session-start'),pause=$('#command-session-pause'),reset=$('#command-session-reset');
+    if(start)start.disabled=commandSession.running;if(pause)pause.disabled=!commandSession.running;if(reset)reset.disabled=!commandSession.running&&rem===0;
+  }
+  function tickCommandSession(){
+    if(commandSession.running&&commandSessionRemaining()<=0){commandSession.running=false;commandSession.remainingMs=0;commandSession.endsAt=0;commandSession.completed.push({date:new Date().toISOString(),minutes:commandSession.duration});commandSession.completed=commandSession.completed.slice(-30);saveCommandSession();const label=$('#command-session-label');if(label)label.textContent='Время сессии закончилось. Можно сделать перерыв.';}
+    renderCommandSession();
+  }
+  function ensureCommandCenterPage(){
+    const nav=$('.nav'),main=$('.main');if(!nav||!main)return;
+    if(!$('[data-page="command-center"]')){const b=document.createElement('button');b.type='button';b.className='nav-item';b.dataset.page='command-center';b.innerHTML='<span class="nav-ico">✦</span><span>Стартовый центр</span><span class="nav-badge">NEW</span>';nav.insertBefore(b,$('[data-page="competitive"]')||null);}
+    if(!$('#page-command-center')){
+      const page=document.createElement('section');page.className='page inner-page command-center-page';page.id='page-command-center';
+      page.innerHTML=[
+      '<div class="page-heading command-heading"><div><div class="section-kicker">PRIMELAUNCHER · ИНСТРУМЕНТЫ</div><h1>Стартовый <span>центр</span></h1><p>Быстрый запуск, профили производительности, диагностика и инструменты игровой сессии.</p></div><span class="command-build-tag">v1.2.51 · COMMAND CENTER</span></div>',
+      '<div class="command-launch-grid">',
+      '<article class="command-card command-launch-card"><div class="command-icon">▶</div><div class="command-kicker">ОСНОВНАЯ ИГРА</div><h2>SkyRealm</h2><p>Запуск обычного игрового мира через штатный установщик и обновлятор.</p><button class="primary-btn" id="command-launch-game" type="button">Запустить SkyRealm ↗</button></article>',
+      '<article class="command-card command-launch-card"><div class="command-icon">⚔</div><div class="command-kicker">СОРЕВНОВАНИЯ</div><h2>PrimeLauncher</h2><p>Отдельный соревновательный режим с матчами, базами и временной экономикой.</p><button class="primary-btn" id="command-launch-prime" type="button">Запустить Prime ↗</button></article>',
+      '<article class="command-card command-launch-card"><div class="command-icon">⌘</div><div class="command-kicker">ИНСТРУМЕНТЫ СОЗДАНИЯ</div><h2>SkyRealm Mod Studio</h2><p>Открыть установленный редактор модификаций через Windows-лаунчер.</p><button class="secondary-btn" id="command-launch-studio" type="button">Открыть Mod Studio ↗</button></article></div>',
+      '<div class="command-section"><div class="command-section-head"><div><div class="section-kicker">ПРОИЗВОДИТЕЛЬНОСТЬ</div><h2>Профили компьютера</h2><p>Меняют существующие параметры игры и сохраняют их через штатный механизм.</p></div><span class="command-feedback" id="command-profile-status">Выбери профиль</span></div>',
+      '<div class="command-preset-grid"><button class="command-preset" data-performance-preset="eco" type="button"><b>♧ Экономный</b><span>Низкая графика · 30 FPS · меньше нагрузки</span></button><button class="command-preset" data-performance-preset="balanced" type="button"><b>◈ Сбалансированный</b><span>Средняя графика · 60 FPS · стандартный режим</span></button><button class="command-preset" data-performance-preset="competitive" type="button"><b>⚡ Соревновательный</b><span>Низкая графика · до 120 FPS · без VSync</span></button><button class="command-preset" data-performance-preset="quality" type="button"><b>✧ Качество</b><span>Высокая графика · 60 FPS · синхронизация</span></button></div></div>',
+      '<div class="command-two-column"><article class="command-card"><div class="command-section-head"><div><div class="section-kicker">ПЕРЕД ЗАПУСКОМ</div><h2>Проверка готовности</h2></div><span class="command-status-dot" id="command-preflight-dot"></span></div><p>Проверяет игровые файлы, версии, загрузку процессора, память и свободное место. Данные остаются на этом компьютере.</p><button class="secondary-btn" id="command-preflight" type="button">Проверить компьютер и игру</button><div class="command-report" id="command-preflight-report" aria-live="polite">Проверка ещё не запускалась.</div></article>',
+      '<article class="command-card"><div class="command-section-head"><div><div class="section-kicker">БЕЗОПАСНОСТЬ МИРОВ</div><h2>Резервное копирование</h2></div><span class="command-status-dot command-status-safe"></span></div><p>Создай архив сохранений или восстанови последний архив. Перед восстановлением будет создана страховочная копия.</p><div class="command-actions"><button class="secondary-btn" id="command-backup-worlds" type="button">Создать копию</button><button class="secondary-btn" id="command-restore-worlds" type="button">Восстановить копию</button></div><div class="command-report" id="command-backup-report" aria-live="polite">Игра должна быть закрыта во время операции.</div></article></div>',
+      '<div class="command-two-column"><article class="command-card command-session-card"><div class="command-section-head"><div><div class="section-kicker">ЛИЧНЫЙ ПЛАНИРОВЩИК</div><h2>Таймер игровой сессии</h2></div><span id="command-session-state">Готов к запуску</span></div><div class="command-session-clock" id="command-session-clock">45:00</div><div class="command-session-track"><span id="command-session-fill"></span></div>',
+      '<div class="command-duration-row" id="command-session-durations"><button data-session-minutes="25" type="button">25 мин</button><button data-session-minutes="45" type="button">45 мин</button><button data-session-minutes="60" type="button">60 мин</button><button data-session-minutes="90" type="button">90 мин</button></div><div class="command-actions"><button class="primary-btn" id="command-session-start" type="button">Начать</button><button class="secondary-btn" id="command-session-pause" type="button" disabled>Пауза</button><button class="secondary-btn" id="command-session-reset" type="button" disabled>Сбросить</button></div><p id="command-session-label" class="command-note">Это личный таймер, а не автоматический учёт фактически проведённого в игре времени.</p><div class="command-report" id="command-session-history">Завершённых сессий пока нет.</div></article>',
+      '<article class="command-card"><div class="command-section-head"><div><div class="section-kicker">ВНЕШНИЙ ВИД</div><h2>Акцентный стиль</h2></div><span class="command-feedback">Сохраняется локально</span></div><p>Измени цветовую тему лаунчера, не затрагивая игровые миры и сохранения.</p><div class="command-theme-grid"><button data-command-theme="ember" type="button"><i class="theme-dot ember"></i>Огонь</button><button data-command-theme="violet" type="button"><i class="theme-dot violet"></i>Аметист</button><button data-command-theme="ice" type="button"><i class="theme-dot ice"></i>Лёд</button><button data-command-theme="emerald" type="button"><i class="theme-dot emerald"></i>Изумруд</button></div><div class="command-theme-preview"><span></span><b>SkyRealm</b><small>Предпросмотр акцента</small></div></article></div>'
+      ].join('');
+      main.append(page);
+      page.querySelectorAll('[data-command-theme]').forEach(b=>b.addEventListener('click',()=>applyCommandTheme(b.dataset.commandTheme)));
+      page.querySelectorAll('[data-performance-preset]').forEach(b=>b.addEventListener('click',()=>applyPerformancePreset(b.dataset.performancePreset)));
+      page.querySelectorAll('[data-session-minutes]').forEach(b=>b.addEventListener('click',()=>{setCommandSessionDuration(b.dataset.sessionMinutes);page.querySelectorAll('[data-session-minutes]').forEach(x=>x.classList.toggle('selected',x===b));}));
+      $('#command-launch-game')?.addEventListener('click',()=>$('#play-game')?.click());
+      $('#command-launch-prime')?.addEventListener('click',()=>$('#play-competitive')?.click());
+      $('#command-launch-studio')?.addEventListener('click',launchCommandStudio);
+      $('#command-preflight')?.addEventListener('click',runCommandPreflight);
+      $('#command-backup-worlds')?.addEventListener('click',runCommandBackup);
+      $('#command-restore-worlds')?.addEventListener('click',runCommandRestore);
+      $('#command-session-start')?.addEventListener('click',startCommandSession);
+      $('#command-session-pause')?.addEventListener('click',pauseCommandSession);
+      $('#command-session-reset')?.addEventListener('click',resetCommandSession);
+      applyCommandTheme(localStorage.getItem(COMMAND_THEME_KEY)||'ember');
+      const preset=localStorage.getItem(COMMAND_PRESET_KEY);page.querySelectorAll('[data-performance-preset]').forEach(b=>b.classList.toggle('selected',b.dataset.performancePreset===preset));
+      page.querySelectorAll('[data-session-minutes]').forEach(b=>b.classList.toggle('selected',Number(b.dataset.sessionMinutes)===commandSession.duration));
+      if(!commandSession.running&&commandSession.remainingMs===0)commandSession.remainingMs=commandSession.duration*60000;
+      renderCommandSession();saveCommandSession();if(!commandSessionTimer)commandSessionTimer=window.setInterval(tickCommandSession,1000);
+    }
+  }
+  function openCommandCenterPage(){
+    ensureCommandCenterPage();document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-command-center'));
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page==='command-center'));
+    if($('#crumb-label'))$('#crumb-label').textContent='СТАРТОВЫЙ ЦЕНТР';if($('.main'))$('.main').scrollTop=0;
+  }
+  function applyPerformancePreset(name){
+    const presets={eco:{quality:'low',fps:30,vsync:true,saver:true,label:'Экономный'},balanced:{quality:'medium',fps:60,vsync:true,saver:false,label:'Сбалансированный'},competitive:{quality:'low',fps:120,vsync:false,saver:true,label:'Соревновательный'},quality:{quality:'high',fps:60,vsync:true,saver:false,label:'Качество'}};
+    const p=presets[name];if(!p)return;
+    const fields=[['#graphics-quality-select',p.quality],['#fps-limit-select',String(p.fps)],['#vsync-toggle',p.vsync],['#performance-saver-toggle',p.saver]];
+    for(const [selector,value] of fields){const el=$(selector);if(!el)continue;if(el.type==='checkbox')el.checked=!!value;else el.value=String(value);el.dispatchEvent(new Event('change',{bubbles:true}));}
+    localStorage.setItem(COMMAND_PRESET_KEY,name);document.querySelectorAll('[data-performance-preset]').forEach(b=>b.classList.toggle('selected',b.dataset.performancePreset===name));
+    const status=$('#command-profile-status');if(status)status.textContent='Активен профиль: '+p.label+'. Настройки сохранены.';
+  }
+  async function launchCommandStudio(){
+    const button=$('#command-launch-studio'),report=$('#command-preflight-report');if(button)button.disabled=true;
+    try{const api=window.pywebview?.api;if(!api?.launch_mod_studio)throw new Error('Запуск Mod Studio доступен в установленной версии Windows PrimeLauncher.');const result=await api.launch_mod_studio();if(!result?.ok)throw new Error(result?.message||'Не удалось открыть Mod Studio.');if(report)report.textContent=result.message||'Mod Studio запущен.';}
+    catch(e){if(report)report.textContent=e.message||'Не удалось открыть Mod Studio.';}finally{if(button)button.disabled=false;}
+  }
+  async function runCommandPreflight(){
+    const button=$('#command-preflight'),report=$('#command-preflight-report'),dot=$('#command-preflight-dot');if(button)button.disabled=true;if(report)report.textContent='Проверяем игровые файлы и показатели компьютера…';if(dot)dot.classList.remove('command-status-safe','command-status-bad');
+    try{
+      const api=window.pywebview?.api;if(!api)throw new Error('Подробная диагностика доступна в установленном Windows-лаунчере.');
+      const calls=await Promise.allSettled([api.get_diagnostics?.(),api.get_system_metrics?.(),api.get_update_status?.()]);
+      const diag=calls[0].status==='fulfilled'?calls[0].value:null,metrics=calls[1].status==='fulfilled'?calls[1].value:null,updates=calls[2].status==='fulfilled'?calls[2].value:null,lines=[];
+      if(diag?.ok){lines.push('Файлы игры: '+(diag.healthy?'проверка пройдена':'есть проблемы'));lines.push('Версия игры: '+(diag.version||'не определена'));if((diag.missing||[]).length)lines.push('Отсутствуют: '+diag.missing.join(', '));}else lines.push('Файлы игры: '+(diag?.message||'не удалось проверить'));
+      if(metrics?.ok){lines.push('Процессор: '+(metrics.cpu_percent??'—')+'%');lines.push('ОЗУ: '+(metrics.ram_percent??'—')+'% ('+(metrics.ram_used_mb??'—')+' / '+(metrics.ram_total_mb??'—')+' МБ)');lines.push('Свободно на диске: '+(metrics.disk_free_gb??'—')+' ГБ');}else lines.push('Показатели компьютера: '+(metrics?.message||'не удалось получить'));
+      if(updates?.ok)lines.push('Обновления игры: '+(updates.game_update_available?'доступно обновление':'актуальная версия'));
+      if(report)report.textContent=lines.join('\n');if(dot)dot.classList.add(diag?.ok&&diag.healthy?'command-status-safe':'command-status-bad');
+    }catch(e){if(report)report.textContent=e.message||'Не удалось выполнить проверку.';if(dot)dot.classList.add('command-status-bad');}finally{if(button)button.disabled=false;}
+  }
+  async function runCommandBackup(){
+    const button=$('#command-backup-worlds'),report=$('#command-backup-report'),api=window.pywebview?.api;if(button)button.disabled=true;if(report)report.textContent='Создаём архив сохранений…';
+    try{if(!api?.backup_worlds)throw new Error('Резервное копирование доступно в установленном Windows-лаунчере.');const result=await api.backup_worlds();if(!result?.ok)throw new Error(result?.message||'Не удалось создать архив.');if(report)report.textContent='Резервная копия создана: '+result.path+' · файлов: '+(result.files??'—');}
+    catch(e){if(report)report.textContent=e.message||'Ошибка резервного копирования.';}finally{if(button)button.disabled=false;}
+  }
+  async function runCommandRestore(){
+    const button=$('#command-restore-worlds'),report=$('#command-backup-report'),api=window.pywebview?.api;if(!confirm('Восстановить последний архив миров? Перед заменой текущих данных будет создана страховочная копия. Закрой игру перед продолжением.'))return;if(button)button.disabled=true;if(report)report.textContent='Проверяем архив и создаём страховочную копию…';
+    try{if(!api?.restore_worlds)throw new Error('Восстановление доступно в установленном Windows-лаунчере.');const result=await api.restore_worlds();if(!result?.ok)throw new Error(result?.message||'Не удалось восстановить архив.');if(report)report.textContent='Миры восстановлены. Страховочная копия: '+result.safety_backup;}
+    catch(e){if(report)report.textContent=e.message||'Ошибка восстановления.';}finally{if(button)button.disabled=false;}
+  }
+  function setCommandSessionDuration(value){const n=Number(value);if(![25,45,60,90].includes(n)||commandSession.running)return;commandSession.duration=n;commandSession.remainingMs=n*60000;commandSession.endsAt=0;saveCommandSession();renderCommandSession();}
+  function startCommandSession(){if(commandSession.running)return;if(commandSession.remainingMs<=0)commandSession.remainingMs=commandSession.duration*60000;commandSession.endsAt=Date.now()+commandSession.remainingMs;commandSession.running=true;saveCommandSession();renderCommandSession();}
+  function pauseCommandSession(){if(!commandSession.running)return;commandSession.remainingMs=commandSessionRemaining();commandSession.running=false;commandSession.endsAt=0;saveCommandSession();renderCommandSession();}
+  function resetCommandSession(){commandSession.running=false;commandSession.endsAt=0;commandSession.remainingMs=0;saveCommandSession();renderCommandSession();const label=$('#command-session-label');if(label)label.textContent='Таймер сброшен. Выбери продолжительность новой сессии.';}
+
   function bindLauncherNavigation(){
     if(launcherNavigationBound)return;launcherNavigationBound=true;
     document.addEventListener('click',event=>{
       const button=event.target?.closest?.('.nav-item[data-page]');if(!button)return;
-      const routes={calendar:openCalendarPage,system:openSystemPage,screenshots:openScreenshotsPage,support:openSupportPage,roadmap:openRoadmapPage};
+      const routes={calendar:openCalendarPage,system:openSystemPage,screenshots:openScreenshotsPage,support:openSupportPage,roadmap:openRoadmapPage,'command-center':openCommandCenterPage};
       const action=routes[button.dataset.page];if(!action)return;
       event.preventDefault();event.stopImmediatePropagation();
       try{action();}catch(error){console.error('[SkyRealm launcher navigation]',error);const status=$('#toast');if(status){status.textContent='Не удалось открыть раздел. Перезапусти лаунчер и попробуй снова.';status.classList.add('show');}}
@@ -591,7 +705,7 @@
   }
   function init() {
     if(launcherEnhancementsInitialized)return;launcherEnhancementsInitialized=true;
-    const setup=[ensureSystemPage,ensureCalendarPage,ensureSupportPage,ensureScreenshotsPage,ensureRoadmapPage];
+    const setup=[ensureSystemPage,ensureCalendarPage,ensureSupportPage,ensureScreenshotsPage,ensureRoadmapPage,ensureCommandCenterPage];
     setup.forEach(setupSection=>{try{setupSection();}catch(error){console.error('[SkyRealm launcher section init]',error);}});
     try{bindLauncherNavigation();addNotificationControl();bindSystemActions();}catch(error){console.error('[SkyRealm launcher controls init]',error);}
     try{refreshServices();refreshNotifications();}catch(error){console.error('[SkyRealm launcher refresh]',error);}

@@ -84,7 +84,7 @@ assert.ok(css.includes('body.reduce-motion')&&css.includes('body.high-contrast')
 
 assert.match(enhancements,/function bindLauncherNavigation\(\)/,'Launcher navigation must route dynamic tabs through a delegated handler');
 assert.ok(enhancements.includes('event.stopImmediatePropagation()'),'Dynamic launcher navigation must stop the legacy click handler');
-assert.match(enhancements,/routes=\{calendar:openCalendarPage,system:openSystemPage,screenshots:openScreenshotsPage,support:openSupportPage,roadmap:openRoadmapPage\}/,'Calendar, system, screenshots, support and roadmap routes must all be wired');
+assert.match(enhancements,/routes=\{calendar:openCalendarPage,system:openSystemPage,screenshots:openScreenshotsPage,support:openSupportPage,roadmap:openRoadmapPage,'command-center':openCommandCenterPage\}/,'All dynamic launcher pages, including the Start Center, must be routed');
 assert.ok(enhancements.includes('system-open-screenshots')&&enhancements.includes('system-open-support'),'Control center must link directly to screenshots and support');
 assert.ok(enhancements.includes('href="mailto:kisia319@gmail.com"')&&enhancements.includes('href="tel:+79962819878"'),'Support must show the configured email and telephone contacts');
 assert.ok(enhancements.includes('screenshot-thumbnail')&&enhancements.includes('get_screenshot_data(item.name)'),'Screenshot gallery must render saved image previews');
@@ -97,3 +97,22 @@ assert.ok(html.includes('data-page="support"') && html.includes('id="page-suppor
 assert.ok(html.includes('href="mailto:kisia319@gmail.com"'),'Support page must show the requested email in static HTML');
 assert.ok(html.includes('href="tel:+79962819878"'),'Support page must show the requested phone number in static HTML');
 assert.ok(app.includes("support:t('pageSupport')"),'The core launcher navigation must recognize the support page and its breadcrumb');
+
+
+// PrimeLauncher Start Center: six real launcher-level tools, not decorative cards.
+assert.match(enhancements,/function ensureCommandCenterPage\(\)/,'Start Center page must be created dynamically');
+assert.match(enhancements,/function openCommandCenterPage\(\)/,'Start Center navigation must be wired');
+for(const id of ['command-launch-game','command-launch-prime','command-launch-studio','command-preflight','command-backup-worlds','command-restore-worlds','command-session-start','command-session-pause','command-session-reset'])assert.ok(enhancements.includes(id),'Missing working Start Center control: '+id);
+assert.match(enhancements,/api\.launch_mod_studio\(\)/,'Mod Studio action must use the native launcher API');
+assert.match(enhancements,/api\.get_diagnostics/,'Preflight must call local file diagnostics');
+assert.match(enhancements,/api\.get_system_metrics/,'Preflight must read local machine metrics');
+assert.match(enhancements,/api\.backup_worlds\(\)/,'Backup button must call native backup action');
+assert.match(enhancements,/api\.restore_worlds\(\)/,'Restore button must call native safe restore action');
+assert.match(enhancements,/restore the last archive|Восстановить последний архив миров/i);
+assert.match(enhancements,/dispatchEvent\(new Event\('change'/,'Performance presets must use existing persisted settings controls');
+assert.match(enhancements,/skyrealm_launcher_perf_profile_v1/,'Selected performance preset must persist');
+assert.match(enhancements,/skyrealm_launcher_session_planner_v1/,'Session timer state must persist');
+assert.match(enhancements,/skyrealm_launcher_accent_v1/,'Launcher theme must persist');
+for(const theme of ['ember','violet','ice','emerald'])assert.ok(enhancements.includes(theme),'Missing launcher accent '+theme);
+assert.ok(css.includes('.command-launch-grid')&&css.includes('.command-preset-grid')&&css.includes('.command-session-clock')&&css.includes('.command-theme-grid'),'Start Center requires its own styled responsive layout');
+assert.ok(enhancements.includes("'command-center':openCommandCenterPage"),'Start Center must be included in delegated navigation');
