@@ -80,7 +80,8 @@ jobs:
           node --check tests/supabase-migration-history-test.cjs
           node --check tests/time-mechanics-test.cjs
           node tests/game-smoke-test.cjs
-          node --check game/competitive/prime-online.js\n          node --check game/competitive/prime-world.js
+          node --check game/competitive/prime-online.js
+          node --check game/competitive/prime-world.js
           node --check tests/competitive-mode-test.cjs
           node tests/competitive-mode-test.cjs
           node --check tests/competitive-world-polish-regression-test.cjs
