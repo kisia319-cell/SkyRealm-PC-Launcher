@@ -17,14 +17,14 @@ window.PrimeOnline={
  queue:rating=>call("/api/prime/queue","POST",{rating}),
  cancelQueue:()=>call("/api/prime/queue","DELETE"),
  status:matchId=>call("/api/prime/match","GET",null,{match_id:matchId}),
- leaderboard:()=>call("/api/prime/leaderboard"),
+ leaderboard:()=>call("/api/prime/leaderboard"),\n stats:()=>call("/api/prime/stats"),
  startTransport(config){
   stopTransport();seq=0;let lastSent=0,lastReceived=0,lastInputSent="";
   const role=config.role,matchId=config.match_id;
   transportTimer=setInterval(async()=>{
    try{
     if(role==="host"){
-     if(!window.match||window.match.finished)return;
+     if(window.PrimeGameFinished?.())return;
      const snap=window.PrimeGameSnapshot?.();
      if(!snap)return;
      const response=await call("/api/prime/state","POST",{match_id:matchId,seq:++seq,state:snap});
