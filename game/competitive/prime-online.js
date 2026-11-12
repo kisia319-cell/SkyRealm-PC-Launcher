@@ -2,9 +2,9 @@
 const URL="https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-prime";
 const KEY="sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL";
 function token(){return localStorage.getItem("skyrealm_token")||sessionStorage.getItem("skyrealm_token")||"";}
-async function call(route,method="GET",body=null){
+async function call(route,method="GET",body=null,params={}){
  const access=token();if(!access)throw new Error("Сначала войди в аккаунт SkyRealm.");
- const response=await fetch(URL+"?route="+encodeURIComponent(route),{method,headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json"},body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
+ const query=new URLSearchParams({route,...params});const response=await fetch(URL+"?"+query.toString(),{method,headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json"},body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
  const data=await response.json().catch(()=>({}));
  if(!response.ok)throw new Error(data.message||"Ошибка онлайн-сервера ("+response.status+").");
  return data;
@@ -16,7 +16,7 @@ window.PrimeOnline={
  hasSession:()=>!!token(),
  queue:rating=>call("/api/prime/queue","POST",{rating}),
  cancelQueue:()=>call("/api/prime/queue","DELETE"),
- status:matchId=>call("/api/prime/match&match_id="+encodeURIComponent(matchId)),
+ status:matchId=>call("/api/prime/match","GET",null,{match_id:matchId}),
  leaderboard:()=>call("/api/prime/leaderboard"),
  startTransport(config){
   stopTransport();seq=0;let lastSent=0,lastReceived=0,lastInputSent="";
@@ -35,7 +35,7 @@ window.PrimeOnline={
      if(packed!==lastInputSent||Date.now()-lastSent>900){
       await call("/api/prime/input","POST",{match_id:matchId,seq:++seq,input:current});lastInputSent=packed;lastSent=Date.now();
      }
-     const state=await call("/api/prime/match&match_id="+encodeURIComponent(matchId));
+     const state=await call("/api/prime/match","GET",null,{match_id:matchId});
      if(state.status==="active"&&state.host_seq>lastReceived&&state.host_state){
       lastReceived=state.host_seq;window.PrimeApplyHostState?.(state.host_state);
      }
