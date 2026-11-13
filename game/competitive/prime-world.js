@@ -322,6 +322,13 @@ function updateBattleWeather(dt){
  if(w.type!=='clear'&&m.elapsed>=w.until){w.type='clear';addCombatFeed('Погодное событие завершилось · небо проясняется');}
  if(w.type==='clear'&&m.elapsed>=w.nextAt){const types=['rain','fog','tailwind'];w.type=types[Math.floor(Math.random()*types.length)];w.until=m.elapsed+28;w.nextAt=m.elapsed+112;const names={rain:'Ливень',fog:'Густой туман',tailwind:'Попутный ветер'};addCombatFeed('Событие на поле боя: '+names[w.type]+' · 28 секунд');}
 }
+function chooseEnemyOutpostTarget(entity,outposts,distribute=false){
+ const available=(outposts||[]).filter(point=>point&&(point.owner!==1||point.captureTeam===0));
+ if(!available.length)return null;
+ available.sort((a,b)=>Math.hypot(a.x-entity.x,a.y-entity.y)-Math.hypot(b.x-entity.x,b.y-entity.y));
+ const index=distribute?Math.max(0,((entity.id||1)-1)%available.length):0;
+ const target=available[index];return {target,distance:Math.hypot(target.x-entity.x,target.y-entity.y)};
+}
 function updateBattleObjectives(dt){
  const m=match;if(!m)return;const friendly=[m.player,...m.allies.filter(a=>a.alive),...m.units.filter(u=>u.team===0&&u.alive)],hostile=[...m.bots.filter(b=>b.alive),...m.units.filter(u=>u.team===1&&u.alive)],difficulty=typeof getBotDifficulty==='function'?getBotDifficulty():{capture:1,income:1,heroDamage:1};
  for(const point of (m.outposts||[])){
@@ -451,7 +458,7 @@ function spawnUnit(team,x,y){
  if(current>=capacity)return null;
  const spawnX=sourceBarracks?x+(team===0?44:-44):x,spawnY=sourceBarracks?y+8:y;
  const homeBot=team===1&&match?.bots?.length?match.bots.reduce((best,b)=>!best||Math.hypot(b.x-spawnX,b.y-spawnY)<Math.hypot(best.x-spawnX,b.y-spawnY)?b:best,null):null;
- const hp=145+(barracksLevel-1)*24,damage=27+(barracksLevel-1)*6;
+ const hp=110+(barracksLevel-1)*24,damage=27+(barracksLevel-1)*6;
  const u={id:++match.unitCounter,team,x:spawnX,y:spawnY,homeX:homeBot?.homeX??spawnX,homeY:homeBot?.homeY??spawnY,ownerBot:homeBot?.id??null,retreating:false,hp,maxHp:hp,damage,range:112+(barracksLevel-1)*5,speed:180,attack:0,attackInterval:.72,flash:0,alive:true,name:team===0?'Воин союзника':'Вражеский воин'};
  if(team===1&&typeof applyEnemyDifficulty==='function')applyEnemyDifficulty(u);match.units.push(u);return u;
 }
@@ -751,9 +758,8 @@ function update(dt){
   let aggro=match.enemyAggroUntil>match.elapsed,assault=match.enemyAssaultUntil>match.elapsed;
   const playerDistance=Math.hypot(p.x-bot.x,p.y-bot.y);
   const nearbyThreat=typeof chooseNearestTarget==='function'?chooseNearestTarget(bot,[p,...match.allies.filter(a=>a.alive),...match.units.filter(u=>u.team===0&&u.alive)],170):null;
- const points=(match.outposts||[]).filter(point=>point.owner!==1||point.captureTeam===0).sort((a,b)=>Math.hypot(a.x-bot.x,a.y-bot.y)-Math.hypot(b.x-bot.x,b.y-bot.y));
- const targetPoint=points.length?points[(bot.id-1)%points.length]:null;
- if(targetPoint&&!nearbyThreat&&!aggro&&!assault){const ox=targetPoint.x-bot.x,oy=targetPoint.y-bot.y,od=Math.hypot(ox,oy)||1;if(od>62)moveEntity(bot,ox/od*bot.speed*dt,oy/od*bot.speed*dt,13);continue;}
+ const targetPoint=chooseEnemyOutpostTarget(bot,match.outposts,true);
+ if(targetPoint&&!nearbyThreat&&!aggro&&!assault){const ox=targetPoint.target.x-bot.x,oy=targetPoint.target.y-bot.y,od=targetPoint.distance||1;if(od>62)moveEntity(bot,ox/od*bot.speed*dt,oy/od*bot.speed*dt,13);continue;}
  if(!aggro&&!assault&&playerDistance>360){
    const phase=match.elapsed*.42+bot.id*2.1,px=bot.x+Math.cos(phase)*42,py=bot.y+Math.sin(phase*.83)*34,patrolDistance=Math.hypot(px-bot.x,py-bot.y)||1;
    moveEntity(bot,(px-bot.x)/patrolDistance*bot.speed*.22*dt,(py-bot.y)/patrolDistance*bot.speed*.22*dt,13);
@@ -784,7 +790,7 @@ function update(dt){
    continue;
   }
   if(unit.team===0&&unit.rallyTarget&&match.elapsed<match.rallyUntil){const rx=unit.rallyTarget.x-unit.x,ry=unit.rallyTarget.y-unit.y,rd=Math.hypot(rx,ry)||1;if(rd>28){moveEntity(unit,rx/rd*unit.speed*dt,ry/rd*unit.speed*dt,10);continue;}unit.rallyTarget=null;}
-  if(unit.team===1){const points=(match.outposts||[]).filter(point=>point.owner!==1||point.captureTeam===0);const point=chooseNearestTarget(unit,points);const threat=chooseNearestTarget(unit,[p,...match.allies.filter(a=>a.alive),...match.units.filter(other=>other.team===0&&other.alive)],150);if(point&&!threat){if(point.distance>58)moveEntity(unit,(point.target.x-unit.x)/point.distance*unit.speed*dt,(point.target.y-unit.y)/point.distance*unit.speed*dt,10);continue;}}
+  if(unit.team===1){const point=chooseEnemyOutpostTarget(unit,match.outposts);const threat=chooseNearestTarget(unit,[p,...match.allies.filter(a=>a.alive),...match.units.filter(other=>other.team===0&&other.alive)],150);if(point&&!threat){if(point.distance>58)moveEntity(unit,(point.target.x-unit.x)/point.distance*unit.speed*dt,(point.target.y-unit.y)/point.distance*unit.speed*dt,10);continue;}}
  const foes=unit.team===0?[...match.bots.filter(b=>b.alive),...match.units.filter(other=>other.team===1&&other.alive)]:[p,...match.allies.filter(a=>a.alive),...match.units.filter(other=>other.team===0&&other.alive)];
   let found=chooseNearestTarget(unit,foes);
   if(unit.kind==='siege'){const enemyStructures=[...match.towers.filter(t=>t.team!==unit.team&&t.hp>0),...match.barracks.filter(b=>b.team!==unit.team&&b.hp>0),...match.walls.filter(w=>w.team!==unit.team&&w.hp>0),...(match.supportBuildings||[]).filter(b=>b.team!==unit.team&&b.hp>0)];const priority=chooseNearestTarget(unit,enemyStructures);if(priority)found=priority;}

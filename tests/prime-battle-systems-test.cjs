@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.resolve(__dirname,'..'),js=fs.readFileSync(path.join(root,'game/competitive/prime-world.js'),'utf8'),html=fs.readFileSync(path.join(root,'game/competitive/index.html'),'utf8');
 function extractFunction(source,name){const start=source.indexOf('function '+name+'(');assert.ok(start>=0,'Missing '+name);const open=source.indexOf('{',start);let depth=0,quote='',escaped=false,line=false,block=false;for(let i=open;i<source.length;i++){const c=source[i],n=source[i+1];if(line){if(c==='\n')line=false;continue;}if(block){if(c==='*'&&n==='/'){block=false;i++;}continue;}if(quote){if(escaped){escaped=false;continue;}if(c==='\\'){escaped=true;continue;}if(c===quote)quote='';continue;}if(c==='/'&&n==='/'){line=true;i++;continue;}if(c==='/'&&n==='*'){block=true;i++;continue;}if(c==="'"||c==='"'||c.charCodeAt(0)===96){quote=c;continue;}if(c==='{')depth++;else if(c==='}'&&--depth===0)return source.slice(start,i+1);}throw Error('Unclosed '+name);}
 for(const id of ['hud-outposts','hud-weather','ability-warcry','ability-shield','ability-volley','hire-mercenaries','bot-difficulty-details'])assert.ok(html.includes('id="'+id+'"'),'Missing UI '+id);
-for(const n of ['updateBattleWeather','updateBattleObjectives','castCommanderAbility','hireMercenaries','updateBattleSystemsHud','drawBattleObjectives','getBotDifficulty','applyEnemyDifficulty'])assert.ok(js.includes('function '+n+'('),'Missing '+n);
+for(const n of ['updateBattleWeather','updateBattleObjectives','castCommanderAbility','hireMercenaries','updateBattleSystemsHud','drawBattleObjectives','getBotDifficulty','applyEnemyDifficulty','chooseEnemyOutpostTarget'])assert.ok(js.includes('function '+n+'('),'Missing '+n);
 const objective=extractFunction(js,'updateBattleObjectives'),point={id:1,x:0,y:0,owner:-1,captureTeam:null,progress:0},m={elapsed:0,player:{x:0,y:0,alive:true,hp:100},allies:[],units:[],bots:[],outposts:[point],supplyCaches:[],playerCoins:0};
 vm.runInNewContext(objective+'\nfor(let i=0;i<12;i++){match.elapsed++;updateBattleObjectives(1);}',{match:m,addCombatFeed:()=>{},getBotDifficulty:()=>({capture:1,income:1,heroDamage:1}),chooseNearestTarget:()=>null,applyCombatDamage:()=>{}});assert.equal(point.owner,0);assert.ok(m.playerCoins>=4);
 const cache={x:0,y:0,active:true,respawnAt:0};m.supplyCaches=[cache];m.elapsed=20;m.playerCoins=0;vm.runInNewContext(objective+'\nupdateBattleObjectives(1);',{match:m,addCombatFeed:()=>{},getBotDifficulty:()=>({capture:1,income:1,heroDamage:1}),chooseNearestTarget:()=>null,applyCombatDamage:()=>{}});assert.equal(cache.active,false);assert.equal(m.playerCoins,182.2);assert.ok(cache.respawnAt>20);
@@ -22,5 +22,21 @@ neutral.owner=1;neutral.fireTimer=0;vm.runInNewContext(outpostShot+'\nupdateBatt
 const enemyStats={team:1,hp:100,maxHp:100,damage:20,speed:180,attackInterval:.72};
 vm.runInNewContext(extractFunction(js,'applyEnemyDifficulty')+'\napplyEnemyDifficulty(unit);',{unit:enemyStats,getBotDifficulty:()=>({unitHp:1.2,unitDamage:1.2,speed:1.15,attackSpeed:1.22})});
 assert.equal(enemyStats.hp,120);assert.equal(enemyStats.damage,24);assert.equal(enemyStats.speed,207);assert.ok(enemyStats.attackInterval<.72);
+
+
+const captureTarget=extractFunction(js,'chooseEnemyOutpostTarget');
+const captureContext={entity:{id:1,x:0,y:0},outposts:[{id:1,x:200,y:0,owner:1,captureTeam:null},{id:2,x:40,y:0,owner:-1,captureTeam:null},{id:3,x:90,y:0,owner:0,captureTeam:0}]};
+vm.runInNewContext(captureTarget+';globalThis.nearest=chooseEnemyOutpostTarget(entity,outposts);globalThis.distributed=chooseEnemyOutpostTarget({id:2,x:0,y:0},outposts,true);globalThis.none=chooseEnemyOutpostTarget({id:1,x:0,y:0},[{x:0,y:0,owner:1,captureTeam:null}]);',captureContext);
+assert.equal(captureContext.nearest.target.id,2,'Bot chooses nearest neutral/player-owned outpost');
+assert.equal(captureContext.distributed.target.id,3,'Additional bots spread to another available outpost');
+assert.equal(captureContext.none,null,'Bot does not target its already-owned outposts');
+const friendlyPoint={id:4,x:0,y:0,owner:0,captureTeam:null,progress:0,fireTimer:0};
+const enemyHero={x:25,y:0,hp:100,maxHp:100,team:1,alive:true};
+const recoveringAlly={x:12,y:0,hp:50,maxHp:100,team:0,alive:true};
+const friendlyDefenseMatch={elapsed:0,player:{x:900,y:900,hp:100,maxHp:100,team:0,alive:true},allies:[recoveringAlly],units:[],bots:[enemyHero],outposts:[friendlyPoint],supplyCaches:[],playerCoins:0};
+const friendlyDefenseContext={match:friendlyDefenseMatch,getBotDifficulty:()=>({capture:1,income:1,heroDamage:1}),chooseNearestTarget:(source,list,max)=>{let best=null,d=max;for(const candidate of list){const distance=Math.hypot(candidate.x-source.x,candidate.y-source.y);if(distance<d){d=distance;best={target:candidate,distance};}}return best;},applyCombatDamage:(target,amount)=>{target.hp-=amount;},addCombatFeed:()=>{}};
+vm.runInNewContext(outpostShot+';updateBattleObjectives(1);',friendlyDefenseContext);
+assert.equal(enemyHero.hp,84,'Player-owned outpost attacks enemy bots');
+assert.equal(recoveringAlly.hp,52.4,'Friendly troops beside their outpost recover health');
 
 console.log('Prime battle systems: all tests passed.');
