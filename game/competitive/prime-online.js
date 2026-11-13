@@ -1,6 +1,7 @@
 (()=>{"use strict";
 const URL="https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-prime";
 const KEY="sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL";
+const AUTH_URL=URL.replace("skyrealm-prime","skyrealm-auth");
 let bridgeToken="";
 function token(){return localStorage.getItem("skyrealm_token")||sessionStorage.getItem("skyrealm_token")||bridgeToken||"";}
 async function init(){if(token())return true;try{const s=await window.pywebview?.api?.get_auth_session?.();bridgeToken=String(s?.token||"");}catch(_){}return !!token();}
@@ -13,10 +14,14 @@ async function call(route,method="GET",body=null,params={}){
  return data;
 }
 let queueTimer=0,transportTimer=0,seq=0,lastInput="";
+async function authCall(route,body){const r=await fetch(AUTH_URL+"?route="+encodeURIComponent(route),{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"Ошибка аккаунта ("+r.status+").");return d;}
 function stopQueue(){if(queueTimer)clearInterval(queueTimer);queueTimer=0;}
 function stopTransport(){if(transportTimer)clearInterval(transportTimer);transportTimer=0;}
 window.PrimeOnline={
  hasSession:()=>!!token(),init,userId,
+ register:(username,email,password)=>authCall("/api/auth/register",{username,email,password}),
+ verify:(email,code)=>authCall("/api/auth/verify",{email,code}).then(d=>{localStorage.setItem("skyrealm_token",d.access_token);if(d.refresh_token)localStorage.setItem("skyrealm_refresh_token",d.refresh_token);bridgeToken=d.access_token;return d;}),
+ login:(identifier,password)=>authCall("/api/auth/login",{identifier,password}).then(d=>{localStorage.setItem("skyrealm_token",d.access_token);if(d.refresh_token)localStorage.setItem("skyrealm_refresh_token",d.refresh_token);bridgeToken=d.access_token;return d;}),
  queue:rating=>call("/api/prime/queue","POST",{rating}),
  cancelQueue:()=>call("/api/prime/queue","DELETE"),
  status:matchId=>call("/api/prime/match","GET",null,{match_id:matchId}),
