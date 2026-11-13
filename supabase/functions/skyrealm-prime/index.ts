@@ -37,6 +37,29 @@ Deno.serve(async(req:Request)=>{
   if(route==="/api/prime/queue"&&req.method==="DELETE"){
    await db("prime_match_queue?user_id=eq."+user.id,{method:"DELETE"});return reply({ok:true});
   }
+  if(route==="/api/prime/profile"&&req.method==="GET"){
+   const users=await db("profiles?select=id,username,display_name,avatar_key,avatar_url,player_class,playtime_seconds,last_seen_at,presence_status&id=eq."+user.id+"&limit=1");
+   let p=users?.[0];
+   if(!p){
+    const authUser=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:ANON_KEY,Authorization:"Bearer "+user.token}}).then(r=>r.json());
+    const username=String(authUser.user_metadata?.username||authUser.user_metadata?.display_name||authUser.email?.split("@")[0]||"Игрок").slice(0,24);
+    const made=await db("profiles",{method:"POST",body:JSON.stringify({id:user.id,username,display_name:username,player_class:"Воин",playtime_seconds:0,presence_status:"online",last_seen_at:new Date().toISOString()}),headers:{Prefer:"resolution=merge-duplicates,return=representation"}});
+    p=made?.[0]||{id:user.id,username,display_name:username,player_class:"Воин",playtime_seconds:0};
+   }
+   await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify({last_seen_at:new Date().toISOString(),presence_status:"online"})});
+   const stats=await db("prime_player_stats?select=rating,matches,wins,losses&user_id=eq."+user.id+"&limit=1");
+   return reply({profile:p,stats:stats?.[0]||{rating:1000,matches:0,wins:0,losses:0}});
+  }
+  if(route==="/api/prime/profile"&&req.method==="PATCH"){
+   const p=await readBody(req,5000),patch:any={};
+   if(typeof p.display_name==="string"&&p.display_name.trim().length>=3&&p.display_name.trim().length<=24)patch.display_name=p.display_name.trim();
+   if(typeof p.player_class==="string"&&["Воин","Страж","Следопыт","Маг"].includes(p.player_class))patch.player_class=p.player_class;
+   if(typeof p.avatar_key==="string"&&/^[a-z0-9_-]{1,32}$/i.test(p.avatar_key))patch.avatar_key=p.avatar_key;
+   if(typeof p.avatar_url==="string"&&(p.avatar_url===""||/^https:\/\//i.test(p.avatar_url))&&p.avatar_url.length<=500)patch.avatar_url=p.avatar_url;
+   if(!Object.keys(patch).length)throw new ApiError(400,"EMPTY_PROFILE","Нет допустимых изменений профиля.");
+   const rows=await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify(patch)});
+   return reply({ok:true});
+  }
   if(route==="/api/prime/stats"&&req.method==="GET"){
    await db("prime_player_stats?user_id=eq."+user.id,{method:"POST",body:JSON.stringify({user_id:user.id}),headers:{Prefer:"resolution=merge-duplicates,return=representation"}});
    const rows=await db("prime_player_stats?select=user_id,rating,matches,wins,losses&user_id=eq."+user.id+"&limit=1");
