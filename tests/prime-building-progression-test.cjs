@@ -96,8 +96,8 @@ assert.ok(upgradedBarracks.spawnInterval<18,'Tavern must train soldiers faster.'
 const barracksSpawnMatch={unitCounter:0,units:[],bots:[],walls:[],towers:[],barracks:[upgradedBarracks]};
 const upgradedSoldierContext={match:barracksSpawnMatch};
 vm.runInNewContext(extractFunction(js,'spawnUnit')+'\nglobalThis.upgradedSoldier=spawnUnit(0,700,700);',upgradedSoldierContext);
-assert.equal(upgradedSoldierContext.upgradedSoldier.hp,162,'Tavern level must improve recruited soldier health.');
-assert.equal(upgradedSoldierContext.upgradedSoldier.damage,58,'Tavern level must improve recruited soldier damage.');
+assert.equal(upgradedSoldierContext.upgradedSoldier.hp,169,'Tavern level must improve recruited soldier health.');
+assert.equal(upgradedSoldierContext.upgradedSoldier.damage,33,'Tavern level must improve recruited soldier damage.');
 
 const enemyWall={x:800,y:800,team:1,level:1,hp:260,maxHp:260};
 const enemyMatch={walls:[enemyWall],barracks:[],supportBuildings:[],towers:[],playerCoins:1000};
