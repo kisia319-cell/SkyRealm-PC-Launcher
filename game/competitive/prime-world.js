@@ -205,7 +205,7 @@ const primeLanguageObserver=new MutationObserver(()=>{const lang=localStorage.ge
 function show(page){
  scene=page;document.body.classList.toggle('battle-active',page==='battle');pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
  document.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
- if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();if(page==='history')renderHistory();if(page==='profile')renderPrimeProfile();
+ if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();if(page==='history')renderHistory();if(page==='profile')renderPrimeProfile();if(page==='friends')renderPrimeFriends();
 }
 document.querySelectorAll('.nav button[data-page]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
 $('enter-prime').addEventListener('click',()=>show('menu'));
@@ -243,6 +243,82 @@ function beginSearch(){
  $('search-title').textContent='Подготовка тренировочной арены...';$('search-detail').textContent='Подбираем ботов · ELO не меняется · +5 монет каждую секунду';
  let ticks=0;searchTimer=window.setInterval(()=>{ticks++;$('search-title').textContent=['Подготовка арены...','Расстановка башен...','Формируем команды...'][ticks%3];if(ticks>=3){clearInterval(searchTimer);createMatch();}},550);
 }
+
+let primeSocialRefreshTimer=0,primeSocialBusy=false,primeCurrentLobby=null;
+function socialNode(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=String(text);return el;}
+function socialAction(label,fn,primary=false){const b=socialNode("button",primary?"primary":"secondary",label);b.type="button";b.addEventListener("click",fn);return b;}
+function socialMessage(message,error=false){const el=$("prime-social-message");if(el){el.textContent=message||"";el.style.color=error?"#ff7777":"#ffb58a";}}
+async function renderPrimeFriends(){
+ if(primeSocialBusy||!PrimeOnline.hasSession())return;primeSocialBusy=true;
+ try{
+  const [friendsData,lobbyData]=await Promise.all([PrimeOnline.friends(),PrimeOnline.lobby()]);
+  const list=$("prime-friend-list"),invites=$("prime-lobby-invites"),panel=$("prime-lobby-panel");
+  if(!list||!invites||!panel)return;
+  list.replaceChildren();invites.replaceChildren();panel.replaceChildren();primeCurrentLobby=lobbyData.lobby||null;
+  const relationships=friendsData.relationships||[];
+  const accepted=relationships.filter(x=>x.status==="accepted");
+  const pending=relationships.filter(x=>x.status==="pending");
+  if(!relationships.length)list.append(socialNode("p","","Пока нет друзей. Найди игрока по нику выше."));
+  for(const rel of relationships){
+   const person=rel.player||{},row=socialNode("div","social-row");
+   const label=socialNode("div","",((person.display_name||person.username||"Игрок")+" · "+(rel.status==="accepted"?(person.in_game?"В игре":person.presence_status==="online"?"В сети":"Не в сети"):(rel.direction==="incoming"?"Входящая заявка":"Заявка отправлена"))));
+   row.append(label);const actions=socialNode("div","social-actions");
+   if(rel.status==="accepted"&&primeCurrentLobby&&primeCurrentLobby.role==="owner"){
+    actions.append(socialAction("Пригласить",async()=>{try{await PrimeOnline.inviteLobbyFriend(primeCurrentLobby.id,person.id);socialMessage("Приглашение отправлено: "+(person.display_name||person.username));await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
+   }
+   if(rel.status==="pending"&&rel.direction==="incoming"){
+    actions.append(socialAction("Принять",async()=>{try{await PrimeOnline.respondFriend(rel.id,"accept");await renderPrimeFriends();socialMessage("Теперь вы друзья.");}catch(e){socialMessage(e.message,true);}},true));
+    actions.append(socialAction("Отклонить",async()=>{try{await PrimeOnline.respondFriend(rel.id,"reject");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
+   }
+   row.append(actions);list.append(row);
+  }
+  const pendingInvites=lobbyData.invites||[];
+  if(!pendingInvites.length)invites.append(socialNode("p","","Новых приглашений нет."));
+  for(const inv of pendingInvites){
+   const row=socialNode("div","social-row"),name=inv.inviter?.display_name||inv.inviter?.username||"Друг";
+   row.append(socialNode("span","",name+" приглашает в лобби"));
+   const actions=socialNode("div","social-actions");
+   actions.append(socialAction("Принять",async()=>{try{await PrimeOnline.respondLobbyInvite(inv.id,"accept");socialMessage("Ты вошёл в лобби.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}},true));
+   actions.append(socialAction("Отклонить",async()=>{try{await PrimeOnline.respondLobbyInvite(inv.id,"reject");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
+   row.append(actions);invites.append(row);
+  }
+  if(!primeCurrentLobby){
+   panel.append(socialNode("p","","Создай лобби, затем пригласи друга из списка друзей. В комнате можно сыграть дуэль 1 × 1."));
+  }else{
+   const l=primeCurrentLobby;
+   panel.append(socialNode("div","","Код лобби: "+l.id.slice(0,8).toUpperCase()+" · "+(l.status==="running"?"Матч запущен":"Ожидание друга")));
+   for(const member of (l.members||[])){
+    const name=member.profile?.display_name||member.profile?.username||(member.user_id===PrimeOnline.userId()?"Ты":"Игрок");
+    panel.append(socialNode("div","social-row",(member.role==="owner"?"★ ":"♟ ")+name+(member.user_id===PrimeOnline.userId()?" (ты)":"")));
+   }
+   if(l.role==="owner"&&l.status==="lobby"){
+    if((l.members||[]).length<2)panel.append(socialNode("p","","Пригласи друга из списка выше. После принятия приглашения появится кнопка запуска."));
+    else panel.append(socialAction("НАЧАТЬ ДУЭЛЬ 1 × 1",async()=>{try{const result=await PrimeOnline.startLobby(l.id);socialMessage("Соперник подключён. Запускаем арену.");startOnlineMatch(result);}catch(e){socialMessage(e.message,true);}},true));
+   }else if(l.status==="running")panel.append(socialNode("p","","Матч уже запущен. Возвращайся в бой."));
+   panel.append(socialAction("Покинуть лобби",async()=>{try{await PrimeOnline.leaveLobby(l.id);socialMessage("Ты покинул лобби.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
+  }
+  if(!accepted.length&&pending.length===0)list.append(socialNode("small","","Добавь друга — тогда сможешь приглашать его в закрытые матчи."));
+ }catch(e){socialMessage(e.message,true);}finally{primeSocialBusy=false;}
+}
+async function searchPrimeFriends(){
+ const q=$("prime-friend-search")?.value.trim()||"",out=$("prime-friend-search-results");if(!out)return;out.replaceChildren();
+ if(q.length<3){socialMessage("Введи ник от 3 до 20 символов.",true);return;}
+ try{
+  const result=await PrimeOnline.searchPlayers(q),players=result.players||[];
+  if(!players.length){out.append(socialNode("p","","Игрок с таким ником не найден."));return;}
+  for(const person of players){
+   const row=socialNode("div","social-row"),label=socialNode("span","",(person.display_name||person.username)+" · ур. "+(person.level||1));
+   row.append(label);row.append(socialAction("Добавить в друзья",async()=>{try{const res=await PrimeOnline.addFriend(person.username);socialMessage(res.message||"Заявка отправлена.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}} ,true));out.append(row);
+  }
+ }catch(e){socialMessage(e.message,true);}
+}
+$("prime-friend-find")?.addEventListener("click",searchPrimeFriends);
+$("prime-friend-search")?.addEventListener("keydown",e=>{if(e.key==="Enter")searchPrimeFriends();});
+$("prime-friends-refresh")?.addEventListener("click",renderPrimeFriends);
+$("prime-lobby-create")?.addEventListener("click",async()=>{try{await PrimeOnline.createLobby();socialMessage("Лобби создано. Пригласи друга.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}});
+$("prime-play-bots")?.addEventListener("click",()=>{matchKind="training";document.querySelectorAll("[data-kind]").forEach(b=>b.classList.toggle("selected",b.dataset.kind==="training"));show("menu");beginSearch();});
+$("prime-social-back")?.addEventListener("click",()=>show("menu"));
+
 $('find-match').addEventListener('click',beginSearch);
 $('cancel-search')?.addEventListener('click',cancelOnlineQueue);
 const languageSelect=$('prime-language');if(languageSelect){languageSelect.value=localStorage.getItem(PRIME_LANG_KEY)||'ru';languageSelect.addEventListener('change',()=>applyPrimeLanguage(languageSelect.value));}applyPrimeLanguage(localStorage.getItem(PRIME_LANG_KEY)||'ru');
