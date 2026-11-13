@@ -151,3 +151,5 @@ body.performance-saver .hero-orb,body.performance-saver .floating-island,body.pe
 
 .is-authenticated .home-top-grid{grid-template-columns:minmax(0,1fr)}
 .home-player-strip[hidden]{display:none}
+
+#registration-nav[hidden]{display:none!important}
