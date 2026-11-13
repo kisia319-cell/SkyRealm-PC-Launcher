@@ -10,7 +10,6 @@ on:
       - "manifest.json"
       - "preview-manifest.json"
       - ".github/workflows/coop-tests.yml"
-      - "tests/**"
   workflow_dispatch:
 
 permissions:
