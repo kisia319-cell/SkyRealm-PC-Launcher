@@ -1664,8 +1664,14 @@ def _skyrealm_startup_update():
             cwd=str(root), close_fds=True,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
         )
+        if progress_root is not None:
+            try: progress_root.destroy()
+            except Exception: pass
         return True
     except Exception as exc:
+        if "progress_root" in locals() and progress_root is not None:
+            try: progress_root.destroy()
+            except Exception: pass
         try:
             root.mkdir(parents=True, exist_ok=True)
             with (root / "update.log").open("a", encoding="utf-8") as log:
