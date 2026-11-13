@@ -61,7 +61,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           pushed=false
-          for attempt in 1 2 3 4 5; do
+          for attempt in $(seq 1 12); do
             git fetch origin main
             if ! git diff --quiet "$SOURCE_COMMIT" origin/main -- game/; then
               echo "Game source changed while the preview was building; refusing to publish a stale archive." >&2
@@ -94,7 +94,7 @@ jobs:
               break
             fi
             echo "Manifest push raced with another workflow; refreshing main (attempt $attempt/5)."
-            sleep $((attempt * 5))
+            sleep $((attempt < 6 ? attempt * 4 : 24))
           done
           if [ "$pushed" != true ]; then
             echo "Could not update manifest after 5 attempts." >&2
