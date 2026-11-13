@@ -227,7 +227,7 @@ jobs:
         run: |
           git fetch origin main
           $builtCommit = "${{ github.sha }}"
-          git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json' ':(exclude)preview-manifest.json' ':(exclude)tests/**'
+          git diff --quiet $builtCommit origin/main -- . ':(exclude)manifest.json' ':(exclude)preview-manifest.json' ':(exclude)tests/**' ':(exclude).github/workflows/**'
           if ($LASTEXITCODE -ne 0) {
             throw "Skipping stale build $builtCommit; source files on main have changed"
           }
