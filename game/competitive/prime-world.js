@@ -295,7 +295,7 @@ async function renderPrimeFriends(){
    if(l.role==="owner"&&l.status==="lobby"){
     if((l.members||[]).length<2)panel.append(socialNode("p","","Пригласи друга из списка выше. После принятия приглашения появится кнопка запуска."));
     else panel.append(socialAction("НАЧАТЬ ДУЭЛЬ 1 × 1",async()=>{try{const result=await PrimeOnline.startLobby(l.id);socialMessage("Соперник подключён. Запускаем арену.");startOnlineMatch(result);}catch(e){socialMessage(e.message,true);}},true));
-   }else if(l.status==="running")panel.append(socialNode("p","","Матч уже запущен. Возвращайся в бой."));
+   }else if(l.status==="running"){panel.append(socialNode("p","","Матч уже запущен. Подключись к арене."));if(l.role!=="owner")panel.append(socialAction("ПРИСОЕДИНИТЬСЯ К МАТЧУ",async()=>{try{const state=await PrimeOnline.status(l.match_id),opponent=(l.members||[]).find(x=>x.user_id!==PrimeOnline.userId());startOnlineMatch({...state,match_id:state.id,opponent_id:opponent?.user_id,opponent:state.opponent});}catch(e){socialMessage(e.message,true);}},true));}
    panel.append(socialAction("Покинуть лобби",async()=>{try{await PrimeOnline.leaveLobby(l.id);socialMessage("Ты покинул лобби.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
   }
   if(!accepted.length&&pending.length===0)list.append(socialNode("small","","Добавь друга — тогда сможешь приглашать его в закрытые матчи."));
