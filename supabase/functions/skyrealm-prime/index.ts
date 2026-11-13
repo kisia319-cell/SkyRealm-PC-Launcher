@@ -46,7 +46,10 @@ Deno.serve(async(req:Request)=>{
     const made=await db("profiles",{method:"POST",body:JSON.stringify({id:user.id,username,display_name:username,player_class:"Воин",playtime_seconds:0,presence_status:"online",last_seen_at:new Date().toISOString()}),headers:{Prefer:"resolution=merge-duplicates,return=representation"}});
     p=made?.[0]||{id:user.id,username,display_name:username,player_class:"Воин",playtime_seconds:0};
    }
-   const now=new Date(),previous=p?.last_seen_at?Date.parse(p.last_seen_at):now.getTime(),elapsed=Math.max(0,Math.min(90,Math.floor((now.getTime()-previous)/1000)));\n   await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify({last_seen_at:now.toISOString(),presence_status:"online",playtime_seconds:(Number(p?.playtime_seconds)||0)+elapsed})});\n   const matches=await db("prime_matches?select=status,winner_id,result,finished_at,created_at&or=(user_a.eq."+user.id+",user_b.eq."+user.id+")&order=finished_at.desc.nullslast&limit=1");\n   const stats=await db("prime_player_stats?select=rating,matches,wins,losses&user_id=eq."+user.id+"&limit=1");
+   const now=new Date(),previous=p?.last_seen_at?Date.parse(p.last_seen_at):now.getTime(),elapsed=Math.max(0,Math.min(90,Math.floor((now.getTime()-previous)/1000)));
+   await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify({last_seen_at:now.toISOString(),presence_status:"online",playtime_seconds:(Number(p?.playtime_seconds)||0)+elapsed})});
+   const matches=await db("prime_matches?select=status,winner_id,result,finished_at,created_at&or=(user_a.eq."+user.id+",user_b.eq."+user.id+")&order=finished_at.desc.nullslast&limit=1");
+   const stats=await db("prime_player_stats?select=rating,matches,wins,losses&user_id=eq."+user.id+"&limit=1");
    return reply({profile:{...p,playtime_seconds:(Number(p?.playtime_seconds)||0)+elapsed},last_match:matches?.[0]||null,stats:stats?.[0]||{rating:1000,matches:0,wins:0,losses:0}});
   }
   if(route==="/api/prime/profile"&&req.method==="PATCH"){
