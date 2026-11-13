@@ -28,7 +28,7 @@ function renderLeaderboard(){
  const root=$('leaderboard');if(!root)return;
  root.innerHTML='<div class="bot">Загрузка онлайн-рейтинга...</div>';
  PrimeOnline.init().then(async ok=>{
-  if(!ok){root.innerHTML='<div class="bot">Войди в аккаунт SkyRealm, чтобы увидеть рейтинг реальных игроков.</div>';return;}
+  if(!ok){root.innerHTML='<div class="bot">Чтобы попасть в общий топ, войди или зарегистрируй аккаунт SkyRealm. <button class="tool-btn" id="prime-open-auth">Войти / регистрация</button></div>';setTimeout(()=>$('prime-open-auth')?.addEventListener('click',openPrimeAuth),0);return;}
   const [stats,data]=await Promise.all([PrimeOnline.stats(),PrimeOnline.leaderboard()]);
   profile.elo=Number(stats.stats?.rating)||profile.elo||1000;profile.matches=Number(stats.stats?.matches)||profile.matches||0;profile.wins=Number(stats.stats?.wins)||profile.wins||0;
   $('home-elo').textContent=profile.elo+' ELO';$('rank-elo').textContent=profile.elo+' ELO';$('nav-elo').textContent=profile.elo;$('battle-elo').textContent=profile.elo+' ELO';$('home-matches').textContent=profile.matches+' матчей';$('home-wins').textContent=profile.wins;
@@ -61,6 +61,38 @@ $('prime-profile-save')?.addEventListener('click',async()=>{
 });
 function renderHistory(){const root=$('history-list');if(!root)return;if(!profile.history.length){root.textContent='Матчей пока нет.';return;}root.innerHTML=profile.history.map((h,i)=>'<div class="bot" style="display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;margin:8px 0"><span><b>'+(h.label||'Матч')+'</b><br><small>'+String(h.date||'')+'</small><br><small>Соперники: '+(Array.isArray(h.opponents)?h.opponents.join(', '):'—')+'</small></span><strong>'+String(h.delta||'')+'</strong></div>').join('');}
 
+let primeAuthMode='login',primeAuthStage='form',primeAuthEmail='';
+function openPrimeAuth(){ $('prime-auth-overlay')?.classList.remove('hidden'); }
+$('prime-auth-close')?.addEventListener('click',()=>$('prime-auth-overlay').classList.add('hidden'));
+$('prime-auth-switch')?.addEventListener('click',()=>{
+ primeAuthMode=primeAuthMode==='login'?'register':'login';primeAuthStage='form';
+ $('prime-auth-title').textContent=primeAuthMode==='login'?'Вход в SkyRealm':'Регистрация SkyRealm';
+ $('prime-auth-submit').textContent=primeAuthMode==='login'?'Войти':'Создать аккаунт';
+ $('prime-auth-switch').textContent=primeAuthMode==='login'?'Создать аккаунт':'Уже есть аккаунт? Войти';
+ $('prime-auth-name').classList.toggle('hidden',primeAuthMode==='login');
+ $('prime-auth-hint').textContent=primeAuthMode==='login'?'Введи ник или почту и пароль.':'Создай аккаунт. На почту придёт код подтверждения.';
+ $('prime-auth-message').textContent='';
+});
+$('prime-auth-submit')?.addEventListener('click',async()=>{
+ const msg=$('prime-auth-message'),btn=$('prime-auth-submit');btn.disabled=true;msg.textContent='Подключение...';
+ try{
+  if(primeAuthStage==='verify'){
+   await PrimeOnline.verify(primeAuthEmail,$('prime-auth-code').value);
+   primeAuthStage='form';$('prime-auth-overlay').classList.add('hidden');msg.textContent='';
+   await PrimeOnline.profile();renderLeaderboard();if(scene==='profile')renderPrimeProfile();
+   return;
+  }
+  const email=$('prime-auth-email').value.trim(),password=$('prime-auth-password').value;
+  if(primeAuthMode==='register'){
+   const name=$('prime-auth-name').value.trim();await PrimeOnline.register(name,email,password);primeAuthEmail=email;primeAuthStage='verify';
+   $('prime-auth-code-wrap').classList.remove('hidden');$('prime-auth-title').textContent='Подтверждение почты';$('prime-auth-hint').textContent='Введи код из письма, чтобы активировать аккаунт.';$('prime-auth-submit').textContent='Подтвердить почту';msg.textContent='Код отправлен на '+email+'. Проверь входящие и спам.';
+  }else{
+   await PrimeOnline.login(email||$('prime-auth-name').value.trim(),password);
+   $('prime-auth-overlay').classList.add('hidden');await PrimeOnline.profile();renderLeaderboard();if(scene==='profile')renderPrimeProfile();msg.textContent='';
+  }
+ }catch(e){msg.textContent=e.message;}finally{btn.disabled=false;}
+});
+$('prime-auth-name')?.classList.add('hidden');
 const PRIME_LANG_KEY='primeLauncher.language.v1';
 const PRIME_EN={'⚔ Клич':'⚔ War Cry','🛡 Щит':'🛡 Shield','☄ Залп':'☄ Volley','🏕 Наёмники':'🏕 Mercenaries','ГОТОВО':'READY','АВАНПОСТЫ ':'OUTPOSTS ','· ВРАГ ':'· ENEMY ','ПОГОДА · ':'WEATHER · ','ЯСНО':'CLEAR','ЛИВЕНЬ':'RAIN','ТУМАН':'FOG','ПОПУТНЫЙ ВЕТЕР':'TAILWIND','лагерь далеко':'camp too far','нужна таверна':'need barracks','ЛАГЕРЬ НАЁМНИКОВ':'MERCENARY CAMP',
 'Главная':'Home','Топ рейтинга':'Leaderboard','История матчей':'Match history','Настройки':'Settings',
@@ -170,7 +202,7 @@ document.querySelectorAll('[data-kind]').forEach(b=>b.addEventListener('click',(
 let onlineQueueActive=false,onlineQueueTimer=0;
 async function beginOnlineQueue(){
  if(teamSize!==1){teamSize=1;document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x.dataset.team==='1'));}
- await PrimeOnline.init();if(!PrimeOnline.hasSession()){$('search-box').classList.remove('hidden');$('search-title').textContent='Нужен аккаунт SkyRealm';$('search-detail').textContent='Войди в подтверждённый аккаунт в лаунчере, затем попробуй снова.';return;}
+ await PrimeOnline.init();if(!PrimeOnline.hasSession()){openPrimeAuth();$('search-box').classList.remove('hidden');$('search-title').textContent='Нужен аккаунт SkyRealm';$('search-detail').textContent='Войди или зарегистрируйся, чтобы начать онлайн-матч.';return;}
  try{const onlineStats=await PrimeOnline.stats();profile.elo=Number(onlineStats.stats?.rating)||1000;profile.matches=Number(onlineStats.stats?.matches)||0;profile.wins=Number(onlineStats.stats?.wins)||0;}catch(e){$('search-box').classList.remove('hidden');$('search-title').textContent='Ошибка профиля';$('search-detail').textContent=e.message;return;}
  $('find-match').disabled=true;$('search-box').classList.remove('hidden');$('search-title').textContent='Ищем соперника...';$('search-detail').textContent='Подбор реальных игроков 1 × 1 · рейтинг ±250';onlineQueueActive=true;
  try{await pollPrimeQueue();}catch(e){$('search-title').textContent='Не удалось подключиться';$('search-detail').textContent=e.message;onlineQueueActive=false;$('find-match').disabled=false;}
