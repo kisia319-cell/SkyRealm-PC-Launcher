@@ -151,23 +151,54 @@
       setCloudStatus('offline', currentLanguage === 'en' ? 'Server not configured' : 'Сервер не настроен', currentLanguage === 'en' ? 'Check the address in config.js.' : 'Проверь адрес в config.js.');
       return;
     }
+
     setCloudStatus('checking', currentLanguage === 'en' ? 'Checking server…' : 'Проверяем сервер…', currentLanguage === 'en' ? 'This may take a few seconds.' : 'Это может занять пару секунд.');
+    let timeoutId = null;
+    let controller = null;
     try {
       const endpoint = new URL(API_BASE);
       endpoint.searchParams.set('route', '/health');
-      const response = await fetch(endpoint.toString(), {
+
+      // Never leave the launcher in "checking" forever when a network request stalls.
+      controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          if (controller) controller.abort();
+          reject(new Error('SERVER_CHECK_TIMEOUT'));
+        }, 10000);
+      });
+      const request = fetch(endpoint.toString(), {
         method: 'GET',
         headers: {'apikey': API_KEY, 'Authorization': 'Bearer ' + API_KEY},
-        cache: 'no-store'
+        cache: 'no-store',
+        ...(controller ? {signal: controller.signal} : {})
       });
-      const data = await response.json();
-      if (response.ok && data.status === 'ok') {
+      const response = await Promise.race([request, timeout]);
+      const body = await response.text();
+      let data = null;
+      if (body.trim()) {
+        try { data = JSON.parse(body); }
+        catch (_) { data = {status: body.trim()}; }
+      }
+
+      // Health endpoints may return "OK", "ok", or another standard healthy label.
+      const healthStatus = String(data?.status ?? data?.health ?? '').trim().toLowerCase();
+      const acceptedHealthStates = new Set(['ok', 'healthy', 'online']);
+      const hasHealthState = healthStatus.length > 0;
+      if (response.ok && (!hasHealthState || acceptedHealthStates.has(healthStatus))) {
         setCloudStatus('online', currentLanguage === 'en' ? 'Cloud server online' : 'Облачный сервер онлайн', currentLanguage === 'en' ? 'Server is available. Registration can be tested.' : 'Сервер доступен. Можно проверять регистрацию.');
       } else {
         setCloudStatus('offline', currentLanguage === 'en' ? 'Server returned an error' : 'Сервер ответил с ошибкой', currentLanguage === 'en' ? 'Check your connection and try again.' : 'Проверь подключение и попробуй позже.');
       }
-    } catch (_) {
-      setCloudStatus('offline', currentLanguage === 'en' ? 'Cloud unreachable' : 'Нет связи с облаком', currentLanguage === 'en' ? 'Check your internet connection.' : 'Проверь интернет. API может быть временно недоступен.');
+    } catch (error) {
+      const timedOut = error?.message === 'SERVER_CHECK_TIMEOUT' || error?.name === 'AbortError';
+      setCloudStatus('offline',
+        currentLanguage === 'en' ? 'Cloud unreachable' : 'Нет связи с облаком',
+        timedOut
+          ? (currentLanguage === 'en' ? 'Server check timed out after 10 seconds.' : 'Проверка не получила ответ за 10 секунд. Проверь подключение и повтори попытку.')
+          : (currentLanguage === 'en' ? 'Check your internet connection.' : 'Проверь интернет. API может быть временно недоступен.'));
+    } finally {
+      if (timeoutId !== null) clearTimeout(timeoutId);
     }
   }
   function currentToken() {
