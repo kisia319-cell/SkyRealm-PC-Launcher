@@ -6,7 +6,7 @@
   let currentLanguage = ['ru', 'en'].includes(localStorage.getItem('skyrealm_language')) ? localStorage.getItem('skyrealm_language') : 'ru';
   const LANGUAGE_TEXT = {
     ru: {
-      pageHome:'ИГРОВОЙ ЦЕНТР', pageProfile:'ПРОФИЛЬ ИГРОКА', pageNews:'ХРОНИКИ МИРА', pageShop:'МАГАЗИН ПРИКЛЮЧЕНИЙ', pageMods:'КАТАЛОГ МОДОВ', pageCommunity:'СООБЩЕСТВО', pageSupport:'ПОДДЕРЖКА', pageSettings:'НАСТРОЙКИ',
+      pageHome:'ИГРОВОЙ ЦЕНТР', pageRegistration:'РЕГИСТРАЦИЯ И ВХОД', pageProfile:'ПРОФИЛЬ ИГРОКА', pageNews:'ХРОНИКИ МИРА', pageShop:'МАГАЗИН ПРИКЛЮЧЕНИЙ', pageMods:'КАТАЛОГ МОДОВ', pageCommunity:'СООБЩЕСТВО', pageSupport:'ПОДДЕРЖКА', pageSettings:'НАСТРОЙКИ',
       loginTitle:'Войти в SkyRealm', registerTitle:'Создай аккаунт', loginIntro:'Войди, чтобы открыть свой профиль, или создай новый аккаунт.', registerIntro:'Заполни данные ниже. После регистрации мы попросим подтвердить почту кодом.',
       usernameLogin:'Почта или имя игрока', usernameRegister:'Имя игрока', usernamePlaceholderLogin:'Введите почту или имя игрока', usernamePlaceholderRegister:'Придумай имя (3–20 символов)',
       passwordPlaceholderLogin:'Введите пароль', passwordPlaceholderRegister:'Не менее 8 символов', submitLogin:'Войти в аккаунт <span>→</span>', submitRegister:'Создать аккаунт <span>→</span>', switchLogin:'Создать аккаунт <span>→</span>', switchRegister:'← Вернуться ко входу',
@@ -27,7 +27,7 @@
     }
   };
   const t = (key) => LANGUAGE_TEXT[currentLanguage][key] || LANGUAGE_TEXT.ru[key] || key;
-  const getPageNames = () => ({home:t('pageHome'),profile:t('pageProfile'),competitive:currentLanguage==='en'?'Competitive':'Соревновательный',news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),support:t('pageSupport'),settings:t('pageSettings')});
+  const getPageNames = () => ({home:t('pageHome'),registration:t('pageRegistration'),profile:t('pageProfile'),competitive:currentLanguage==='en'?'Competitive':'Соревновательный',news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),support:t('pageSupport'),settings:t('pageSettings')});
   let pageNames = getPageNames();
   let gameLaunchBusy = false;
   const toast = (message) => {
@@ -331,7 +331,8 @@
     const isAuthenticated = authenticated === true;
     document.body.classList.toggle('is-authenticated', isAuthenticated);
     const strip=$('#home-player-strip'); if(strip) strip.hidden=!isAuthenticated;
-    $$('[data-auth-mode], #top-create-account').forEach(button => {
+    const registrationTab=$('#registration-nav'); if(registrationTab){ registrationTab.hidden=isAuthenticated; registrationTab.setAttribute('aria-hidden',String(isAuthenticated)); }
+    $('[data-auth-mode], #top-create-account').forEach(button => {
       button.hidden = isAuthenticated;
       button.setAttribute('aria-hidden', String(isAuthenticated));
     });
@@ -686,7 +687,17 @@
     setAuthMode('login');
   }
 
-  $$('.auth-tab').forEach(b => b.addEventListener('click', () => setAuthMode(b.dataset.auth)));
+  $('#registration-account-yes')?.addEventListener('click', () => {
+    showPage('home'); setAuthMode('login');
+    $('#auth-panel').scrollIntoView({behavior:'smooth',block:'center'});
+    window.setTimeout(() => $('#username')?.focus({preventScroll:true}), 260);
+  });
+  $('#registration-account-no')?.addEventListener('click', () => {
+    showPage('home'); setAuthMode('register');
+    $('#auth-panel').scrollIntoView({behavior:'smooth',block:'center'});
+    window.setTimeout(() => $('#username')?.focus({preventScroll:true}), 260);
+  });
+  $('.auth-tab').forEach(b => b.addEventListener('click', () => setAuthMode(b.dataset.auth)));
   $('#switch-auth').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'register' : 'login'));
   $$('[data-auth-mode]').forEach(b => b.addEventListener('click', () => {
     const mode = b.dataset.authMode === 'login' ? 'login' : 'register';
