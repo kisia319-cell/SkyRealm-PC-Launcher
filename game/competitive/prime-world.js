@@ -252,7 +252,7 @@ async function renderPrimeFriends(){
  if(primeSocialBusy)return;primeSocialBusy=true;
  try{
   await PrimeOnline.init();if(!PrimeOnline.hasSession()){openPrimeAuth();socialMessage("Войди в аккаунт, чтобы пользоваться друзьями и лобби.",true);return;}
-  const [friendsData,lobbyData]=await Promise.all([PrimeOnline.friends(),PrimeOnline.lobby()]);
+  const [friendsData,lobbyData]=await Promise.all([PrimeOnline.friends(),PrimeOnline.lobby(),PrimeOnline.profile()]);
   const list=$("prime-friend-list"),invites=$("prime-lobby-invites"),panel=$("prime-lobby-panel");
   if(!list||!invites||!panel)return;
   list.replaceChildren();invites.replaceChildren();panel.replaceChildren();primeCurrentLobby=lobbyData.lobby||null;
@@ -262,7 +262,7 @@ async function renderPrimeFriends(){
   if(!relationships.length)list.append(socialNode("p","","Пока нет друзей. Найди игрока по нику выше."));
   for(const rel of relationships){
    const person=rel.player||{},row=socialNode("div","social-row");
-   const label=socialNode("div","",((person.display_name||person.username||"Игрок")+" · "+(rel.status==="accepted"?(person.in_game?"В игре":person.presence_status==="online"?"В сети":"Не в сети"):(rel.direction==="incoming"?"Входящая заявка":"Заявка отправлена"))));
+   const label=socialNode("div","",((person.display_name||person.username||"Игрок")+" · "+(rel.status==="accepted"?(person.in_game?"В игре":person.presence_status==="online"&&person.last_seen_at&&Date.now()-Date.parse(person.last_seen_at)<120000?"В сети":"Не в сети"):(rel.direction==="incoming"?"Входящая заявка":"Заявка отправлена"))));
    row.append(label);const actions=socialNode("div","social-actions");
    if(rel.status==="accepted"&&primeCurrentLobby&&primeCurrentLobby.role==="owner"){
     actions.append(socialAction("Пригласить",async()=>{try{await PrimeOnline.inviteLobbyFriend(primeCurrentLobby.id,person.id);socialMessage("Приглашение отправлено: "+(person.display_name||person.username));await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
