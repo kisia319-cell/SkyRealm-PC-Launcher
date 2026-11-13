@@ -21,7 +21,7 @@ vm.runInNewContext(outpostShot+'\nupdateBattleObjectives(0.1);',objectiveContext
 neutral.owner=1;neutral.fireTimer=0;vm.runInNewContext(outpostShot+'\nupdateBattleObjectives(0.1);',objectiveContext);assert.equal(victim.hp,84,'enemy outpost must attack player');
 const enemyStats={team:1,hp:100,maxHp:100,damage:20,speed:180,attackInterval:.72};
 vm.runInNewContext(extractFunction(js,'applyEnemyDifficulty')+'\napplyEnemyDifficulty(unit);',{unit:enemyStats,getBotDifficulty:()=>({unitHp:1.2,unitDamage:1.2,speed:1.15,attackSpeed:1.22})});
-assert.equal(enemyStats.hp,120);assert.equal(enemyStats.damage,24);assert.equal(enemyStats.speed,207);assert.ok(enemyStats.attackInterval<.72);
+assert.equal(enemyStats.hp,120);assert.equal(enemyStats.damage,24);assert.ok(Math.abs(enemyStats.speed-207)<1e-9,'Enemy speed multiplier should be applied');assert.ok(enemyStats.attackInterval<.72);
 
 
 const captureTarget=extractFunction(js,'chooseEnemyOutpostTarget');
@@ -37,6 +37,6 @@ const friendlyDefenseMatch={elapsed:0,player:{x:900,y:900,hp:100,maxHp:100,team:
 const friendlyDefenseContext={match:friendlyDefenseMatch,getBotDifficulty:()=>({capture:1,income:1,heroDamage:1}),chooseNearestTarget:(source,list,max)=>{let best=null,d=max;for(const candidate of list){const distance=Math.hypot(candidate.x-source.x,candidate.y-source.y);if(distance<d){d=distance;best={target:candidate,distance};}}return best;},applyCombatDamage:(target,amount)=>{target.hp-=amount;},addCombatFeed:()=>{}};
 vm.runInNewContext(outpostShot+';updateBattleObjectives(1);',friendlyDefenseContext);
 assert.equal(enemyHero.hp,84,'Player-owned outpost attacks enemy bots');
-assert.equal(recoveringAlly.hp,52.4,'Friendly troops beside their outpost recover health');
+assert.ok(Math.abs(recoveringAlly.hp-52.4)<1e-9,'Friendly troops beside their outpost recover health');
 
 console.log('Prime battle systems: all tests passed.');
