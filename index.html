@@ -20,6 +20,7 @@
     <div class="sidebar-label">ПРОЕКТ</div>
     <nav class="nav" aria-label="Главное меню">
       <button class="nav-item active" data-page="home"><span class="nav-ico">⌂</span><span>Главная</span></button>
+      <button class="nav-item" data-page="registration" id="registration-nav"><span class="nav-ico">＋</span><span>Регистрация</span></button>
       <button class="nav-item" data-page="profile"><span class="nav-ico">♙</span><span>Профиль</span></button>
       <button class="nav-item" data-page="competitive"><span class="nav-ico">⚔</span><span>Соревновательный</span><span class="nav-badge">NEW</span></button>
       <button class="nav-item" data-page="news"><span class="nav-ico">▤</span><span>Новости</span><span class="nav-badge">2</span></button>
@@ -247,6 +248,20 @@
           <div class="community-mods-upload-row"><input id="community-mods-file" type="file" accept=".zip,application/zip" required><select id="community-mods-upload-category"><option value="other">Другое</option><option value="adventure">Приключения</option><option value="building">Строительство</option><option value="combat">Битвы</option><option value="interface">Интерфейс</option><option value="resources">Ресурсы</option></select><button class="primary-btn" id="community-mods-publish" type="submit">Опубликовать в общий каталог</button></div>
           <div class="community-mods-status" id="community-mods-status" role="status" aria-live="polite">Для публикации войди в аккаунт SkyRealm.</div>
         </form>
+      </section>
+    </section>
+
+    <section class="page inner-page registration-page" id="page-registration">
+      <div class="page-heading"><div class="section-kicker">АККАУНТ SKYREALM</div><h1>Регистрация и <span>вход</span></h1><p>Подключи существующий аккаунт или создай новый. Один аккаунт работает на ПК и телефоне.</p></div>
+      <section class="panel" style="max-width:760px;margin:0 auto;padding:clamp(24px,5vw,42px);text-align:center">
+        <div class="auth-icon" style="margin:0 auto 16px">✦</div>
+        <h2 style="margin:0 0 10px">У вас есть аккаунт SkyRealm?</h2>
+        <p style="color:var(--muted);line-height:1.6">Если уже регистрировались — войдите. Если аккаунта ещё нет — создайте его и подтвердите почту.</p>
+        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:24px">
+          <button class="primary-btn" id="registration-account-yes" type="button">Да, войти в аккаунт <span>→</span></button>
+          <button class="secondary-btn" id="registration-account-no" type="button">Нет, создать аккаунт <span>＋</span></button>
+        </div>
+        <p class="auth-message" style="margin-top:18px">После успешного входа или подтверждения почты вкладка регистрации автоматически исчезнет.</p>
       </section>
     </section>
 
