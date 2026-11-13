@@ -1682,7 +1682,61 @@ def _skyrealm_startup_update():
 
 
 
+def _prime_standalone_game_index() -> Path:
+    """Install the bundled Prime world files and return its persistent entry point."""
+    source_dir = Path(resource_path("game/competitive")).resolve()
+    source_index = source_dir / "index.html"
+    if not source_index.is_file() or not (source_dir / "prime-world.js").is_file():
+        raise FileNotFoundError("В PrimeLauncher.exe отсутствуют игровые файлы.")
+
+    install_dir = skyrealm_default_data_root() / "PrimeLauncher" / "game"
+    install_dir.mkdir(parents=True, exist_ok=True)
+    for source_file in source_dir.rglob("*"):
+        if not source_file.is_file():
+            continue
+        relative = source_file.relative_to(source_dir)
+        destination = install_dir / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if not destination.is_file() or file_sha256(destination) != file_sha256(source_file):
+            shutil.copy2(source_file, destination)
+
+    installed_index = install_dir / "index.html"
+    if not installed_index.is_file():
+        raise FileNotFoundError("Не удалось подготовить файлы PrimeLauncher.")
+    return installed_index
+
+
 if __name__ == "__main__":
+    # A direct double-click on the standalone PrimeLauncher.exe opens Prime itself.
+    # The main SkyRealm launcher keeps using the --prime-competitive entry below.
+    if (getattr(sys, "frozen", False)
+            and Path(sys.executable).stem.lower() == "primelauncher"
+            and len(sys.argv) == 1):
+        try:
+            run_prime_competitive_window(str(_prime_standalone_game_index()))
+        except Exception as exc:
+            details = traceback.format_exc()
+            log_path = skyrealm_default_data_root() / "PrimeLauncher" / "prime-launcher.log"
+            try:
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+                with log_path.open("a", encoding="utf-8") as log:
+                    log.write(f"\\n{time.strftime('%Y-%m-%d %H:%M:%S')} | STANDALONE PRIME FAILED | {type(exc).__name__}: {exc}\\n")
+                    log.write(details + "\\n")
+            except OSError:
+                pass
+            try:
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(
+                    0,
+                    f"Не удалось запустить PrimeLauncher.\\n\\n{type(exc).__name__}: {exc}\\n\\nЖурнал: {log_path}",
+                    "PrimeLauncher",
+                    0x10,
+                )
+            except Exception:
+                pass
+            raise SystemExit(1)
+        raise SystemExit(0)
+
     if len(sys.argv) >= 2 and sys.argv[1] == "--open-prime":
         # Shortcut entry: update the main launcher, then refresh and start PrimeLauncher.
         if _skyrealm_startup_update():
