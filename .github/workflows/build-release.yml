@@ -80,6 +80,8 @@ jobs:
           node --check tests/time-mechanics-test.cjs
           node tests/game-smoke-test.cjs
           node --check game/competitive/prime-online.js
+          node --check tests/prime-social-lobby-test.cjs
+          node tests/prime-social-lobby-test.cjs
           node --check tests/prime-online-test.cjs
           node tests/prime-online-test.cjs
           node --check game/competitive/prime-world.js
