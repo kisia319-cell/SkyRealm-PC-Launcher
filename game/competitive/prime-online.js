@@ -14,6 +14,16 @@ async function call(route,method="GET",body=null,params={}){
  return data;
 }
 let queueTimer=0,transportTimer=0,seq=0,lastInput="";
+ const SOCIAL_URL=URL.replace("skyrealm-prime","skyrealm-social");
+ async function social(route,method="GET",body=null,params={}){
+  const access=token()||(await init(),token());if(!access)throw new Error("Сначала войди в аккаунт SkyRealm.");
+  const query=new URLSearchParams({route,...params});
+  const response=await fetch(SOCIAL_URL+"?"+query.toString(),{method,headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json"},body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.message||"Ошибка друзей ("+response.status+").");
+  return data;
+ }
+
 async function authCall(route,body){const r=await fetch(AUTH_URL+"?route="+encodeURIComponent(route),{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"Ошибка аккаунта ("+r.status+").");return d;}
 function stopQueue(){if(queueTimer)clearInterval(queueTimer);queueTimer=0;}
 function stopTransport(){if(transportTimer)clearInterval(transportTimer);transportTimer=0;}
@@ -57,6 +67,16 @@ window.PrimeOnline={
    }catch(e){window.PrimeOnlineError?.(e.message);}finally{window.PrimeOnlinePing=Math.round(performance.now()-started);busy=false;}
   },role==="host"?240:200);
  },
+ friends:()=>social("/api/social/friends"),
+ searchPlayers:q=>social("/api/social/search","GET",null,{q}),
+ addFriend:username=>social("/api/social/request","POST",{username}),
+ respondFriend:(id,decision)=>social("/api/social/respond","POST",{id,decision}),
+ lobby:()=>call("/api/prime/lobby"),
+ createLobby:()=>call("/api/prime/lobby","POST",{}),
+ inviteLobbyFriend:(lobby_id,friend_id)=>call("/api/prime/lobby/invite","POST",{lobby_id,friend_id}),
+ respondLobbyInvite:(invite_id,decision)=>call("/api/prime/lobby/respond","POST",{invite_id,decision}),
+ startLobby:lobby_id=>call("/api/prime/lobby/start","POST",{lobby_id}),
+ leaveLobby:lobby_id=>call("/api/prime/lobby/leave","POST",{lobby_id}),
  stopQueue,stopTransport,
  finish: (matchId,winnerId,reason)=>call("/api/prime/finish","POST",{match_id:matchId,winner_id:winnerId,reason}),
  leave: matchId=>call("/api/prime/leave","POST",{match_id:matchId})
