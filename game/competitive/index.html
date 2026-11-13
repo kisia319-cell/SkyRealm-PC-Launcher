@@ -56,7 +56,7 @@ body.prime-building #arena{cursor:crosshair}
 @media(max-width:680px){#arena-minimap{width:145px!important;height:92px!important;right:8px!important;bottom:67px!important}#battle-feed{right:8px;top:74px;width:44vw}.feed-line{font-size:9px}}
 #balance-panel,#balance-toggle{display:none!important}
 #ability-warcry,#ability-shield,#ability-volley{border-color:#b58c54;background:linear-gradient(180deg,#4b3823,#20170f)}#hire-mercenaries{border-color:#6d9b73;background:linear-gradient(180deg,#294b35,#15271c)}#hud-outposts{color:#a9eaff}#hud-weather{color:#e0e6cc}
-@media(max-width:900px){#profile-page .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}}\n</style></head>
+@media(max-width:900px){#profile-page .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}}\n</style><style>#friends-page .card{min-height:0}#friends-page button{cursor:pointer}#friends-page .social-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:9px;border:1px solid #38302c;border-radius:8px;background:#191716}#friends-page .social-actions{display:flex;gap:6px;flex-wrap:wrap}#friends-page .social-actions button{padding:7px 10px;font-size:11px}</style></head>
 <body>
 <div class="shell">
 <aside class="nav">
@@ -65,6 +65,7 @@ body.prime-building #arena{cursor:crosshair}
  <button data-page="rank" data-icon="♜">♜ <span>Топ рейтинга</span></button>
  <button data-page="history" data-icon="◷">◷ <span>История матчей</span></button>
  <button data-page="profile" data-icon="●">● <span>Профиль</span></button>
+ <button data-page="friends" data-icon="♟">♟ <span>Друзья / лобби</span></button>
  <button data-page="settings" data-icon="⚙">⚙ <span>Настройки</span></button>
  <div class="nav-bottom"></div><div class="profile">Профиль игрока<br><b>Kisia</b> · <span id="nav-elo">0</span> ELO<br><span style="color:#ff9b62">◆ <span id="nav-coins">0</span> монет</span></div>
 </aside>
@@ -75,6 +76,36 @@ body.prime-building #arena{cursor:crosshair}
   <div class="cards"><div class="card"><small>ТВОЙ РЕЙТИНГ</small><b id="home-elo">0 ELO</b><p>Онлайн-рейтинг появится после запуска сетевой игры</p></div><div class="card"><small>БАЛАНС</small><b id="home-coins">0 ◆</b><p>+10 монет каждую секунду</p></div><div class="card"><small>ТВОЯ БАШНЯ</small><b id="home-tower">Уровень 1</b><p>Улучшение: 500 монет</p></div></div><div class="card" style="margin-top:14px"><small>ПРОГРЕСС</small><b id="home-matches">0 матчей</b><p><span id="home-wins">0</span> побед · тренировки против ботов не меняют ELO</p></div>
  </section>
  <section id="rank-page" class="hidden"><div class="card"><div class="eyebrow">PRIME LEADERBOARD</div><h1>Топ рейтинга</h1><p>Здесь отображаются только игроки. Тренировочные боты не участвуют в рейтинге. Онлайн-таблица появится после запуска серверного подбора.</p><div class="cards" style="margin-top:12px"><div class="card"><small>ТВОЙ ELO</small><b id="rank-elo">0 ELO</b></div><div class="card"><small>ТВОИ МОНЕТЫ</small><b id="rank-coins">0 ◆</b></div><div class="card"><small>ТВОЯ БАШНЯ</small><b id="rank-tower">Уровень 1</b></div></div><div id="leaderboard" style="display:grid;gap:7px;margin-top:16px"></div></div></section>
+ 
+ <section id="friends-page" class="hidden">
+  <div class="card" style="max-width:1050px">
+   <div class="eyebrow">PRIME SOCIAL</div><h1 style="margin:8px 0 5px">Друзья и лобби</h1>
+   <p style="color:#aaa">Добавляй игроков, принимай приглашения и собирайся на дуэль 1 × 1. Для одиночной тренировки выбери бой против ботов.</p>
+   <div style="display:flex;gap:9px;flex-wrap:wrap;margin:14px 0">
+    <input id="prime-friend-search" maxlength="20" placeholder="Ник игрока" style="flex:1;min-width:180px;padding:12px;background:#222;color:white;border:1px solid #555;border-radius:8px">
+    <button class="primary" id="prime-friend-find">Найти игрока</button>
+    <button class="secondary" id="prime-friends-refresh">Обновить</button>
+   </div>
+   <div id="prime-friend-search-results" style="display:grid;gap:8px"></div>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px">
+    <div class="card"><h2 style="font-size:17px">Мои друзья</h2><div id="prime-friend-list" style="display:grid;gap:8px;color:#aaa">Загрузка...</div></div>
+    <div class="card"><h2 style="font-size:17px">Приглашения</h2><div id="prime-lobby-invites" style="display:grid;gap:8px;color:#aaa">Загрузка...</div></div>
+   </div>
+   <div class="card" style="margin-top:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+     <div><h2 style="font-size:18px;margin:0">Твоё лобби</h2><small style="color:#999">Закрытая комната для тебя и одного друга</small></div>
+     <button class="primary" id="prime-lobby-create">Создать лобби</button>
+    </div>
+    <div id="prime-lobby-panel" style="margin-top:14px;color:#aaa">Лобби пока не создано.</div>
+   </div>
+   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px">
+    <button class="secondary" id="prime-play-bots">⚔ Играть против ботов</button>
+    <button class="secondary" id="prime-social-back">Назад в меню</button>
+   </div>
+   <div id="prime-social-message" style="margin-top:12px;color:#ffb58a"></div>
+  </div>
+ </section>
+ 
  <section id="profile-page" class="hidden"><div class="card" style="max-width:900px"><div class="eyebrow">PRIME PLAYER CARD</div><div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:15px 0"><div id="prime-avatar" style="width:104px;height:104px;border-radius:50%;background:radial-gradient(circle at 35% 25%,#ffbd7b,#b94c1c 65%,#24110a);display:grid;place-items:center;font-size:48px;border:3px solid #ff9b62">⚔</div><div><h1 id="prime-profile-name" style="margin:0 0 8px">Игрок</h1><div id="prime-profile-class" style="color:#ff9b62">Воин</div><small id="prime-profile-status" style="color:#999">Подключение...</small></div></div><div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"><div class="card"><small>ELO</small><b id="prime-profile-elo">1000</b></div><div class="card"><small>ПОСЛЕДНИЙ МАТЧ</small><b id="prime-profile-last" style="font-size:15px">Нет матчей</b></div><div class="card"><small>ЧАСЫ В ИГРЕ</small><b id="prime-profile-hours">0 ч</b></div><div class="card"><small>МАТЧИ · ПОБЕДЫ</small><b id="prime-profile-record">0 · 0</b></div></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><label>Ник <input id="prime-name-edit" maxlength="24" minlength="3" style="display:block;margin-top:6px;padding:10px;background:#222;color:white;border:1px solid #555;border-radius:8px"></label><label>Персонаж <select id="prime-class-edit" style="display:block;margin-top:6px;padding:10px;background:#222;color:white;border:1px solid #555;border-radius:8px"><option>Воин</option><option>Страж</option><option>Следопыт</option><option>Маг</option></select></label><label>Аватар <select id="prime-avatar-edit" style="display:block;margin-top:6px;padding:10px;background:#222;color:white;border:1px solid #555;border-radius:8px"><option value="default">⚔ Воин</option><option value="guardian">🛡 Страж</option><option value="ranger">🏹 Следопыт</option><option value="mage">🔮 Маг</option></select></label><button class="primary" id="prime-profile-save" style="align-self:end">Сохранить профиль</button></div><div id="prime-profile-message" style="color:#aaa;margin-top:12px"></div></div></section>
  <section id="history-page" class="hidden"><div class="card"><h2>История матчей</h2><p>Последние 100 результатов с датой и изменением ELO.</p><div id="history-list">Матчей пока нет.</div></div></section>
  <section id="settings-page" class="hidden"><div class="card"><h2>Настройки Prime</h2><label for="prime-language">Язык интерфейса</label><select id="prime-language" style="display:block;margin:10px 0 18px;padding:10px;background:#242424;color:#fff;border:1px solid #555;border-radius:8px"><option value="ru">Русский</option><option value="en">English</option></select><p>Управление: WASD или стрелки · Бег: Shift · Атака: пробел / левая кнопка мыши · Поворот постройки: R · Выход: Esc · Полный экран: F11.</p><p>Онлайн-матчи 1 × 1 проходят с реальными игроками. Для рейтингового матча войди в аккаунт SkyRealm.</p><p>Экономика матча: +10 монет в секунду только во время боя. Монеты и уровни построек сбрасываются после матча. Улучшения доступны только на арене.</p></div></section>
