@@ -7,5 +7,5 @@ for(const route of ["/api/prime/lobby","/api/prime/lobby/invite","/api/prime/lob
 for(const route of ["/api/social/friends","/api/social/search","/api/social/request","/api/social/respond"])assert.ok(world.includes(route)||online.includes(route),"Missing social route integration: "+route);
 assert.ok(api.includes("NOT_FRIENDS")&&api.includes("OWNER_ONLY")&&api.includes("NEED_TWO_PLAYERS"),"Lobby authorization or readiness checks are missing");
 assert.ok(migration.includes("enable row level security")&&migration.includes("revoke all")&&migration.includes("to service_role"),"Lobby tables must be service-role-only with RLS enabled");
-assert.ok(world.includes("Играть против ботов")&&world.includes("НАЧАТЬ ДУЭЛЬ 1 × 1"),"Both bot practice and friend duel launch paths must exist");
+assert.ok(html.includes("Играть против ботов")&&world.includes("НАЧАТЬ ДУЭЛЬ 1 × 1"),"Both bot practice and friend duel launch paths must exist");
 console.log("Prime social/lobby integration: all assertions passed");
