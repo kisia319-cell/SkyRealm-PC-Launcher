@@ -333,11 +333,14 @@ function updateBattleObjectives(dt){
  const m=match;if(!m)return;const friendly=[m.player,...m.allies.filter(a=>a.alive),...m.units.filter(u=>u.team===0&&u.alive)],hostile=[...m.bots.filter(b=>b.alive),...m.units.filter(u=>u.team===1&&u.alive)],difficulty=typeof getBotDifficulty==='function'?getBotDifficulty():{capture:1,income:1,heroDamage:1};
  for(const point of (m.outposts||[])){
   const own=friendly.filter(e=>Math.hypot(e.x-point.x,e.y-point.y)<88).length,enemy=hostile.filter(e=>Math.hypot(e.x-point.x,e.y-point.y)<88).length;
-  if(own&&enemy){point.progress=Math.max(0,(point.progress||0)-dt*.35);continue;}
-  const team=own?0:enemy?1:-1,count=own||enemy;
-  if(team>=0&&point.owner!==team){if(point.captureTeam!==team){point.captureTeam=team;point.progress=0;}point.progress=(point.progress||0)+dt*(1+Math.min(3,count-1)*.28)*(team===1?difficulty.capture:1);if(point.progress>=10){point.owner=team;point.captureTeam=null;point.progress=0;point.fireTimer=0;addCombatFeed((team===0?'Вы захватили':'Соперник захватил')+' аванпост '+point.id);}}
-  else if(!count&&point.progress>0){point.progress=Math.max(0,point.progress-dt*.25);if(point.progress===0)point.captureTeam=null;}
-  if(point.owner===0)m.playerCoins+=2.2*dt;else if(point.owner===1&&m.bots.length){const share=2.2*dt/m.bots.length;for(const bot of m.bots)bot.profile.coins+=share*difficulty.income;}
+  const contested=own>0&&enemy>0;
+  if(contested)point.progress=Math.max(0,(point.progress||0)-dt*.35);
+  else{
+   const team=own?0:enemy?1:-1,count=own||enemy;
+   if(team>=0&&point.owner!==team){if(point.captureTeam!==team){point.captureTeam=team;point.progress=0;}point.progress=(point.progress||0)+dt*(1+Math.min(3,count-1)*.28)*(team===1?difficulty.capture:1);if(point.progress>=10){point.owner=team;point.captureTeam=null;point.progress=0;point.fireTimer=0;addCombatFeed((team===0?'Вы захватили':'Соперник захватил')+' аванпост '+point.id);}}
+   else if(!count&&point.progress>0){point.progress=Math.max(0,point.progress-dt*.25);if(point.progress===0)point.captureTeam=null;}
+   if(point.owner===0)m.playerCoins+=2.2*dt;else if(point.owner===1&&m.bots.length){const share=2.2*dt/m.bots.length;for(const bot of m.bots)bot.profile.coins+=share*difficulty.income;}
+  }
   if(point.owner===0||point.owner===1){
    point.fireTimer=Math.max(0,(point.fireTimer||0)-dt);const targets=point.owner===0?hostile:friendly,found=chooseNearestTarget(point,targets,210);
    if(found&&point.fireTimer<=0){point.fireTimer=1.25;const source=point.defenseSource||(point.defenseSource={team:point.owner,kind:'outpost'});source.team=point.owner;applyCombatDamage(found.target,point.owner===1?Math.round(16*difficulty.heroDamage):16,source);}
