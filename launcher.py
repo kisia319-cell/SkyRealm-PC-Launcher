@@ -251,7 +251,8 @@ class LauncherApi:
         try:
             if os.name == "nt":
                 result = subprocess.run(["tasklist", "/FO", "CSV", "/NH"],
-                                        capture_output=True, text=True, timeout=5, check=False)
+                                        capture_output=True, text=True, timeout=5, check=False,
+                                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0)
                 if result.returncode != 0:
                     return True
                 for row in csv.reader((result.stdout or "").splitlines()):
@@ -707,7 +708,7 @@ class LauncherApi:
             else:
                 # Source-mode development still works with the current Python interpreter.
                 command = [sys.executable, str(Path(__file__).resolve()), "--skyrealm-game", str(installed_index)]
-            creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) if os.name == "nt" else 0
+            creationflags = (getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0)) if os.name == "nt" else 0
             launch_env = os.environ.copy()
             allowed_mod_ids = {"cartographer", "angler", "green_thumb", "miners_luck", "survivalist", "skill_expansion", "brutal_world", "blood_moon", "lost_dungeons", "sky_islands", "ancient_civs", "ocean_depths", "elemental_lords", "legendary_gear", "bounty_hunter", "arena_survival", "settlement_builder", "architect", "beast_companions", "trade_caravans", "magic_academy", "engineer_world", "banking", "parallel_dimensions", "full_magic", "swift_steps", "guardian_oath", "herbalist", "deep_reserves", "treasure_hunter", "scavenger", "marksman", "restful_camp", "merchant_guild", "scholar", "__catalog__", "__creator__"}
             requested_mod = open_mod_id.strip() if isinstance(open_mod_id, str) else ""
@@ -1564,8 +1565,43 @@ def _skyrealm_startup_update():
         if latest_tuple <= current_tuple:
             return False
 
-        # Install verified updates automatically; helper waits for this process to exit.
-        accepted = True
+        # Ask before downloading a new launcher build. Declining keeps the current version usable.
+        if os.name == "nt":
+            import ctypes
+            accepted = ctypes.windll.user32.MessageBoxW(
+                0,
+                f"Доступно обновление SkyRealm Launcher {version}.\\n\\nУстановить его сейчас?\\n\\nЕсли выбрать «Нет», лаунчер продолжит работу на текущей версии.",
+                "Обновление SkyRealm",
+                0x04 | 0x20 | 0x1000,
+            ) == 6
+        else:
+            accepted = False
+        if not accepted:
+            try:
+                with (root / "update.log").open("a", encoding="utf-8") as log:
+                    log.write(time.strftime("%Y-%m-%d %H:%M:%S") + " | launcher update declined by user\\n")
+            except OSError:
+                pass
+            return False
+
+        progress_root = None
+        progress_bar = None
+        progress_label = None
+        try:
+            import tkinter as tk
+            from tkinter import ttk
+            progress_root = tk.Tk()
+            progress_root.title("Обновление SkyRealm")
+            progress_root.geometry("440x150")
+            progress_root.resizable(False, False)
+            progress_root.attributes("-topmost", True)
+            progress_label = tk.Label(progress_root, text=f"Загрузка версии {version}…", padx=18, pady=18)
+            progress_label.pack(fill="x")
+            progress_bar = ttk.Progressbar(progress_root, orient="horizontal", mode="determinate", maximum=100)
+            progress_bar.pack(fill="x", padx=22, pady=8)
+            progress_root.update()
+        except Exception:
+            progress_root = None
 
         url = str(manifest.get("download_url", "")).strip()
         expected = str(manifest.get("sha256", "")).strip().lower()
@@ -1577,12 +1613,27 @@ def _skyrealm_startup_update():
         request = urllib.request.Request(url, headers={"User-Agent": "SkyRealmLauncher-Updater/1.0"})
         digest = hashlib.sha256()
         with urllib.request.urlopen(request, timeout=30) as response, archive_path.open("wb") as output:
+            total_bytes = int(response.headers.get("Content-Length") or 0)
+            downloaded = 0
             while True:
                 chunk = response.read(1024 * 1024)
                 if not chunk:
                     break
                 digest.update(chunk)
                 output.write(chunk)
+                downloaded += len(chunk)
+                if progress_root is not None:
+                    try:
+                        if total_bytes > 0:
+                            percent = min(100, int(downloaded * 100 / total_bytes))
+                            progress_bar["value"] = percent
+                            progress_label.config(text=f"Загрузка обновления… {percent}% ({downloaded // 1048576} / {max(1, total_bytes // 1048576)} МБ)")
+                        else:
+                            progress_label.config(text=f"Загрузка обновления… {downloaded // 1048576} МБ")
+                        progress_root.update_idletasks()
+                        progress_root.update()
+                    except Exception:
+                        progress_root = None
         if digest.hexdigest().lower() != expected:
             archive_path.unlink(missing_ok=True)
             raise ValueError("SHA-256 архива не совпал")
@@ -1600,6 +1651,13 @@ def _skyrealm_startup_update():
         helper_dir.mkdir(parents=True, exist_ok=True)
         helper_target = helper_dir / "SkyRealmUpdater.exe"
         shutil.copy2(helper_source, helper_target)
+        if progress_root is not None:
+            try:
+                progress_label.config(text="Загрузка завершена. Проверяем архив и устанавливаем обновление…")
+                progress_bar["value"] = 100
+                progress_root.update()
+            except Exception:
+                pass
         subprocess.Popen(
             [str(helper_target), str(archive_path), str(Path(sys.executable).resolve()), str(os.getpid()), version,
              json.dumps(sys.argv[1:], ensure_ascii=False)],
