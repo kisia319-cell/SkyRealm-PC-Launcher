@@ -1,0 +1,11 @@
+const fs=require("node:fs");const path=require("node:path");const assert=require("node:assert/strict");
+const read=p=>fs.readFileSync(path.join(process.cwd(),p),"utf8");
+const html=read("game/competitive/index.html"),world=read("game/competitive/prime-world.js"),online=read("game/competitive/prime-online.js"),api=read("supabase/functions/skyrealm-prime/index.ts"),migration=read("supabase/migrations/20261113120000_prime_friend_lobbies.sql");
+for(const id of ["friends-page","prime-friend-search","prime-friend-find","prime-friend-list","prime-lobby-invites","prime-lobby-create","prime-lobby-panel","prime-play-bots"])assert.ok(html.includes(id),"Missing Prime social UI: "+id);
+for(const method of ["friends","searchPlayers","addFriend","respondFriend","lobby","createLobby","inviteLobbyFriend","respondLobbyInvite","startLobby","leaveLobby"])assert.ok(online.includes(method+":"),"Missing Prime social client method: "+method);
+for(const route of ["/api/prime/lobby","/api/prime/lobby/invite","/api/prime/lobby/respond","/api/prime/lobby/start","/api/prime/lobby/leave"])assert.ok(api.includes(route),"Missing lobby API route: "+route);
+for(const route of ["/api/social/friends","/api/social/search","/api/social/request","/api/social/respond"])assert.ok(world.includes(route)||online.includes(route),"Missing social route integration: "+route);
+assert.ok(api.includes("NOT_FRIENDS")&&api.includes("OWNER_ONLY")&&api.includes("NEED_TWO_PLAYERS"),"Lobby authorization or readiness checks are missing");
+assert.ok(migration.includes("enable row level security")&&migration.includes("revoke all")&&migration.includes("to service_role"),"Lobby tables must be service-role-only with RLS enabled");
+assert.ok(world.includes("Играть против ботов")&&world.includes("НАЧАТЬ ДУЭЛЬ 1 × 1"),"Both bot practice and friend duel launch paths must exist");
+console.log("Prime social/lobby integration: all assertions passed");
