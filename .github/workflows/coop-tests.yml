@@ -36,6 +36,8 @@ jobs:
       - run: node tests/staff-api-smoke.mjs
       - run: node tests/supabase-migration-history-test.cjs
       - run: node tests/coop-ui-integration-test.cjs
+      - run: node --check tests/prime-social-lobby-test.cjs
+      - run: node tests/prime-social-lobby-test.cjs
       - run: node tests/profile-social-integration-test.cjs
       - run: node tests/profile-social-api-smoke.mjs
       - run: node --check game/competitive/prime-world.js
