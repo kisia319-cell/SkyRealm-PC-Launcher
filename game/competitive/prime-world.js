@@ -93,7 +93,8 @@ $('prime-auth-submit')?.addEventListener('click',async()=>{
  }catch(e){msg.textContent=e.message;}finally{btn.disabled=false;}
 });
 $('prime-auth-name')?.classList.add('hidden');
-setInterval(()=>{if(PrimeOnline.hasSession())PrimeOnline.profile().catch(()=>{});},60000);\nconst PRIME_LANG_KEY='primeLauncher.language.v1';
+setInterval(()=>{if(PrimeOnline.hasSession())PrimeOnline.profile().catch(()=>{});},60000);
+const PRIME_LANG_KEY='primeLauncher.language.v1';
 const PRIME_EN={'⚔ Клич':'⚔ War Cry','🛡 Щит':'🛡 Shield','☄ Залп':'☄ Volley','🏕 Наёмники':'🏕 Mercenaries','ГОТОВО':'READY','АВАНПОСТЫ ':'OUTPOSTS ','· ВРАГ ':'· ENEMY ','ПОГОДА · ':'WEATHER · ','ЯСНО':'CLEAR','ЛИВЕНЬ':'RAIN','ТУМАН':'FOG','ПОПУТНЫЙ ВЕТЕР':'TAILWIND','лагерь далеко':'camp too far','нужна таверна':'need barracks','ЛАГЕРЬ НАЁМНИКОВ':'MERCENARY CAMP',
 'Главная':'Home','Топ рейтинга':'Leaderboard','История матчей':'Match history','Настройки':'Settings',
 'Войти в Prime':'Enter Prime','Настройки Prime':'Prime settings','Язык интерфейса':'Interface language',
