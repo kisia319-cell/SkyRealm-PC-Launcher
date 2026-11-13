@@ -120,6 +120,102 @@ Deno.serve(async(req:Request)=>{
    await db("prime_matches?id=eq."+m.id,{method:"PATCH",body:JSON.stringify({[m.user_a===user.id?"host_seen_at":"guest_seen_at"]:new Date().toISOString(),updated_at:new Date().toISOString()})});
    return reply({ok:true,status:m.status});
   }
+
+  if(route==="/api/prime/lobby"&&req.method==="GET"){
+   const memberships=await db("prime_lobby_members?select=lobby_id,role,last_seen_at&user_id=eq."+user.id+"&limit=1");
+   const membership=memberships?.[0];let lobby=null;
+   if(membership){
+    const rooms=await db("prime_lobbies?select=id,owner_id,status,mode,match_id,created_at,updated_at&id=eq."+membership.lobby_id+"&limit=1");
+    const room=rooms?.[0];
+    if(room&&room.status!=="closed"){
+     const members=await db("prime_lobby_members?select=user_id,role,joined_at,last_seen_at&lobby_id=eq."+room.id+"&order=joined_at.asc");
+     const ids=(members||[]).map((x:any)=>x.user_id);
+     const people=ids.length?await db("profiles?select=id,username,display_name,avatar_url&id=in.("+ids.join(",")+")"):[];
+     const byId=new Map((people||[]).map((x:any)=>[x.id,x]));
+     lobby={...room,role:membership.role,members:(members||[]).map((x:any)=>({...x,profile:byId.get(x.user_id)||{username:"Игрок"}}))};
+    }
+   }
+   const invites=await db("prime_lobby_invites?select=id,lobby_id,inviter_id,created_at,expires_at&invitee_id=eq."+user.id+"&status=eq.pending&expires_at=gt."+encodeURIComponent(new Date().toISOString())+"&order=created_at.desc&limit=20");
+   const inviterIds=[...new Set((invites||[]).map((x:any)=>x.inviter_id))];
+   const inviters=inviterIds.length?await db("profiles?select=id,username,display_name&id=in.("+inviterIds.join(",")+")"):[];
+   const inviterMap=new Map((inviters||[]).map((x:any)=>[x.id,x]));
+   return reply({lobby,invites:(invites||[]).map((x:any)=>({...x,inviter:inviterMap.get(x.inviter_id)||{username:"Игрок"}}))});
+  }
+  if(route==="/api/prime/lobby"&&req.method==="POST"){
+   const existing=await db("prime_lobby_members?select=lobby_id&user_id=eq."+user.id+"&limit=1");
+   if(existing?.length)throw new ApiError(409,"ALREADY_IN_LOBBY","Сначала выйди из текущего лобби.");
+   const created=await db("prime_lobbies",{method:"POST",body:JSON.stringify({owner_id:user.id,status:"lobby",mode:"pvp"})});
+   const room=created?.[0];if(!room)throw new ApiError(500,"LOBBY_CREATE_FAILED","Не удалось создать лобби.");
+   await db("prime_lobby_members",{method:"POST",body:JSON.stringify({lobby_id:room.id,user_id:user.id,role:"owner"})});
+   return reply({lobby:{...room,role:"owner",members:[{user_id:user.id,role:"owner"}]}},201);
+  }
+  if(route==="/api/prime/lobby/invite"&&req.method==="POST"){
+   const p=await readBody(req,3000),lobbyId=String(p.lobby_id||""),friendId=String(p.friend_id||"");
+   if(!UUID.test(lobbyId)||!UUID.test(friendId)||friendId===user.id)throw new ApiError(400,"INVALID_INVITE","Некорректное приглашение.");
+   const rooms=await db("prime_lobbies?select=id,owner_id,status&id=eq."+lobbyId+"&limit=1"),room=rooms?.[0];
+   if(!room||room.status!=="lobby")throw new ApiError(404,"LOBBY_NOT_FOUND","Лобби уже закрыто.");
+   if(room.owner_id!==user.id)throw new ApiError(403,"OWNER_ONLY","Приглашать друзей может только создатель лобби.");
+   const pair=user.id<friendId?{user_a:user.id,user_b:friendId}:{user_a:friendId,user_b:user.id};
+   const friends=await db("skyrealm_friendships?select=id,status&user_a=eq."+pair.user_a+"&user_b=eq."+pair.user_b+"&limit=1");
+   if(!friends?.length||friends[0].status!=="accepted")throw new ApiError(403,"NOT_FRIENDS","Приглашать в Prime-лобби можно только друзей.");
+   const active=await db("prime_lobby_members?select=user_id&user_id=eq."+friendId+"&limit=1");
+   if(active?.length)throw new ApiError(409,"FRIEND_BUSY","Друг уже находится в другом лобби.");
+   const old=await db("prime_lobby_invites?select=id,status,expires_at&lobby_id=eq."+lobbyId+"&invitee_id=eq."+friendId+"&limit=1");
+   const now=new Date().toISOString(),expires=new Date(Date.now()+24*60*60*1000).toISOString();
+   let invite;
+   if(old?.length)invite=(await db("prime_lobby_invites?id=eq."+old[0].id,{method:"PATCH",body:JSON.stringify({inviter_id:user.id,status:"pending",created_at:now,expires_at:expires})}))?.[0];
+   else invite=(await db("prime_lobby_invites",{method:"POST",body:JSON.stringify({lobby_id:lobbyId,inviter_id:user.id,invitee_id:friendId,status:"pending",expires_at:expires})}))?.[0];
+   return reply({ok:true,invite},201);
+  }
+  if(route==="/api/prime/lobby/respond"&&req.method==="POST"){
+   const p=await readBody(req,2000),id=String(p.invite_id||""),decision=String(p.decision||"");
+   if(!UUID.test(id)||!["accept","reject"].includes(decision))throw new ApiError(400,"INVALID_INVITE_RESPONSE","Некорректный ответ.");
+   const rows=await db("prime_lobby_invites?select=id,lobby_id,inviter_id,invitee_id,status,expires_at&id=eq."+id+"&invitee_id=eq."+user.id+"&limit=1");
+   const invite=rows?.[0];if(!invite||invite.status!=="pending"||Date.parse(invite.expires_at)<=Date.now())throw new ApiError(404,"INVITE_EXPIRED","Приглашение не найдено или истекло.");
+   if(decision==="reject"){await db("prime_lobby_invites?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:"rejected"})});return reply({ok:true,status:"rejected"});}
+   const rooms=await db("prime_lobbies?select=id,status&id=eq."+invite.lobby_id+"&limit=1");
+   if(!rooms?.[0]||rooms[0].status!=="lobby")throw new ApiError(409,"LOBBY_CLOSED","Лобби уже закрыто.");
+   const existing=await db("prime_lobby_members?select=lobby_id&user_id=eq."+user.id+"&limit=1");
+   if(existing?.length)throw new ApiError(409,"ALREADY_IN_LOBBY","Сначала выйди из текущего лобби.");
+   const members=await db("prime_lobby_members?select=user_id&lobby_id=eq."+invite.lobby_id);
+   if((members||[]).length>=2)throw new ApiError(409,"LOBBY_FULL","В лобби уже два игрока.");
+   await db("prime_lobby_members",{method:"POST",body:JSON.stringify({lobby_id:invite.lobby_id,user_id:user.id,role:"player"})});
+   await db("prime_lobby_invites?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:"accepted"})});
+   return reply({ok:true,status:"accepted",lobby_id:invite.lobby_id});
+  }
+  if(route==="/api/prime/lobby/start"&&req.method==="POST"){
+   const p=await readBody(req,2000),lobbyId=String(p.lobby_id||"");
+   if(!UUID.test(lobbyId))throw new ApiError(400,"INVALID_LOBBY","Некорректное лобби.");
+   const rooms=await db("prime_lobbies?select=id,owner_id,status,mode&id=eq."+lobbyId+"&limit=1"),room=rooms?.[0];
+   if(!room||room.status!=="lobby")throw new ApiError(409,"LOBBY_NOT_READY","Лобби не готово к запуску.");
+   if(room.owner_id!==user.id)throw new ApiError(403,"OWNER_ONLY","Запустить матч может только создатель.");
+   const members=await db("prime_lobby_members?select=user_id,role&lobby_id=eq."+lobbyId+"&order=joined_at.asc");
+   if((members||[]).length!==2)throw new ApiError(409,"NEED_TWO_PLAYERS","Пригласи друга и дождись его входа в лобби.");
+   const opponent=members.find((x:any)=>x.user_id!==user.id);
+   const pair=user.id<opponent.user_id?{user_a:user.id,user_b:opponent.user_id}:{user_a:opponent.user_id,user_b:user.id};
+   const friends=await db("skyrealm_friendships?select=id,status&user_a=eq."+pair.user_a+"&user_b=eq."+pair.user_b+"&limit=1");
+   if(!friends?.length||friends[0].status!=="accepted")throw new ApiError(403,"NOT_FRIENDS","Матч доступен только между друзьями.");
+   const active=await db("prime_matches?select=id&status=eq.active&or=(user_a.eq."+user.id+",user_b.eq."+user.id+")&limit=1");
+   if(active?.length)throw new ApiError(409,"ACTIVE_MATCH","У тебя уже идёт другой матч.");
+   const seed=Date.now()+Math.floor(Math.random()*1000000);
+   const made=await db("prime_matches",{method:"POST",body:JSON.stringify({user_a:user.id,user_b:opponent.user_id,status:"active",seed,started_at:new Date().toISOString()})});
+   const match=made?.[0];if(!match)throw new ApiError(500,"MATCH_CREATE_FAILED","Не удалось создать матч.");
+   await db("prime_lobbies?id=eq."+lobbyId,{method:"PATCH",body:JSON.stringify({status:"running",match_id:match.id,updated_at:new Date().toISOString()})});
+   const people=await db("profiles?select=id,username,display_name&id=eq."+opponent.user_id+"&limit=1");
+   return reply({status:"matched",match_id:match.id,role:"host",seed,opponent_id:opponent.user_id,opponent:people?.[0]||{username:"Друг"},lobby_id:lobbyId});
+  }
+  if(route==="/api/prime/lobby/leave"&&req.method==="POST"){
+   const p=await readBody(req,2000),lobbyId=String(p.lobby_id||"");
+   if(!UUID.test(lobbyId))throw new ApiError(400,"INVALID_LOBBY","Некорректное лобби.");
+   const rooms=await db("prime_lobbies?select=id,owner_id,status,match_id&id=eq."+lobbyId+"&limit=1"),room=rooms?.[0];
+   if(!room)throw new ApiError(404,"LOBBY_NOT_FOUND","Лобби не найдено.");
+   await db("prime_lobby_members?lobby_id=eq."+lobbyId+"&user_id=eq."+user.id,{method:"DELETE"});
+   if(room.owner_id===user.id){
+    await db("prime_lobbies?id=eq."+lobbyId,{method:"PATCH",body:JSON.stringify({status:"closed",updated_at:new Date().toISOString()})});
+    if(room.match_id){try{const m=await memberMatch(room.match_id,user.id);if(m.status==="active")await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:m.user_a,p_winner:m.user_b,p_reason:"abandoned"})});}catch(_){}}
+   }
+   return reply({ok:true});
+  }
   return reply({code:"NOT_FOUND",message:"Маршрут Prime online не найден."},404);
  }catch(e){const err=e as ApiError;console.error("[Prime online]",err?.code||"",err?.message||e);return reply({code:err?.code||"INTERNAL_ERROR",message:err?.message||"Ошибка Prime online."},err?.status||500);}
 });
