@@ -28,7 +28,7 @@ try{const b=JSON.parse(localStorage.getItem(BOT_SAVE)||'null');if(Array.isArray(
 try{const w=JSON.parse(localStorage.getItem(WORLD_SAVE)||'null');if(w&&Number.isFinite(w.seed))worldMeta={...worldMeta,...w};}catch(_){}
 profile.history=Array.isArray(profile.history)?profile.history:[];
 let teamSize=1,matchKind='training',scene='home',match=null,raf=0,lastFrame=0,pressed=new Set(),attackCooldown=0,searchTimer=0,fpsFrames=0,fpsElapsed=0,currentFps=0,buildMode=null,buildRotation=0;
-const pages=['home','rank','history','profile','settings','menu','battle'];
+const pages=['home','rank','history','profile','registration','settings','menu','battle'];
 function save(){localStorage.setItem(SAVE,JSON.stringify({elo:profile.elo,botElo:profile.botElo||0,matches:profile.matches,wins:profile.wins,history:profile.history}));localStorage.setItem(BOT_SAVE,JSON.stringify(botsProfile));updateProfile();}
 function updateProfile(){
  const coins=match?Math.floor(match.playerCoins):0;
@@ -78,23 +78,41 @@ $('prime-profile-save')?.addEventListener('click',async()=>{
 function renderHistory(){const root=$('history-list');if(!root)return;if(!profile.history.length){root.textContent='Матчей пока нет.';return;}root.innerHTML=profile.history.map((h,i)=>'<div class="bot" style="display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;margin:8px 0"><span><b>'+(h.label||'Матч')+'</b><br><small>'+String(h.date||'')+'</small><br><small>Соперники: '+(Array.isArray(h.opponents)?h.opponents.join(', '):'—')+'</small></span><strong>'+String(h.delta||'')+'</strong></div>').join('');}
 
 let primeAuthMode='login',primeAuthStage='form',primeAuthEmail='';
-function openPrimeAuth(){ $('prime-auth-overlay')?.classList.remove('hidden'); }
-$('prime-auth-close')?.addEventListener('click',()=>$('prime-auth-overlay').classList.add('hidden'));
-$('prime-auth-switch')?.addEventListener('click',()=>{
- primeAuthMode=primeAuthMode==='login'?'register':'login';primeAuthStage='form';
- $('prime-auth-title').textContent=primeAuthMode==='login'?'Вход в SkyRealm':'Регистрация SkyRealm';
+function setPrimeAuthMode(mode){
+ primeAuthMode=mode==='register'?'register':'login';primeAuthStage='form';
+ $('prime-auth-title').textContent=primeAuthMode==='login'?'Вход в аккаунт SkyRealm':'Создание аккаунта SkyRealm';
  $('prime-auth-submit').textContent=primeAuthMode==='login'?'Войти':'Создать аккаунт';
  $('prime-auth-switch').textContent=primeAuthMode==='login'?'Создать аккаунт':'Уже есть аккаунт? Войти';
  $('prime-auth-name').classList.toggle('hidden',primeAuthMode==='login');
- $('prime-auth-hint').textContent=primeAuthMode==='login'?'Введи ник или почту и пароль.':'Создай аккаунт. На почту придёт код подтверждения.';
+ $('prime-auth-code-wrap').classList.add('hidden');
+ $('prime-auth-hint').textContent=primeAuthMode==='login'?'Введи почту или ник и пароль от существующего аккаунта SkyRealm.':'Укажи ник, почту и пароль. На почту придёт код подтверждения.';
  $('prime-auth-message').textContent='';
-});
+}
+function syncPrimeRegistrationTab(){
+ const tab=$('prime-registration-tab');if(!tab)return;
+ Promise.resolve(PrimeOnline.init()).then(ok=>{
+  const signed=!!ok&&PrimeOnline.hasSession();
+  tab.classList.toggle('hidden',signed);
+  if(signed&&scene==='registration')show('home');
+ }).catch(()=>tab.classList.remove('hidden'));
+}
+function completePrimeAuth(){
+ $('prime-auth-overlay').classList.add('hidden');
+ $('prime-registration-tab')?.classList.add('hidden');
+ if(scene==='registration')show('home');
+}
+function openPrimeAuth(mode='login'){setPrimeAuthMode(mode);$('prime-auth-overlay')?.classList.remove('hidden');}
+$('prime-auth-close')?.addEventListener('click',()=>$('prime-auth-overlay').classList.add('hidden'));
+$('prime-auth-switch')?.addEventListener('click',()=>setPrimeAuthMode(primeAuthMode==='login'?'register':'login'));
+$('prime-account-yes')?.addEventListener('click',()=>openPrimeAuth('login'));
+$('prime-account-no')?.addEventListener('click',()=>openPrimeAuth('register'));
+$('prime-registration-tab')?.addEventListener('click',()=>{if(PrimeOnline.hasSession()){syncPrimeRegistrationTab();show('home');return;}show('registration');});
 $('prime-auth-submit')?.addEventListener('click',async()=>{
  const msg=$('prime-auth-message'),btn=$('prime-auth-submit');btn.disabled=true;msg.textContent='Подключение...';
  try{
   if(primeAuthStage==='verify'){
    await PrimeOnline.verify(primeAuthEmail,$('prime-auth-code').value);
-   primeAuthStage='form';$('prime-auth-overlay').classList.add('hidden');msg.textContent='';
+   primeAuthStage='form';completePrimeAuth();msg.textContent='';
    await PrimeOnline.profile();renderLeaderboard();if(scene==='profile')renderPrimeProfile();
    return;
   }
@@ -104,11 +122,12 @@ $('prime-auth-submit')?.addEventListener('click',async()=>{
    $('prime-auth-code-wrap').classList.remove('hidden');$('prime-auth-title').textContent='Подтверждение почты';$('prime-auth-hint').textContent='Введи код из письма, чтобы активировать аккаунт.';$('prime-auth-submit').textContent='Подтвердить почту';msg.textContent='Код отправлен на '+email+'. Проверь входящие и спам.';
   }else{
    await PrimeOnline.login(email||$('prime-auth-name').value.trim(),password);
-   $('prime-auth-overlay').classList.add('hidden');await PrimeOnline.profile();renderLeaderboard();if(scene==='profile')renderPrimeProfile();msg.textContent='';
+   completePrimeAuth();await PrimeOnline.profile();renderLeaderboard();if(scene==='profile')renderPrimeProfile();msg.textContent='';
   }
  }catch(e){msg.textContent=e.message;}finally{btn.disabled=false;}
 });
 $('prime-auth-name')?.classList.add('hidden');
+syncPrimeRegistrationTab();
 setInterval(()=>{if(PrimeOnline.hasSession())PrimeOnline.profile().catch(()=>{});},60000);
 const PRIME_LANG_KEY='primeLauncher.language.v1';
 const PRIME_EN={'⚔ Клич':'⚔ War Cry','🛡 Щит':'🛡 Shield','☄ Залп':'☄ Volley','🏕 Наёмники':'🏕 Mercenaries','ГОТОВО':'READY','АВАНПОСТЫ ':'OUTPOSTS ','· ВРАГ ':'· ENEMY ','ПОГОДА · ':'WEATHER · ','ЯСНО':'CLEAR','ЛИВЕНЬ':'RAIN','ТУМАН':'FOG','ПОПУТНЫЙ ВЕТЕР':'TAILWIND','лагерь далеко':'camp too far','нужна таверна':'need barracks','ЛАГЕРЬ НАЁМНИКОВ':'MERCENARY CAMP',
