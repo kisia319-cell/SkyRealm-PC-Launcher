@@ -127,7 +127,9 @@ Deno.serve(async(req:Request)=>{
    if(membership){
     const rooms=await db("prime_lobbies?select=id,owner_id,status,mode,match_id,created_at,updated_at&id=eq."+membership.lobby_id+"&limit=1");
     const room=rooms?.[0];
+    if(!room||room.status==="closed"){await db("prime_lobby_members?lobby_id=eq."+membership.lobby_id,{method:"DELETE"});}
     if(room&&room.status!=="closed"){
+     await db("prime_lobby_members?lobby_id=eq."+room.id+"&user_id=eq."+user.id,{method:"PATCH",body:JSON.stringify({last_seen_at:new Date().toISOString()})});
      const members=await db("prime_lobby_members?select=user_id,role,joined_at,last_seen_at&lobby_id=eq."+room.id+"&order=joined_at.asc");
      const ids=(members||[]).map((x:any)=>x.user_id);
      const people=ids.length?await db("profiles?select=id,username,display_name,avatar_url&id=in.("+ids.join(",")+")"):[];
@@ -195,8 +197,8 @@ Deno.serve(async(req:Request)=>{
    const pair=user.id<opponent.user_id?{user_a:user.id,user_b:opponent.user_id}:{user_a:opponent.user_id,user_b:user.id};
    const friends=await db("skyrealm_friendships?select=id,status&user_a=eq."+pair.user_a+"&user_b=eq."+pair.user_b+"&limit=1");
    if(!friends?.length||friends[0].status!=="accepted")throw new ApiError(403,"NOT_FRIENDS","Матч доступен только между друзьями.");
-   const active=await db("prime_matches?select=id&status=eq.active&or=(user_a.eq."+user.id+",user_b.eq."+user.id+")&limit=1");
-   if(active?.length)throw new ApiError(409,"ACTIVE_MATCH","У тебя уже идёт другой матч.");
+   const active=await db("prime_matches?select=id&status=eq.active&or=(user_a.in.("+user.id+","+opponent.user_id+"),user_b.in.("+user.id+","+opponent.user_id+"))&limit=1");
+   if(active?.length)throw new ApiError(409,"ACTIVE_MATCH","У одного из игроков уже идёт другой матч.");
    const seed=Date.now()+Math.floor(Math.random()*1000000);
    const made=await db("prime_matches",{method:"POST",body:JSON.stringify({user_a:user.id,user_b:opponent.user_id,status:"active",seed,started_at:new Date().toISOString()})});
    const match=made?.[0];if(!match)throw new ApiError(500,"MATCH_CREATE_FAILED","Не удалось создать матч.");
@@ -212,6 +214,8 @@ Deno.serve(async(req:Request)=>{
    await db("prime_lobby_members?lobby_id=eq."+lobbyId+"&user_id=eq."+user.id,{method:"DELETE"});
    if(room.owner_id===user.id){
     await db("prime_lobbies?id=eq."+lobbyId,{method:"PATCH",body:JSON.stringify({status:"closed",updated_at:new Date().toISOString()})});
+    await db("prime_lobby_members?lobby_id=eq."+lobbyId,{method:"DELETE"});
+    await db("prime_lobby_invites?lobby_id=eq."+lobbyId+"&status=eq.pending",{method:"PATCH",body:JSON.stringify({status:"expired"})});
     if(room.match_id){try{const m=await memberMatch(room.match_id,user.id);if(m.status==="active")await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:m.user_a,p_winner:m.user_b,p_reason:"abandoned"})});}catch(_){}}
    }
    return reply({ok:true});
