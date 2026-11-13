@@ -7,23 +7,23 @@
   const LANGUAGE_TEXT = {
     ru: {
       pageHome:'ИГРОВОЙ ЦЕНТР', pageRegistration:'РЕГИСТРАЦИЯ И ВХОД', pageProfile:'ПРОФИЛЬ ИГРОКА', pageNews:'ХРОНИКИ МИРА', pageShop:'МАГАЗИН ПРИКЛЮЧЕНИЙ', pageMods:'КАТАЛОГ МОДОВ', pageCommunity:'СООБЩЕСТВО', pageSupport:'ПОДДЕРЖКА', pageSettings:'НАСТРОЙКИ',
-      loginTitle:'Войти в SkyRealm', registerTitle:'Создай аккаунт', loginIntro:'Войди, чтобы открыть свой профиль, или создай новый аккаунт.', registerIntro:'Заполни данные ниже. После регистрации мы попросим подтвердить почту кодом.',
+      loginTitle:'Войти в SkyRealm', registerTitle:'Создай аккаунт', loginIntro:'Войди или создай аккаунт.', registerIntro:'Введи данные и подтверди почту после регистрации.',
       usernameLogin:'Почта или имя игрока', usernameRegister:'Имя игрока', usernamePlaceholderLogin:'Введите почту или имя игрока', usernamePlaceholderRegister:'Придумай имя (3–20 символов)',
       passwordPlaceholderLogin:'Введите пароль', passwordPlaceholderRegister:'Не менее 8 символов', submitLogin:'Войти в аккаунт <span>→</span>', submitRegister:'Создать аккаунт <span>→</span>', switchLogin:'Создать аккаунт <span>→</span>', switchRegister:'← Вернуться ко входу',
-      switchHintLogin:'Впервые в SkyRealm?', switchHintRegister:'Уже есть аккаунт?', authFootLogin:'<span class="shield">⬡</span> Защищённая регистрация · подтверждение по почте', authFootRegister:'<span class="shield">⬡</span> После регистрации подтверди адрес почты. Не используй пароль от почты.',
+      switchHintLogin:'Впервые в SkyRealm?', switchHintRegister:'Уже есть аккаунт?', authFootLogin:'<span class="shield">⬡</span> Не передавай пароль другим людям.', authFootRegister:'<span class="shield">⬡</span> Никому не сообщай пароль и код.',
       verificationTitle:'Подтверди почту', verificationIntro:'Введи все цифры из письма. Код действует ограниченное время.', verificationKicker:'ПОСЛЕДНИЙ ШАГ', verifyLabel:'Код подтверждения', verifySubmit:'Подтвердить почту <span>→</span>', verifyResend:'Отправить код повторно', verifyBack:'← Назад к регистрации', verifyFoot:'<span class="shield">⬡</span> Никому не сообщай код подтверждения.',
       profileTitle:'Твой профиль', profileUser:'Игрок', profileKicker:'ПРОФИЛЬ SKYREALM', verified:'<span>✓</span> Почта подтверждена', profileNote:'Твой аккаунт готов к будущим игровым приключениям.', profileFoot:'<span class="shield">⬡</span> Аккаунт защищён серверной проверкой почты.', logout:'Выйти из аккаунта',
-      busyConnect:'Подключаемся к серверу…', busyVerify:'Проверяем код…', busyResend:'Отправляем…', languageChanged:'Language saved.', statusChecking:'Проверяем сервер…', statusOnline:'Облачный сервер онлайн', statusOffline:'Нет связи с облаком', statusUnconfigured:'Сервер не настроен'
+      busyConnect:'Подключаемся к серверу…', busyVerify:'Проверяем код…', busyResend:'Отправляем…', languageChanged:'Language saved.', statusChecking:'Подключение…', statusOnline:'Сервер онлайн', statusOffline:'Нет связи с облаком', statusUnconfigured:'Сервер не настроен'
     },
     en: {
       pageHome:'GAME CENTER', pageProfile:'PLAYER PROFILE', pageNews:'WORLD CHRONICLES', pageShop:'ADVENTURE SHOP', pageMods:'MOD WORKSHOP', pageCommunity:'COMMUNITY', pageSupport:'SUPPORT', pageSettings:'SETTINGS',
-      loginTitle:'Sign in to SkyRealm', registerTitle:'Create your account', loginIntro:'Sign in to open your profile, or create a new account.', registerIntro:'Fill in the details below. We’ll ask you to verify your email after registration.',
+      loginTitle:'Sign in to SkyRealm', registerTitle:'Create your account', loginIntro:'Sign in or create an account.', registerIntro:'Enter your details and verify your email.',
       usernameLogin:'Email or player name', usernameRegister:'Player name', usernamePlaceholderLogin:'Enter email or username', usernamePlaceholderRegister:'Choose a name (3–20 characters)',
       passwordPlaceholderLogin:'Enter password', passwordPlaceholderRegister:'At least 8 characters', submitLogin:'Sign in <span>→</span>', submitRegister:'Create account <span>→</span>', switchLogin:'Create account <span>→</span>', switchRegister:'← Back to sign in',
-      switchHintLogin:'New to SkyRealm?', switchHintRegister:'Already have an account?', authFootLogin:'<span class="shield">⬡</span> Secure sign-up · email verification', authFootRegister:'<span class="shield">⬡</span> Verify your email after registration. Never reuse your email password.',
+      switchHintLogin:'New to SkyRealm?', switchHintRegister:'Already have an account?', authFootLogin:'<span class="shield">⬡</span> Never share your password.', authFootRegister:'<span class="shield">⬡</span> Never share your password or code.',
       verificationTitle:'Verify your email', verificationIntro:'Enter every digit from the email. The code expires after a short time.', verificationKicker:'ONE LAST STEP', verifyLabel:'Verification code', verifySubmit:'Verify email <span>→</span>', verifyResend:'Send a new code', verifyBack:'← Back to registration', verifyFoot:'<span class="shield">⬡</span> Never share your verification code.',
       profileTitle:'Your profile', profileUser:'Player', profileKicker:'SKYREALM PROFILE', verified:'<span>✓</span> Email verified', profileNote:'Your account is ready for future adventures.', profileFoot:'<span class="shield">⬡</span> Your account is protected by server-side email verification.', logout:'Sign out',
-      busyConnect:'Connecting to server…', busyVerify:'Checking code…', busyResend:'Sending…', languageChanged:'Language saved.', statusChecking:'Checking server…', statusOnline:'Cloud server online', statusOffline:'Cloud server unreachable', statusUnconfigured:'Server not configured'
+      busyConnect:'Connecting to server…', busyVerify:'Checking code…', busyResend:'Sending…', languageChanged:'Language saved.', statusChecking:'Connecting…', statusOnline:'Server online', statusOffline:'Cloud server unreachable', statusUnconfigured:'Server not configured'
     }
   };
   const t = (key) => LANGUAGE_TEXT[currentLanguage][key] || LANGUAGE_TEXT.ru[key] || key;
@@ -142,63 +142,64 @@
       el.classList.add(dotClass);
     });
     if ($('#top-status-label')) $('#top-status-label').textContent = title;
-    if ($('#sidebar-status-label')) $('#sidebar-status-label').textContent = state === 'online' ? (currentLanguage === 'en' ? 'Cloud online' : 'Облако доступно') : (state === 'offline' ? (currentLanguage === 'en' ? 'Cloud unreachable' : 'Нет связи с облаком') : (currentLanguage === 'en' ? 'Checking server' : 'Проверяем сервер'));
+    if ($('#sidebar-status-label')) $('#sidebar-status-label').textContent = state === 'online' ? (currentLanguage === 'en' ? 'Cloud online' : 'Облако доступно') : (state === 'offline' ? (currentLanguage === 'en' ? 'Cloud unreachable' : 'Нет связи с облаком') : (currentLanguage === 'en' ? 'Connecting' : 'Подключение'));
     if ($('#card-status-title')) $('#card-status-title').textContent = title;
     if ($('#card-status-copy')) $('#card-status-copy').textContent = copy;
   }
+  let cloudStatusCheckRunning = false;
   async function checkCloudStatus() {
-    if (!apiConfigured()) {
-      setCloudStatus('offline', currentLanguage === 'en' ? 'Server not configured' : 'Сервер не настроен', currentLanguage === 'en' ? 'Check the address in config.js.' : 'Проверь адрес в config.js.');
-      return;
-    }
-
-    setCloudStatus('checking', currentLanguage === 'en' ? 'Checking server…' : 'Проверяем сервер…', currentLanguage === 'en' ? 'This may take a few seconds.' : 'Это может занять пару секунд.');
+    if (cloudStatusCheckRunning) return;
+    cloudStatusCheckRunning = true;
     let timeoutId = null;
     let controller = null;
     try {
-      const endpoint = new URL(API_BASE);
-      endpoint.searchParams.set('route', '/health');
-
-      // Never leave the launcher in "checking" forever when a network request stalls.
-      controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeout = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => {
-          if (controller) controller.abort();
-          reject(new Error('SERVER_CHECK_TIMEOUT'));
-        }, 10000);
-      });
-      const request = fetch(endpoint.toString(), {
-        method: 'GET',
-        headers: {'apikey': API_KEY, 'Authorization': 'Bearer ' + API_KEY},
-        cache: 'no-store',
-        ...(controller ? {signal: controller.signal} : {})
-      });
-      const response = await Promise.race([request, timeout]);
-      const body = await response.text();
-      let data = null;
-      if (body.trim()) {
-        try { data = JSON.parse(body); }
-        catch (_) { data = {status: body.trim()}; }
+      if (!apiConfigured()) {
+        setCloudStatus('offline', currentLanguage === 'en' ? 'Server not configured' : 'Сервер не настроен',
+          currentLanguage === 'en' ? 'Server address is missing.' : 'Не задан адрес сервера.');
+        return;
       }
 
-      // Health endpoints may return "OK", "ok", or another standard healthy label.
-      const healthStatus = String(data?.status ?? data?.health ?? '').trim().toLowerCase();
-      const acceptedHealthStates = new Set(['ok', 'healthy', 'online']);
-      const hasHealthState = healthStatus.length > 0;
-      if (response.ok && (!hasHealthState || acceptedHealthStates.has(healthStatus))) {
-        setCloudStatus('online', currentLanguage === 'en' ? 'Cloud server online' : 'Облачный сервер онлайн', currentLanguage === 'en' ? 'Server is available. Registration can be tested.' : 'Сервер доступен. Можно проверять регистрацию.');
+      setCloudStatus('checking', currentLanguage === 'en' ? 'Connecting…' : 'Подключение…',
+        currentLanguage === 'en' ? 'Checking cloud availability.' : 'Проверяем доступность облака.');
+      const endpoint = new URL(API_BASE);
+      endpoint.searchParams.set('route', '/health');
+      controller = new AbortController();
+
+      // The health route is public (verify_jwt=false). A plain GET avoids CORS
+      // preflight. HTTP success is enough: do not await or parse the response body.
+      const request = fetch(endpoint.toString(), {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'omit',
+        signal: controller.signal
+      });
+      const timeout = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          controller.abort();
+          reject(new Error('SERVER_CHECK_TIMEOUT'));
+        }, 8000);
+      });
+      const response = await Promise.race([request, timeout]);
+
+      if (response.ok) {
+        setCloudStatus('online',
+          currentLanguage === 'en' ? 'Server online' : 'Сервер онлайн',
+          currentLanguage === 'en' ? 'Cloud authentication is available.' : 'Облачная авторизация доступна.');
       } else {
-        setCloudStatus('offline', currentLanguage === 'en' ? 'Server returned an error' : 'Сервер ответил с ошибкой', currentLanguage === 'en' ? 'Check your connection and try again.' : 'Проверь подключение и попробуй позже.');
+        setCloudStatus('offline',
+          currentLanguage === 'en' ? 'Server unavailable' : 'Сервер недоступен',
+          'HTTP ' + response.status);
       }
     } catch (error) {
       const timedOut = error?.message === 'SERVER_CHECK_TIMEOUT' || error?.name === 'AbortError';
       setCloudStatus('offline',
         currentLanguage === 'en' ? 'Cloud unreachable' : 'Нет связи с облаком',
         timedOut
-          ? (currentLanguage === 'en' ? 'Server check timed out after 10 seconds.' : 'Проверка не получила ответ за 10 секунд. Проверь подключение и повтори попытку.')
-          : (currentLanguage === 'en' ? 'Check your internet connection.' : 'Проверь интернет. API может быть временно недоступен.'));
+          ? (currentLanguage === 'en' ? 'No response within 8 seconds.' : 'Нет ответа за 8 секунд.')
+          : (currentLanguage === 'en' ? 'Check your internet connection.' : 'Проверь подключение к интернету.'));
     } finally {
-      if (timeoutId !== null) clearTimeout(timeoutId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      cloudStatusCheckRunning = false;
     }
   }
   function currentToken() {
@@ -1175,7 +1176,7 @@
   if (localStorage.getItem('skyrealm_greeting') === 'false') $('.hero-copy').style.display = 'none';
   const STATIC_COPY = {
     ru: {
-      '.side-version':'SKYREALM <b>v1.2.56</b> · ИГРОВОЙ ЦЕНТР', '.sidebar-label':'ПРОЕКТ', '.nav-item[data-page="home"] span:nth-child(2)':'Главная', '.nav-item[data-page="news"] span:nth-child(2)':'Новости', '.nav-item[data-page="shop"] span:nth-child(2)':'Магазин', '.nav-item[data-page="community"] span:nth-child(2)':'Сообщество', '.nav-item[data-page="settings"] span:nth-child(2)':'Настройки', '.nav-item[data-page="shop"] .nav-soon':'СКОРО', '.sidebar-help':'<span>?</span> Помощь и ответы', '.sidebar-status small':'Облачная авторизация',
+      '.side-version':'SKYREALM <b>v1.2.59</b> · ИГРОВОЙ ЦЕНТР', '.sidebar-label':'ПРОЕКТ', '.nav-item[data-page="home"] span:nth-child(2)':'Главная', '.nav-item[data-page="news"] span:nth-child(2)':'Новости', '.nav-item[data-page="shop"] span:nth-child(2)':'Магазин', '.nav-item[data-page="community"] span:nth-child(2)':'Сообщество', '.nav-item[data-page="settings"] span:nth-child(2)':'Настройки', '.nav-item[data-page="shop"] .nav-soon':'СКОРО', '.sidebar-help':'<span>?</span> Помощь и ответы', '.sidebar-status small':'Облачная авторизация',
       '#top-create-account':'<span>＋</span> Создать аккаунт', '.home-intro .eyebrow':'<span class="eyebrow-spark">✦</span> ТВОЯ ИСТОРИЯ НАЧИНАЕТСЯ ЗДЕСЬ', '.home-intro h1':'Добро пожаловать в <span>SkyRealm</span>', '.home-intro p':'Создай аккаунт, подтверди почту и подготовься к путешествию по фэнтезийному миру.', '.hero-kicker':'<span class="live-dot"></span> ФЭНТЕЗИ-ПРОЕКТ В РАЗРАБОТКЕ', '.hero-tagline':'ТВОЙ МИР. ТВОИ ПРАВИЛА.', '.hero-copy':'Исследуй загадочные земли, открывай древние тайны и однажды создай собственную историю за горизонтом.', '.feature-row':'<span>✦ Исследование</span><span>⚔ Приключения</span><span>⌁ Развитие</span>', '#play-game':'<span class="play-button-icon">▶</span> Играть <span>→</span>', '#hero-create-account':'Создать аккаунт <span>→</span>', '#hero-login':'Уже есть аккаунт? <b>Войти</b>', '#play-note':'<span class="play-lock">◈</span> Первая версия игры: лёгкая 2D-карта и герой. При первом запуске файлы установятся автоматически.',
       '.auth-panel-top .section-kicker':'АККАУНТ ИГРОКА', '.auth-tab[data-auth="login"]':'Войти', '.auth-tab[data-auth="register"]':'Создать аккаунт', '#email-field > .field-label':'Электронная почта', '.field-hint':'На эту почту придёт код подтверждения.', '.auth-options .check-wrap':'<input type="checkbox" id="remember" checked><span class="check-custom"></span>Оставаться в системе', '#forgot':'Забыли пароль?', '#show-password':'◉', '#show-password|title':'Показать или скрыть пароль', '.verification-view .section-kicker':'ПОСЛЕДНИЙ ШАГ', '.verification-view h3':'Подтверди почту', '.verification-view .field-label':'Код подтверждения', '.verify-submit':'Подтвердить почту <span>→</span>', '#resend-code':'Отправить код повторно', '#back-to-register':'← Назад к регистрации', '.profile-view .section-kicker':'ПРОФИЛЬ SKYREALM', '.verified-badge':'<span>✓</span> Почта подтверждена', '.profile-note':'Твой аккаунт готов к будущим игровым приключениям.', '#logout':'Выйти из аккаунта',
       '#steps-title':'Начни с трёх шагов', '.steps-section .section-heading .section-kicker':'ВСЁ ПРОСТО', '.heading-note':'Профиль создаётся бесплатно', '.step-card:nth-child(1) h3':'Создай аккаунт', '.step-card:nth-child(1) p':'Укажи имя игрока, электронную почту и придумай пароль.', '.step-card:nth-child(1) button':'Создать профиль <span>→</span>', '.step-card:nth-child(2) h3':'Подтверди почту', '.step-card:nth-child(2) p':'Введи одноразовый код из письма, чтобы завершить регистрацию.', '.step-card:nth-child(2) button':'К форме регистрации <span>→</span>', '.step-card:nth-child(3) h3':'Следи за развитием', '.step-card:nth-child(3) p':'Новости и новые возможности появятся по мере создания игры.', '.step-card:nth-child(3) button':'Новости проекта <span>→</span>',
@@ -1187,7 +1188,7 @@
       '#install-title':'Готовим твой мир к запуску', '#install-description':'Проверяем установку и готовим файлы игры для первого запуска.', '#install-stage':'Загрузка: проверка файлов…', '#install-detail':'Подготавливаем папку игры', '#install-file-1':'✓ Проверка версии', '#install-file-2':'◌ Установка карты', '#install-file-3':'◌ Подготовка персонажа', '#install-footnote':'Первый запуск устанавливает лёгкий игровой пакет на этот компьютер. Интернет нужен только для аккаунта и будущих обновлений.', '#install-cancel':'Отмена'
     },
     en: {
-      '.side-version':'SKYREALM <b>v1.2.56</b> · GAME CENTER', '.sidebar-label':'PROJECT', '.nav-item[data-page="home"] span:nth-child(2)':'Home', '.nav-item[data-page="news"] span:nth-child(2)':'News', '.nav-item[data-page="shop"] span:nth-child(2)':'Shop', '.nav-item[data-page="community"] span:nth-child(2)':'Community', '.nav-item[data-page="settings"] span:nth-child(2)':'Settings', '.nav-item[data-page="shop"] .nav-soon':'SOON', '.sidebar-help':'<span>?</span> Help & FAQ', '.sidebar-status small':'Cloud authentication',
+      '.side-version':'SKYREALM <b>v1.2.59</b> · GAME CENTER', '.sidebar-label':'PROJECT', '.nav-item[data-page="home"] span:nth-child(2)':'Home', '.nav-item[data-page="news"] span:nth-child(2)':'News', '.nav-item[data-page="shop"] span:nth-child(2)':'Shop', '.nav-item[data-page="community"] span:nth-child(2)':'Community', '.nav-item[data-page="settings"] span:nth-child(2)':'Settings', '.nav-item[data-page="shop"] .nav-soon':'SOON', '.sidebar-help':'<span>?</span> Help & FAQ', '.sidebar-status small':'Cloud authentication',
       '#top-create-account':'<span>＋</span> Create account', '.home-intro .eyebrow':'<span class="eyebrow-spark">✦</span> YOUR STORY STARTS HERE', '.home-intro h1':'Welcome to <span>SkyRealm</span>', '.home-intro p':'Create an account, verify your email, and prepare for a journey through a fantasy world.', '.hero-kicker':'<span class="live-dot"></span> FANTASY PROJECT IN DEVELOPMENT', '.hero-tagline':'YOUR WORLD. YOUR RULES.', '.hero-copy':'Explore mysterious lands, uncover ancient secrets, and one day write your own story beyond the horizon.', '.feature-row':'<span>✦ Exploration</span><span>⚔ Adventure</span><span>⌁ Progression</span>', '#play-game':'<span class="play-button-icon">▶</span> Play <span>→</span>', '#hero-create-account':'Create account <span>→</span>', '#hero-login':'Already have an account? <b>Sign in</b>', '#play-note':'<span class="play-lock">◈</span> First playable build: a lightweight 2D map and hero. Files are installed automatically on first launch.',
       '.auth-panel-top .section-kicker':'PLAYER ACCOUNT', '.auth-tab[data-auth="login"]':'Sign in', '.auth-tab[data-auth="register"]':'Create account', '#email-field > .field-label':'Email address', '.field-hint':'A verification code will be sent to this address.', '.auth-options .check-wrap':'<input type="checkbox" id="remember" checked><span class="check-custom"></span>Keep me signed in', '#forgot':'Forgot password?', '#show-password':'◉', '#show-password|title':'Show or hide password', '.verification-view .section-kicker':'ONE LAST STEP', '.verification-view h3':'Verify your email', '.verification-view .field-label':'Verification code', '.verify-submit':'Verify email <span>→</span>', '#resend-code':'Send a new code', '#back-to-register':'← Back to registration', '.profile-view .section-kicker':'SKYREALM PROFILE', '.verified-badge':'<span>✓</span> Email verified', '.profile-note':'Your account is ready for future adventures.', '#logout':'Sign out',
       '#steps-title':'Start in three steps', '.steps-section .section-heading .section-kicker':'IT’S EASY', '.heading-note':'Profiles are free', '.step-card:nth-child(1) h3':'Create an account', '.step-card:nth-child(1) p':'Choose a player name, enter your email, and create a password.', '.step-card:nth-child(1) button':'Create profile <span>→</span>', '.step-card:nth-child(2) h3':'Verify your email', '.step-card:nth-child(2) p':'Enter the one-time code from your email to finish registration.', '.step-card:nth-child(2) button':'Open registration <span>→</span>', '.step-card:nth-child(3) h3':'Follow development', '.step-card:nth-child(3) p':'News and new features will appear as the game grows.', '.step-card:nth-child(3) button':'Project news <span>→</span>',
