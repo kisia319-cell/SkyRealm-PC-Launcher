@@ -8,6 +8,7 @@ const replies={
  '/api/prime/queue':{status:'waiting'},
  '/api/prime/stats':{stats:{user_id:userId,rating:1000,matches:0,wins:0,losses:0}},
  '/api/prime/leaderboard':{players:[]},
+ '/api/prime/profile':{profile:{username:'Kisia'},stats:{rating:1000}},
  '/api/prime/finish':{ok:true,status:'completed'},
  '/api/prime/leave':{ok:true,status:'abandoned'}
 };
@@ -27,6 +28,11 @@ vm.runInNewContext(source,context);
  assert.equal((await context.window.PrimeOnline.queue(1000)).status,'waiting');
  assert.equal((await context.window.PrimeOnline.stats()).stats.rating,1000);
  assert.equal((await context.window.PrimeOnline.leaderboard()).players.length,0);
+ assert.equal((await context.window.PrimeOnline.profile()).profile.username,'Kisia');
+ assert.equal(typeof context.window.PrimeOnline.updateProfile,'function');
+ assert.equal(typeof context.window.PrimeOnline.register,'function');
+ assert.equal(typeof context.window.PrimeOnline.verify,'function');
+ assert.equal(typeof context.window.PrimeOnline.login,'function');
  await context.window.PrimeOnline.cancelQueue();
  await context.window.PrimeOnline.finish('22222222-2222-4222-8222-222222222222',userId,'completed');
  await context.window.PrimeOnline.leave('22222222-2222-4222-8222-222222222222');
