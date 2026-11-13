@@ -249,8 +249,9 @@ function socialNode(tag,cls,text){const el=document.createElement(tag);if(cls)el
 function socialAction(label,fn,primary=false){const b=socialNode("button",primary?"primary":"secondary",label);b.type="button";b.addEventListener("click",fn);return b;}
 function socialMessage(message,error=false){const el=$("prime-social-message");if(el){el.textContent=message||"";el.style.color=error?"#ff7777":"#ffb58a";}}
 async function renderPrimeFriends(){
- if(primeSocialBusy||!PrimeOnline.hasSession())return;primeSocialBusy=true;
+ if(primeSocialBusy)return;primeSocialBusy=true;
  try{
+  await PrimeOnline.init();if(!PrimeOnline.hasSession()){openPrimeAuth();socialMessage("Войди в аккаунт, чтобы пользоваться друзьями и лобби.",true);return;}
   const [friendsData,lobbyData]=await Promise.all([PrimeOnline.friends(),PrimeOnline.lobby()]);
   const list=$("prime-friend-list"),invites=$("prime-lobby-invites"),panel=$("prime-lobby-panel");
   if(!list||!invites||!panel)return;
