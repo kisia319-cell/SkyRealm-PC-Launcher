@@ -59,14 +59,14 @@ async function renderPrimeProfile(){
   const data=await PrimeOnline.profile(),p=data.profile||{},st=data.stats||{};
   const name=p.display_name||p.username||'Игрок';
   $('prime-profile-name').textContent=name;$('prime-profile-class').textContent=p.player_class||'Воин';
-  $('prime-profile-elo').textContent=(st.rating??1000)+' ELO';
+  $('prime-profile-elo').textContent=(st.rating??0)+' ELO';
   $('prime-profile-hours').textContent=(Math.max(0,Number(p.playtime_seconds)||0)/3600).toFixed(1)+' ч';
   $('prime-profile-record').textContent=(st.matches||0)+' · '+(st.wins||0);
   $('prime-profile-last').textContent=data.last_match?(data.last_match.status==='completed'?'Завершён':'Не завершён')+' · '+new Date(data.last_match.finished_at||data.last_match.created_at).toLocaleDateString('ru-RU'):'Нет матчей';
   $('prime-profile-status').textContent=p.presence_status==='online'?'● В сети':'Не в сети';
   $('prime-name-edit').value=name;$('prime-class-edit').value=p.player_class||'Воин';$('prime-avatar-edit').value=p.avatar_key||'default';
   const icons={default:'⚔',guardian:'🛡',ranger:'🏹',mage:'🔮'};const avatar=$('prime-avatar');if(p.avatar_url&&/^https:\/\//i.test(p.avatar_url)){avatar.innerHTML='<img src="'+p.avatar_url.replace(/[&<>\"']/g,'')+'" alt="Аватар" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}else avatar.textContent=icons[p.avatar_key||'default']||'⚔';
-  $('nav-elo').textContent=st.rating??1000;
+  $('nav-elo').textContent=st.rating??0;
   if(msg)msg.textContent='Профиль синхронизирован с сервером SkyRealm. Изменения видны другим игрокам.';
  }catch(e){if(msg)msg.textContent='Не удалось загрузить профиль: '+String(e.message);}
 }
@@ -393,7 +393,7 @@ function renderTowerList(){
 function finish(win,abandoned=false,serverResult=null){
  if(!match||match.finished)return;const online=match.online;match.finished=true;stopLoop();pressed.clear();if(online)PrimeOnline.stopTransport();
  profile.matches++;if(win&&!abandoned)profile.wins++;const eloDelta=abandoned?0:(win?20+Math.floor(Math.random()*11):-(20+Math.floor(Math.random()*16)));if(!online){if(match.kind==='training')profile.botElo=Math.max(0,(profile.botElo||0)+eloDelta);else profile.elo=Math.max(0,profile.elo+eloDelta);}profile.history.unshift({mode:match.kind==='training'?'BOT':online?'ONLINE':'PLAYER',label:(win?'ПОБЕДА':abandoned?'ВЫХОД':'ПОРАЖЕНИЕ')+' · 1×1',delta:online?'Рейтинг обновляется сервером':abandoned?'Без изменения ELO':(eloDelta>0?'+'+eloDelta+' ELO':eloDelta+' ELO'),eloDelta,date:new Date().toLocaleString('ru-RU'),opponents:match.bots.map(b=>b.name)});profile.history=profile.history.slice(0,100);match.playerCoins=0;save();renderHistory();
- if(online&&online.role==='host'&&!serverResult){const winner=abandoned?online.opponentId:(win?online.selfId:online.opponentId);PrimeOnline.finish(online.match_id,winner,abandoned?'abandoned':'completed').then(async r=>{const stats=await PrimeOnline.stats();profile.elo=Number(stats.stats?.rating)||profile.elo;profile.matches=Number(stats.stats?.matches)||profile.matches;profile.wins=Number(stats.stats?.wins)||profile.wins;save();renderLeaderboard();const copy=$('result-copy');if(copy)copy.textContent='Матч завершён. Рейтинг обновлён сервером.';}).catch(e=>console.error(e));}if(online&&online.role==='guest'&&abandoned){PrimeOnline.leave(online.match_id).catch(e=>console.error(e));}
+ if(online&&online.role==='host'&&!serverResult){const winner=abandoned?online.opponentId:(win?online.selfId:online.opponentId);PrimeOnline.finish(online.match_id,winner,abandoned?'abandoned':'completed').then(async r=>{const stats=await PrimeOnline.stats();profile.elo=Number(stats.stats?.rating??profile.elo??0);profile.matches=Number(stats.stats?.matches)||profile.matches;profile.wins=Number(stats.stats?.wins)||profile.wins;save();renderLeaderboard();const copy=$('result-copy');if(copy)copy.textContent='Матч завершён. Рейтинг обновлён сервером.';}).catch(e=>console.error(e));}if(online&&online.role==='guest'&&abandoned){PrimeOnline.leave(online.match_id).catch(e=>console.error(e));}
  $('result-title').textContent=win?'ПОБЕДА':'ПОРАЖЕНИЕ';
  $('result-copy').textContent='Матч завершён. Монеты обнулены. '+(abandoned?'ELO без изменений.':'Изменение ELO: '+(eloDelta>0?'+':'')+eloDelta);
  $('result-modal').classList.remove('hidden');
