@@ -152,7 +152,7 @@ jobs:
           }
 
       - name: Build updater helper
-        run: python -m PyInstaller --noconfirm --clean --onefile --console --noupx --name SkyRealmUpdater --distpath updater_dist --workpath build_updater/work --specpath build_updater update_helper.py
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --noupx --name SkyRealmUpdater --distpath updater_dist --workpath build_updater/work --specpath build_updater update_helper.py
 
       - name: Build launcher executable
         shell: pwsh
