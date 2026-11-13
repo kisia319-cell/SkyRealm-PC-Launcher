@@ -51,7 +51,8 @@ const expected = [
   '20261111084224_skyrealm_custom_avatars.sql',
   '20261112130449_prime_online_1v1.sql',
   '20261112131547_prime_online_presence.sql',
-  '20261112132846_prime_online_queue_keepalive.sql'
+  '20261112132846_prime_online_queue_keepalive.sql',
+  '20261113120000_prime_friend_lobbies.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
@@ -125,3 +126,6 @@ assert.ok(read(expected[46]).includes("last_seen_at < now()-interval '45 seconds
 console.log('SkyRealm Supabase migration history tests passed.');
 
 
+
+assert.ok(read(expected[expected.length-1]).includes('create table if not exists public.prime_lobbies'));
+assert.ok(read(expected[expected.length-1]).includes('prime_lobby_one_active_per_user'));
