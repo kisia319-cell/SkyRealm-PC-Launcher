@@ -332,7 +332,7 @@
     document.body.classList.toggle('is-authenticated', isAuthenticated);
     const strip=$('#home-player-strip'); if(strip) strip.hidden=!isAuthenticated;
     const registrationTab=$('#registration-nav'); if(registrationTab){ registrationTab.hidden=isAuthenticated; registrationTab.setAttribute('aria-hidden',String(isAuthenticated)); }
-    $('[data-auth-mode], #top-create-account').forEach(button => {
+    $$('[data-auth-mode], #top-create-account').forEach(button => {
       button.hidden = isAuthenticated;
       button.setAttribute('aria-hidden', String(isAuthenticated));
     });
