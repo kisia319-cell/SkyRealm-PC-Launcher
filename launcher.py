@@ -1711,7 +1711,7 @@ if __name__ == "__main__":
     # The main SkyRealm launcher keeps using the --prime-competitive entry below.
     if (getattr(sys, "frozen", False)
             and Path(sys.executable).stem.lower() == "primelauncher"
-            and len(sys.argv) == 1):
+            and (len(sys.argv) == 1 or sys.argv[1] not in ("--open-prime", "--skyrealm-game", "--prime-competitive"))):
         try:
             run_prime_competitive_window(str(_prime_standalone_game_index()))
         except Exception as exc:
