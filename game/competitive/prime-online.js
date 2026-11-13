@@ -22,6 +22,8 @@ window.PrimeOnline={
  status:matchId=>call("/api/prime/match","GET",null,{match_id:matchId}),
  leaderboard:()=>call("/api/prime/leaderboard"),
  stats:()=>call("/api/prime/stats"),
+ profile:()=>call("/api/prime/profile"),
+ updateProfile:patch=>call("/api/prime/profile","PATCH",patch),
  startTransport(config){
   stopTransport();seq=0;let lastSent=0,lastReceived=0,lastInputSent="",busy=false;
   const role=config.role,matchId=config.match_id;
