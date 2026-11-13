@@ -205,7 +205,7 @@ const primeLanguageObserver=new MutationObserver(()=>{const lang=localStorage.ge
 function show(page){
  scene=page;document.body.classList.toggle('battle-active',page==='battle');pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
  document.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
- if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();if(page==='history')renderHistory();if(page==='profile')renderPrimeProfile();if(page==='friends')renderPrimeFriends();
+ if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();if(page==='history')renderHistory();if(page==='profile')renderPrimeProfile();if(page==='friends')renderPrimeFriends();if(page==='friends'){if(!primeSocialRefreshTimer)primeSocialRefreshTimer=setInterval(renderPrimeFriends,5000);}else if(primeSocialRefreshTimer){clearInterval(primeSocialRefreshTimer);primeSocialRefreshTimer=0;}
 }
 document.querySelectorAll('.nav button[data-page]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
 $('enter-prime').addEventListener('click',()=>show('menu'));
