@@ -66,11 +66,11 @@ Deno.serve(async(req:Request)=>{
    return reply({stats:rows?.[0]||{user_id:user.id,rating:1000,matches:0,wins:0,losses:0}});
   }
   if(route==="/api/prime/leaderboard"&&req.method==="GET"){
-   const stats=await db("prime_player_stats?select=user_id,rating,matches,wins,losses&order=rating.desc,matches.desc&limit=50");
-   const ids=(stats||[]).map((x:any)=>x.user_id);
-   const people=ids.length?await db("profiles?select=id,username,display_name&id=in.("+ids.join(",")+")"):[];
-   const byId=new Map((people||[]).map((x:any)=>[x.id,x]));
-   return reply({players:(stats||[]).map((x:any)=>({user_id:x.user_id,username:byId.get(x.user_id)?.display_name||byId.get(x.user_id)?.username||"Игрок",rating:x.rating,matches:x.matches,wins:x.wins,losses:x.losses}))});
+   const people=await db("profiles?select=id,username,display_name,avatar_key,avatar_url,player_class,playtime_seconds,presence_status&order=created_at.asc&limit=500");
+   const ids=(people||[]).map((x:any)=>x.id);
+   const stats=ids.length?await db("prime_player_stats?select=user_id,rating,matches,wins,losses&user_id=in.("+ids.join(",")+")&order=rating.desc,matches.desc&limit=500"):[];
+   const byId=new Map((stats||[]).map((x:any)=>[x.user_id,x]));
+   return reply({players:(people||[]).map((p:any)=>{const x=byId.get(p.id)||{};return {user_id:p.id,username:p.display_name||p.username||"Игрок",rating:x.rating??1000,matches:x.matches??0,wins:x.wins??0,losses:x.losses??0,avatar_url:p.avatar_url||"",avatar_key:p.avatar_key||"default",player_class:p.player_class||"Воин",playtime_seconds:p.playtime_seconds||0,presence_status:p.presence_status||"offline"};}).sort((a:any,b:any)=>b.rating-a.rating||b.matches-a.matches).slice(0,50)});
   }
   if(route==="/api/prime/match"&&req.method==="GET"){
    const m=await memberMatch(url.searchParams.get("match_id")||"",user.id);
