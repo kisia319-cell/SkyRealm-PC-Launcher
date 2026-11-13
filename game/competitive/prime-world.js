@@ -49,7 +49,7 @@ async function renderPrimeProfile(){
   $('prime-profile-last').textContent=data.last_match?(data.last_match.status==='completed'?'Завершён':'Не завершён')+' · '+new Date(data.last_match.finished_at||data.last_match.created_at).toLocaleDateString('ru-RU'):'Нет матчей';
   $('prime-profile-status').textContent=p.presence_status==='online'?'● В сети':'Не в сети';
   $('prime-name-edit').value=name;$('prime-class-edit').value=p.player_class||'Воин';$('prime-avatar-edit').value=p.avatar_key||'default';
-  const icons={default:'⚔',guardian:'🛡',ranger:'🏹',mage:'🔮'};$('prime-avatar').textContent=icons[p.avatar_key||'default']||'⚔';
+  const icons={default:'⚔',guardian:'🛡',ranger:'🏹',mage:'🔮'};const avatar=$('prime-avatar');if(p.avatar_url&&/^https:\/\//i.test(p.avatar_url)){avatar.innerHTML='<img src="'+p.avatar_url.replace(/[&<>\"']/g,'')+'" alt="Аватар" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}else avatar.textContent=icons[p.avatar_key||'default']||'⚔';
   $('nav-elo').textContent=st.rating??1000;
   if(msg)msg.textContent='Профиль синхронизирован с сервером SkyRealm. Изменения видны другим игрокам.';
  }catch(e){if(msg)msg.textContent='Не удалось загрузить профиль: '+String(e.message);}
@@ -93,7 +93,7 @@ $('prime-auth-submit')?.addEventListener('click',async()=>{
  }catch(e){msg.textContent=e.message;}finally{btn.disabled=false;}
 });
 $('prime-auth-name')?.classList.add('hidden');
-const PRIME_LANG_KEY='primeLauncher.language.v1';
+setInterval(()=>{if(PrimeOnline.hasSession())PrimeOnline.profile().catch(()=>{});},60000);\nconst PRIME_LANG_KEY='primeLauncher.language.v1';
 const PRIME_EN={'⚔ Клич':'⚔ War Cry','🛡 Щит':'🛡 Shield','☄ Залп':'☄ Volley','🏕 Наёмники':'🏕 Mercenaries','ГОТОВО':'READY','АВАНПОСТЫ ':'OUTPOSTS ','· ВРАГ ':'· ENEMY ','ПОГОДА · ':'WEATHER · ','ЯСНО':'CLEAR','ЛИВЕНЬ':'RAIN','ТУМАН':'FOG','ПОПУТНЫЙ ВЕТЕР':'TAILWIND','лагерь далеко':'camp too far','нужна таверна':'need barracks','ЛАГЕРЬ НАЁМНИКОВ':'MERCENARY CAMP',
 'Главная':'Home','Топ рейтинга':'Leaderboard','История матчей':'Match history','Настройки':'Settings',
 'Войти в Prime':'Enter Prime','Настройки Prime':'Prime settings','Язык интерфейса':'Interface language',
