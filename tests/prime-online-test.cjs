@@ -68,9 +68,9 @@ assert.ok(source.includes('stun:stun.cloudflare.com:3478'),'Cloudflare global ST
 assert.ok(source.includes('maxRetransmits:0')&&source.includes('ordered:false'),'Gameplay data channel must avoid head-of-line waiting on stale packets');
 assert.ok(source.includes('PrimeOnlineRelayPing')&&source.includes('server_ping'),'Relay latency must be measured separately from peer RTT');
 assert.ok(source.includes('lastHostSendAt<100'),'Server fallback must be paced to avoid packet bursts');
-assert.ok(source.includes('prime-moscow-turn-auth.skyrealm.workers.dev/ice'),'Prime client must request authenticated Moscow TURN credentials');
-assert.ok(source.includes('await iceConfigPromise')&&source.includes('new RTCPeerConnection({iceServers,'),'ICE setup must wait for optional Moscow TURN configuration before peer creation');
-assert.ok(source.includes('TURN · Москва'),'Selected relay candidates must be identified as Moscow TURN');
+assert.ok(source.includes('prime-moscow-turn-auth.skyrealm.workers.dev/ice'),'Prime client must request authenticated Cloudflare TURN credentials');
+assert.ok(source.includes('await iceConfigPromise')&&source.includes('new RTCPeerConnection({iceServers,'),'ICE setup must wait for optional Cloudflare TURN configuration before peer creation');
+assert.ok(source.includes('TURN · Cloudflare'),'Selected relay candidates must be identified as Cloudflare TURN');
 assert.ok(source.includes('EDGE_REGION_CODES')&&source.includes('x-region'),'Selected supported regions must route Supabase Edge Function requests');
 assert.ok(source.includes('captureEdgeRegion')&&source.includes('x-sb-edge-region'),'The actual Edge Function region must be captured for diagnostics');
 assert.ok(source.includes('saopaulo:"sa-east-1"')&&source.includes('mumbai:"ap-south-1"'),'The selectable region map must cover Asia and South America');
