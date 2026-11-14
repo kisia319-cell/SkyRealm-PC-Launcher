@@ -64,4 +64,8 @@ assert.ok(primeWorldSource.includes("НАЧАТЬ КООПЕРАЦИЮ 2 ИГР�
 assert.ok(primeWorldSource.includes("match.allies?.find(a=>a.isRemotePlayer)"),'Co-op guest must control the allied fighter');
 assert.ok(source.includes('new RTCPeerConnection')&&source.includes('prime-game'),'Realtime gameplay should attempt a direct WebRTC data channel');
 assert.ok(source.includes('PrimeOnlinePingSource')&&source.includes('P2P'),'Direct RTT source must be exposed to the HUD');
-console.log('Prime P2P/co-op regression assertions passed');
+assert.ok(source.includes('stun:stun.cloudflare.com:3478'),'Cloudflare global STUN must be tried for ICE discovery');
+assert.ok(source.includes('maxRetransmits:0')&&source.includes('ordered:false'),'Gameplay data channel must avoid head-of-line waiting on stale packets');
+assert.ok(source.includes('PrimeOnlineRelayPing')&&source.includes('server_ping'),'Relay latency must be measured separately from peer RTT');
+assert.ok(source.includes('lastHostSendAt<100'),'Server fallback must be paced to avoid packet bursts');
+console.log('Prime P2P/relay/co-op regression assertions passed');
