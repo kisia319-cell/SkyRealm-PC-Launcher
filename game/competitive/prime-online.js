@@ -40,7 +40,7 @@ window.PrimeOnline={
  profile:()=>call("/api/prime/profile"),
  updateProfile:patch=>call("/api/prime/profile","PATCH",patch),
  startTransport(config){
-  stopTransport();seq=0;let lastSent=0,lastReceived=0,lastInputSent="",busy=false;
+  stopTransport();seq=0;let lastReceived=0,busy=false;
   const role=config.role,matchId=config.match_id;
   transportTimer=setInterval(async()=>{
    if(busy)return;busy=true;const started=performance.now();
@@ -54,11 +54,7 @@ window.PrimeOnline={
      if(response.guest_seq>lastReceived){lastReceived=response.guest_seq;window.PrimeApplyRemoteInput?.(response.guest_input||{});}
     }else{
      const current=window.PrimeReadInput?.()||{};
-     const packed=JSON.stringify(current);
-     if(packed!==lastInputSent||Date.now()-lastSent>900){
-      await call("/api/prime/input","POST",{match_id:matchId,seq:++seq,input:current});lastInputSent=packed;lastSent=Date.now();
-     }
-     const state=await call("/api/prime/match","GET",null,{match_id:matchId});
+     const state=await call("/api/prime/exchange","POST",{match_id:matchId,seq:++seq,input:current});
      if(state.status==="active"&&state.host_seq>lastReceived&&state.host_state){
       lastReceived=state.host_seq;window.PrimeApplyHostState?.(state.host_state);
      }
