@@ -1266,3 +1266,4 @@ updateProfile();
 // Economy accrues outside battles.
 window.setInterval(()=>{if(match&&!match.finished){match.bots.forEach(b=>{b.elo=b.profile.elo;const row=$('bot-'+b.id);if(row)row.querySelector('span').textContent='Башня ур. '+b.profile.towerLevel+' · '+b.profile.coins+' ◆ · '+b.elo+' ELO';});updateHud();save();}},1000);
 })();
+// PrimeLauncher 1.2.64: P2P ping HUD and two-player co-op lobby.
