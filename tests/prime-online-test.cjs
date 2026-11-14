@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('game/competitive/prime-online.js','utf8');
+const worldSource=fs.readFileSync('game/competitive/prime-world.js','utf8');
 const userId='11111111-1111-4111-8111-111111111111';
 const payload=Buffer.from(JSON.stringify({sub:userId})).toString('base64url');
 const jwt='header.'+payload+'.signature',calls=[],intervals=[];
@@ -82,3 +83,7 @@ assert.ok(primeWorldSource.includes("if(match.online?.role==='guest'){attackCool
 assert.ok(primeWorldSource.includes("selfName:window.PrimeCurrentDisplayName||'Игрок'"),'Online match must retain authenticated local display name');
 assert.ok(primeWorldSource.includes("match.online?.selfName||window.PrimeCurrentDisplayName||'Игрок'"),'Fighter name must come from authenticated account');
 assert.ok(primeWorldSource.includes("window.PrimeCurrentDisplayName=String(p.display_name||p.username||'Игрок')"),'Matchmaking must resolve current account display name');
+
+assert.ok(worldSource.includes('window.PrimeInputSent')&&!worldSource.includes('match.online.attackPulse=false;return v;'),'Guest attack pulses must remain latched until a network send succeeds');
+assert.ok(worldSource.includes('match.online.selfName')&&worldSource.includes('window.PrimeCurrentDisplayName'),'Player identity must come from the authenticated profile, not a hardcoded nickname');
+console.log('Prime attack delivery and dynamic identity regression assertions passed');
