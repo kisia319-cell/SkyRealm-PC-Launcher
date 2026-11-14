@@ -7,23 +7,28 @@ const AUTH_URL=URL.replace("skyrealm-prime","skyrealm-auth");
 let bridgeToken="",realtimeClient=null,realtimeChannel=null,peerConnection=null,peerDataChannel=null;
 let queueTimer=0,transportTimer=0,realtimeTimer=0,heartbeatTimer=0,peerStatsTimer=0,peerReadyTimer=0,seq=0,pingSamples=[],relayPingSamples=[];
 const REGION_KEY="primeLauncher.region.v1";
-function getRegion(){try{const v=localStorage.getItem(REGION_KEY);return ["auto","stockholm","moscow","frankfurt","warsaw","helsinki","singapore","tokyo","virginia"].includes(v)?v:"auto";}catch(_){return "auto";}}
-function setRegion(value){const v=["auto","stockholm","moscow","frankfurt","warsaw","helsinki","singapore","tokyo","virginia"].includes(value)?value:"auto";try{localStorage.setItem(REGION_KEY,v);}catch(_){}return v;}
+const EDGE_REGION_CODES={frankfurt:"eu-central-1",zurich:"eu-central-2",ireland:"eu-west-1",london:"eu-west-2",paris:"eu-west-3",mumbai:"ap-south-1",singapore:"ap-southeast-1",tokyo:"ap-northeast-1",seoul:"ap-northeast-2",sydney:"ap-southeast-2",virginia:"us-east-1",ohio:"us-east-2",california:"us-west-1",oregon:"us-west-2",canada:"ca-central-1",saopaulo:"sa-east-1"};
+const REGION_VALUES=["auto","stockholm","moscow",...Object.keys(EDGE_REGION_CODES)];
+function getRegion(){try{const v=localStorage.getItem(REGION_KEY);return REGION_VALUES.includes(v)?v:"auto";}catch(_){return "auto";}}
+function setRegion(value){const v=REGION_VALUES.includes(value)?value:"auto";try{localStorage.setItem(REGION_KEY,v);}catch(_){}return v;}
+function regionRequestHeaders(){const code=EDGE_REGION_CODES[getRegion()];return code?{"x-region":code}:{};}
+function captureEdgeRegion(response){try{const edge=response.headers?.get("x-sb-edge-region");if(edge)window.PrimeOnlineEdgeRegion=edge;}catch(_){}}
+
 function token(){return localStorage.getItem("skyrealm_token")||sessionStorage.getItem("skyrealm_token")||bridgeToken||"";}
 async function init(){if(token())return true;try{const s=await window.pywebview?.api?.get_auth_session?.();bridgeToken=String(s?.token||"");}catch(_){}return !!token();}
 function userId(){try{return JSON.parse(atob(token().split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||"";}catch(_){return "";}}
 async function call(route,method="GET",body=null,params={}){
  const access=token()||(await init(),token());if(!access)throw new Error("Сначала войди в аккаунт SkyRealm.");
- const query=new URLSearchParams({route,...params});const response=await fetch(URL+"?"+query.toString(),{method,headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json"},body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
- const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||"Ошибка онлайн-сервера ("+response.status+").");return data;
+ const query=new URLSearchParams({route,...params});const response=await fetch(URL+"?"+query.toString(),{method,headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json",...regionRequestHeaders()},body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
+ captureEdgeRegion(response);const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||"Ошибка онлайн-сервера ("+response.status+").");return data;
 }
 const SOCIAL_URL=URL.replace("skyrealm-prime","skyrealm-social");
 async function social(route,method="GET",body=null,params={}){
  const access=token()||(await init(),token());if(!access)throw new Error("Сначала войди в аккаунт SkyRealm.");
  const query=new URLSearchParams({route,...params});const response=await fetch(SOCIAL_URL+"?"+query.toString(),{method,headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json"},body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
- const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||"Ошибка друзей ("+response.status+").");return data;
+ captureEdgeRegion(response);const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||"Ошибка друзей ("+response.status+").");return data;
 }
-async function authCall(route,body){const r=await fetch(AUTH_URL+"?route="+encodeURIComponent(route),{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"Ошибка аккаунта ("+r.status+").");return d;}
+async function authCall(route,body){const r=await fetch(AUTH_URL+"?route="+encodeURIComponent(route),{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json",...regionRequestHeaders()},body:JSON.stringify(body)});captureEdgeRegion(r);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"Ошибка аккаунта ("+r.status+").");return d;}
 function stopQueue(){if(queueTimer)clearInterval(queueTimer);queueTimer=0;}
 function stopTransport(){
  if(transportTimer)clearInterval(transportTimer);transportTimer=0;
