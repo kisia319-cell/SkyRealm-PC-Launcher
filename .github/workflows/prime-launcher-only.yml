@@ -1,0 +1,92 @@
+name: Build and publish PrimeLauncher only
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/prime-launcher-only.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-prime:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.10"
+
+      - name: Validate PrimeLauncher sources
+        shell: pwsh
+        run: |
+          $required = @(
+            "launcher.py",
+            "PrimeLauncher.ico",
+            "requirements-build.txt",
+            "game/competitive/index.html",
+            "game/competitive/prime-world.js",
+            "game/competitive/prime-online.js"
+          )
+          $missing = @($required | Where-Object { -not (Test-Path $_) })
+          if ($missing.Count -gt 0) { throw ("Missing PrimeLauncher files: " + ($missing -join ", ")) }
+          python -m py_compile launcher.py
+          node --check game/competitive/prime-world.js
+          node --check game/competitive/prime-online.js
+          node --check tests/competitive-mode-test.cjs
+          node tests/competitive-mode-test.cjs
+          node --check tests/prime-online-test.cjs
+          node tests/prime-online-test.cjs
+
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Build standalone PrimeLauncher
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" launcher.py
+
+      - name: Verify standalone package
+        shell: pwsh
+        run: |
+          $exe = "prime_launcher_dist/PrimeLauncher.exe"
+          if (-not (Test-Path $exe)) { throw "PrimeLauncher.exe was not produced" }
+          if ((Get-Item $exe).Length -lt 1000000) { throw "PrimeLauncher.exe is unexpectedly small" }
+          $listing = python -m PyInstaller.utils.cliutils.archive_viewer -l -b $exe 2>&1 | Out-String
+          $normalized = $listing.ToLower().Replace("\\", "/")
+          foreach ($asset in @("game/competitive/index.html", "game/competitive/prime-world.js", "game/competitive/prime-online.js")) {
+            if (-not $normalized.Contains($asset)) { throw "PrimeLauncher is missing bundled asset: $asset" }
+          }
+
+      - name: Upload standalone executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrimeLauncher-Windows
+          path: prime_launcher_dist/PrimeLauncher.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish standalone PrimeLauncher release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $version = (Get-Content launcher_version.txt -Raw).Trim()
+          $tag = "prime-v$version-reg${{ github.run_number }}"
+          $notes = @"
+          Отдельная сборка PrimeLauncher для Windows.
+          
+          Содержит страницу регистрации, верхнюю кнопку регистрации и обновлённую логику доступности регистрации при истёкшей сессии.
+          
+          Это отдельный PrimeLauncher.exe. Обычный SkyRealm.exe, игровой архив SkyRealm и мобильный APK этой публикацией не пересобираются и не обновляются.
+          "@
+          gh release create $tag "prime_launcher_dist/PrimeLauncher.exe" --title "PrimeLauncher $version (standalone)" --notes $notes --prerelease
+          if ($LASTEXITCODE -ne 0) { throw "Could not publish standalone PrimeLauncher release" }
+          $release = gh release view $tag --json assets,url | ConvertFrom-Json
+          if (-not ($release.assets | Where-Object { $_.name -eq "PrimeLauncher.exe" })) {
+            throw "PrimeLauncher.exe is missing from the published release"
+          }
+          Write-Host "Published standalone PrimeLauncher: $($release.url)"
