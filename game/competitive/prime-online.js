@@ -25,7 +25,7 @@ async function call(route,method="GET",body=null,params={}){
 const SOCIAL_URL=URL.replace("skyrealm-prime","skyrealm-social");
 async function social(route,method="GET",body=null,params={}){
  const access=token()||(await init(),token());if(!access)throw new Error("Сначала войди в аккаунт SkyRealm.");
- const query=new URLSearchParams({route,...params});const response=await fetch(SOCIAL_URL+"?"+query.toString(),{method,headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json"},body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
+ const query=new URLSearchParams({route,...params});const response=await fetch(SOCIAL_URL+"?"+query.toString(),{method,headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json",...regionRequestHeaders()},body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
  captureEdgeRegion(response);const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||"Ошибка друзей ("+response.status+").");return data;
 }
 async function authCall(route,body){const r=await fetch(AUTH_URL+"?route="+encodeURIComponent(route),{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json",...regionRequestHeaders()},body:JSON.stringify(body)});captureEdgeRegion(r);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"Ошибка аккаунта ("+r.status+").");return d;}
