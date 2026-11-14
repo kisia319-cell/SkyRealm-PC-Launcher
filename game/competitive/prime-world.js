@@ -38,19 +38,24 @@ function updateProfile(){
  $('home-matches').textContent=profile.matches+' матчей';$('home-wins').textContent=profile.wins;
  $('battle-elo').textContent=profile.elo+' ELO';$('battle-tower').textContent='Уровень '+(match?.playerTowerLevel||1);
  const up=$('upgrade-tower');if(up){up.disabled=!match||match.playerCoins<upgradeCost(match.playerTowerLevel)||match.playerTowerLevel>=20;up.textContent=!match?'УЛУЧШЕНИЕ ТОЛЬКО В БОЮ':match.playerTowerLevel>=20?'БАШНЯ МАКСИМАЛЬНОГО УРОВНЯ':'УЛУЧШИТЬ БАШНЮ · '+upgradeCost(match.playerTowerLevel)+' ◆ · +300 HP';}
- renderLeaderboard();
 }
-function renderLeaderboard(){
- const root=$('leaderboard');if(!root)return;
+let primeLeaderboardPromise=null,primeLeaderboardLoadedAt=0;
+function renderLeaderboard(force=false){
+ const root=$('leaderboard');if(!root)return Promise.resolve();
+ if(primeLeaderboardPromise)return primeLeaderboardPromise;
+ if(!force&&primeLeaderboardLoadedAt&&Date.now()-primeLeaderboardLoadedAt<30000)return Promise.resolve();
  root.innerHTML='<div class="bot">Загрузка онлайн-рейтинга...</div>';
- PrimeOnline.init().then(async ok=>{
+ primeLeaderboardPromise=(async()=>{
+  const ok=await PrimeOnline.init();
   if(!ok){root.innerHTML='<div class="bot">Чтобы попасть в общий топ, войди или зарегистрируй аккаунт SkyRealm. <button class="tool-btn" id="prime-open-auth">Войти / регистрация</button></div>';setTimeout(()=>$('prime-open-auth')?.addEventListener('click',openPrimeAuth),0);return;}
   const [stats,data]=await Promise.all([PrimeOnline.stats(),PrimeOnline.leaderboard()]);
   profile.elo=Number(stats.stats?.rating??profile.elo??0);profile.matches=Number(stats.stats?.matches)||profile.matches||0;profile.wins=Number(stats.stats?.wins)||profile.wins||0;
   $('home-elo').textContent=profile.elo+' ELO';$('rank-elo').textContent=profile.elo+' ELO';$('nav-elo').textContent=profile.elo;$('battle-elo').textContent=profile.elo+' ELO';$('home-matches').textContent=profile.matches+' матчей';$('home-wins').textContent=profile.wins;
   const rows=data.players||[];
   root.innerHTML=rows.length?rows.map((b,i)=>{const icons={default:'⚔',guardian:'🛡',ranger:'🏹',mage:'🔮'},name=String(b.username||'Игрок').replace(/[&<>"']/g,''),cls=String(b.player_class||'Воин').replace(/[&<>"']/g,'');return '<div class="bot" style="display:grid;grid-template-columns:34px 42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px"><b>#'+(i+1)+'</b><span style="width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#3a2115;border:1px solid #a65d35;font-size:20px">'+(icons[b.avatar_key||'default']||'⚔')+'</span><span><b>'+name+'</b><br><small>'+cls+' · '+(b.wins||0)+' побед · '+(b.losses||0)+' поражений · '+(b.matches||0)+' матчей · '+(Math.max(0,Number(b.playtime_seconds)||0)/3600).toFixed(1)+' ч · '+(b.presence_status==='online'?'● В сети':'○ Не в сети')+'</small></span><strong>'+b.rating+' ELO</strong></div>';}).join(''):'<div class="bot">Онлайн-рейтинг пока пуст. Сыграй первый матч 1 × 1.</div>';
- }).catch(e=>{root.innerHTML='<div class="bot">Не удалось загрузить рейтинг: '+String(e.message).replace(/[&<>"']/g,'')+'</div>';});
+  primeLeaderboardLoadedAt=Date.now();
+ })().catch(e=>{root.innerHTML='<div class="bot">Не удалось загрузить рейтинг: '+String(e.message).replace(/[&<>"']/g,'')+'</div>';}).finally(()=>{primeLeaderboardPromise=null;});
+ return primeLeaderboardPromise;
 }
 async function renderPrimeProfile(){
  const msg=$('prime-profile-message');if(msg)msg.textContent='Загрузка профиля...';
@@ -224,7 +229,7 @@ const primeLanguageObserver=new MutationObserver(()=>{const lang=localStorage.ge
 function show(page){
  scene=page;document.body.classList.toggle('battle-active',page==='battle');pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
  document.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
- if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();if(page==='history')renderHistory();if(page==='profile')renderPrimeProfile();if(page==='friends')renderPrimeFriends();if(page==='friends'){if(!primeSocialRefreshTimer)primeSocialRefreshTimer=setInterval(renderPrimeFriends,5000);}else if(primeSocialRefreshTimer){clearInterval(primeSocialRefreshTimer);primeSocialRefreshTimer=0;}
+ if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();if(page==='rank')renderLeaderboard();if(page==='history')renderHistory();if(page==='profile')renderPrimeProfile();if(page==='friends')renderPrimeFriends();if(page==='friends'){if(!primeSocialRefreshTimer)primeSocialRefreshTimer=setInterval(renderPrimeFriends,5000);}else if(primeSocialRefreshTimer){clearInterval(primeSocialRefreshTimer);primeSocialRefreshTimer=0;}
 }
 document.querySelectorAll('.nav button[data-page]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
 $('enter-prime').addEventListener('click',()=>show('menu'));
