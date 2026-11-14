@@ -93,14 +93,16 @@ function setPrimeAuthMode(mode){
  $('prime-auth-hint').textContent=primeAuthMode==='login'?'Введи почту или ник и пароль от существующего аккаунта SkyRealm.':'Укажи ник, почту и пароль. На почту придёт код подтверждения.';
  $('prime-auth-message').textContent='';
 }
-function syncPrimeRegistrationTab(){
+async function syncPrimeRegistrationTab(){
  const tabs=[$('prime-registration-tab'),$('prime-registration-top')].filter(Boolean);
  if(!tabs.length)return;
- Promise.resolve(PrimeOnline.init()).then(ok=>{
-  const signed=!!ok&&PrimeOnline.hasSession();
-  tabs.forEach(tab=>tab.classList.toggle('hidden',signed));
-  if(signed&&scene==='registration')show('home');
- }).catch(()=>tabs.forEach(tab=>tab.classList.remove('hidden')));
+ let signed=false;
+ try{
+  signed=!!(await PrimeOnline.init())&&PrimeOnline.hasSession();
+  if(signed)await PrimeOnline.profile();
+ }catch(_){signed=false;}
+ tabs.forEach(tab=>tab.classList.toggle('hidden',signed));
+ if(signed&&scene==='registration')show('home');
 }
 function completePrimeAuth(){
  $('prime-auth-overlay').classList.add('hidden');
@@ -113,7 +115,7 @@ $('prime-auth-close')?.addEventListener('click',()=>$('prime-auth-overlay').clas
 $('prime-auth-switch')?.addEventListener('click',()=>setPrimeAuthMode(primeAuthMode==='login'?'register':'login'));
 $('prime-account-yes')?.addEventListener('click',()=>openPrimeAuth('login'));
 $('prime-account-no')?.addEventListener('click',()=>openPrimeAuth('register'));
-const openPrimeRegistration=()=>{if(PrimeOnline.hasSession()){syncPrimeRegistrationTab();show('home');return;}show('registration');};
+const openPrimeRegistration=()=>show('registration');
 $('prime-registration-tab')?.addEventListener('click',openPrimeRegistration);
 $('prime-registration-top')?.addEventListener('click',openPrimeRegistration);
 $('prime-auth-submit')?.addEventListener('click',async()=>{
