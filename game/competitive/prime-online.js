@@ -7,7 +7,7 @@ const AUTH_URL=URL.replace("skyrealm-prime","skyrealm-auth");
 let bridgeToken="",realtimeClient=null,realtimeChannel=null,peerConnection=null,peerDataChannel=null;
 let queueTimer=0,transportTimer=0,realtimeTimer=0,heartbeatTimer=0,peerStatsTimer=0,peerReadyTimer=0,seq=0,pingSamples=[],relayPingSamples=[];
 const REGION_KEY="primeLauncher.region.v1";
-const MOSCOW_TURN_URL="https://prime-moscow-turn-auth.skyrealm.workers.dev/ice";
+const CLOUDFLARE_TURN_URL="https://prime-moscow-turn-auth.skyrealm.workers.dev/ice";
 const EDGE_REGION_CODES={frankfurt:"eu-central-1",zurich:"eu-central-2",ireland:"eu-west-1",london:"eu-west-2",paris:"eu-west-3",mumbai:"ap-south-1",singapore:"ap-southeast-1",tokyo:"ap-northeast-1",seoul:"ap-northeast-2",sydney:"ap-southeast-2",virginia:"us-east-1",ohio:"us-east-2",california:"us-west-1",oregon:"us-west-2",canada:"ca-central-1",saopaulo:"sa-east-1"};
 const REGION_VALUES=["auto","stockholm","moscow",...Object.keys(EDGE_REGION_CODES)];
 function getRegion(){try{const v=localStorage.getItem(REGION_KEY);return REGION_VALUES.includes(v)?v:"auto";}catch(_){return "auto";}}
@@ -115,15 +115,15 @@ window.PrimeOnline={
   const pendingPings=new Map(),pendingRelayPings=new Map(),pendingCandidates=[],role=config.role,matchId=config.match_id,uid=userId();
   let channel=null;
   let iceServers=[{urls:["stun:stun.cloudflare.com:3478","stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]}];
-  window.PrimeOnlineMoscowTurnAvailable=false;
+  window.PrimeOnlineCloudflareTurnAvailable=false;
   const iceConfigPromise=(async()=>{
    try{
     const access=token()||(await init(),token());if(!access)return;
-    const response=await fetch(MOSCOW_TURN_URL,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json"},cache:"no-store"});
+    const response=await fetch(CLOUDFLARE_TURN_URL,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+access,"Content-Type":"application/json"},cache:"no-store"});
     if(!response.ok)return;
     const data=await response.json().catch(()=>({}));
-    if(Array.isArray(data.iceServers)&&data.iceServers.length){iceServers=[...iceServers,...data.iceServers];window.PrimeOnlineMoscowTurnAvailable=data.region==="moscow";}
-   }catch(_){/* Moscow relay is optional until its VPS is provisioned. */}
+    if(Array.isArray(data.iceServers)&&data.iceServers.length){iceServers=[...iceServers,...data.iceServers];window.PrimeOnlineCloudflareTurnAvailable=data.provider==="cloudflare-realtime";}
+   }catch(_){/* Cloudflare TURN is optional; direct STUN/P2P remains available if the broker is not configured. */}
   })();
   window.PrimeOnlineTransport="HTTP fallback";
   const fallbackTick=async()=>{
@@ -203,7 +203,7 @@ window.PrimeOnline={
       const stats=await pc.getStats();let pair=null;
       stats.forEach(s=>{if(s.type==="candidate-pair"&&(s.selected===true||(s.nominated===true&&s.state==="succeeded")))pair=s;});
       if(!pair){let transport=null;stats.forEach(s=>{if(s.type==="transport"&&s.selectedCandidatePairId)transport=stats.get(s.selectedCandidatePairId);});pair=transport||null;}
-      if(pair){const local=stats.get(pair.localCandidateId),remote=stats.get(pair.remoteCandidateId),types=[local?.candidateType,remote?.candidateType];window.PrimeOnlinePath=types.every(x=>x==="host")?"LAN · локальная сеть":types.includes("relay")?(window.PrimeOnlineMoscowTurnAvailable?"TURN · Москва":"P2P · relay"):"P2P · интернет";}
+      if(pair){const local=stats.get(pair.localCandidateId),remote=stats.get(pair.remoteCandidateId),types=[local?.candidateType,remote?.candidateType];window.PrimeOnlinePath=types.every(x=>x==="host")?"LAN · локальная сеть":types.includes("relay")?(window.PrimeOnlineCloudflareTurnAvailable?"TURN · Cloudflare":"P2P · relay"):"P2P · интернет";}
      }catch(_){}
     };
     inspect();peerStatsTimer=setInterval(inspect,5000);
