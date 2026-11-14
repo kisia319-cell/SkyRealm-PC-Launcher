@@ -230,14 +230,15 @@ document.querySelectorAll('.nav button[data-page]').forEach(b=>b.addEventListene
 $('enter-prime').addEventListener('click',()=>show('menu'));
 $('back-home').addEventListener('click',()=>show('home'));
 document.querySelectorAll('[data-team]').forEach(b=>b.addEventListener('click',()=>{teamSize=Number(b.dataset.team);document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x===b));}));
+function syncMatchKindControls(){const controls=$('bot-difficulty-controls');if(controls)controls.classList.toggle('hidden',matchKind==='online');}
 document.querySelectorAll('[data-kind]').forEach(b=>b.addEventListener('click',()=>{
- matchKind=b.dataset.kind;document.querySelectorAll('[data-kind]').forEach(x=>x.classList.toggle('selected',x===b));
+ matchKind=b.dataset.kind;document.querySelectorAll('[data-kind]').forEach(x=>x.classList.toggle('selected',x===b));syncMatchKindControls();
  if(matchKind==='online'){$('search-box').classList.remove('hidden');$('search-title').textContent='Онлайн 1 × 1';$('search-detail').textContent='Поиск реального соперника по рейтингу.';}
  else $('search-box').classList.add('hidden');
 }));
 function syncBotDifficultyButtons(){document.querySelectorAll('[data-difficulty]').forEach(button=>button.classList.toggle('selected',button.dataset.difficulty===botDifficulty));const note=$('bot-difficulty-details');if(note){const copy={easy:'Бот атакует реже, медленнее строится и медленнее захватывает точки.',normal:'Сбалансированные темп, экономика и сила войск.',hard:'Быстрее строится, чаще атакует, крепче и быстрее захватывает точки.',brutal:'Максимальная экономика, скорость и давление; атаки идут чаще.'};note.textContent=copy[botDifficulty]||copy.normal;}}
 document.querySelectorAll('[data-difficulty]').forEach(button=>button.addEventListener('click',()=>{selectBotDifficulty(button.dataset.difficulty);syncBotDifficultyButtons();}));
-syncBotDifficultyButtons();
+syncBotDifficultyButtons();syncMatchKindControls();
 let onlineQueueActive=false,onlineQueueTimer=0;
 async function beginOnlineQueue(){
  if(teamSize!==1){teamSize=1;document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x.dataset.team==='1'));}
@@ -631,7 +632,7 @@ function moveEntity(entity,dx,dy,radius=12){
  return moved;
 }
 function respawnDefeatedBots(){
- const m=match;if(!m)return;
+ const m=match;if(!m||m.online)return;
  for(const bot of m.bots){
   if(bot.alive||!bot.respawnAt||m.elapsed<bot.respawnAt)continue;
   if(!m.towers.some(t=>t.team===1&&t.owner===bot.profile&&t.hp>0))continue;
@@ -822,8 +823,8 @@ function loop(now){
 function update(dt){
  const p=match.player;
  match.elapsed+=dt;match.botCoinTick+=dt;updateBattleWeather(dt);updateBattleObjectives(dt);
- if(match.botCoinTick>=1){const count=Math.floor(match.botCoinTick);match.botCoinTick-=count;match.playerCoins+=count*COINS_PER_SECOND;for(const bot of match.bots)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}
- if(!match.online)enemyDirector(dt);updateSupportBuildings(dt);respawnDefeatedBots();attackCooldown=Math.max(0,attackCooldown-dt);match.uiTick-=dt;
+ if(match.botCoinTick>=1){const count=Math.floor(match.botCoinTick);match.botCoinTick-=count;match.playerCoins+=count*COINS_PER_SECOND;if(!match.online)for(const bot of match.bots)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}
+ if(!match.online)enemyDirector(dt);updateSupportBuildings(dt);if(!match.online)respawnDefeatedBots();attackCooldown=Math.max(0,attackCooldown-dt);match.uiTick-=dt;
  for(const tracer of match.tracers)tracer.life-=dt;match.tracers=match.tracers.filter(t=>t.life>0);
  for(const item of match.damageTexts){item.life-=dt;item.y-=dt*24;}match.damageTexts=match.damageTexts.filter(item=>item.life>0);
  let dx=(pressed.has('KeyD')||pressed.has('ArrowRight')?1:0)-(pressed.has('KeyA')||pressed.has('ArrowLeft')?1:0);
@@ -845,6 +846,7 @@ function update(dt){
   else if(match.regroupOrder){const vx=guardX-ally.x,vy=guardY-ally.y,distance=Math.hypot(vx,vy)||1;if(distance>62)moveEntity(ally,vx/distance*ally.speed*dt,vy/distance*ally.speed*dt,12);}
  }
  for(const bot of match.bots){
+  if(match.online&&!bot.isRemotePlayer)continue;
   if(!bot.alive)continue;
   if(bot.isRemotePlayer&&match.online?.role==='host'){const input=match.online.remoteInput||{};let rx=(input.right?1:0)-(input.left?1:0),ry=(input.down?1:0)-(input.up?1:0);if(rx||ry){const len=Math.hypot(rx,ry),speed=bot.speed*(input.sprint?SPRINT_MULTIPLIER:1);moveEntity(bot,rx/len*speed*dt,ry/len*speed*dt,13);}bot.flash=Math.max(0,bot.flash-dt);bot.attack=Math.max(0,bot.attack-dt);if(input.attack&&bot.attack<=0){bot.attack=.42;const targets=[match.player,...match.allies.filter(a=>a.alive),...match.units.filter(u=>u.team===0&&u.alive),...match.towers.filter(t=>t.team===0&&t.hp>0),...match.walls.filter(w=>w.team===0&&w.hp>0),...match.barracks.filter(b=>b.team===0&&b.hp>0)];const found=chooseNearestTarget(bot,targets,112);if(found)applyCombatDamage(found.target,found.target===match.player?42:54,bot);}continue;}
   bot.walkPhase=(bot.walkPhase||0)+dt*8;bot.attack=Math.max(0,bot.attack-dt);bot.flash=Math.max(0,bot.flash-dt);
