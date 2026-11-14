@@ -5,10 +5,10 @@ const SUPABASE_URL="https://jaaguprbfrzrcwuusher.supabase.co";
 const KEY="sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL";
 const AUTH_URL=URL.replace("skyrealm-prime","skyrealm-auth");
 let bridgeToken="",realtimeClient=null,realtimeChannel=null,peerConnection=null,peerDataChannel=null;
-let queueTimer=0,transportTimer=0,realtimeTimer=0,heartbeatTimer=0,peerStatsTimer=0,peerReadyTimer=0,seq=0,pingSamples=[];
+let queueTimer=0,transportTimer=0,realtimeTimer=0,heartbeatTimer=0,peerStatsTimer=0,peerReadyTimer=0,seq=0,pingSamples=[],relayPingSamples=[];
 const REGION_KEY="primeLauncher.region.v1";
-function getRegion(){try{const v=localStorage.getItem(REGION_KEY);return ["auto","stockholm","moscow"].includes(v)?v:"auto";}catch(_){return "auto";}}
-function setRegion(value){const v=["auto","stockholm","moscow"].includes(value)?value:"auto";try{localStorage.setItem(REGION_KEY,v);}catch(_){}return v;}
+function getRegion(){try{const v=localStorage.getItem(REGION_KEY);return ["auto","stockholm","moscow","frankfurt","warsaw","helsinki","singapore","tokyo","virginia"].includes(v)?v:"auto";}catch(_){return "auto";}}
+function setRegion(value){const v=["auto","stockholm","moscow","frankfurt","warsaw","helsinki","singapore","tokyo","virginia"].includes(value)?value:"auto";try{localStorage.setItem(REGION_KEY,v);}catch(_){}return v;}
 function token(){return localStorage.getItem("skyrealm_token")||sessionStorage.getItem("skyrealm_token")||bridgeToken||"";}
 async function init(){if(token())return true;try{const s=await window.pywebview?.api?.get_auth_session?.();bridgeToken=String(s?.token||"");}catch(_){}return !!token();}
 function userId(){try{return JSON.parse(atob(token().split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||"";}catch(_){return "";}}
@@ -35,7 +35,7 @@ function stopTransport(){
  try{peerConnection?.close();}catch(_){}peerConnection=null;
  const old=realtimeChannel;realtimeChannel=null;
  if(old&&realtimeClient)realtimeClient.removeChannel(old).catch(()=>{});
- window.PrimeOnlineTransport="OFFLINE";window.PrimeOnlinePath="—";window.PrimeOnlinePingSource="OFFLINE";
+ window.PrimeOnlineTransport="OFFLINE";window.PrimeOnlinePath="—";window.PrimeOnlinePingSource="OFFLINE";window.PrimeOnlineRelayPing=0;window.PrimeOnlineRelayJitter=0;
 }
 function loadRealtimeSdk(){
  if(window.supabase?.createClient)return Promise.resolve(true);
@@ -83,6 +83,13 @@ function recordPing(ms,source="Realtime"){
  window.PrimeOnlineJitter=pingSamples.length>1?Math.round(jitter/(pingSamples.length-1)):0;
  window.PrimeOnlinePingSource=source;
 }
+function recordRelayPing(ms){
+ relayPingSamples.push(Math.max(0,Math.round(ms)));if(relayPingSamples.length>7)relayPingSamples.shift();
+ const sorted=[...relayPingSamples].sort((a,b)=>a-b);
+ window.PrimeOnlineRelayPing=sorted.length?sorted[Math.floor(sorted.length/2)]:0;
+ let jitter=0;for(let i=1;i<relayPingSamples.length;i++)jitter+=Math.abs(relayPingSamples[i]-relayPingSamples[i-1]);
+ window.PrimeOnlineRelayJitter=relayPingSamples.length>1?Math.round(jitter/(relayPingSamples.length-1)):0;
+}
 window.PrimeOnline={
  hasSession:()=>!!token(),init,userId,region:getRegion,setRegion,
  register:(username,email,password)=>authCall("/api/auth/register",{username,email,password}),
@@ -96,10 +103,10 @@ window.PrimeOnline={
  profile:()=>call("/api/prime/profile"),
  updateProfile:patch=>call("/api/prime/profile","PATCH",patch),
  startTransport(config){
-  stopTransport();seq=0;pingSamples=[];window.PrimeOnlinePing=0;window.PrimeOnlineJitter=0;window.PrimeOnlinePacketLoss=0;window.PrimeOnlinePingSource="—";window.PrimeOnlinePath="Подключение";
+  stopTransport();seq=0;pingSamples=[];relayPingSamples=[];window.PrimeOnlinePing=0;window.PrimeOnlineJitter=0;window.PrimeOnlineRelayPing=0;window.PrimeOnlineRelayJitter=0;window.PrimeOnlinePacketLoss=0;window.PrimeOnlinePingSource="—";window.PrimeOnlinePath="Подключение";
   let lastReceived=0,lastGuestSeq=0,busy=false,rtBusy=false,heartbeatBusy=false,wsReady=false;
-  let lastHostState=null,lastHostSeq=0,forceFull=true,lastPingAt=0,pingNonce=0,lastGuestInputJson="",lastGuestInputAt=0,offerStarted=false;
-  const pendingPings=new Map(),pendingCandidates=[],role=config.role,matchId=config.match_id,uid=userId();
+  let lastHostState=null,lastHostSeq=0,forceFull=true,lastPingAt=0,lastRelayPingAt=0,pingNonce=0,relayPingNonce=0,lastGuestInputJson="",lastGuestInputAt=0,lastHostSendAt=0,offerStarted=false,lastSendPath="Realtime";
+  const pendingPings=new Map(),pendingRelayPings=new Map(),pendingCandidates=[],role=config.role,matchId=config.match_id,uid=userId();
   let channel=null;
   window.PrimeOnlineTransport="HTTP fallback";
   const fallbackTick=async()=>{
@@ -130,9 +137,9 @@ window.PrimeOnline={
    const dc=peerDataChannel;
    if(dc&&dc.readyState==="open"){
     const raw=JSON.stringify({event,payload});
-    if(raw.length<48000&&dc.bufferedAmount<700000){try{dc.send(raw);return "ok";}catch(_){}}
+    if(raw.length<48000&&dc.bufferedAmount<262144){try{dc.send(raw);lastSendPath="P2P";return "ok";}catch(_){}}
    }
-   return sendRealtime(event,payload);
+   lastSendPath="Realtime";return sendRealtime(event,payload);
   };
   const handlePacket=(event,p)=>{
    if(event==="host_state"){
@@ -152,7 +159,15 @@ window.PrimeOnline={
    }else if(event==="pong"){
     if(!p||p.to!==uid||!pendingPings.has(p.nonce))return;
     const started=pendingPings.get(p.nonce);pendingPings.delete(p.nonce);recordPing(performance.now()-started.at,started.source);
+   }else if(event==="server_ping"){
+    if(!p||p.from===uid||!p.nonce)return;
+    sendRealtime("server_pong",{to:p.from,from:uid,nonce:p.nonce}).catch(()=>{});
+   }else if(event==="server_pong"){
+    if(!p||p.to!==uid||!pendingRelayPings.has(p.nonce))return;
+    const started=pendingRelayPings.get(p.nonce);pendingRelayPings.delete(p.nonce);recordRelayPing(performance.now()-started);
    }
+  };
+  const sendSignal=payload=>   }
   };
   const sendSignal=payload=>sendRealtime("webrtc_signal",{...payload,from:uid});
   const flushCandidates=async()=>{
@@ -187,7 +202,7 @@ window.PrimeOnline={
    if(peerConnection)return peerConnection;
    if(typeof RTCPeerConnection!=="function")return null;
    try{
-    const pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}],iceCandidatePoolSize:2});
+    const pc=new RTCPeerConnection({iceServers:[{urls:["stun:stun.cloudflare.com:3478","stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]}],iceCandidatePoolSize:4,iceTransportPolicy:"all"});
     peerConnection=pc;
     pc.onicecandidate=e=>{if(e.candidate)sendSignal({type:"candidate",candidate:e.candidate.toJSON?.()||e.candidate}).catch(()=>{});};
     pc.ondatachannel=e=>attachDataChannel(e.channel);
@@ -205,7 +220,7 @@ window.PrimeOnline={
    if(role!=="host"||offerStarted||peerDataChannel?.readyState==="open")return;
    const pc=ensurePeer();if(!pc)return;
    offerStarted=true;
-   const dc=pc.createDataChannel("prime-game",{ordered:true});attachDataChannel(dc);
+   const dc=pc.createDataChannel("prime-game",{ordered:false,maxRetransmits:0,protocol:"prime-fast-v1"});attachDataChannel(dc);
    const offer=await pc.createOffer();await pc.setLocalDescription(offer);
    await sendSignal({type:"offer",description:pc.localDescription?.toJSON?.()||{type:pc.localDescription.type,sdp:pc.localDescription.sdp}});
   };
@@ -240,6 +255,8 @@ window.PrimeOnline={
    channel.on("broadcast",{event:"request_full"},message=>handlePacket("request_full",message?.payload));
    channel.on("broadcast",{event:"ping"},message=>handlePacket("ping",message?.payload));
    channel.on("broadcast",{event:"pong"},message=>handlePacket("pong",message?.payload));
+   channel.on("broadcast",{event:"server_ping"},message=>handlePacket("server_ping",message?.payload));
+   channel.on("broadcast",{event:"server_pong"},message=>handlePacket("server_pong",message?.payload));
    channel.on("broadcast",{event:"webrtc_signal"},message=>{handleSignal(message?.payload).catch(e=>window.PrimeOnlineError?.("P2P signal: "+e.message));});
    channel.subscribe(status=>{
     if(status==="SUBSCRIBED"){
@@ -255,8 +272,11 @@ window.PrimeOnline={
       if(!wsReady||rtBusy)return;rtBusy=true;
       try{
        const now=performance.now();
-       if(now-lastPingAt>2500){lastPingAt=now;const nonce=++pingNonce;const source=peerDataChannel?.readyState==="open"?"P2P":"Realtime";pendingPings.set(nonce,{at:now,source});while(pendingPings.size>4)pendingPings.delete(pendingPings.keys().next().value);await send("ping",{from:uid,nonce});}
+       if(now-lastPingAt>2000){lastPingAt=now;const nonce=++pingNonce;pendingPings.set(nonce,{at:now,source:"pending"});while(pendingPings.size>4)pendingPings.delete(pendingPings.keys().next().value);await send("ping",{from:uid,nonce});const pending=pendingPings.get(nonce);if(pending)pending.source=lastSendPath;}
+       if(peerDataChannel?.readyState==="open"&&now-lastRelayPingAt>8000){lastRelayPingAt=now;const nonce=++relayPingNonce;pendingRelayPings.set(nonce,now);while(pendingRelayPings.size>3)pendingRelayPings.delete(pendingRelayPings.keys().next().value);await sendRealtime("server_ping",{from:uid,nonce});}
        if(role==="host"){
+        if(peerDataChannel?.readyState!=="open"&&now-lastHostSendAt<100)return;
+        lastHostSendAt=now;
         if(window.PrimeGameFinished?.())return;
         const snap=window.PrimeGameSnapshot?.();if(!snap)return;
         const nextSeq=seq+1,fullText=JSON.stringify(snap);
@@ -267,8 +287,9 @@ window.PrimeOnline={
         const sent=await send("host_state",packet);if(sent!=="ok")throw new Error("Realtime/P2P state send failed: "+sent);
         seq=nextSeq;lastHostState=snap;lastHostSeq=nextSeq;forceFull=false;
        }else{
-        const input=window.PrimeReadInput?.()||{},inputJson=JSON.stringify(input);
-        if(inputJson===lastGuestInputJson&&now-lastGuestInputAt<100)return;
+        const input=window.PrimeReadInput?.()||{},inputJson=JSON.stringify(input),p2p=peerDataChannel?.readyState==="open";
+        if(inputJson===lastGuestInputJson&&now-lastGuestInputAt<(p2p?350:700))return;
+        if(!p2p&&inputJson!==lastGuestInputJson&&now-lastGuestInputAt<100)return;
         lastGuestInputJson=inputJson;lastGuestInputAt=now;
         const nextSeq=++seq,sent=await send("guest_input",{seq:nextSeq,input});if(sent!=="ok")throw new Error("Realtime/P2P input send failed: "+sent);
        }
