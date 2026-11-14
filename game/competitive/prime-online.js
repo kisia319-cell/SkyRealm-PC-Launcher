@@ -13,7 +13,7 @@ async function call(route,method="GET",body=null,params={}){
  if(!response.ok)throw new Error(data.message||"Ошибка онлайн-сервера ("+response.status+").");
  return data;
 }
-let queueTimer=0,transportTimer=0,seq=0,lastInput="";
+let queueTimer=0,transportTimer=0,seq=0,lastInput="",pingSamples=[];
  const SOCIAL_URL=URL.replace("skyrealm-prime","skyrealm-social");
  async function social(route,method="GET",body=null,params={}){
   const access=token()||(await init(),token());if(!access)throw new Error("Сначала войди в аккаунт SkyRealm.");
@@ -40,7 +40,7 @@ window.PrimeOnline={
  profile:()=>call("/api/prime/profile"),
  updateProfile:patch=>call("/api/prime/profile","PATCH",patch),
  startTransport(config){
-  stopTransport();seq=0;let lastReceived=0,busy=false;
+  stopTransport();seq=0;pingSamples=[];let lastReceived=0,busy=false;
   const role=config.role,matchId=config.match_id;
   transportTimer=setInterval(async()=>{
    if(busy)return;busy=true;const started=performance.now();
@@ -60,8 +60,8 @@ window.PrimeOnline={
      }
      if(state.status!=="active"&&state.result)window.PrimeOnlineFinished?.(state);
     }
-   }catch(e){window.PrimeOnlineError?.(e.message);}finally{window.PrimeOnlinePing=Math.round(performance.now()-started);busy=false;}
-  },role==="host"?240:200);
+   }catch(e){window.PrimeOnlineError?.(e.message);}finally{pingSamples.push(performance.now()-started);if(pingSamples.length>5)pingSamples.shift();const sorted=[...pingSamples].sort((a,b)=>a-b);window.PrimeOnlinePing=Math.round(sorted[Math.floor(sorted.length/2)]||0);busy=false;}
+  },role==="host"?160:140);
  },
  friends:()=>social("/api/social/friends"),
  searchPlayers:q=>social("/api/social/search","GET",null,{q}),
