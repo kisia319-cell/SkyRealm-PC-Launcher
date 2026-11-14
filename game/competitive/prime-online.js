@@ -167,8 +167,6 @@ window.PrimeOnline={
     const started=pendingRelayPings.get(p.nonce);pendingRelayPings.delete(p.nonce);recordRelayPing(performance.now()-started);
    }
   };
-  const sendSignal=payload=>   }
-  };
   const sendSignal=payload=>sendRealtime("webrtc_signal",{...payload,from:uid});
   const flushCandidates=async()=>{
    if(!peerConnection?.remoteDescription)return;
