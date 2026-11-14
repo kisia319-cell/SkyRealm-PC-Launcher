@@ -65,11 +65,29 @@ jobs:
             if (-not $normalized.Contains($asset)) { throw "PrimeLauncher is missing bundled asset: $asset" }
           }
 
+      - name: Package executable ZIP
+        shell: pwsh
+        run: |
+          $package = "prime_launcher_package"
+          New-Item -ItemType Directory -Force $package | Out-Null
+          Copy-Item "prime_launcher_dist/PrimeLauncher.exe" "$package/PrimeLauncher.exe" -Force
+          @"
+          PrimeLauncher 1.2.63
+
+          Распакуй архив полностью и запусти PrimeLauncher.exe.
+          Это отдельный соревновательный режим SkyRealm.
+          Обычный SkyRealm.exe и файлы обычной игры этим архивом не изменяются.
+          "@ | Set-Content -Path "$package/README.txt" -Encoding UTF8
+          Compress-Archive -Path "$package/*" -DestinationPath "prime_launcher_dist/PrimeLauncher-Windows.zip" -Force
+          if (-not (Test-Path "prime_launcher_dist/PrimeLauncher-Windows.zip")) { throw "PrimeLauncher ZIP package was not created" }
+
       - name: Upload standalone executable artifact
         uses: actions/upload-artifact@v4
         with:
           name: PrimeLauncher-Windows
-          path: prime_launcher_dist/PrimeLauncher.exe
+          path: |
+            prime_launcher_dist/PrimeLauncher.exe
+            prime_launcher_dist/PrimeLauncher-Windows.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -87,10 +105,13 @@ jobs:
           
           PrimeLauncher.exe сразу открывает соревновательный мир. Он собран с отдельной точкой входа и не запускает обычное окно SkyRealm. Обычный SkyRealm.exe, игровой архив SkyRealm и мобильный APK этой публикацией не пересобираются и не обновляются.
           "@
-          gh release create $tag "prime_launcher_dist/PrimeLauncher.exe" --title "PrimeLauncher $version (standalone)" --notes $notes --prerelease
+          gh release create $tag "prime_launcher_dist/PrimeLauncher.exe" "prime_launcher_dist/PrimeLauncher-Windows.zip" --title "PrimeLauncher $version (standalone)" --notes $notes --prerelease
           if ($LASTEXITCODE -ne 0) { throw "Could not publish standalone PrimeLauncher release" }
           $release = gh release view $tag --json assets,url | ConvertFrom-Json
           if (-not ($release.assets | Where-Object { $_.name -eq "PrimeLauncher.exe" })) {
             throw "PrimeLauncher.exe is missing from the published release"
+          }
+          if (-not ($release.assets | Where-Object { $_.name -eq "PrimeLauncher-Windows.zip" })) {
+            throw "PrimeLauncher-Windows.zip is missing from the published release"
           }
           Write-Host "Published standalone PrimeLauncher: $($release.url)"
