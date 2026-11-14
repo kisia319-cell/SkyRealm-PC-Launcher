@@ -59,7 +59,7 @@ jobs:
           if (-not (Test-Path $exe)) { throw "PrimeLauncher.exe was not produced" }
           if ((Get-Item $exe).Length -lt 1000000) { throw "PrimeLauncher.exe is unexpectedly small" }
           $listing = python -m PyInstaller.utils.cliutils.archive_viewer -l -b $exe 2>&1 | Out-String
-          $normalized = $listing.ToLower().Replace("\\", "/")
+          $normalized = $listing.ToLower().Replace("\", "/")
           foreach ($asset in @("game/competitive/index.html", "game/competitive/prime-world.js", "game/competitive/prime-online.js")) {
             if (-not $normalized.Contains($asset)) { throw "PrimeLauncher is missing bundled asset: $asset" }
           }
