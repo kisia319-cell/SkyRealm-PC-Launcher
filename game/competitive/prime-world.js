@@ -62,7 +62,7 @@ async function renderPrimeProfile(){
  try{
   const ok=await PrimeOnline.init();if(!ok){if(msg)msg.textContent='Аккаунт не найден. Открой главный лаунчер SkyRealm и выбери «Создать аккаунт» — регистрация и подтверждение почты доступны там.';return;}
   const data=await PrimeOnline.profile(),p=data.profile||{},st=data.stats||{};
-  const name=p.display_name||p.username||'Игрок';
+  const name=p.display_name||p.username||'Игрок';window.PrimeCurrentDisplayName=name;const navName=$('prime-nav-display-name');if(navName)navName.textContent=name;
   $('prime-profile-name').textContent=name;$('prime-profile-class').textContent=p.player_class||'Воин';
   $('prime-profile-elo').textContent=(st.rating??0)+' ELO';
   $('prime-profile-hours').textContent=(Math.max(0,Number(p.playtime_seconds)||0)/3600).toFixed(1)+' ч';
@@ -311,7 +311,7 @@ let onlineQueueActive=false,onlineQueueTimer=0;
 async function beginOnlineQueue(){
  if(teamSize!==1){teamSize=1;document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x.dataset.team==='1'));}
  await PrimeOnline.init();if(!PrimeOnline.hasSession()){openPrimeAuth();$('search-box').classList.remove('hidden');$('search-title').textContent='Нужен аккаунт SkyRealm';$('search-detail').textContent='Войди или зарегистрируйся, чтобы начать онлайн-матч.';return;}
- try{const onlineStats=await PrimeOnline.stats();profile.elo=Number(onlineStats.stats?.rating??0);profile.matches=Number(onlineStats.stats?.matches)||0;profile.wins=Number(onlineStats.stats?.wins)||0;}catch(e){$('search-box').classList.remove('hidden');$('search-title').textContent='Ошибка профиля';$('search-detail').textContent=e.message;return;}
+ try{const onlineStats=await PrimeOnline.stats();profile.elo=Number(onlineStats.stats?.rating??0);profile.matches=Number(onlineStats.stats?.matches)||0;profile.wins=Number(onlineStats.stats?.wins)||0;try{const own=await PrimeOnline.profile(),p=own.profile||{};window.PrimeCurrentDisplayName=String(p.display_name||p.username||'Игрок').slice(0,24);}catch(_){window.PrimeCurrentDisplayName='Игрок';}}catch(e){$('search-box').classList.remove('hidden');$('search-title').textContent='Ошибка профиля';$('search-detail').textContent=e.message;return;}
  $('find-match').disabled=true;$('search-box').classList.remove('hidden');$('search-title').textContent='Ищем соперника...';$('search-detail').textContent='Подбор игроков 1 × 1 · рейтинг ±250 · нужны два разных аккаунта SkyRealm';onlineQueueActive=true;
  try{await pollPrimeQueue();}catch(e){$('search-title').textContent='Не удалось подключиться';$('search-detail').textContent=e.message;onlineQueueActive=false;$('find-match').disabled=false;}
 }
@@ -453,7 +453,7 @@ function createMatch(onlineConfig=null){
   const midX=player.x+(match.enemyBase.x-player.x)*.5,laneY=player.y;
   match.outposts=[{id:1,x:midX-220,y:clamp(laneY-190,TILE*(WATER_BORDER+5),SIZE*TILE-TILE*(WATER_BORDER+5)),owner:-1,captureTeam:null,progress:0},{id:2,x:midX,y:laneY,owner:-1,captureTeam:null,progress:0},{id:3,x:midX+220,y:clamp(laneY+190,TILE*(WATER_BORDER+5),SIZE*TILE-TILE*(WATER_BORDER+5)),owner:-1,captureTeam:null,progress:0}];
   match.supplyCaches=[{x:midX-100,y:laneY-315,active:true,respawnAt:0},{x:midX+100,y:laneY+315,active:true,respawnAt:0}];match.mercenaryCamp={x:playerBaseX-165,y:playerBaseY-135};match.mercenaryCooldownUntil=0;
- if(onlineConfig){const coop=onlineConfig.mode==='bots';match.kind=coop?'co-op-bots':'online';match.team=coop?2:1;match.online={match_id:onlineConfig.match_id,role:onlineConfig.role,mode:coop?'bots':'pvp',selfId:PrimeOnline.userId(),opponentId:onlineConfig.opponent_id,opponentName:onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник',remoteInput:{},attackPulse:false};if(coop){const teammate=match.allies[0];if(teammate){teammate.isRemotePlayer=true;teammate.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Союзник';if(onlineConfig.role==='guest')match.localEntity=teammate;}document.body.classList.add('online-match','coop-bots-match');$('battle-title').textContent='ВМЕСТЕ ПРОТИВ БОТОВ · 2 ИГРОКА';}else{const rival=match.bots[0];rival.isRemotePlayer=true;rival.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник';rival.profile={...rival.profile,name:rival.name,elo:1000,coins:0,towerLevel:1};if(onlineConfig.role==='guest')match.localEntity=rival;document.body.classList.add('online-match');$('battle-title').textContent='ОНЛАЙН 1 × 1 · '+rival.name;}}
+ if(onlineConfig){const coop=onlineConfig.mode==='bots';match.kind=coop?'co-op-bots':'online';match.team=coop?2:1;match.online={match_id:onlineConfig.match_id,role:onlineConfig.role,mode:coop?'bots':'pvp',selfId:PrimeOnline.userId(),opponentId:onlineConfig.opponent_id,opponentName:onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник',selfName:window.PrimeCurrentDisplayName||'Игрок',remoteInput:{},attackPulse:false};if(coop){const teammate=match.allies[0];if(teammate){teammate.isRemotePlayer=true;teammate.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Союзник';if(onlineConfig.role==='guest')match.localEntity=teammate;}document.body.classList.add('online-match','coop-bots-match');$('battle-title').textContent='ВМЕСТЕ ПРОТИВ БОТОВ · 2 ИГРОКА';}else{const rival=match.bots[0];rival.isRemotePlayer=true;rival.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник';rival.profile={...rival.profile,name:rival.name,elo:1000,coins:0,towerLevel:1};if(onlineConfig.role==='guest')match.localEntity=rival;document.body.classList.add('online-match');$('battle-title').textContent='ОНЛАЙН 1 × 1 · '+rival.name;}}
  attackCooldown=0;pressed.clear();$('troops-halt').textContent='|| \u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u043e\u0438\u043d\u043e\u0432';$('regroup-troops').textContent='\u0421\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f';$('guard-mode').textContent='\u041e\u0431\u043e\u0440\u043e\u043d\u0430: \u0412\u041a\u041b';$('rally-troops').textContent='\u0422\u043e\u0447\u043a\u0430 \u0441\u0431\u043e\u0440\u0430';$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
  $('battle-feed').innerHTML='';
  renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');resizeArenaCanvas();drawArena();
@@ -888,7 +888,7 @@ function loop(now){
  if(match.paused){lastFrame=now;drawArena();raf=requestAnimationFrame(loop);return;}
  const dt=Math.min(.04,(now-lastFrame)/1000||0);lastFrame=now;fpsFrames++;fpsElapsed+=dt;
  if(fpsElapsed>=1){currentFps=Math.round(fpsFrames/fpsElapsed);fpsFrames=0;fpsElapsed=0;$('performance-hud').textContent='FPS '+currentFps;const ping=match.online?(window.PrimeOnlinePing??0):0,source=window.PrimeOnlinePingSource||'—',path=window.PrimeOnlinePath||window.PrimeOnlineTransport||'—',relay=window.PrimeOnlineRelayPing||0;$('hud-ping').innerHTML=match.online?'PING '+(ping?ping+' ms':'—')+' · JIT '+(window.PrimeOnlineJitter??'—')+' ms<br><small>'+source+' · '+path+(relay?' · сервер '+relay+' ms':'')+'</small>':'PING офлайн';}
- if(match.online?.role==='guest'){drawArena();}else{update(dt);if(match.online?.role==='host'){if(match.online.mode==='bots'){if(match.bots.length&&match.bots.every(b=>!b.alive))finish(true);}else{const rival=match.bots[0];if(match.player.hp<=0)finish(false);else if(rival&&!rival.alive)finish(true);}}drawArena();}
+ if(match.online?.role==='guest'){attackCooldown=Math.max(0,attackCooldown-dt);drawArena();}else{update(dt);if(match.online?.role==='host'){if(match.online.mode==='bots'){if(match.bots.length&&match.bots.every(b=>!b.alive))finish(true);}else{const rival=match.bots[0];if(match.player.hp<=0)finish(false);else if(rival&&!rival.alive)finish(true);}}drawArena();}
  raf=requestAnimationFrame(loop);
 }
 function update(dt){
@@ -1015,6 +1015,7 @@ function attack(){
  if(structure){alertEnemyBase();applyCombatDamage(structure.target,structure.target.isTower?54:42,player);return;}
  match.tracers.push({x1:player.x,y1:player.y-10,x2:player.x+Math.cos(match.elapsed*7)*34,y2:player.y-18+Math.sin(match.elapsed*7)*22,life:.10,maxLife:.10,team:0});
 }
+window.PrimeMobileAttack=()=>{if(scene!=='battle'||!match||match.finished)return false;attack();return true;};
 function drawPrimeWorldDecor(ctx,camX,camY,w,h){
  const seed=match.worldSeed||1, left=Math.max(0,Math.floor((camX+camX%TILE)/TILE)-1),top=Math.max(0,Math.floor((camY+camY%TILE)/TILE)-1);
  const right=Math.min(SIZE,Math.ceil((camX+w)/TILE)+1),bottom=Math.min(SIZE,Math.ceil((camY+h)/TILE)+1);
@@ -1116,7 +1117,7 @@ function drawPrimeFighter(ctx,f,camX,camY,isPlayer,isAlly=false){
  ctx.strokeStyle='#d6c08e';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(7,0);ctx.moveTo(-6,5);ctx.lineTo(6,5);ctx.stroke();
  if(f.flash>0){ctx.globalAlpha=.5;ctx.fillStyle='#fff';ctx.fillRect(-13,-23,26,42);ctx.globalAlpha=1;}
  ctx.restore();
- ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(isPlayer?'Kisia':(f.name||'Воин'),x,y-35);ctx.shadowBlur=0;
+ ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(isPlayer?(match.online?.selfName||window.PrimeCurrentDisplayName||'Игрок'):(f.name||'Воин'),x,y-35);ctx.shadowBlur=0;
  if(!isPlayer){ctx.fillStyle='#140d0b';ctx.fillRect(x-18,y-42,36,4);ctx.fillStyle=f.team===0?'#70d8ff':'#ff765f';ctx.fillRect(x-18,y-42,36*Math.max(0,f.hp/f.maxHp),4);}
 }
 function buildTerrainCache(seed){
