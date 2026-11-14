@@ -96,6 +96,6 @@ assert.match(primeHtml,/id="prime-layout-16x9"/,'PrimeLauncher must use a 16:9 l
 assert.match(primeJs,/syncMatchKindControls\(\)/,'Changing match type must hide bot difficulty in online mode.');
 assert.match(primeJs,/if\(!match\.online\)for\(const bot of match\.bots\)/,'Online opponents must not accumulate AI economy.');
 assert.match(primeJs,/if\(!match\.online\)respawnDefeatedBots\(\)/,'Training bots must not respawn during online matches.');
-assert.match(primeJs,/if\(match\.online&&!bot\.isRemotePlayer\)continue/,'Online matches must skip non-player bot AI.');
+assert.match(primeJs,/if\(match\.online&&match\.online\.mode!==\'bots\'&&!bot\.isRemotePlayer\)continue/,'Standard online matches skip remote bots while co-op mode keeps the AI enemies active.');
 
 console.log('competitive-mode-test: all assertions passed');
