@@ -137,7 +137,7 @@ window.PrimeOnline={
      if(response.guest_seq>lastReceived){lastReceived=response.guest_seq;window.PrimeApplyRemoteInput?.(response.guest_input||{});}
     }else{
      const current=window.PrimeReadInput?.()||{};
-     const state=await call("/api/prime/exchange","POST",{match_id:matchId,seq:++seq,input:current});
+     const state=await call("/api/prime/exchange","POST",{match_id:matchId,seq:++seq,input:current});window.PrimeInputSent?.(current);
      if(state.status==="active"&&state.host_seq>lastReceived&&state.host_state){lastReceived=state.host_seq;window.PrimeApplyHostState?.(state.host_state);}
      if(state.status!=="active"&&state.result)window.PrimeOnlineFinished?.(state);
     }
@@ -308,7 +308,7 @@ window.PrimeOnline={
         if(inputJson===lastGuestInputJson&&now-lastGuestInputAt<(p2p?350:700))return;
         if(!p2p&&inputJson!==lastGuestInputJson&&now-lastGuestInputAt<100)return;
         lastGuestInputJson=inputJson;lastGuestInputAt=now;
-        const nextSeq=++seq,sent=await send("guest_input",{seq:nextSeq,input});if(sent!=="ok")throw new Error("Realtime/P2P input send failed: "+sent);
+        const nextSeq=++seq,sent=await send("guest_input",{seq:nextSeq,input});if(sent!=="ok")throw new Error("Realtime/P2P input send failed: "+sent);window.PrimeInputSent?.(input);
        }
       }catch(e){
        window.PrimeOnlineError?.(e.message);wsReady=false;window.PrimeOnlineTransport="HTTP fallback";
