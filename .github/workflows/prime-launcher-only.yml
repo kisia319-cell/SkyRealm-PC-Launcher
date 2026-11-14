@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - ".github/workflows/prime-launcher-only.yml"
+      - "game/competitive/index.html"
       - "game/competitive/prime-world.js"
       - "game/competitive/prime-online.js"
 
@@ -74,7 +75,7 @@ jobs:
           New-Item -ItemType Directory -Force $package | Out-Null
           Copy-Item "prime_launcher_dist/PrimeLauncher.exe" "$package/PrimeLauncher.exe" -Force
           @"
-          PrimeLauncher 1.2.63
+          PrimeLauncher 1.2.64
 
           Распакуй архив полностью и запусти PrimeLauncher.exe.
           Это отдельный соревновательный режим SkyRealm.
