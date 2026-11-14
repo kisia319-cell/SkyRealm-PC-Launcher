@@ -265,7 +265,7 @@ window.PrimeGameSnapshot=()=>{if(!match||match.online?.role!=='host')return null
 window.PrimeGameFinished=()=>!match||match.finished;
 window.PrimeApplyRemoteInput=input=>{if(match?.online?.role==='host')match.online.remoteInput=input||{};};
 window.PrimeReadInput=()=>{if(!match||match.online?.role!=='guest')return{};const k=pressed,v={up:k.has('KeyW')||k.has('ArrowUp'),down:k.has('KeyS')||k.has('ArrowDown'),left:k.has('KeyA')||k.has('ArrowLeft'),right:k.has('KeyD')||k.has('ArrowRight'),sprint:k.has('ShiftLeft')||k.has('ShiftRight'),attack:k.has('Space')||!!match.online.attackPulse};match.online.attackPulse=false;return v;};
-window.PrimeApplyHostState=state=>{if(!match?.online||match.online.role!=='guest'||!state)return;try{const cfg=match.online;match={...state,online:cfg};match.localEntity=match.bots?.[0]||match.player;updateHud();drawArena();}catch(e){console.error('Prime host state',e);}};
+window.PrimeApplyHostState=state=>{if(!match?.online||match.online.role!=='guest'||!state)return;try{const cfg=match.online,terrain=match.terrainCanvas,seed=match.worldSeed;match={...state,online:cfg,terrainCanvas:state.worldSeed===seed?terrain:null};match.localEntity=match.bots?.find(b=>b.isRemotePlayer)||match.bots?.[0]||match.player;const selfName=match.localEntity?.name||'Ты';const opponentName=cfg.opponentName||'Соперник';const title=document.getElementById('battle-title');if(title)title.textContent='ТЫ: '+selfName+' · СОПЕРНИК: '+opponentName;updateHud();}catch(e){console.error('Prime host state',e);}};
 window.PrimeOnlineFinished=state=>{if(!match?.online)return;finish(state.winner_id===match.online.selfId,false,state.result||{});PrimeOnline.stats().then(x=>{profile.elo=Number(x.stats?.rating??profile.elo??0);profile.matches=Number(x.stats?.matches)||profile.matches;profile.wins=Number(x.stats?.wins)||profile.wins;save();renderLeaderboard();}).catch(()=>{});};
 window.PrimeOnlineError=message=>{const el=$('performance-hud');if(el&&match?.online)el.title=message;};
 function beginSearch(){
@@ -508,30 +508,30 @@ function drawBattleObjectives(ctx,camX,camY){
 }
 function updateHud(){
  if(!match)return;
- const q=id=>document.getElementById(id),m=match,coins=Math.floor(m.playerCoins),upgrade=upgradeCost(m.playerTowerLevel);
- q('hud-hp').textContent=Math.ceil(m.player.hp)+' / '+m.player.maxHp;
- q('hud-coins').textContent=coins.toLocaleString('ru-RU');q('hud-balance-value').textContent=coins.toLocaleString('ru-RU')+' ◆';
- q('hud-army').textContent=m.units.filter(u=>u.team===0&&u.alive).length;
- q('hud-base').textContent='БАЗА '+m.playerBaseLevel;
- const baseDistance=m.enemyBase?Math.round(Math.hypot(m.enemyBase.x-m.player.x,m.enemyBase.y-m.player.y)/TILE):40;
+ const q=id=>document.getElementById(id),m=match,guest=m.online?.role==='guest',local=guest?(m.localEntity||m.bots?.find(b=>b.isRemotePlayer)||m.bots?.[0]||m.player):m.player,coins=guest?null:Math.floor(m.playerCoins),ownTower=guest?m.towers.find(t=>t.team===local.team):null,localTowerLevel=guest?(ownTower?.level||1):m.playerTowerLevel,upgrade=upgradeCost(localTowerLevel);
+ q('hud-hp').textContent=Math.ceil(local.hp)+' / '+local.maxHp;
+ q('hud-coins').textContent=coins===null?'—':coins.toLocaleString('ru-RU');q('hud-balance-value').textContent=coins===null?'—':coins.toLocaleString('ru-RU')+' ◆';
+ q('hud-army').textContent=m.units.filter(u=>u.team===local.team&&u.alive).length;
+ q('hud-base').textContent=guest?'ТВОЯ БАЗА':'БАЗА '+m.playerBaseLevel;
+ const targetBase=guest?m.playerBase:m.enemyBase,baseDistance=targetBase?Math.round(Math.hypot(targetBase.x-local.x,targetBase.y-local.y)/TILE):40;
  q('hud-base-distance').textContent='БАЗА СОПЕРНИКА · '+baseDistance+' БЛОКОВ';
- q('hud-tower').textContent='БАШНЯ ур. '+match.playerTowerLevel;
+ q('hud-tower').textContent='БАШНЯ ур. '+localTowerLevel;
  q('hud-elo').textContent=(m.kind==='training'?'BOT ELO '+(profile.botElo||0):profile.elo+' ELO');
  const assault=m.enemyAssaultUntil>m.elapsed,defending=m.enemyAggroUntil>m.elapsed;
  const state=assault?'АТАКУЕТ ВОЛНОЙ':defending?(m.elapsed<60?'УСИЛЕННАЯ ОБОРОНА':'ОБОРОНЯЕТСЯ'):(m.elapsed<m.enemyNoticeUntil?m.enemyState:'РАЗВИВАЕТ БАЗУ');
- q('hud-bot-state').textContent='БОТ · '+getBotDifficulty().label+': '+state;updateBattleSystemsHud();
- q('hud-attack-timer').textContent=assault?'ВОЛНА · '+formatMatchTime(m.enemyAssaultUntil-m.elapsed):'АТАКА ЧЕРЕЗ '+formatMatchTime(m.nextEnemyAttackAt-m.elapsed);
- q('balance-value').textContent=coins.toLocaleString('ru-RU')+' ◆';
- q('balance-income').textContent='+10 ◆ / сек (только в этом бою)';
- q('balance-tower').textContent='Башня ур. '+match.playerTowerLevel;
+ q('hud-bot-state').textContent=guest?'СОПЕРНИК · '+(m.online.opponentName||'Игрок'):'БОТ · '+getBotDifficulty().label+': '+state;updateBattleSystemsHud();
+ q('hud-attack-timer').textContent=guest?'ОНЛАЙН · '+(m.online.opponentName||'СОПЕРНИК'):(assault?'ВОЛНА · '+formatMatchTime(m.enemyAssaultUntil-m.elapsed):'АТАКА ЧЕРЕЗ '+formatMatchTime(m.nextEnemyAttackAt-m.elapsed));
+ q('balance-value').textContent=coins===null?'—':coins.toLocaleString('ru-RU')+' ◆';
+ q('balance-income').textContent=guest?'Экономика ведущего матча':'+10 ◆ / сек (только в этом бою)';
+ q('balance-tower').textContent='Башня ур. '+localTowerLevel;
  q('balance-next-upgrade').textContent=match.playerTowerLevel>=20?'Максимальный уровень':'Следующее улучшение: '+upgrade.toLocaleString('ru-RU')+' ◆';
- q('balance-troops').textContent=m.units.filter(u=>u.team===0&&u.alive).length+' воинов';
- q('balance-enemy').textContent=state+' · атака через '+formatMatchTime(m.nextEnemyAttackAt-m.elapsed);
+ q('balance-troops').textContent=m.units.filter(u=>u.team===local.team&&u.alive).length+' воинов';
+ q('balance-enemy').textContent=guest?'Соперник: '+(m.online.opponentName||'Игрок'):state+' · атака через '+formatMatchTime(m.nextEnemyAttackAt-m.elapsed);
  const upgradeButton=q('upgrade-tower');
- if(upgradeButton){upgradeButton.disabled=match.playerTowerLevel>=20||match.playerCoins<upgrade;upgradeButton.textContent=match.playerTowerLevel>=20?'Башня MAX':'Улучшить башню · '+upgrade+' ◆ · +300 HP';}
+ if(upgradeButton){upgradeButton.disabled=guest||match.playerTowerLevel>=20||match.playerCoins<upgrade;upgradeButton.textContent=guest?'Улучшения недоступны в роли гостя':match.playerTowerLevel>=20?'Башня MAX':'Улучшить башню · '+upgrade+' ◆ · +300 HP';}
  document.querySelectorAll('[data-build]').forEach(button=>{
   const cost={wall:150,tower:300,barracks:450,forge:650,infirmary:600,archery:700,stable:800,siege:950,mage:900,market:550}[button.dataset.build]||0;
-  button.disabled=match.playerCoins<cost;
+  button.disabled=guest||match.playerCoins<cost;
  });
 }
 function upgradeStructureAt(x,y){
