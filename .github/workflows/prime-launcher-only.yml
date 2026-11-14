@@ -49,6 +49,7 @@ jobs:
           node --check tests/competitive-mode-test.cjs
           node tests/competitive-mode-test.cjs
           node --check tests/prime-online-test.cjs
+          node tests/prime-online-test.cjs
 
       - name: Install build dependencies
         run: python -m pip install -r requirements-build.txt
