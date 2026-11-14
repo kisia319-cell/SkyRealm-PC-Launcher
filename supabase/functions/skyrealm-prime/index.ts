@@ -87,24 +87,23 @@ Deno.serve(async(req:Request)=>{
    return reply({id:m.id,status:m.status,seed:m.seed,role,opponent:people?.[0]||{username:"Игрок"},host_state:m.host_state,host_seq:m.host_seq,guest_input:role==="host"?m.guest_input:undefined,guest_seq:role==="host"?m.guest_seq:undefined,winner_id:m.winner_id,result:m.result,updated_at:m.updated_at});
   }
   if(route==="/api/prime/exchange"&&req.method==="POST"){
-   const p=await readBody(req,8000),m=await memberMatch(String(p.match_id||""),user.id);
-   if(m.user_b!==user.id)throw new ApiError(403,"GUEST_ONLY","Обмен состояния доступен только второму участнику матча.");
-   if(m.status!=="active")return reply({status:m.status,winner_id:m.winner_id,result:m.result,host_seq:m.host_seq});
-   const disconnected=await resolveDisconnect(m,user.id);if(disconnected)return reply({status:disconnected.status,winner_id:disconnected.winner_id,result:disconnected.result,reason:disconnected.reason,host_seq:m.host_seq});
-   const input=safeInput(p.input),seq=Math.max(Number(m.guest_seq)+1,Math.round(Number(p.seq)||0));
-   await db("prime_matches?id=eq."+m.id,{method:"PATCH",body:JSON.stringify({guest_input:input,guest_seq:seq,guest_seen_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
-   return reply({ok:true,status:m.status,host_state:m.host_state,host_seq:m.host_seq,guest_seq:seq,winner_id:m.winner_id,result:m.result,updated_at:m.updated_at});
+   const p=await readBody(req,8000),matchId=String(p.match_id||"");
+   if(!UUID.test(matchId))throw new ApiError(400,"INVALID_MATCH","Некорректный номер матча.");
+   const input=safeInput(p.input);
+   const result=await db("rpc/prime_guest_exchange",{method:"POST",body:JSON.stringify({
+    p_match_id:matchId,p_user_id:user.id,p_seq:Math.round(Number(p.seq)||0),p_input:input
+   })});
+   return reply(result);
   }
   if(route==="/api/prime/state"&&req.method==="POST"){
-   const p=await readBody(req),m=await memberMatch(String(p.match_id||""),user.id);
-   if(m.user_a!==user.id)throw new ApiError(403,"HOST_ONLY","Только ведущий матча отправляет состояние боя.");
-   if(m.status!=="active")return reply({status:m.status,winner_id:m.winner_id,result:m.result});
-   const disconnected=await resolveDisconnect(m,user.id);if(disconnected)return reply({ok:true,...disconnected});
+   const p=await readBody(req,90000),matchId=String(p.match_id||"");
+   if(!UUID.test(matchId))throw new ApiError(400,"INVALID_MATCH","Некорректный номер матча.");
    if(!p.state||typeof p.state!=="object"||Array.isArray(p.state))throw new ApiError(400,"INVALID_STATE","Некорректное состояние боя.");
    const payload=JSON.stringify(p.state);if(payload.length>85000)throw new ApiError(413,"STATE_TOO_LARGE","Состояние боя слишком большое.");
-   const seq=Math.max(Number(m.host_seq)+1,Math.round(Number(p.seq)||0));
-   await db("prime_matches?id=eq."+m.id,{method:"PATCH",body:JSON.stringify({host_state:p.state,host_seq:seq,host_seen_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
-   return reply({ok:true,seq,guest_input:m.guest_input,guest_seq:m.guest_seq});
+   const result=await db("rpc/prime_host_publish",{method:"POST",body:JSON.stringify({
+    p_match_id:matchId,p_user_id:user.id,p_seq:Math.round(Number(p.seq)||0),p_state:p.state
+   })});
+   return reply(result);
   }
   if(route==="/api/prime/input"&&req.method==="POST"){
    const p=await readBody(req,8000),m=await memberMatch(String(p.match_id||""),user.id);
