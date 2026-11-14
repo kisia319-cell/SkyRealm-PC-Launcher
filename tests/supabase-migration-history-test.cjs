@@ -129,7 +129,7 @@ console.log('SkyRealm Supabase migration history tests passed.');
 
 
 assert.ok(read(expected[expected.length-2]).includes('create table if not exists public.prime_lobbies'));
-assert.ok(read(expected[expected.length-1]).includes('prime_lobby_one_active_per_user'));
+assert.ok(read(expected[expected.length-2]).includes('prime_lobby_one_active_per_user'));
 
 const transportMigration=read(expected[expected.length-1]);
 assert.ok(transportMigration.includes('public.prime_host_publish'));
