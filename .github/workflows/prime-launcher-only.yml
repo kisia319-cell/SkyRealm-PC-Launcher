@@ -100,7 +100,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $version = (Get-Content launcher_version.txt -Raw).Trim()
+          $version = (Get-Content prime_launcher_version.txt -Raw).Trim()
           $tag = "prime-v$version-reg${{ github.run_number }}"
           $notes = @"
           Отдельная сборка PrimeLauncher для Windows.
