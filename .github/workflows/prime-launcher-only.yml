@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: skyrealm-windows-build-v3
+  group: prime-launcher-windows-build-v1
   cancel-in-progress: true
 
 jobs:
