@@ -160,9 +160,9 @@ jobs:
           python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealm --icon SkyRealm.ico --add-data "PrimeLauncher.ico;." --add-data "index.html;." --add-data "style.css;." --add-data "app.js;." --add-data "launcher-enhancements.css;." --add-data "launcher-enhancements.js;." --add-data "community-mods.css;." --add-data "community-mods.js;." --add-data "config.js;." --add-data "realm.jpg;." --add-data "icon.png;." --add-data "game;game" --add-data "game_runner_version.txt;." --add-data "launcher_version.txt;." --add-data "updater_config.json;." --add-data "game_runner_dist/SkyRealmGame.exe;bin" --add-data "prime_launcher_dist/PrimeLauncher.exe;bin" --add-data "updater_dist/SkyRealmUpdater.exe;bin" --add-data "THIRD_PARTY_NOTICES.txt;." --add-data "ASSET_AND_LICENSE_REGISTER.md;." launcher.py
           if (-not (Test-Path "dist/SkyRealm.exe")) { throw "SkyRealm.exe was not created" }
           $listing = python -m PyInstaller.utils.cliutils.archive_viewer -l -b "dist/SkyRealm.exe" 2>&1 | Out-String
-          $normalized = $listing.ToLower().Replace("\\", "/")
-          foreach ($asset in @("index.html", "style.css", "app.js", "config.js", "launcher-enhancements.js", "launcher-enhancements.css", "launcher_version.txt", "updater_config.json", "realm.jpg", "bin/skyrealmgame.exe", "bin/primelauncher.exe", "bin/skyrealmupdater.exe")) {
-            if (-not $normalized.Contains($asset)) { throw "SkyRealm.exe is missing bundled launcher asset: $asset" }
+          $normalized = $listing.ToLower() -replace '\\+', '/'
+          foreach ($asset in @("index.html", "style.css", "app.js", "config.js", "launcher-enhancements.js", "launcher-enhancements.css", "launcher_version.txt", "updater_config.json", "realm.jpg", "skyrealmgame.exe", "primelauncher.exe", "skyrealmupdater.exe")) {
+            if (-not $normalized.Contains($asset)) { Write-Host $listing; throw "SkyRealm.exe is missing bundled launcher asset: $asset" }
           }
 
       - name: Prepare update archives and manifest
