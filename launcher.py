@@ -797,18 +797,25 @@ class LauncherApi:
 
             if getattr(sys, "frozen", False):
                 _skyrealm_create_prime_shortcut()
-                bundled_runner = Path(resource_path("bin/PrimeLauncher.exe"))
-                if not bundled_runner.is_file():
-                    return {"ok": False, "message": "В сборке отсутствует отдельный PrimeLauncher.exe. Пересобери лаунчер."}
-                runner_dir = skyrealm_default_data_root() / "bin"
-                runner_dir.mkdir(parents=True, exist_ok=True)
-                runner_path = runner_dir / "PrimeLauncher.exe"
-                if not runner_path.is_file() or file_sha256(runner_path) != file_sha256(bundled_runner):
-                    temporary = runner_path.with_suffix(".exe.new")
-                    shutil.copy2(bundled_runner, temporary)
-                    os.replace(temporary, runner_path)
+                # When this code is already running from the standalone PrimeLauncher.exe,
+                # that executable IS the dedicated game runner. Re-launch it with the
+                # game arguments instead of looking for a nested copy of itself in _MEIPASS.
+                current_exe = Path(sys.executable).resolve()
+                if current_exe.name.lower() == "primelauncher.exe" and current_exe.is_file():
+                    runner_path = current_exe
+                else:
+                    bundled_runner = Path(resource_path("bin/PrimeLauncher.exe"))
+                    if not bundled_runner.is_file():
+                        return {"ok": False, "message": "В сборке отсутствует PrimeLauncher.exe. Скачай полный комплект лаунчера."}
+                    runner_dir = skyrealm_default_data_root() / "bin"
+                    runner_dir.mkdir(parents=True, exist_ok=True)
+                    runner_path = runner_dir / "PrimeLauncher.exe"
+                    if not runner_path.is_file() or file_sha256(runner_path) != file_sha256(bundled_runner):
+                        temporary = runner_path.with_suffix(".exe.new")
+                        shutil.copy2(bundled_runner, temporary)
+                        os.replace(temporary, runner_path)
                 command = [str(runner_path), "--prime-competitive", str(installed_index),
-                           "--return-launcher", str(Path(sys.executable).resolve())]
+                           "--return-launcher", str(current_exe)]
             else:
                 command = [sys.executable, str(Path(__file__).resolve()),
                            "--prime-competitive", str(installed_index)]
