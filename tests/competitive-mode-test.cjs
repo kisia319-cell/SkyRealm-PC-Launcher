@@ -88,4 +88,13 @@ assert.equal(aiContext.match.enemyCounterQueued,true,'A bot with troops must per
 aiContext.match.elapsed=23;aiContext.aiDirector(1);
 assert.ok(aiContext.match.units.filter(u=>u.team===1).length>=2,'A successful counterattack roll must release reserve troops.');
 
+assert.match(primeApi,/\/api\/prime\/exchange/,'The backend must expose the combined guest input/state exchange.');
+assert.match(primeOnline,/\/api\/prime\/exchange/,'Guest transport must avoid sequential input and state requests.');
+assert.match(primeHtml,/id="bot-difficulty-controls"/,'Training difficulty controls must be isolated from online mode.');
+assert.match(primeHtml,/id="prime-layout-16x9"/,'PrimeLauncher must use a 16:9 layout on desktop and landscape mobile.');
+assert.match(primeJs,/syncMatchKindControls\(\)/,'Changing match type must hide bot difficulty in online mode.');
+assert.match(primeJs,/if\(!match\.online\)for\(const bot of match\.bots\)/,'Online opponents must not accumulate AI economy.');
+assert.match(primeJs,/if\(!match\.online\)respawnDefeatedBots\(\)/,'Training bots must not respawn during online matches.');
+assert.match(primeJs,/if\(match\.online&&!bot\.isRemotePlayer\)continue/,'Online matches must skip non-player bot AI.');
+
 console.log('competitive-mode-test: all assertions passed');
