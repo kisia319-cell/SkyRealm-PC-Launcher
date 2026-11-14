@@ -89,6 +89,7 @@ aiContext.match.elapsed=23;aiContext.aiDirector(1);
 assert.ok(aiContext.match.units.filter(u=>u.team===1).length>=2,'A successful counterattack roll must release reserve troops.');
 
 assert.match(primeApi,/\/api\/prime\/exchange/,'The backend must expose the combined guest input/state exchange.');
+assert.match(primeApi,/AUTH_CACHE/,'The online Edge Function must cache verified session identity briefly between rapid game ticks.');
 assert.match(primeOnline,/\/api\/prime\/exchange/,'Guest transport must avoid sequential input and state requests.');
 assert.match(primeHtml,/id="bot-difficulty-controls"/,'Training difficulty controls must be isolated from online mode.');
 assert.match(primeHtml,/id="prime-layout-16x9"/,'PrimeLauncher must use a 16:9 layout on desktop and landscape mobile.');
