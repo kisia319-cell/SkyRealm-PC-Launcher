@@ -9,6 +9,7 @@ on:
       - "game/competitive/index.html"
       - "game/competitive/prime-world.js"
       - "game/competitive/prime-online.js"
+      - "prime_launcher_version.txt"
 
 permissions:
   contents: write
@@ -73,10 +74,11 @@ jobs:
         shell: pwsh
         run: |
           $package = "prime_launcher_package"
+          $version = (Get-Content prime_launcher_version.txt -Raw).Trim()
           New-Item -ItemType Directory -Force $package | Out-Null
           Copy-Item "prime_launcher_dist/PrimeLauncher.exe" "$package/PrimeLauncher.exe" -Force
           @"
-          PrimeLauncher 1.2.64
+          PrimeLauncher $version
 
           Распакуй архив полностью и запусти PrimeLauncher.exe.
           Это отдельный соревновательный режим SkyRealm.
