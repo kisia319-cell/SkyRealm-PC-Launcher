@@ -90,7 +90,7 @@ function setPrimeAuthMode(mode){
  $('prime-auth-switch').textContent=primeAuthMode==='login'?'Создать аккаунт':'Уже есть аккаунт? Войти';
  $('prime-auth-name').classList.toggle('hidden',primeAuthMode==='login');
  $('prime-auth-code-wrap').classList.add('hidden');
- $('prime-auth-hint').textContent=primeAuthMode==='login'?'Введи почту или ник и пароль от существующего аккаунта SkyRealm.':'Укажи ник, почту и пароль. На почту придёт код подтверждения.';
+ $('prime-auth-hint').textContent=primeAuthMode==='login'?'Введи почту или ник и пароль.':'Укажи ник, почту и пароль. Код придёт на почту.';
  $('prime-auth-message').textContent='';
 }
 async function syncPrimeRegistrationTab(){
@@ -232,8 +232,65 @@ function applyPrimeLanguage(lang){
 }
 
 const primeLanguageObserver=new MutationObserver(()=>{const lang=localStorage.getItem(PRIME_LANG_KEY)||'ru';if(lang==='en')applyPrimeLanguage(lang);});primeLanguageObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+const PRIME_UI_LAYOUT_KEY="primeLauncher.uiLayout.v1",PRIME_UI_EDIT_KEY="primeLauncher.uiLayoutEdit.v1";
+function isPrimeUiLayoutEditEnabled(){try{return localStorage.getItem(PRIME_UI_EDIT_KEY)==="1";}catch(_){return false;}}
+function readPrimeUiLayout(){try{const v=JSON.parse(localStorage.getItem(PRIME_UI_LAYOUT_KEY)||"{}");return v&&typeof v==="object"?v:{};}catch(_){return {};}}
+function applyPrimeUiLayout(){
+ const arena=document.querySelector(".arena");if(!arena)return;
+ const layout=readPrimeUiLayout();
+ for(const selector of [".battle-hud","#arena-minimap",".battle-tools"]){
+  const node=document.querySelector(selector),position=layout[selector];if(!node||!position||!Number.isFinite(position.x)||!Number.isFinite(position.y))continue;
+  node.style.setProperty("position","absolute","important");node.style.setProperty("left",Math.max(0,Math.min(96,position.x))+"%","important");node.style.setProperty("top",Math.max(0,Math.min(96,position.y))+"%","important");node.style.setProperty("right","auto","important");node.style.setProperty("bottom","auto","important");node.style.setProperty("transform","none","important");
+  if(selector===".battle-tools"){node.style.setProperty("width","max-content","important");node.style.setProperty("max-width","calc(100% - 10px)","important");}
+  if(selector===".battle-hud")node.style.setProperty("max-width","calc(100% - 10px)","important");
+ }
+}
+function deactivatePrimeUiLayoutEditor(){document.body.classList.remove("prime-ui-layout-edit");document.getElementById("prime-ui-layout-toolbar")?.remove();}
+function activatePrimeUiLayoutEditor(){
+ const arena=document.querySelector(".arena");if(!arena)return;
+ document.body.classList.add("prime-ui-layout-edit");
+ let toolbar=document.getElementById("prime-ui-layout-toolbar");
+ if(!toolbar){
+  toolbar=document.createElement("div");toolbar.id="prime-ui-layout-toolbar";
+  toolbar.style.cssText="position:fixed;z-index:120;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:8px 10px;background:#101010ee;border:1px solid #ff8a32;border-radius:12px;box-shadow:0 8px 30px #000b;color:#fff;max-width:calc(100vw - 16px);font:700 12px Segoe UI,sans-serif";
+  const label=document.createElement("span");label.textContent="Перетаскивай панели";
+  const done=document.createElement("button");done.type="button";done.textContent="Готово";done.style.cssText="padding:8px 12px;border-radius:8px;background:#ff7a2d;color:#160b05;font-weight:900";
+  done.addEventListener("click",()=>{try{localStorage.setItem(PRIME_UI_EDIT_KEY,"0");}catch(_){}deactivatePrimeUiLayoutEditor();updatePrimeUiLayoutSettings();});
+  toolbar.append(label,done);document.body.append(toolbar);
+ }
+ for(const selector of [".battle-hud","#arena-minimap",".battle-tools"]){
+  const node=document.querySelector(selector);if(!node||node.dataset.primeDragReady==="1")continue;node.dataset.primeDragReady="1";
+  node.addEventListener("pointerdown",e=>{
+   if(!document.body.classList.contains("prime-ui-layout-edit"))return;
+   if(e.button!==undefined&&e.button!==0)return;
+   const rect=node.getBoundingClientRect(),offsetX=e.clientX-rect.left,offsetY=e.clientY-rect.top;
+   node.style.setProperty("position","absolute","important");node.style.setProperty("right","auto","important");node.style.setProperty("bottom","auto","important");node.style.setProperty("transform","none","important");
+   if(selector===".battle-tools"){node.style.setProperty("width","max-content","important");node.style.setProperty("max-width","calc(100% - 10px)","important");}
+   try{node.setPointerCapture(e.pointerId);}catch(_){}
+   e.preventDefault();e.stopPropagation();
+   const move=ev=>{
+    if(ev.pointerId!==e.pointerId)return;
+    const r=arena.getBoundingClientRect(),x=Math.max(0,Math.min(r.width-node.offsetWidth,ev.clientX-r.left-offsetX)),y=Math.max(0,Math.min(r.height-node.offsetHeight,ev.clientY-r.top-offsetY));
+    node.style.setProperty("left",x+"px","important");node.style.setProperty("top",y+"px","important");
+   };
+   const finish=ev=>{
+    if(ev.pointerId!==e.pointerId)return;
+    node.removeEventListener("pointermove",move);node.removeEventListener("pointerup",finish);node.removeEventListener("pointercancel",finish);
+    const r=arena.getBoundingClientRect(),n=node.getBoundingClientRect(),next=readPrimeUiLayout();next[selector]={x:Math.max(0,Math.min(96,(n.left-r.left)/r.width*100)),y:Math.max(0,Math.min(96,(n.top-r.top)/r.height*100))};
+    try{localStorage.setItem(PRIME_UI_LAYOUT_KEY,JSON.stringify(next));}catch(_){}
+    node.style.setProperty("left",next[selector].x+"%","important");node.style.setProperty("top",next[selector].y+"%","important");
+   };
+   node.addEventListener("pointermove",move);node.addEventListener("pointerup",finish);node.addEventListener("pointercancel",finish);
+  },{passive:false});
+ }
+}
+function updatePrimeUiLayoutSettings(){
+ const enabled=isPrimeUiLayoutEditEnabled(),button=$("prime-layout-toggle"),status=$("prime-layout-status");
+ if(button)button.textContent=enabled?"Выключить перемещение":"Переместить интерфейс";
+ if(status)status.textContent=enabled?"Включено: начни бой, перетащи верхнюю панель, мини-карту или панель кнопок, затем нажми «Готово».":"Можно перемещать HUD, мини-карту и панель кнопок в бою.";
+}
 function show(page){
- scene=page;document.body.classList.toggle('battle-active',page==='battle');pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
+ scene=page;document.body.classList.toggle('battle-active',page==='battle');if(page==='battle'){applyPrimeUiLayout();if(isPrimeUiLayoutEditEnabled())activatePrimeUiLayoutEditor();else deactivatePrimeUiLayoutEditor();}else deactivatePrimeUiLayoutEditor();pages.forEach(p=>$(p+'-page').classList.toggle('hidden',p!==page));
  document.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
  if(page==='battle'){$('arena').focus();startLoop();}else stopLoop();if(page==='rank')renderLeaderboard();if(page==='history')renderHistory();if(page==='profile')renderPrimeProfile();if(page==='friends')renderPrimeFriends();if(page==='friends'){if(!primeSocialRefreshTimer)primeSocialRefreshTimer=setInterval(renderPrimeFriends,5000);}else if(primeSocialRefreshTimer){clearInterval(primeSocialRefreshTimer);primeSocialRefreshTimer=0;}
 }
@@ -354,7 +411,8 @@ $("prime-social-back")?.addEventListener("click",()=>show("menu"));
 $('find-match').addEventListener('click',beginSearch);
 $('cancel-search')?.addEventListener('click',cancelOnlineQueue);
 const languageSelect=$('prime-language');if(languageSelect){languageSelect.value=localStorage.getItem(PRIME_LANG_KEY)||'ru';languageSelect.addEventListener('change',()=>applyPrimeLanguage(languageSelect.value));}applyPrimeLanguage(localStorage.getItem(PRIME_LANG_KEY)||'ru');
-const regionSelect=$('prime-region'),regionStatus=$('prime-region-status');function updatePrimeRegionInfo(){if(!regionStatus)return;const value=PrimeOnline.region();regionStatus.textContent=value==='moscow'?'Москва выбрана как предпочтительный регион, но московский сервер пока не развёрнут. Прямой P2P-канал может работать независимо от региона; при его недоступности используется текущий сервер в Стокгольме.':value==='stockholm'?'Выбран активный сервер Supabase в Стокгольме (Европа). Приоритет игрового трафика — прямое P2P-соединение, если оно доступно.':'Авто: игра пытается установить прямое P2P-соединение между игроками; для авторизации, лобби и резервного канала сейчас используется Стокгольм.';}if(regionSelect){regionSelect.value=PrimeOnline.region();regionSelect.addEventListener('change',()=>{PrimeOnline.setRegion(regionSelect.value);updatePrimeRegionInfo();});}updatePrimeRegionInfo();
+const regionSelect=$('prime-region'),regionStatus=$('prime-region-status');function updatePrimeRegionInfo(){if(!regionStatus)return;const value=PrimeOnline.region();regionStatus.textContent=value==='auto'?'Авто: P2P и ближайший Cloudflare STUN; резерв лобби — Стокгольм.':value==='stockholm'?'Стокгольм — действующий сервер аккаунта и лобби.':value==='moscow'?'Москва — предпочтение. Отдельный московский игровой сервер пока не подключён.':'Регион сохранён как предпочтение; выделенный игровой сервер там пока не подключён. Игровые пакеты идут P2P, резерв — Стокгольм.';}if(regionSelect){regionSelect.value=PrimeOnline.region();regionSelect.addEventListener('change',()=>{PrimeOnline.setRegion(regionSelect.value);updatePrimeRegionInfo();});}updatePrimeRegionInfo();
+const layoutToggle=$('prime-layout-toggle'),layoutReset=$('prime-layout-reset');layoutToggle?.addEventListener('click',()=>{const enabled=!isPrimeUiLayoutEditEnabled();try{localStorage.setItem(PRIME_UI_EDIT_KEY,enabled?'1':'0');}catch(_){}updatePrimeUiLayoutSettings();if(enabled&&scene==='settings')show('menu');});layoutReset?.addEventListener('click',()=>{try{localStorage.removeItem(PRIME_UI_LAYOUT_KEY);}catch(_){}document.querySelectorAll('.battle-hud,#arena-minimap,.battle-tools').forEach(node=>['position','left','top','right','bottom','transform','width','max-width'].forEach(prop=>node.style.removeProperty(prop)));updatePrimeUiLayoutSettings();});updatePrimeUiLayoutSettings();
 function resizeArenaCanvas(){
  const c=$('arena');if(!c)return;
  const rect=c.getBoundingClientRect(),dpr=Math.min(1.5,Math.max(1,window.devicePixelRatio||1));
@@ -829,7 +887,7 @@ function loop(now){
  if(scene!=='battle'||!match||match.finished){raf=0;return;}
  if(match.paused){lastFrame=now;drawArena();raf=requestAnimationFrame(loop);return;}
  const dt=Math.min(.04,(now-lastFrame)/1000||0);lastFrame=now;fpsFrames++;fpsElapsed+=dt;
- if(fpsElapsed>=1){currentFps=Math.round(fpsFrames/fpsElapsed);fpsFrames=0;fpsElapsed=0;$('performance-hud').textContent='FPS '+currentFps;const ping=match.online?(window.PrimeOnlinePing??0):0,source=window.PrimeOnlinePingSource||'—',path=window.PrimeOnlinePath||window.PrimeOnlineTransport||'—';$('hud-ping').innerHTML=match.online?'PING '+(ping?ping+' ms':'—')+' · JIT '+(window.PrimeOnlineJitter??'—')+' ms<br><small>'+source+' · '+path+'</small>':'PING офлайн';}
+ if(fpsElapsed>=1){currentFps=Math.round(fpsFrames/fpsElapsed);fpsFrames=0;fpsElapsed=0;$('performance-hud').textContent='FPS '+currentFps;const ping=match.online?(window.PrimeOnlinePing??0):0,source=window.PrimeOnlinePingSource||'—',path=window.PrimeOnlinePath||window.PrimeOnlineTransport||'—',relay=window.PrimeOnlineRelayPing||0;$('hud-ping').innerHTML=match.online?'PING '+(ping?ping+' ms':'—')+' · JIT '+(window.PrimeOnlineJitter??'—')+' ms<br><small>'+source+' · '+path+(relay?' · сервер '+relay+' ms':'')+'</small>':'PING офлайн';}
  if(match.online?.role==='guest'){drawArena();}else{update(dt);if(match.online?.role==='host'){if(match.online.mode==='bots'){if(match.bots.length&&match.bots.every(b=>!b.alive))finish(true);}else{const rival=match.bots[0];if(match.player.hp<=0)finish(false);else if(rival&&!rival.alive)finish(true);}}drawArena();}
  raf=requestAnimationFrame(loop);
 }
