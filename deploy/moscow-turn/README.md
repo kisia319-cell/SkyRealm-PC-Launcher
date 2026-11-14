@@ -1,59 +1,73 @@
 # PrimeLauncher Moscow TURN relay
 
-This directory deploys a real WebRTC TURN relay in the Moscow IQpark VPS. It is an add-on to the existing Supabase matchmaking/auth service; it does not move account data or PostgreSQL.
+This directory deploys the real WebRTC TURN relay in a Moscow IQpark VPS. It adds a relay path to the existing P2P match connection; it does not move account data or PostgreSQL.
 
-## Target VPS
+## VPS order
 
-Hosting Russia, Moscow / IQpark:
-- Standard: 250 RUB/month
+Provider: [Hosting Russia — Moscow VPS](https://hosting-russia.ru/vps?location=moscow)
+
+Choose:
+- Location: Moscow / IQpark (Tier III)
+- Plan: Standard — 250 RUB/month
 - 1 vCPU, 1 GB RAM, 20 GB NVMe
-- Dedicated IPv4, 10 TB traffic
-- KVM, basic DDoS protection
+- Dedicated IPv4, 10 TB monthly traffic
+- OS: Ubuntu 24.04 LTS or Debian 12
+- Billing: one month initially; do not prepay annually until the route is measured
 
-Order the one-month period first. Do not prepay annually until the route has been measured from both clients.
+The provider advertises approximately 3 ms response from Moscow to the IQpark site itself. That is not a guarantee of the game's ping from every ISP.
 
-## Ports
+## SSH key
 
-Allow these ports in both the provider firewall and the OS firewall:
-- TCP + UDP 3478 (TURN listener)
-- UDP 49160-49200 (TURN relay allocations)
-- TCP 22 only for SSH administration
+Add this public key to the VPS during creation. It grants access only to this server if you add it to this VPS's authorized SSH keys:
 
-## Install
-
-Use a fresh Ubuntu 24.04 or Debian 12 server. Copy `install-coturn.sh` to the VPS and run as root:
-
-```bash
-sudo PUBLIC_IPV4=<VPS_PUBLIC_IPV4> bash install-coturn.sh
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGUIfJh3k1co8eVQYpzkwFLnkY7XNbCc8YjbSpZi82/S prime-moscow-turn-deploy
 ```
 
-The script creates a random 256-bit shared secret and stores it root-only in:
-`/root/prime-turn-credentials.env`
+Do not send a root password in chat.
 
-It does not print the secret. It installs coturn, configures the relay range, opens the required UFW ports if UFW is active, and enables the systemd service.
+## Install Coturn
 
-## Credential broker
+After the VPS is ready, open its console or connect using SSH and run:
 
-Deploy `worker.js` as the Cloudflare Worker `prime-moscow-turn-auth` on the SkyRealm account's workers.dev subdomain. Configure:
-- Plain text binding `SUPABASE_URL` = `https://jaaguprbfrzrcwuusher.supabase.co`
-- Plain text binding `SUPABASE_ANON_KEY` = the project's publishable key
-- Plain text binding `TURN_HOST` = the VPS public IPv4
-- Secret binding `TURN_SHARED_SECRET` = the value in `/root/prime-turn-credentials.env`
+```bash
+curl -fsSL https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/deploy/moscow-turn/install-coturn.sh -o /root/install-coturn.sh
+sudo bash /root/install-coturn.sh
+```
 
-The Worker validates every Supabase access token with Supabase Auth and returns HMAC-SHA1 time-limited TURN credentials. Do not put the shared secret into the EXE, APK, GitHub source, or client-side settings.
+The installer:
+- Installs and enables Coturn
+- Configures UDP/TCP 3478 and UDP relay ports 49160-49200
+- Generates a random 256-bit shared secret
+- Stores credentials root-only in `/etc/prime-turn/credentials.env`
+- Does not print the secret
 
-Worker endpoint:
+Allow these ports in the provider firewall too:
+- TCP + UDP 3478
+- UDP 49160-49200
+- TCP 22 for SSH administration
+
+## Activate the credential broker
+
+The Cloudflare Worker is already deployed:
+
 `https://prime-moscow-turn-auth.skyrealm.workers.dev/ice`
+
+After Coturn is running, open Cloudflare Dashboard → Workers & Pages → `prime-moscow-turn-auth` → Settings → Variables and Secrets.
+
+Set:
+- Plain text variable `TURN_HOST` = the server's public IPv4 (the installer prints it)
+- Secret `TURN_SHARED_SECRET` = the `TURN_SHARED_SECRET` value from `/etc/prime-turn/credentials.env`
+
+The other Worker bindings (`SUPABASE_URL` and `SUPABASE_ANON_KEY`) are already configured. The Worker validates Supabase access tokens and returns one-hour HMAC-SHA1 TURN credentials. Never place the shared secret in EXE/APK files, GitHub source, or client-side settings.
 
 ## Acceptance checks
 
-1. Confirm `systemctl is-active coturn`.
-2. Confirm UDP/TCP 3478 and UDP 49160-49200 are reachable.
-3. Confirm the credential broker returns ICE servers for an authenticated user.
-4. Connect PC and Android; inspect selected ICE candidate pair. It must show `relay` and the Moscow public IP for the Moscow relay test.
-5. Compare 30-second samples: P2P RTT, TURN RTT, jitter, packet loss. Keep direct LAN P2P as the preferred path on the same Wi-Fi; the Moscow relay is a fallback for remote clients.
-6. Roll back by switching the region preference back to Auto and disabling the TURN credentials.
+1. `systemctl is-active coturn` returns `active`.
+2. TCP/UDP 3478 and UDP 49160-49200 are reachable from the internet.
+3. The Worker begins issuing ICE servers after the two variables are configured.
+4. Connect PC and Android; selected ICE candidate pair should show `relay` with the Moscow public IP.
+5. Compare 30-second samples of P2P RTT, relay RTT, jitter, and packet loss.
+6. Keep direct LAN P2P preferred for devices on the same Wi-Fi; Moscow TURN is a relay fallback for remote clients.
 
-## Important
-
-A Moscow relay does not guarantee 50-100 ms for every route. The actual benefit depends on where both players are, their ISP routing, and whether direct P2P is blocked or unstable. Measure before changing the default route.
+A Moscow relay cannot guarantee 50-100 ms on every ISP. The gain depends on where both players are and how their ISPs route traffic. Do not force every match through Moscow without comparing the actual measurements.
