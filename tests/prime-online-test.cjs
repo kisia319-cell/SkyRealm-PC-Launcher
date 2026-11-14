@@ -60,3 +60,9 @@ const profileUpdater=primeWorldSource.slice(primeWorldSource.indexOf('function u
 assert.ok(!profileUpdater.includes('renderLeaderboard()'),'Leaderboard must not refetch on every profile refresh');
 assert.ok(primeWorldSource.includes("if(page==='rank')renderLeaderboard();"),'Leaderboard should load when the ranking page is opened');
 assert.ok(primeWorldSource.includes('primeLeaderboardPromise'),'Leaderboard requests must be deduplicated');
+assert.ok(primeWorldSource.includes("match.online.mode==='bots'"),'Co-op lobby mode must keep AI bots active');
+assert.ok(primeWorldSource.includes("НАЧАТЬ КООПЕРАЦИЮ 2 ИГРОКА ПРОТИВ БОТОВ"),'Lobby must expose the co-op start action');
+assert.ok(primeWorldSource.includes("match.allies?.find(a=>a.isRemotePlayer)"),'Co-op guest must control the allied fighter');
+assert.ok(source.includes('new RTCPeerConnection')&&source.includes('prime-game'),'Realtime gameplay should attempt a direct WebRTC data channel');
+assert.ok(source.includes('PrimeOnlinePingSource')&&source.includes('P2P'),'Direct RTT source must be exposed to the HUD');
+console.log('Prime P2P/co-op regression assertions passed');
