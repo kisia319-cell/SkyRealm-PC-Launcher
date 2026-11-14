@@ -54,3 +54,9 @@ vm.runInNewContext(source,context);
 
 assert.ok(source.includes("const p=match.localEntity||match.player,camX=p.x-w/2,camY=p.y-h/2"),"Guest camera must follow its own fighter");
 console.log("prime-online-test: guest-local camera assertion passed");
+
+const primeWorldSource=fs.readFileSync("game/competitive/prime-world.js",'utf8');
+const profileUpdater=primeWorldSource.slice(primeWorldSource.indexOf('function updateProfile(){'),primeWorldSource.indexOf('let primeLeaderboardPromise='));
+assert.ok(!profileUpdater.includes('renderLeaderboard()'),'Leaderboard must not refetch on every profile refresh');
+assert.ok(primeWorldSource.includes("if(page==='rank')renderLeaderboard();"),'Leaderboard should load when the ranking page is opened');
+assert.ok(primeWorldSource.includes('primeLeaderboardPromise'),'Leaderboard requests must be deduplicated');
