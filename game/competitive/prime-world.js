@@ -382,7 +382,7 @@ function createMatch(onlineConfig=null){
   const midX=player.x+(match.enemyBase.x-player.x)*.5,laneY=player.y;
   match.outposts=[{id:1,x:midX-220,y:clamp(laneY-190,TILE*(WATER_BORDER+5),SIZE*TILE-TILE*(WATER_BORDER+5)),owner:-1,captureTeam:null,progress:0},{id:2,x:midX,y:laneY,owner:-1,captureTeam:null,progress:0},{id:3,x:midX+220,y:clamp(laneY+190,TILE*(WATER_BORDER+5),SIZE*TILE-TILE*(WATER_BORDER+5)),owner:-1,captureTeam:null,progress:0}];
   match.supplyCaches=[{x:midX-100,y:laneY-315,active:true,respawnAt:0},{x:midX+100,y:laneY+315,active:true,respawnAt:0}];match.mercenaryCamp={x:playerBaseX-165,y:playerBaseY-135};match.mercenaryCooldownUntil=0;
- if(onlineConfig){match.kind='online';match.team=1;match.online={match_id:onlineConfig.match_id,role:onlineConfig.role,selfId:PrimeOnline.userId(),opponentId:onlineConfig.opponent_id,remoteInput:{},attackPulse:false};const rival=match.bots[0];rival.isRemotePlayer=true;rival.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник';rival.profile={...rival.profile,name:rival.name,elo:1000,coins:0,towerLevel:1};if(onlineConfig.role==='guest')match.localEntity=rival;document.body.classList.add('online-match');$('battle-title').textContent='ОНЛАЙН 1 × 1 · '+rival.name;}
+ if(onlineConfig){match.kind='online';match.team=1;match.online={match_id:onlineConfig.match_id,role:onlineConfig.role,selfId:PrimeOnline.userId(),opponentId:onlineConfig.opponent_id,opponentName:onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник',remoteInput:{},attackPulse:false};const rival=match.bots[0];rival.isRemotePlayer=true;rival.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник';rival.profile={...rival.profile,name:rival.name,elo:1000,coins:0,towerLevel:1};if(onlineConfig.role==='guest')match.localEntity=rival;document.body.classList.add('online-match');$('battle-title').textContent='ОНЛАЙН 1 × 1 · '+rival.name;}
  attackCooldown=0;pressed.clear();$('troops-halt').textContent='|| \u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u043e\u0438\u043d\u043e\u0432';$('regroup-troops').textContent='\u0421\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f';$('guard-mode').textContent='\u041e\u0431\u043e\u0440\u043e\u043d\u0430: \u0412\u041a\u041b';$('rally-troops').textContent='\u0422\u043e\u0447\u043a\u0430 \u0441\u0431\u043e\u0440\u0430';$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
  $('battle-feed').innerHTML='';
  renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');resizeArenaCanvas();drawArena();
@@ -1153,7 +1153,7 @@ function drawArena(){
   ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(isPlayer?'Kisia':(f.name||'Воин'),x,y-36);ctx.shadowBlur=0;
   if(!isPlayer){ctx.fillStyle='#140d0b';ctx.fillRect(x-18,y-43,36,4);ctx.fillStyle=trim;ctx.fillRect(x-18,y-43,36*Math.max(0,f.hp/f.maxHp),4);}
  }
- match.bots.forEach(b=>{if(b.alive)drawPrimeFighter(ctx,b,camX,camY,false,false);});match.allies.forEach(a=>{if(a.alive)drawPrimeFighter(ctx,a,camX,camY,false,true);});match.units.forEach(u=>{if(u.alive)drawPrimeFighter(ctx,u,camX,camY,false,u.team===0);});drawPrimeFighter(ctx,p,camX,camY,true,false);
+ const guestView=match.online?.role==='guest',localView=match.localEntity||match.player;match.bots.forEach(b=>{if(b.alive&&(!guestView||b!==localView))drawPrimeFighter(ctx,b,camX,camY,false,false);});if(guestView&&match.player?.alive){const hostPlayer={...match.player,name:match.online.opponentName||'Соперник'};drawPrimeFighter(ctx,hostPlayer,camX,camY,false,false);}match.allies.forEach(a=>{if(a.alive)drawPrimeFighter(ctx,a,camX,camY,false,true);});match.units.forEach(u=>{if(u.alive)drawPrimeFighter(ctx,u,camX,camY,false,u.team===0);});drawPrimeFighter(ctx,localView,camX,camY,true,false);
  for(const tracer of match.tracers){
   const alpha=Math.max(0,tracer.life/tracer.maxLife);ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=tracer.team===0?'#8be9ff':'#ff9b75';ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=12;ctx.lineWidth=tracer.team===0?3:2.5;ctx.beginPath();ctx.moveTo(tracer.x1-camX,tracer.y1-camY);ctx.lineTo(tracer.x2-camX,tracer.y2-camY);ctx.stroke();ctx.restore();
  }
@@ -1185,7 +1185,7 @@ function drawMiniMap(){
  for(const bot of match.bots){if(!bot.alive)continue;ctx.fillStyle='#ff504d';ctx.beginPath();ctx.arc(sx(bot.x),sy(bot.y),3.2,0,Math.PI*2);ctx.fill();}
  for(const ally of match.allies){if(!ally.alive)continue;ctx.fillStyle='#a1e9ff';ctx.beginPath();ctx.arc(sx(ally.x),sy(ally.y),2.8,0,Math.PI*2);ctx.fill();}
  for(const unit of match.units){if(!unit.alive)continue;ctx.fillStyle=unit.team===0?'#9be8ff':'#ff8a73';ctx.fillRect(sx(unit.x)-1,sy(unit.y)-1,3,3);}
- ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(sx(match.player.x),sy(match.player.y),4,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#09121b';ctx.lineWidth=1.5;ctx.stroke();
+ const localMapPlayer=match.localEntity||match.player;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(sx(localMapPlayer.x),sy(localMapPlayer.y),4,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#09121b';ctx.lineWidth=1.5;ctx.stroke();
  ctx.font='bold 9px Segoe UI';ctx.textAlign='left';ctx.fillStyle='#f7f7f7';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText('КАРТА',8,10);ctx.shadowBlur=0;
 }
 function keyDirection(code){return ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(code);}
@@ -1204,7 +1204,7 @@ window.addEventListener('keyup',e=>{pressed.delete(e.code);},true);
 window.addEventListener('blur',()=>pressed.clear());
 $('arena').addEventListener('pointermove',e=>{
  if(scene!=='battle'||!match)return;
- if(match.dragging){const rect=$('arena').getBoundingClientRect(),wx=e.clientX-rect.left+match.player.x-rect.width/2,wy=e.clientY-rect.top+match.player.y-rect.height/2;const d=match.dragging;if(Math.hypot(wx-d.startX,wy-d.startY)>8)d.moved=true;if(d.moved){const safeX=clamp(wx,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4)),safeY=clamp(wy,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4));d.object.x=safeX;d.object.y=safeY;if(d.type==='base'){match.playerBase.x=safeX;match.playerBase.y=safeY;}}drawArena();return;}
+ if(match.dragging){const rect=$('arena').getBoundingClientRect(),viewPlayer=match.localEntity||match.player,wx=e.clientX-rect.left+viewPlayer.x-rect.width/2,wy=e.clientY-rect.top+viewPlayer.y-rect.height/2;const d=match.dragging;if(Math.hypot(wx-d.startX,wy-d.startY)>8)d.moved=true;if(d.moved){const safeX=clamp(wx,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4)),safeY=clamp(wy,TILE*(WATER_BORDER+4),SIZE*TILE-TILE*(WATER_BORDER+4));d.object.x=safeX;d.object.y=safeY;if(d.type==='base'){match.playerBase.x=safeX;match.playerBase.y=safeY;}}drawArena();return;}
  if(!buildMode)return;
  match.buildPreview=buildPlacementFromPointer(e.clientX,e.clientY);
 });
@@ -1212,8 +1212,8 @@ $('arena').addEventListener('pointerleave',()=>{if(match&&buildMode)match.buildP
 $('arena').addEventListener('pointerup',()=>{if(match&&match.dragging){const d=match.dragging;match.dragging=null;if(!d.moved&&d.type==='structure')upgradeStructureAt(d.startX,d.startY);save();updateHud();drawArena();}});$('arena').addEventListener('pointercancel',()=>{if(match)match.dragging=null;});
 $('arena').addEventListener('pointerdown',e=>{
  if(scene!=='battle'||!match||e.button!==0)return;
- const rect=$('arena').getBoundingClientRect(),sx=e.clientX-rect.left,sy=e.clientY-rect.top;
- const wx=sx+match.player.x-rect.width/2,wy=sy+match.player.y-rect.height/2;
+ const rect=$('arena').getBoundingClientRect(),sx=e.clientX-rect.left,sy=e.clientY-rect.top,viewPlayer=match.localEntity||match.player;
+ const wx=sx+viewPlayer.x-rect.width/2,wy=sy+viewPlayer.y-rect.height/2;
  if(!buildMode){const drag=findDraggableAt(wx,wy);if(drag){match.dragging={...drag,startX:wx,startY:wy,moved:false};try{$('arena').setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();return;}}
  if(buildMode){
   const placement=buildPlacementAtWorld(wx,wy);
