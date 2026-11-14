@@ -94,16 +94,18 @@ function setPrimeAuthMode(mode){
  $('prime-auth-message').textContent='';
 }
 function syncPrimeRegistrationTab(){
- const tab=$('prime-registration-tab');if(!tab)return;
+ const tabs=[$('prime-registration-tab'),$('prime-registration-top')].filter(Boolean);
+ if(!tabs.length)return;
  Promise.resolve(PrimeOnline.init()).then(ok=>{
   const signed=!!ok&&PrimeOnline.hasSession();
-  tab.classList.toggle('hidden',signed);
+  tabs.forEach(tab=>tab.classList.toggle('hidden',signed));
   if(signed&&scene==='registration')show('home');
- }).catch(()=>tab.classList.remove('hidden'));
+ }).catch(()=>tabs.forEach(tab=>tab.classList.remove('hidden')));
 }
 function completePrimeAuth(){
  $('prime-auth-overlay').classList.add('hidden');
  $('prime-registration-tab')?.classList.add('hidden');
+ $('prime-registration-top')?.classList.add('hidden');
  if(scene==='registration')show('home');
 }
 function openPrimeAuth(mode='login'){setPrimeAuthMode(mode);$('prime-auth-overlay')?.classList.remove('hidden');}
@@ -111,7 +113,9 @@ $('prime-auth-close')?.addEventListener('click',()=>$('prime-auth-overlay').clas
 $('prime-auth-switch')?.addEventListener('click',()=>setPrimeAuthMode(primeAuthMode==='login'?'register':'login'));
 $('prime-account-yes')?.addEventListener('click',()=>openPrimeAuth('login'));
 $('prime-account-no')?.addEventListener('click',()=>openPrimeAuth('register'));
-$('prime-registration-tab')?.addEventListener('click',()=>{if(PrimeOnline.hasSession()){syncPrimeRegistrationTab();show('home');return;}show('registration');});
+const openPrimeRegistration=()=>{if(PrimeOnline.hasSession()){syncPrimeRegistrationTab();show('home');return;}show('registration');};
+$('prime-registration-tab')?.addEventListener('click',openPrimeRegistration);
+$('prime-registration-top')?.addEventListener('click',openPrimeRegistration);
 $('prime-auth-submit')?.addEventListener('click',async()=>{
  const msg=$('prime-auth-message'),btn=$('prime-auth-submit');btn.disabled=true;msg.textContent='Подключение...';
  try{
