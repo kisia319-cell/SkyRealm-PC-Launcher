@@ -12,6 +12,7 @@ on:
       - ".github/workflows/coop-tests.yml"
       - ".github/workflows/build-release.yml"
       - ".github/workflows/prime-launcher-only.yml"
+      - "prime_launcher.py"
   workflow_dispatch:
 
 permissions:
