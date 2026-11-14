@@ -51,3 +51,6 @@ vm.runInNewContext(source,context);
  assert.ok(calls.some(x=>x.route==='/api/prime/leave'&&x.method==='POST'));
  console.log('prime-online-test: all assertions passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+assert.ok(source.includes("const p=match.localEntity||match.player,camX=p.x-w/2,camY=p.y-h/2"),"Guest camera must follow its own fighter");
+console.log("prime-online-test: guest-local camera assertion passed");
