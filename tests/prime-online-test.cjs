@@ -82,7 +82,7 @@ console.log('Prime P2P/region/relay/co-op regression assertions passed');
 assert.ok(primeWorldSource.includes("if(match.online?.role==='guest'){attackCooldown=Math.max(0,attackCooldown-dt);drawArena();}"),'Guest attack cooldown must advance');
 assert.ok(primeWorldSource.includes("selfName:window.PrimeCurrentDisplayName||'Игрок'"),'Online match must retain authenticated local display name');
 assert.ok(primeWorldSource.includes("match.online?.selfName||window.PrimeCurrentDisplayName||'Игрок'"),'Fighter name must come from authenticated account');
-assert.ok(primeWorldSource.includes("window.PrimeCurrentDisplayName=String(p.display_name||p.username||'Игрок')"),'Matchmaking must resolve current account display name');
+assert.ok(primeWorldSource.includes("window.PrimeCurrentDisplayName=String(p.username||p.display_name||'Игрок')"),'Matchmaking must resolve current account display name');
 
 assert.ok(worldSource.includes('window.PrimeInputSent')&&!worldSource.includes('match.online.attackPulse=false;return v;'),'Guest attack pulses must remain latched until a network send succeeds');
 assert.ok(worldSource.includes('match.online.selfName')&&worldSource.includes('window.PrimeCurrentDisplayName'),'Player identity must come from the authenticated profile, not a hardcoded nickname');
