@@ -62,7 +62,7 @@ async function renderPrimeProfile(){
  try{
   const ok=await PrimeOnline.init();if(!ok){if(msg)msg.textContent='Аккаунт не найден. Открой главный лаунчер SkyRealm и выбери «Создать аккаунт» — регистрация и подтверждение почты доступны там.';return;}
   const data=await PrimeOnline.profile(),p=data.profile||{},st=data.stats||{};
-  const name=p.display_name||p.username||'Игрок';window.PrimeCurrentDisplayName=name;const navName=$('prime-nav-display-name');if(navName)navName.textContent=name;
+  const name=p.username||p.display_name||'Игрок';window.PrimeCurrentDisplayName=name;const navName=$('prime-nav-display-name');if(navName)navName.textContent=name;
   $('prime-profile-name').textContent=name;$('prime-profile-class').textContent=p.player_class||'Воин';
   $('prime-profile-elo').textContent=(st.rating??0)+' ELO';
   $('prime-profile-hours').textContent=(Math.max(0,Number(p.playtime_seconds)||0)/3600).toFixed(1)+' ч';
@@ -320,7 +320,7 @@ let onlineQueueActive=false,onlineQueueTimer=0;
 async function beginOnlineQueue(){
  if(teamSize!==1){teamSize=1;document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x.dataset.team==='1'));}
  await PrimeOnline.init();if(!PrimeOnline.hasSession()){openPrimeAuth();$('search-box').classList.remove('hidden');$('search-title').textContent='Нужен аккаунт SkyRealm';$('search-detail').textContent='Войди или зарегистрируйся, чтобы начать онлайн-матч.';return;}
- try{const onlineStats=await PrimeOnline.stats();profile.elo=Number(onlineStats.stats?.rating??0);profile.matches=Number(onlineStats.stats?.matches)||0;profile.wins=Number(onlineStats.stats?.wins)||0;try{const own=await PrimeOnline.profile(),p=own.profile||{};window.PrimeCurrentDisplayName=String(p.display_name||p.username||'Игрок').slice(0,24);}catch(_){window.PrimeCurrentDisplayName='Игрок';}}catch(e){$('search-box').classList.remove('hidden');$('search-title').textContent='Ошибка профиля';$('search-detail').textContent=e.message;return;}
+ try{const onlineStats=await PrimeOnline.stats();profile.elo=Number(onlineStats.stats?.rating??0);profile.matches=Number(onlineStats.stats?.matches)||0;profile.wins=Number(onlineStats.stats?.wins)||0;try{const own=await PrimeOnline.profile(),p=own.profile||{};window.PrimeCurrentDisplayName=String(p.username||p.display_name||'Игрок').slice(0,24);}catch(_){window.PrimeCurrentDisplayName='Игрок';}}catch(e){$('search-box').classList.remove('hidden');$('search-title').textContent='Ошибка профиля';$('search-detail').textContent=e.message;return;}
  $('find-match').disabled=true;$('search-box').classList.remove('hidden');$('search-title').textContent='Ищем соперника...';$('search-detail').textContent='Подбор игроков 1 × 1 · рейтинг ±250 · нужны два разных аккаунта SkyRealm';onlineQueueActive=true;
  try{await pollPrimeQueue();}catch(e){$('search-title').textContent='Не удалось подключиться';$('search-detail').textContent=e.message;onlineQueueActive=false;$('find-match').disabled=false;}
 }
