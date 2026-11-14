@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - ".github/workflows/prime-launcher-only.yml"
+      - "game/competitive/prime-world.js"
+      - "game/competitive/prime-online.js"
 
 permissions:
   contents: write
@@ -101,9 +103,9 @@ jobs:
           $notes = @"
           Отдельная сборка PrimeLauncher для Windows.
           
-          Содержит страницу регистрации, верхнюю кнопку регистрации и обновлённую логику доступности регистрации при истёкшей сессии.
+          Содержит исправление локального игрока на Android/Windows, корректное отображение HP и базы гостя, сохранение кэша карты между сетевыми пакетами, более частую синхронизацию и сглаженный RTT-пинг.
           
-          PrimeLauncher.exe сразу открывает соревновательный мир. Он собран с отдельной точкой входа и не запускает обычное окно SkyRealm. Обычный SkyRealm.exe, игровой архив SkyRealm и мобильный APK этой публикацией не пересобираются и не обновляются.
+          PrimeLauncher.exe сразу открывает соревновательный мир. Он собран с отдельной точкой входа и не запускает обычное окно SkyRealm. Обычный SkyRealm.exe и игровой архив SkyRealm этой публикацией не пересобираются. Android APK собирается и публикуется в отдельном мобильном репозитории.
           "@
           gh release create $tag "prime_launcher_dist/PrimeLauncher.exe" "prime_launcher_dist/PrimeLauncher-Windows.zip" --title "PrimeLauncher $version (standalone)" --notes $notes --prerelease
           if ($LASTEXITCODE -ne 0) { throw "Could not publish standalone PrimeLauncher release" }
