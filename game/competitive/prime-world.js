@@ -83,7 +83,7 @@ $('prime-profile-save')?.addEventListener('click',async()=>{
 async function syncPrimeCurrentDisplayName(){
  try{
   if(!await PrimeOnline.init())return;
-  const data=await PrimeOnline.profile(),p=data.profile||{},name=p.display_name||p.username||'Игрок';
+  const data=await PrimeOnline.profile(),p=data.profile||{},name=p.username||p.display_name||'Игрок';
   window.PrimeCurrentDisplayName=name;const navName=$('prime-nav-display-name');if(navName)navName.textContent=name;
  }catch(_){}
 }
@@ -328,13 +328,13 @@ async function pollPrimeQueue(){if(!onlineQueueActive)return;const result=await 
 async function cancelOnlineQueue(){onlineQueueActive=false;if(onlineQueueTimer)clearTimeout(onlineQueueTimer);if(searchTimer)clearInterval(searchTimer);try{await PrimeOnline.cancelQueue();}catch(_){}$('search-box').classList.add('hidden');$('find-match').disabled=false;}
 async function startOnlineMatch(data){
  const mode=data.mode==='bots'?'bots':'pvp';let selfName=window.PrimeCurrentDisplayName||'Игрок';
- try{const own=await PrimeOnline.profile(),p=own.profile||{};selfName=p.display_name||p.username||selfName;}catch(_){}
+ try{const own=await PrimeOnline.profile(),p=own.profile||{};selfName=p.username||p.display_name||selfName;}catch(_){}
  window.PrimeCurrentDisplayName=selfName;const navName=$('prime-nav-display-name');if(navName)navName.textContent=selfName;
- const opponentName=data.opponent?.display_name||data.opponent?.username||'Соперник';
+ const opponentName=data.opponent?.username||data.opponent?.display_name||'Соперник';
  createMatch({match_id:data.match_id,role:data.role,mode,seed:data.seed,opponent_id:data.opponent_id,opponent:data.opponent});
  match.playerDisplayName=selfName;match.online.opponentId=data.opponent_id;match.online.selfId=PrimeOnline.userId();match.online.role=data.role;match.online.selfName=selfName;match.online.opponentName=opponentName;
  if(mode==='bots'){const teammate=match.allies.find(a=>a.isRemotePlayer)||match.allies[0];if(teammate){teammate.isRemotePlayer=true;teammate.name=data.role==='guest'?selfName:opponentName;if(data.role==='guest')match.localEntity=teammate;}}
- else{const rival=match.bots[0];if(rival){rival.isRemotePlayer=true;rival.name=data.role==='guest'?selfName:opponentName;rival.profile={...rival.profile,name:rival.name};if(data.role==='guest')match.localEntity=rival;}}
+ else{const rival=match.bots[0];if(rival){rival.isRemotePlayer=true;rival.name=data.role==='guest'?selfName:opponentName;rival.profile={...rival.profile,name:rival.name,elo:1000,coins:0,towerLevel:1};if(data.role==='guest')match.localEntity=rival;}}
  PrimeOnline.startTransport({match_id:data.match_id,role:data.role});updateHud();drawArena();
 }
 window.PrimeGameSnapshot=()=>{if(!match||match.online?.role!=='host')return null;try{const copy={...match,terrainCanvas:null,buildPreview:null,dragging:null,online:undefined,localEntity:undefined};return JSON.parse(JSON.stringify(copy));}catch(e){console.error('Prime snapshot',e);return null;}};
