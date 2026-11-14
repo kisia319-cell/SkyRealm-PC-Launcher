@@ -24,7 +24,10 @@ Deno.serve(async(req:Request)=>{
   if(route==="/health")return reply({status:"ok",service:"skyrealm-prime",version:"1.0.0",mode:"1v1"});
   const user=await auth(req);
   if(route==="/api/prime/queue"&&req.method==="POST"){
-   const p=await readBody(req,3000),rating=Math.max(0,Math.min(100000,Math.round(Number(p.rating)||1000)));
+   await readBody(req,3000);
+   await db("prime_player_stats?user_id=eq."+user.id,{method:"POST",body:JSON.stringify({user_id:user.id}),headers:{Prefer:"resolution=merge-duplicates,return=representation"}});
+   const currentStats=await db("prime_player_stats?select=rating&user_id=eq."+user.id+"&limit=1");
+   const rating=Math.max(0,Math.min(100000,Math.round(Number(currentStats?.[0]?.rating)||0)));
    const result=await db("rpc/prime_join_queue",{method:"POST",body:JSON.stringify({p_user_id:user.id,p_rating:rating})});
    if(result?.status==="matched"){
     const rows=await db("prime_matches?select=id,user_a,user_b,seed,status&id=eq."+result.match_id+"&limit=1"),m=rows?.[0];
@@ -50,7 +53,7 @@ Deno.serve(async(req:Request)=>{
    await db("profiles?id=eq."+user.id,{method:"PATCH",body:JSON.stringify({last_seen_at:now.toISOString(),presence_status:"online",playtime_seconds:(Number(p?.playtime_seconds)||0)+elapsed})});
    const matches=await db("prime_matches?select=status,winner_id,result,finished_at,created_at&or=(user_a.eq."+user.id+",user_b.eq."+user.id+")&order=finished_at.desc.nullslast&limit=1");
    const stats=await db("prime_player_stats?select=rating,matches,wins,losses&user_id=eq."+user.id+"&limit=1");
-   return reply({profile:{...p,playtime_seconds:(Number(p?.playtime_seconds)||0)+elapsed},last_match:matches?.[0]||null,stats:stats?.[0]||{rating:1000,matches:0,wins:0,losses:0}});
+   return reply({profile:{...p,playtime_seconds:(Number(p?.playtime_seconds)||0)+elapsed},last_match:matches?.[0]||null,stats:stats?.[0]||{rating:0,matches:0,wins:0,losses:0}});
   }
   if(route==="/api/prime/profile"&&req.method==="PATCH"){
    const p=await readBody(req,5000),patch:any={};
@@ -65,14 +68,14 @@ Deno.serve(async(req:Request)=>{
   if(route==="/api/prime/stats"&&req.method==="GET"){
    await db("prime_player_stats?user_id=eq."+user.id,{method:"POST",body:JSON.stringify({user_id:user.id}),headers:{Prefer:"resolution=merge-duplicates,return=representation"}});
    const rows=await db("prime_player_stats?select=user_id,rating,matches,wins,losses&user_id=eq."+user.id+"&limit=1");
-   return reply({stats:rows?.[0]||{user_id:user.id,rating:1000,matches:0,wins:0,losses:0}});
+   return reply({stats:rows?.[0]||{user_id:user.id,rating:0,matches:0,wins:0,losses:0}});
   }
   if(route==="/api/prime/leaderboard"&&req.method==="GET"){
    const people=await db("profiles?select=id,username,display_name,avatar_key,avatar_url,player_class,playtime_seconds,presence_status,last_seen_at&order=created_at.asc&limit=500");
    const ids=(people||[]).map((x:any)=>x.id);
    const stats=ids.length?await db("prime_player_stats?select=user_id,rating,matches,wins,losses&user_id=in.("+ids.join(",")+")&order=rating.desc,matches.desc&limit=500"):[];
    const byId=new Map((stats||[]).map((x:any)=>[x.user_id,x]));
-   return reply({players:(people||[]).map((p:any)=>{const x=byId.get(p.id)||{};return {user_id:p.id,username:p.display_name||p.username||"Игрок",rating:x.rating??1000,matches:x.matches??0,wins:x.wins??0,losses:x.losses??0,avatar_url:p.avatar_url||"",avatar_key:p.avatar_key||"default",player_class:p.player_class||"Воин",playtime_seconds:p.playtime_seconds||0,presence_status:p.last_seen_at&&Date.now()-Date.parse(p.last_seen_at)<120000?"online":"offline"};}).sort((a:any,b:any)=>b.rating-a.rating||b.matches-a.matches).slice(0,50)});
+   return reply({players:(people||[]).map((p:any)=>{const x=byId.get(p.id)||{};return {user_id:p.id,username:p.display_name||p.username||"Игрок",rating:x.rating??0,matches:x.matches??0,wins:x.wins??0,losses:x.losses??0,avatar_url:p.avatar_url||"",avatar_key:p.avatar_key||"default",player_class:p.player_class||"Воин",playtime_seconds:p.playtime_seconds||0,presence_status:p.last_seen_at&&Date.now()-Date.parse(p.last_seen_at)<120000?"online":"offline"};}).sort((a:any,b:any)=>b.rating-a.rating||b.matches-a.matches).slice(0,50)});
   }
   if(route==="/api/prime/match"&&req.method==="GET"){
    const m=await memberMatch(url.searchParams.get("match_id")||"",user.id);
