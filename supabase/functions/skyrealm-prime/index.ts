@@ -82,6 +82,15 @@ Deno.serve(async(req:Request)=>{
    const people=await db("profiles?select=id,username,display_name&id=eq."+opponentId+"&limit=1");
    return reply({id:m.id,status:m.status,seed:m.seed,role,opponent:people?.[0]||{username:"Игрок"},host_state:m.host_state,host_seq:m.host_seq,guest_input:role==="host"?m.guest_input:undefined,guest_seq:role==="host"?m.guest_seq:undefined,winner_id:m.winner_id,result:m.result,updated_at:m.updated_at});
   }
+  if(route==="/api/prime/exchange"&&req.method==="POST"){
+   const p=await readBody(req,8000),m=await memberMatch(String(p.match_id||""),user.id);
+   if(m.user_b!==user.id)throw new ApiError(403,"GUEST_ONLY","Обмен состояния доступен только второму участнику матча.");
+   if(m.status!=="active")return reply({status:m.status,winner_id:m.winner_id,result:m.result,host_seq:m.host_seq});
+   const disconnected=await resolveDisconnect(m,user.id);if(disconnected)return reply({status:disconnected.status,winner_id:disconnected.winner_id,result:disconnected.result,reason:disconnected.reason,host_seq:m.host_seq});
+   const input=safeInput(p.input),seq=Math.max(Number(m.guest_seq)+1,Math.round(Number(p.seq)||0));
+   await db("prime_matches?id=eq."+m.id,{method:"PATCH",body:JSON.stringify({guest_input:input,guest_seq:seq,guest_seen_at:new Date().toISOString(),updated_at:new Date().toISOString()})});
+   return reply({ok:true,status:m.status,host_state:m.host_state,host_seq:m.host_seq,guest_seq:seq,winner_id:m.winner_id,result:m.result,updated_at:m.updated_at});
+  }
   if(route==="/api/prime/state"&&req.method==="POST"){
    const p=await readBody(req),m=await memberMatch(String(p.match_id||""),user.id);
    if(m.user_a!==user.id)throw new ApiError(403,"HOST_ONLY","Только ведущий матча отправляет состояние боя.");
