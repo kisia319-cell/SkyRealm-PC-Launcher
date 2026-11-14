@@ -1,3 +1,4 @@
+// Prime online transport: global Realtime WebSocket with safe HTTP polling fallback.
 (()=>{"use strict";
 const URL="https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-prime";
 const SUPABASE_URL="https://jaaguprbfrzrcwuusher.supabase.co";
