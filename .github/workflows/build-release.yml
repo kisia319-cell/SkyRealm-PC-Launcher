@@ -10,6 +10,8 @@ on:
       - "manifest.json"
       - "preview-manifest.json"
       - ".github/workflows/coop-tests.yml"
+      - ".github/workflows/build-release.yml"
+      - ".github/workflows/prime-launcher-only.yml"
   workflow_dispatch:
 
 permissions:
