@@ -1152,16 +1152,17 @@ function buildPlacementAtWorld(rawX,rawY,team=0,owner=null){
 function commitBuildPlacement(kind,placement,team=placement?.team??0,owner=placement?.owner??null){
  const m=match;if(!m||!placement?.valid)return false;team=team===1?1:0;const px=placement.x,py=placement.y,builder=team===1?(owner||placement.owner||m.bots.find(b=>b.isRemotePlayer)?.profile||m.bots[0]?.profile):null;
  if(team===0)m.playerCoins=Math.max(0,m.playerCoins-placement.cost);else if(builder)builder.coins=Math.max(0,builder.coins-placement.cost);else return false;
- if(kind==='wall')m.walls.push({x:px,y:py,team,owner:builder,level:1,hp:260,maxHp:260,rotation:placement.rotation||0});
- if(kind==='tower'){const count=m.towers.filter(t=>t.team===0&&!t.isPlayer).length+1;const built=createTower(px,py,builder||profile,false);built.isPlayer=false;built.team=team;built.owner=builder;built.kind='archer';built.displayName='Башня лучника №'+count;built.rotation=placement.rotation||0;m.towers.push(built);}
- if(kind==='barracks')m.barracks.push({x:px,y:py,team,owner:builder,level:1,hp:500,maxHp:500,timer:0,rotation:placement.rotation||0});
- if(kind==='forge')m.supportBuildings.push({x:px,y:py,team,owner:builder,kind:'forge',level:1,hp:680,maxHp:680,bonus:.18,rotation:placement.rotation||0});
- if(kind==='infirmary')m.supportBuildings.push({x:px,y:py,team,owner:builder,kind:'infirmary',level:1,hp:620,maxHp:620,healRate:10,rotation:placement.rotation||0});
- if(kind==='archery')m.supportBuildings.push({x:px,y:py,team,owner:builder,kind:'archery',level:1,hp:650,maxHp:650,trainTimer:0,trainInterval:26,rotation:placement.rotation||0});
- if(kind==='stable')m.supportBuildings.push({x:px,y:py,team,owner:builder,kind:'stable',level:1,hp:760,maxHp:760,trainTimer:0,trainInterval:34,unitCapacity:2,rotation:placement.rotation||0});
- if(kind==='siege')m.supportBuildings.push({x:px,y:py,team,owner:builder,kind:'siege',level:1,hp:880,maxHp:880,trainTimer:0,trainInterval:54,unitCapacity:1,rotation:placement.rotation||0});
- if(kind==='mage')m.supportBuildings.push({x:px,y:py,team,owner:builder,kind:'mage',level:1,hp:820,maxHp:820,fire:0,damage:36,range:250,fireInterval:1.7,rotation:placement.rotation||0});
- if(kind==='market')m.supportBuildings.push({x:px,y:py,team,owner:builder,kind:'market',level:1,hp:600,maxHp:600,incomeRate:3,rotation:placement.rotation||0});
+ const structureOwner=team===0?profile:builder;
+ if(kind==='wall')m.walls.push({x:px,y:py,team,owner:structureOwner,level:1,hp:260,maxHp:260,rotation:placement.rotation||0});
+ if(kind==='tower'){const count=m.towers.filter(t=>t.team===team&&!t.isPlayer).length+1;const built=team===0?createTower(px,py,profile,true):createTower(px,py,builder,false);built.isPlayer=false;built.team=team;built.owner=structureOwner;built.kind='archer';built.displayName=(team===0?'Башня лучника №':'Вражеская башня №')+count;built.rotation=placement.rotation||0;m.towers.push(built);}
+ if(kind==='barracks')m.barracks.push({x:px,y:py,team,owner:structureOwner,level:1,hp:500,maxHp:500,timer:0,rotation:placement.rotation||0});
+ if(kind==='forge')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'forge',level:1,hp:680,maxHp:680,bonus:.18,rotation:placement.rotation||0});
+ if(kind==='infirmary')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'infirmary',level:1,hp:620,maxHp:620,healRate:10,rotation:placement.rotation||0});
+ if(kind==='archery')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'archery',level:1,hp:650,maxHp:650,trainTimer:0,trainInterval:26,rotation:placement.rotation||0});
+ if(kind==='stable')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'stable',level:1,hp:760,maxHp:760,trainTimer:0,trainInterval:34,unitCapacity:2,rotation:placement.rotation||0});
+ if(kind==='siege')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'siege',level:1,hp:880,maxHp:880,trainTimer:0,trainInterval:54,unitCapacity:1,rotation:placement.rotation||0});
+ if(kind==='mage')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'mage',level:1,hp:820,maxHp:820,fire:0,damage:36,range:250,fireInterval:1.7,rotation:placement.rotation||0});
+ if(kind==='market')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'market',level:1,hp:600,maxHp:600,incomeRate:3,rotation:placement.rotation||0});
  addCombatFeed((kind==='wall'?'Стена':kind==='tower'?'Башня лучника':kind==='barracks'?'Казарма':'Постройка')+' построена');
  save();renderTowerList();updateHud();return true;
 }
