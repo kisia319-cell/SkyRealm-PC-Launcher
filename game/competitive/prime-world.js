@@ -372,8 +372,21 @@ async function renderPrimeFriends(){
    const person=rel.player||{},row=socialNode("div","social-row");
    const label=socialNode("div","",((person.display_name||person.username||"Игрок")+" · "+(rel.status==="accepted"?(person.in_game?"В игре":person.presence_status==="online"&&person.last_seen_at&&Date.now()-Date.parse(person.last_seen_at)<120000?"В сети":"Не в сети"):(rel.direction==="incoming"?"Входящая заявка":"Заявка отправлена"))));
    row.append(label);const actions=socialNode("div","social-actions");
-   if(rel.status==="accepted"&&primeCurrentLobby&&primeCurrentLobby.role==="owner"){
-    actions.append(socialAction("Пригласить",async()=>{try{await PrimeOnline.inviteLobbyFriend(primeCurrentLobby.id,person.id);socialMessage("Приглашение отправлено: "+(person.display_name||person.username));await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
+   if(rel.status==="accepted"){
+    actions.append(socialAction("Пригласить",async()=>{
+     try{
+      if(!primeCurrentLobby){
+       const mode=$("prime-lobby-mode")?.value==="bots"?"bots":"pvp";
+       const created=await PrimeOnline.createLobby(mode);
+       primeCurrentLobby=created.lobby||null;
+      }
+      if(!primeCurrentLobby?.id)throw new Error("Не удалось создать лобби. Нажми «Создать лобби» и попробуй ещё раз.");
+      if(primeCurrentLobby.role!=="owner")throw new Error("Ты уже находишься в чужом лобби. Сначала выйди из него.");
+      await PrimeOnline.inviteLobbyFriend(primeCurrentLobby.id,person.id);
+      socialMessage("Приглашение отправлено: "+(person.display_name||person.username));
+      await renderPrimeFriends();
+     }catch(e){socialMessage(e.message,true);}
+    },true));
    }
    if(rel.status==="pending"&&rel.direction==="incoming"){
     actions.append(socialAction("Принять",async()=>{try{await PrimeOnline.respondFriend(rel.id,"accept");await renderPrimeFriends();socialMessage("Теперь вы друзья.");}catch(e){socialMessage(e.message,true);}},true));
@@ -424,7 +437,7 @@ async function searchPrimeFriends(){
 $("prime-friend-find")?.addEventListener("click",searchPrimeFriends);
 $("prime-friend-search")?.addEventListener("keydown",e=>{if(e.key==="Enter")searchPrimeFriends();});
 $("prime-friends-refresh")?.addEventListener("click",renderPrimeFriends);
-$("prime-lobby-create")?.addEventListener("click",async()=>{try{const mode=$("prime-lobby-mode")?.value==="bots"?"bots":"pvp";await PrimeOnline.createLobby(mode);socialMessage(mode==="bots"?"Кооперативное лобби создано. Пригласи напарника.":"Лобби создано. Пригласи друга.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}});
+$("prime-lobby-create")?.addEventListener("click",async()=>{try{const mode=$("prime-lobby-mode")?.value==="bots"?"bots":"pvp";const created=await PrimeOnline.createLobby(mode);primeCurrentLobby=created.lobby||null;socialMessage(mode==="bots"?"Кооперативное лобби создано. Пригласи напарника.":"Лобби создано. Пригласи друга.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}});
 $("prime-play-bots")?.addEventListener("click",()=>{matchKind="training";document.querySelectorAll("[data-kind]").forEach(b=>b.classList.toggle("selected",b.dataset.kind==="training"));show("menu");beginSearch();});
 $("prime-social-back")?.addEventListener("click",()=>show("menu"));
 
