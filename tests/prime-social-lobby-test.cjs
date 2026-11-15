@@ -7,5 +7,9 @@ for(const route of ["/api/prime/lobby","/api/prime/lobby/invite","/api/prime/lob
 for(const route of ["/api/social/friends","/api/social/search","/api/social/request","/api/social/respond"])assert.ok(world.includes(route)||online.includes(route),"Missing social route integration: "+route);
 assert.ok(api.includes("NOT_FRIENDS")&&api.includes("OWNER_ONLY")&&api.includes("NEED_TWO_PLAYERS"),"Lobby authorization or readiness checks are missing");
 assert.ok(migration.includes("enable row level security")&&migration.includes("revoke all")&&migration.includes("to service_role"),"Lobby tables must be service-role-only with RLS enabled");
-assert.ok(html.includes("Играть против ботов")&&world.includes("НАЧАТЬ ДУЭЛЬ 1 × 1"),"Both bot practice and friend duel launch paths must exist");
+assert.ok(html.includes("Играть против ботов")&&html.includes('id="prime-team-size"')&&html.includes('data-team="3"'),"Bot practice and 1v1/2v2/3v3 private team formats must be available");
+assert.ok(online.includes('createLobby:(mode,teamSize=1)')&&api.includes('team_size:teamSize')&&api.includes('team_size:room.team_size||1'),"Private lobbies must store and return the selected team size");
+assert.ok(world.includes("teamSize=mode==='bots'?2:Math.max(1,Math.min(3,Number(data.team_size)||1))"),"Both clients must start a lobby match with the selected team size");
+assert.ok(world.includes("match.online.mode==='pvp'&&match.team>1")&&world.includes("if(bot.isRemotePlayer&&m.online?.mode==='pvp')continue;"),"2v2/3v3 matches must run AI teammates without overwriting the remote human fighter");
+assert.ok(html.includes('display:inline-flex!important'),"Mobile/desktop media rules must keep 2v2 and 3v3 team options visible");
 console.log("Prime social/lobby integration: all assertions passed");
