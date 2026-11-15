@@ -1,7 +1,7 @@
 const SUPABASE_URL=(Deno.env.get("SUPABASE_URL")??"").replace(/\/+$/,"");
 const ANON_KEY=Deno.env.get("SUPABASE_ANON_KEY")??"";
 const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??"";
-const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, apikey, x-client-info, content-type","Access-Control-Allow-Methods":"GET, POST, OPTIONS","Cache-Control":"no-store","Content-Type":"application/json; charset=utf-8"};
+const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, apikey, x-client-info, content-type, x-region","Access-Control-Expose-Headers":"x-sb-edge-region","Access-Control-Allow-Methods":"GET, POST, OPTIONS","Access-Control-Max-Age":"3600","Cache-Control":"no-store","Content-Type":"application/json; charset=utf-8"};
 class ApiError extends Error{status:number;code:string;constructor(status:number,code:string,message:string){super(message);this.status=status;this.code=code;}}
 function reply(data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:CORS});}
 async function readBody(req:Request,max=100_000){const raw=await req.text();if(raw.length>max)throw new ApiError(413,"BODY_TOO_LARGE","Слишком большой сетевой пакет.");try{const x=raw?JSON.parse(raw):{};if(!x||typeof x!=="object"||Array.isArray(x))throw 0;return x as Record<string,any>;}catch{throw new ApiError(400,"INVALID_JSON","Некорректный запрос.");}}
@@ -9,10 +9,20 @@ const AUTH_CACHE=new Map<string,{id:string,expires:number}>();
 async function auth(req:Request){const token=(req.headers.get("Authorization")??"").replace(/^Bearer\s+/i,"").trim();if(!token)throw new ApiError(401,"NO_SESSION","Войди в аккаунт SkyRealm.");const cached=AUTH_CACHE.get(token);if(cached&&cached.expires>Date.now())return {id:cached.id,token};if(cached)AUTH_CACHE.delete(token);const r=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:ANON_KEY,Authorization:"Bearer "+token}});if(!r.ok)throw new ApiError(401,"INVALID_SESSION","Сессия устарела. Войди снова.");const u=await r.json();if(!u?.id||(!u.email_confirmed_at&&!u.confirmed_at))throw new ApiError(403,"EMAIL_NOT_VERIFIED","Подтверди почту в аккаунте SkyRealm.");const id=String(u.id);AUTH_CACHE.set(token,{id,expires:Date.now()+5000});if(AUTH_CACHE.size>256)AUTH_CACHE.delete(AUTH_CACHE.keys().next().value!);return {id,token};}
 async function db(path:string,init:RequestInit={}){const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{...init,headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"Content-Type":"application/json",Prefer:"return=representation",...(init.headers||{})}});const raw=await r.text();let data:any=null;try{data=raw?JSON.parse(raw):null;}catch{data=raw;}if(!r.ok){console.error("[Prime online DB]",r.status,data);throw new ApiError(500,"DATABASE_ERROR","Ошибка базы сетевого матча.");}return data;}
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const RECONNECT_GRACE_MS=120_000;
 async function memberMatch(matchId:string,userId:string){if(!UUID.test(matchId))throw new ApiError(400,"INVALID_MATCH","Некорректный номер матча.");const rows=await db("prime_matches?select=id,user_a,user_b,status,seed,host_state,host_seq,guest_input,guest_seq,winner_id,result,created_at,started_at,updated_at,finished_at,host_seen_at,guest_seen_at&id=eq."+matchId+"&limit=1");const m=rows?.[0];if(!m)throw new ApiError(404,"MATCH_NOT_FOUND","Матч не найден.");if(m.user_a!==userId&&m.user_b!==userId)throw new ApiError(403,"NOT_MATCH_MEMBER","Ты не участник этого матча.");return m;}
+async function finishCoopBotMatch(m:any,outcome:string,abandoned=false){
+ const rooms=await db("prime_lobbies?select=id,mode&match_id=eq."+m.id+"&limit=1"),lobby=rooms?.[0];
+ if(lobby?.mode!=="bots")return null;
+ const now=new Date().toISOString(),result={mode:"bots",outcome:abandoned?"abandoned":outcome};
+ await db("prime_matches?id=eq."+m.id,{method:"PATCH",body:JSON.stringify({status:abandoned?"abandoned":"completed",winner_id:null,result,finished_at:now,updated_at:now})});
+ await db("prime_lobbies?id=eq."+lobby.id,{method:"PATCH",body:JSON.stringify({status:"closed",updated_at:now})});
+ return {status:abandoned?"abandoned":"completed",winner_id:null,result};
+}
 async function resolveDisconnect(m:any,connectedUser:string){
  const otherSeen=m.user_a===connectedUser?m.guest_seen_at:m.host_seen_at;
- if(m.status!=="active"||!otherSeen||Date.now()-Date.parse(otherSeen)<45_000)return null;
+ if(m.status!=="active"||!otherSeen||Date.now()-Date.parse(otherSeen)<RECONNECT_GRACE_MS)return null;
+ const coop=await finishCoopBotMatch(m,"abandoned",true);if(coop)return {...coop,reason:"opponent_disconnected"};
  const result=await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:m.user_a,p_winner:connectedUser,p_reason:"abandoned"})});
  return {status:"abandoned",winner_id:connectedUser,result,reason:"opponent_disconnected"};
 }
@@ -22,7 +32,7 @@ Deno.serve(async(req:Request)=>{
  if(!SUPABASE_URL||!ANON_KEY||!SERVICE_KEY)return reply({code:"SERVER_CONFIG",message:"Prime online service не настроен."},500);
  try{
   const url=new URL(req.url),route=url.searchParams.get("route")||"/health";
-  if(route==="/health")return reply({status:"ok",service:"skyrealm-prime",version:"1.0.0",mode:"1v1"});
+  if(route==="/health")return reply({status:"ok",service:"skyrealm-prime",version:"1.0.0",mode:"pvp+co-op-bots"});
   const user=await auth(req);
   if(route==="/api/prime/queue"&&req.method==="POST"){
    await readBody(req,3000);
@@ -116,6 +126,7 @@ Deno.serve(async(req:Request)=>{
   }
   if(route==="/api/prime/leave"&&req.method==="POST"){
    const p=await readBody(req,3000),m=await memberMatch(String(p.match_id||""),user.id);
+   const coop=await finishCoopBotMatch(m,"abandoned",true);if(coop)return reply({ok:true,...coop});
    const winner=m.user_a===user.id?m.user_b:m.user_a;
    const result=await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:m.user_a,p_winner:winner,p_reason:"abandoned"})});
    return reply({ok:true,...result});
@@ -123,6 +134,7 @@ Deno.serve(async(req:Request)=>{
   if(route==="/api/prime/finish"&&req.method==="POST"){
    const p=await readBody(req,3000),m=await memberMatch(String(p.match_id||""),user.id);
    if(m.user_a!==user.id)throw new ApiError(403,"HOST_ONLY","Результат подтверждает ведущий матча.");
+   const coop=await finishCoopBotMatch(m,p.outcome==="win"?"win":"loss",p.reason==="abandoned");if(coop)return reply({ok:true,...coop});
    const winner=p.winner_id===m.user_a||p.winner_id===m.user_b?p.winner_id:null;
    const result=await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:user.id,p_winner:winner,p_reason:p.reason==="abandoned"?"abandoned":"completed"})});
    return reply({ok:true,...result});
@@ -156,9 +168,10 @@ Deno.serve(async(req:Request)=>{
    return reply({lobby,invites:(invites||[]).map((x:any)=>({...x,inviter:inviterMap.get(x.inviter_id)||{username:"Игрок"}}))});
   }
   if(route==="/api/prime/lobby"&&req.method==="POST"){
+   const p=await readBody(req,1000),mode=p.mode==="bots"?"bots":"pvp";
    const existing=await db("prime_lobby_members?select=lobby_id&user_id=eq."+user.id+"&limit=1");
    if(existing?.length)throw new ApiError(409,"ALREADY_IN_LOBBY","Сначала выйди из текущего лобби.");
-   const created=await db("prime_lobbies",{method:"POST",body:JSON.stringify({owner_id:user.id,status:"lobby",mode:"pvp"})});
+   const created=await db("prime_lobbies",{method:"POST",body:JSON.stringify({owner_id:user.id,status:"lobby",mode})});
    const room=created?.[0];if(!room)throw new ApiError(500,"LOBBY_CREATE_FAILED","Не удалось создать лобби.");
    await db("prime_lobby_members",{method:"POST",body:JSON.stringify({lobby_id:room.id,user_id:user.id,role:"owner"})});
    return reply({lobby:{...room,role:"owner",members:[{user_id:user.id,role:"owner"}]}},201);
@@ -216,7 +229,7 @@ Deno.serve(async(req:Request)=>{
    const match=made?.[0];if(!match)throw new ApiError(500,"MATCH_CREATE_FAILED","Не удалось создать матч.");
    await db("prime_lobbies?id=eq."+lobbyId,{method:"PATCH",body:JSON.stringify({status:"running",match_id:match.id,updated_at:new Date().toISOString()})});
    const people=await db("profiles?select=id,username,display_name&id=eq."+opponent.user_id+"&limit=1");
-   return reply({status:"matched",match_id:match.id,role:"host",seed,opponent_id:opponent.user_id,opponent:people?.[0]||{username:"Друг"},lobby_id:lobbyId});
+   return reply({status:"matched",match_id:match.id,role:"host",seed,mode:room.mode||"pvp",opponent_id:opponent.user_id,opponent:people?.[0]||{username:"Друг"},lobby_id:lobbyId});
   }
   if(route==="/api/prime/lobby/leave"&&req.method==="POST"){
    const p=await readBody(req,2000),lobbyId=String(p.lobby_id||"");
