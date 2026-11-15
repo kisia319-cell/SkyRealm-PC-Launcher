@@ -28,7 +28,7 @@ try{const b=JSON.parse(localStorage.getItem(BOT_SAVE)||'null');if(Array.isArray(
 try{const w=JSON.parse(localStorage.getItem(WORLD_SAVE)||'null');if(w&&Number.isFinite(w.seed))worldMeta={...worldMeta,...w};}catch(_){}
 profile.history=Array.isArray(profile.history)?profile.history:[];
 let teamSize=1,matchKind='training',scene='home',match=null,raf=0,lastFrame=0,pressed=new Set(),attackCooldown=0,searchTimer=0,fpsFrames=0,fpsElapsed=0,currentFps=0,buildMode=null,buildRotation=0;
-const pages=['home','rank','history','profile','registration','settings','menu','battle'];
+const pages=['home','rank','history','profile','friends','registration','settings','menu','battle'];
 function save(){localStorage.setItem(SAVE,JSON.stringify({elo:profile.elo,botElo:profile.botElo||0,matches:profile.matches,wins:profile.wins,history:profile.history}));localStorage.setItem(BOT_SAVE,JSON.stringify(botsProfile));updateProfile();}
 function updateProfile(){
  const coins=match?Math.floor(match.playerCoins):0;
@@ -360,7 +360,7 @@ async function renderPrimeFriends(){
  if(primeSocialBusy)return;primeSocialBusy=true;
  try{
   await PrimeOnline.init();if(!PrimeOnline.hasSession()){openPrimeAuth();socialMessage("Войди в аккаунт, чтобы пользоваться друзьями и лобби.",true);return;}
-  const [friendsData,lobbyData]=await Promise.all([PrimeOnline.friends(),PrimeOnline.lobby(),PrimeOnline.profile()]);
+  const [friendsData,lobbyData]=await Promise.all([PrimeOnline.friends(),PrimeOnline.lobby()]);
   const list=$("prime-friend-list"),invites=$("prime-lobby-invites"),panel=$("prime-lobby-panel");
   if(!list||!invites||!panel)return;
   list.replaceChildren();invites.replaceChildren();panel.replaceChildren();primeCurrentLobby=lobbyData.lobby||null;
