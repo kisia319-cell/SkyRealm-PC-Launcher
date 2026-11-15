@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('game/competitive/prime-online.js','utf8');
 const worldSource=fs.readFileSync('game/competitive/prime-world.js','utf8');
+const primeApi=fs.readFileSync('supabase/functions/skyrealm-prime/index.ts','utf8');
 const userId='11111111-1111-4111-8111-111111111111';
 const payload=Buffer.from(JSON.stringify({sub:userId})).toString('base64url');
 const jwt='header.'+payload+'.signature',calls=[],intervals=[];
