@@ -55,7 +55,7 @@ const botProfile={name:'TestBot',coins:2200,towerLevel:1,elo:100};
 const aiContext={
  Math:Object.assign(Object.create(Math),{random:()=>0.2}),
  TILE:32,SIZE:100,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),
- upgradeCost:level=>500*level,renderTowerList:()=>{},updateHud:()=>{},
+ upgradeCost:level=>500*level,renderTowerList:()=>{},updateHud:()=>{},buildEnemySupportStructure:()=>false,
  createTower:(x,y,owner)=>({x,y,owner,team:1,level:owner.towerLevel,hp:1000,maxHp:1000,range:222,damage:11,fire:0,isTower:true}),
  spawnUnit:(team,x,y)=>{const unit={team,x,y,hp:100,alive:true};aiContext.match.units.push(unit);return unit;},
  match:{
