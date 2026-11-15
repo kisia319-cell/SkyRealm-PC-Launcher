@@ -39,6 +39,8 @@ jobs:
       - name: Validate PrimeLauncher sources
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           $required = @(
             "launcher.py",
             "prime_launcher.py",
