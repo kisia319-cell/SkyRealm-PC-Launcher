@@ -118,7 +118,7 @@ console.log('PC online build/balance/co-op respawn regression assertions passed'
 assert.ok(!primeApi.includes('if(m.user_a!==user.id)throw new ApiError(403,"HOST_ONLY"'), 'A guest must be allowed to confirm the reported result');
 assert.ok(primeApi.includes('p_actor:user.id,p_winner:winner'), 'Each ranked report must be attributed to the currently authenticated participant');
 assert.ok(primeApi.includes('const disconnectedUser=m.user_a===connectedUser?m.user_b:m.user_a'), 'Reconnect expiry must attribute a forfeit to the participant who actually timed out');
-assert.ok(primeWorldSource.includes("state.status==='awaiting_confirmation'")&&primeWorldSource.includes("PrimeOnline.finish(online.match_id,winner,'completed')"), 'The second participant must confirm a proposed result before ELO changes');
+assert.ok(primeWorldSource.includes("state.status==='awaiting_confirmation'")&&primeWorldSource.includes("PrimeOnline.finish(pending.matchId,reportedWinner,'completed')"), 'The second participant must confirm a proposed result before ELO changes');
 assert.ok(primeWorldSource.includes("online.role==='guest'")&&primeWorldSource.includes("result-confirm-controls")&&primeWorldSource.includes("submitRankedResultConfirmation(true)")&&primeWorldSource.includes("submitRankedResultConfirmation(false)"),'PC guest must explicitly confirm or dispute the result');
 assert.ok(primeWorldSource.includes("pendingRankedResult={matchId:online.match_id"),'PC must preserve the proposed result until the guest responds');
 assert.ok(primeWorldSource.includes("result.status==='disputed'")&&primeWorldSource.includes('ELO не изменён'), 'Disputed results must not be presented as rated wins');
