@@ -71,7 +71,7 @@ jobs:
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/prime_launcher_version.txt;." prime_launcher.py
 
       - name: Build standalone PrimeLauncher portable folder
-        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_portable_dist --workpath build_prime_launcher_portable/work --specpath build_prime_launcher_portable --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/prime_launcher_version.txt;."
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_portable_dist --workpath build_prime_launcher_portable/work --specpath build_prime_launcher_portable --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/prime_launcher_version.txt;." prime_launcher.py
 
       - name: Verify standalone package
         shell: pwsh
