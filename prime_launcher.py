@@ -103,7 +103,175 @@ def _prime_update_prompt(version: str, current: str) -> bool:
     return answer["yes"]
 
 
-def _prime_schedule_self_update(archive_path: Path) -> None:
+def _prime_schedule_self_update(archive_path: Path, version: str) -> None:
+    """Launch a detached updater with an explicit PowerShell -File parameter."""
+    executable = Path(sys.executable).resolve()
+    update_root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "PrimeLauncher" / "updates"
+    update_root.mkdir(parents=True, exist_ok=True)
+    config_path = update_root / f"pending-update-{os.getpid()}.json"
+    script_path = update_root / "apply-prime-update.ps1"
+    config_path.write_text(json.dumps({
+        "archive": str(archive_path.resolve()),
+        "exe": str(executable),
+        "directory": str(executable.parent),
+        "pid": os.getpid(),
+        "version": version,
+    }, ensure_ascii=False), encoding="utf-8")
+
+    ps = r"""
+param([Parameter(Mandatory=$true)][string]$ConfigPath)
+$ErrorActionPreference = 'Stop'
+$stage = $null
+$backup = $null
+$cfg = $null
+$form = $null
+$label = $null
+$bar = $null
+$logPath = $null
+function Write-UpdateLog([string]$Message) {
+    if ($script:logPath) {
+        try { Add-Content -LiteralPath $script:logPath -Value ((Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + ' | ' + $Message) -Encoding UTF8 } catch {}
+    }
+}
+function Set-UpdateProgress([string]$Message, [int]$Value = -1) {
+    if ($script:label) { $script:label.Text = $Message }
+    if ($script:bar) {
+        if ($Value -lt 0) {
+            $script:bar.Style = [System.Windows.Forms.ProgressBarStyle]::Marquee
+            $script:bar.MarqueeAnimationSpeed = 24
+        } else {
+            $script:bar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+            $script:bar.MarqueeAnimationSpeed = 0
+            $script:bar.Value = [Math]::Max(0, [Math]::Min(100, $Value))
+        }
+    }
+    if ($script:form) { [System.Windows.Forms.Application]::DoEvents() }
+}
+try {
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    [System.Windows.Forms.Application]::EnableVisualStyles()
+    $script:form = New-Object System.Windows.Forms.Form
+    $script:form.Text = 'Обновление PrimeLauncher'
+    $script:form.Size = New-Object System.Drawing.Size(500, 175)
+    $script:form.StartPosition = 'CenterScreen'
+    $script:form.FormBorderStyle = 'FixedDialog'
+    $script:form.MaximizeBox = $false
+    $script:form.MinimizeBox = $false
+    $script:form.TopMost = $true
+    $script:form.ShowInTaskbar = $true
+    $script:label = New-Object System.Windows.Forms.Label
+    $script:label.Location = New-Object System.Drawing.Point(22, 24)
+    $script:label.Size = New-Object System.Drawing.Size(440, 36)
+    $script:label.Font = New-Object System.Drawing.Font('Segoe UI', 10)
+    $script:label.Text = 'Подготовка установки обновления...'
+    $script:form.Controls.Add($script:label)
+    $script:bar = New-Object System.Windows.Forms.ProgressBar
+    $script:bar.Location = New-Object System.Drawing.Point(22, 75)
+    $script:bar.Size = New-Object System.Drawing.Size(440, 22)
+    $script:bar.Style = [System.Windows.Forms.ProgressBarStyle]::Marquee
+    $script:form.Controls.Add($script:bar)
+    $script:form.Show()
+    [System.Windows.Forms.Application]::DoEvents()
+
+    $cfg = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $script:logPath = Join-Path $cfg.directory 'PrimeLauncher-update.log'
+    Write-UpdateLog ("Updater started for version " + $cfg.version)
+    Set-UpdateProgress 'Закрываем старое окно PrimeLauncher...'
+    $deadline = (Get-Date).AddSeconds(75)
+    while (Get-Process -Id ([int]$cfg.pid) -ErrorAction SilentlyContinue) {
+        if ((Get-Date) -gt $deadline) { throw 'Старая версия PrimeLauncher не закрылась за 75 секунд.' }
+        Start-Sleep -Milliseconds 250
+        [System.Windows.Forms.Application]::DoEvents()
+    }
+
+    Set-UpdateProgress 'Распаковываем и проверяем новую версию...' 18
+    $stage = Join-Path $env:TEMP ('PrimeLauncher-update-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $stage -Force | Out-Null
+    Expand-Archive -LiteralPath $cfg.archive -DestinationPath $stage -Force
+    $candidate = Get-ChildItem -LiteralPath $stage -Filter 'PrimeLauncher.exe' -File -Recurse | Select-Object -First 1
+    if (-not $candidate -or $candidate.Length -lt 1000000) { throw 'В архиве отсутствует корректный PrimeLauncher.exe.' }
+
+    Set-UpdateProgress 'Подготавливаем замену файла...' 45
+    $pendingExe = $cfg.exe + '.new'
+    $script:backup = $cfg.exe + '.previous.exe'
+    Copy-Item -LiteralPath $candidate.FullName -Destination $pendingExe -Force
+    if ((Get-Item -LiteralPath $pendingExe).Length -lt 1000000) { throw 'Новый EXE не прошёл проверку размера.' }
+
+    if (Test-Path -LiteralPath $script:backup) { Remove-Item -LiteralPath $script:backup -Force }
+    Set-UpdateProgress 'Устанавливаем обновление...' 70
+    Move-Item -LiteralPath $cfg.exe -Destination $script:backup -Force
+    try {
+        Move-Item -LiteralPath $pendingExe -Destination $cfg.exe -Force
+    } catch {
+        Move-Item -LiteralPath $script:backup -Destination $cfg.exe -Force
+        throw
+    }
+
+    Set-UpdateProgress 'Запускаем обновлённую версию...' 88
+    $newProcess = Start-Process -FilePath $cfg.exe -WorkingDirectory $cfg.directory -PassThru
+    Start-Sleep -Seconds 5
+    $newProcess.Refresh()
+    if ($newProcess.HasExited) {
+        throw 'Новая версия закрылась сразу после запуска. Старую версию восстановим автоматически.'
+    }
+
+    Set-UpdateProgress 'Обновление установлено успешно.' 100
+    Write-UpdateLog ("Update installed and process started: " + $cfg.version)
+    if (Test-Path -LiteralPath $script:backup) { Remove-Item -LiteralPath $script:backup -Force }
+    if (Test-Path -LiteralPath $cfg.archive) { Remove-Item -LiteralPath $cfg.archive -Force }
+    Start-Sleep -Milliseconds 900
+} catch {
+    $message = $_.Exception.Message
+    Write-UpdateLog ("UPDATE FAILED: " + $message)
+    if ($cfg -and $script:backup -and (Test-Path -LiteralPath $script:backup)) {
+        try {
+            if (Test-Path -LiteralPath $cfg.exe) { Remove-Item -LiteralPath $cfg.exe -Force -ErrorAction SilentlyContinue }
+            Move-Item -LiteralPath $script:backup -Destination $cfg.exe -Force
+            Write-UpdateLog 'Previous EXE restored.'
+            Start-Process -FilePath $cfg.exe -WorkingDirectory $cfg.directory
+        } catch {
+            Write-UpdateLog ("Rollback failed: " + $_.Exception.Message)
+        }
+    }
+    try {
+        $messageText = "Не удалось установить обновление PrimeLauncher." + [Environment]::NewLine + [Environment]::NewLine + $message + [Environment]::NewLine + [Environment]::NewLine + "Старый EXE не удалён. Журнал: " + $logPath
+        [System.Windows.Forms.MessageBox]::Show(
+            $messageText,
+            'PrimeLauncher — ошибка обновления',
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        ) | Out-Null
+    } catch {}
+} finally {
+    if ($stage -and (Test-Path -LiteralPath $stage)) {
+        Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    if ($ConfigPath -and (Test-Path -LiteralPath $ConfigPath)) {
+        Remove-Item -LiteralPath $ConfigPath -Force -ErrorAction SilentlyContinue
+    }
+    if ($script:form) { $script:form.Close(); $script:form.Dispose() }
+}
+"""
+    script_path.write_text(ps, encoding="utf-8-sig")
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    process = subprocess.Popen(
+        [
+            "powershell.exe", "-NoLogo", "-NoProfile",
+            "-ExecutionPolicy", "Bypass", "-File",
+            str(script_path), str(config_path),
+        ],
+        cwd=str(executable.parent),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        close_fds=True,
+        creationflags=flags,
+    )
+    if process.poll() is not None:
+        raise RuntimeError("Windows updater process could not be started")
+    _prime_update_log(f"visible installer started: {version}; pid={process.pid}")
+
     """Hand off replacement to PowerShell so the running EXE can exit safely."""
     executable = Path(sys.executable).resolve()
     update_root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "PrimeLauncher" / "updates"
