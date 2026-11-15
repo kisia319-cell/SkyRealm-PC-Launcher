@@ -11,6 +11,7 @@ on:
       - "game/competitive/prime-online.js"
       - "prime_launcher.py"
       - "prime_launcher_version.txt"
+      - "tests/prime-online-test.cjs"
 
 permissions:
   contents: write
