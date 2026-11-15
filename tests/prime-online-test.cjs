@@ -97,3 +97,14 @@ console.log('PC Prime friends-page routing and markup cleanup assertions passed'
 // Regression: accepted friends must always get an actionable invite control.
 assert.ok(primeWorldSource.includes('if(rel.status==="accepted"){')&&primeWorldSource.includes('const created=await PrimeOnline.createLobby(mode);')&&primeWorldSource.includes('await PrimeOnline.inviteLobbyFriend(primeCurrentLobby.id,person.id);'),'PC invite action must create an owned lobby when needed, then send the invite');
 console.log('PC Prime invite auto-create regression assertions passed');
+
+// online build/balance and co-op teammate recovery regression checks
+
+assert.ok(primeWorldSource.includes('processRemoteBuildRequest()')&&primeWorldSource.includes('buildRequest:match.online.buildRequest||null'),'PC online guests must send build requests to the host');
+assert.ok(primeWorldSource.includes('commitBuildPlacement(kind,placement)')&&primeWorldSource.includes('window.PrimeInputSent'),'PC host must commit authoritative guest building requests');
+assert.ok(primeWorldSource.includes('coins=Math.floor(m.playerCoins)')&&primeWorldSource.includes('Общий баланс команды'),'PC guests must see the shared match balance');
+assert.ok(primeWorldSource.includes('ally.respawnAt=match.elapsed+12')&&primeWorldSource.includes('ally.alive=true;ally.respawnAt=0'),'PC co-op teammate must respawn after death');
+assert.ok(!primeWorldSource.includes("ctx.fillRect(-13,-23,26,42)"),'PC fighter hit effect must not draw a white rectangle over dead players');
+assert.ok(!pcHtml.includes('body.online-match .battle-tools #build-toggle'),'PC online mode must not hide the build button');
+assert.ok(pcHtml.includes('id="balance-toggle" class="tool-btn"'),'PC online mode must expose the balance button');
+console.log('PC online build/balance/co-op respawn regression assertions passed');
