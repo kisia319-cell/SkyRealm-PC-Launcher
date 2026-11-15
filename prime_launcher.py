@@ -103,6 +103,200 @@ def _prime_update_prompt(version: str, current: str) -> bool:
     return answer["yes"]
 
 
+def _prime_download_archive(
+    version: str,
+    download_url: str,
+    checksum_url: str,
+    progress_callback=None,
+    cancel_event=None,
+) -> Path:
+    """Download, checksum and validate the release ZIP before installation."""
+    root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "PrimeLauncher" / "updates"
+    root.mkdir(parents=True, exist_ok=True)
+    archive_path = root / f"PrimeLauncher-{version}.zip"
+    digest = hashlib.sha256()
+    try:
+        archive_path.unlink(missing_ok=True)
+        request = urllib.request.Request(
+            download_url,
+            headers={"User-Agent": "PrimeLauncher-Updater/2.0", "Cache-Control": "no-cache"},
+        )
+        with urllib.request.urlopen(request, timeout=45) as response, archive_path.open("wb") as output:
+            try:
+                total = int(response.headers.get("Content-Length") or 0)
+            except (AttributeError, TypeError, ValueError):
+                total = 0
+            if total > 1024 * 1024 * 1024:
+                raise ValueError("Архив обновления превышает 1 ГБ")
+            downloaded = 0
+            if progress_callback:
+                progress_callback(downloaded, total, "Загружаем файлы обновления...")
+            while True:
+                if cancel_event and cancel_event.is_set():
+                    raise InterruptedError("Загрузка обновления отменена")
+                chunk = response.read(256 * 1024)
+                if not chunk:
+                    break
+                downloaded += len(chunk)
+                if downloaded > 1024 * 1024 * 1024:
+                    raise ValueError("Архив обновления превышает 1 ГБ")
+                digest.update(chunk)
+                output.write(chunk)
+                if progress_callback:
+                    progress_callback(downloaded, total, "Загружаем файлы обновления...")
+            output.flush()
+            os.fsync(output.fileno())
+
+        if downloaded < 1_000_000:
+            raise ValueError("Скачанный архив слишком мал и не похож на обновление PrimeLauncher")
+        if total and downloaded != total:
+            raise ValueError(f"Загрузка прервалась: получено {downloaded} из {total} байт")
+
+        if progress_callback:
+            progress_callback(downloaded, total or downloaded, "Проверяем контрольную сумму SHA-256...")
+        checksum_request = urllib.request.Request(
+            checksum_url,
+            headers={"User-Agent": "PrimeLauncher-Updater/2.0", "Cache-Control": "no-cache"},
+        )
+        with urllib.request.urlopen(checksum_request, timeout=20) as response:
+            checksum_text = response.read(4096).decode("utf-8", errors="replace").strip()
+        checksum_match = re.search(r"\b([0-9a-fA-F]{64})\b", checksum_text)
+        if not checksum_match:
+            raise ValueError("В релизе отсутствует корректная контрольная сумма SHA-256")
+        if digest.hexdigest() != checksum_match.group(1).lower():
+            raise ValueError("Контрольная сумма SHA-256 не совпала. Обновление не установлено.")
+
+        if progress_callback:
+            progress_callback(downloaded, total or downloaded, "Проверяем архив и EXE...")
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            if archive.testzip() is not None:
+                raise ValueError("ZIP-архив повреждён")
+            executables = []
+            for item in archive.infolist():
+                normalized = item.filename.replace("\\", "/")
+                if item.is_dir():
+                    continue
+                if any(part == ".." for part in normalized.split("/")):
+                    raise ValueError("В ZIP-архиве обнаружен недопустимый путь")
+                if Path(normalized).name.lower() == "primelauncher.exe":
+                    executables.append(item)
+            if len(executables) != 1 or executables[0].file_size < 1_000_000:
+                raise ValueError("В архиве нет единственного корректного PrimeLauncher.exe")
+        if progress_callback:
+            progress_callback(total or downloaded, total or downloaded, "Обновление проверено")
+        return archive_path
+    except Exception:
+        try:
+            archive_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+
+def _prime_update_progress(version: str, download_url: str, checksum_url: str) -> Path | None:
+    """Show a real-time download progress panel while the ZIP is fetched and checked."""
+    import queue
+    import threading
+    import tkinter as tk
+    from tkinter import ttk
+
+    events = queue.Queue()
+    cancel_event = threading.Event()
+    result = {"archive": None, "error": None}
+    root = tk.Tk()
+    root.title("Обновление PrimeLauncher")
+    root.geometry("540x245")
+    root.resizable(False, False)
+    root.configure(bg="#111827")
+    root.attributes("-topmost", True)
+    root.update_idletasks()
+    x = (root.winfo_screenwidth() - 540) // 2
+    y = (root.winfo_screenheight() - 245) // 2
+    root.geometry(f"+{x}+{y}")
+
+    tk.Label(root, text="ОБНОВЛЕНИЕ PRIME LAUNCHER", bg="#111827", fg="#f5f7fb",
+             font=("Segoe UI", 15, "bold")).pack(pady=(18, 5))
+    tk.Label(root, text=f"Загрузка новой версии {version}", bg="#111827", fg="#76bdff",
+             font=("Segoe UI", 10, "bold")).pack(pady=(0, 12))
+    status = tk.Label(root, text="Подключаемся к серверу обновлений...", bg="#111827",
+                      fg="#d3dbe8", font=("Segoe UI", 10))
+    status.pack(pady=(0, 9))
+    bar = ttk.Progressbar(root, orient="horizontal", mode="determinate", maximum=100, length=470)
+    bar.pack(padx=28, pady=4)
+    detail = tk.Label(root, text="Подготовка загрузки...", bg="#111827", fg="#8fa0b8",
+                      font=("Segoe UI", 9))
+    detail.pack(pady=(7, 0))
+    close_button = ttk.Button(root, text="Запустить без обновления", command=lambda: close_window())
+    close_button.pack(pady=(14, 0))
+    close_button.state(["disabled"])
+
+    def close_window() -> None:
+        cancel_event.set()
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
+
+    def report(downloaded: int, total: int, stage: str) -> None:
+        events.put(("progress", downloaded, total, stage))
+
+    def worker() -> None:
+        try:
+            result["archive"] = _prime_download_archive(
+                version, download_url, checksum_url, report, cancel_event
+            )
+            events.put(("done", None))
+        except BaseException as exc:
+            result["error"] = exc
+            events.put(("done", exc))
+
+    def poll_events() -> None:
+        try:
+            while True:
+                event = events.get_nowait()
+                if event[0] == "progress":
+                    downloaded, total, stage = event[1], event[2], event[3]
+                    status.configure(text=stage)
+                    if total > 0:
+                        bar.stop()
+                        bar.configure(mode="determinate", maximum=total, value=min(downloaded, total))
+                        percent = min(100, int(downloaded * 100 / total))
+                        detail.configure(
+                            text=f"{percent}% · {downloaded / 1048576:.1f} из {total / 1048576:.1f} МБ"
+                        )
+                    else:
+                        bar.configure(mode="indeterminate")
+                        bar.start(12)
+                        detail.configure(text=f"Получено {downloaded / 1048576:.1f} МБ")
+                elif event[0] == "done":
+                    bar.stop()
+                    if result["archive"]:
+                        bar.configure(mode="determinate", maximum=100, value=100)
+                        status.configure(text="Архив загружен и проверен. Подготавливаем установку...")
+                        detail.configure(text="SHA-256 и содержимое архива проверены")
+                        close_button.configure(text="Подготовка установки...")
+                        close_button.state(["disabled"])
+                        root.after(1000, root.destroy)
+                    else:
+                        status.configure(text="Не удалось подготовить обновление")
+                        detail.configure(text=str(result["error"] or "Загрузка отменена")[:180])
+                        close_button.configure(text="Запустить текущую версию")
+                        close_button.state(["!disabled"])
+        except queue.Empty:
+            pass
+        try:
+            if root.winfo_exists():
+                root.after(80, poll_events)
+        except tk.TclError:
+            pass
+
+    root.protocol("WM_DELETE_WINDOW", close_window)
+    threading.Thread(target=worker, name="PrimeLauncherUpdateDownload", daemon=True).start()
+    root.after(80, poll_events)
+    root.mainloop()
+    return result["archive"]
+
+
 def _prime_schedule_self_update(archive_path: Path, version: str) -> None:
     """Launch a detached updater with an explicit PowerShell -File parameter."""
     executable = Path(sys.executable).resolve()
