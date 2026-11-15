@@ -254,7 +254,6 @@ try {
 }
 """
     script_path.write_text(ps, encoding="utf-8-sig")
-    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     process = subprocess.Popen(
         [
             "powershell.exe", "-NoLogo", "-NoProfile",
@@ -266,62 +265,11 @@ try {
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         close_fds=True,
-        creationflags=flags,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
     if process.poll() is not None:
         raise RuntimeError("Windows updater process could not be started")
     _prime_update_log(f"visible installer started: {version}; pid={process.pid}")
-
-    """Hand off replacement to PowerShell so the running EXE can exit safely."""
-    executable = Path(sys.executable).resolve()
-    update_root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "PrimeLauncher" / "updates"
-    update_root.mkdir(parents=True, exist_ok=True)
-    config_path = update_root / "pending-update.json"
-    config_path.write_text(json.dumps({
-        "archive": str(archive_path.resolve()),
-        "exe": str(executable),
-        "directory": str(executable.parent),
-        "pid": os.getpid(),
-    }, ensure_ascii=False), encoding="utf-8")
-
-    ps = r"""
-$ErrorActionPreference = 'Stop'
-$cfg = Get-Content -LiteralPath $args[0] -Raw | ConvertFrom-Json
-try {
-    Wait-Process -Id ([int]$cfg.pid) -Timeout 90 -ErrorAction SilentlyContinue
-    if (Get-Process -Id ([int]$cfg.pid) -ErrorAction SilentlyContinue) { throw 'PrimeLauncher did not exit in time' }
-    $stage = Join-Path $env:TEMP ('PrimeLauncher-update-' + [guid]::NewGuid().ToString('N'))
-    New-Item -ItemType Directory -Path $stage -Force | Out-Null
-    Expand-Archive -LiteralPath $cfg.archive -DestinationPath $stage -Force
-    $candidate = Get-ChildItem -LiteralPath $stage -Filter 'PrimeLauncher.exe' -File -Recurse | Select-Object -First 1
-    if (-not $candidate -or $candidate.Length -lt 1000000) { throw 'Updated PrimeLauncher.exe is missing or invalid' }
-    $backup = $cfg.exe + '.previous.exe'
-    if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Force }
-    Copy-Item -LiteralPath $cfg.exe -Destination $backup -Force
-    try {
-        Copy-Item -LiteralPath $candidate.FullName -Destination $cfg.exe -Force
-        Start-Process -FilePath $cfg.exe -WorkingDirectory $cfg.directory
-        Start-Sleep -Seconds 3
-        Remove-Item -LiteralPath $backup -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $cfg.archive -Force -ErrorAction SilentlyContinue
-    } catch {
-        Copy-Item -LiteralPath $backup -Destination $cfg.exe -Force
-        Start-Process -FilePath $cfg.exe -WorkingDirectory $cfg.directory
-        throw
-    }
-} catch {
-    Add-Content -LiteralPath (Join-Path (Split-Path -Parent $cfg.exe) 'PrimeLauncher-update-error.log') -Value ($_.ToString())
-} finally {
-    if ($stage -and (Test-Path -LiteralPath $stage)) { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue }
-    Remove-Item -LiteralPath $args[0] -Force -ErrorAction SilentlyContinue
-}
-"""
-    encoded = base64.b64encode(ps.encode("utf-16le")).decode("ascii")
-    subprocess.Popen(
-        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded, str(config_path)],
-        cwd=str(executable.parent), close_fds=True,
-        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-    )
 
 
 def _check_for_prime_update() -> bool:
