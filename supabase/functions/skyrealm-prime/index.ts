@@ -223,7 +223,7 @@ Deno.serve(async(req:Request)=>{
    const pair=user.id<opponent.user_id?{user_a:user.id,user_b:opponent.user_id}:{user_a:opponent.user_id,user_b:user.id};
    const friends=await db("skyrealm_friendships?select=id,status&user_a=eq."+pair.user_a+"&user_b=eq."+pair.user_b+"&limit=1");
    if(!friends?.length||friends[0].status!=="accepted")throw new ApiError(403,"NOT_FRIENDS","Матч доступен только между друзьями.");
-   const active=await db("prime_matches?select=id&status=eq.active&or=(user_a.in.("+user.id+","+opponent.user_id+"),user_b.in.("+user.id+","+opponent.user_id+"))&limit=1");
+   const active=await db("prime_matches?select=id&status=in.(active,awaiting_confirmation)&or=(user_a.in.("+user.id+","+opponent.user_id+"),user_b.in.("+user.id+","+opponent.user_id+"))&limit=1");
    if(active?.length)throw new ApiError(409,"ACTIVE_MATCH","У одного из игроков уже идёт другой матч.");
    const seed=Date.now()+Math.floor(Math.random()*1000000);
    const made=await db("prime_matches",{method:"POST",body:JSON.stringify({user_a:user.id,user_b:opponent.user_id,status:"active",seed,started_at:new Date().toISOString()})});
