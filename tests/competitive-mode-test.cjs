@@ -29,6 +29,7 @@ assert.match(primeJs,/function alertEnemyBase\(\)/,'Player attacks must trigger 
 assert.match(primeJs,/Math\.random\(\)<\.35/,'The counterattack must have the specified 35% chance.');
 assert.match(primeJs,/function upgradeBotTower\(bot\)/,'Bots must have a real tower-upgrade routine.');assert.match(primeJs,/if\(bot\.id!==1\)return false/,'Only the shared enemy team base tower is upgraded.');
 assert.match(primeJs,/function enemyDirector\(dt\)/,'Bots must have an active construction and economy director.');
+assert.match(primeJs,/if\(!Array\.isArray\(m\.supportBuildings\)\)m\.supportBuildings=\[\]/,'Enemy director must migrate missing support-building arrays in legacy match states.');
 assert.match(primeJs,/if\(!aggro&&!assault&&playerDistance>360\)/,'Bots must patrol until the player enters their 360-unit defensive radius.');
 assert.match(primeJs,/const targets=tower\.team===0\?/,'Both sides towers must acquire opposing fighters in range.');
 assert.match(primeJs,/nextBarracksAt/);assert.match(primeJs,/nextWallAt/);assert.match(primeJs,/nextUpgradeAt/);
