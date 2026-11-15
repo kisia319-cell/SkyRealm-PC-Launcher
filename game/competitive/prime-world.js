@@ -1070,7 +1070,7 @@ function update(dt){
  for(const tower of match.towers){
   if(tower.hp<=0)continue;
   tower.fire-=dt;if(tower.fire>0)continue;
-  const targets=tower.team===0?[...match.bots.filter(b=>b.alive),...match.units.filter(u=>(u.team===1||u.team===2)&&u.alive)]:[p,...match.allies.filter(a=>a.alive),...match.units.filter(u=>u.team===0&&u.alive)];
+  const targets=tower.team===0?[...match.bots.filter(b=>b.alive),...match.units.filter(u=>(u.team===1||u.team===2)&&u.alive)]:[p,...match.allies.filter(a=>a.alive),...match.units.filter(u=>(u.team===0||u.team===2)&&u.alive)];
   const found=chooseNearestTarget(tower,targets,tower.range);
   if(found){
    tower.fire=Math.max(.48,1.25-tower.level*.035);
@@ -1095,7 +1095,7 @@ function attack(){
  if(!match||match.finished||attackCooldown>0)return;
  if(match.online?.role==='guest'){match.online.attackPulse=true;attackCooldown=.42;return;}
  attackCooldown=.42;
- const player=match.player,opponents=[...match.bots.filter(bot=>bot.alive),...match.units.filter(unit=>unit.team===1&&unit.alive)];
+ const player=match.player,opponents=[...match.bots.filter(bot=>bot.alive),...match.units.filter(unit=>(unit.team===1||unit.team===2)&&unit.alive)];
  const found=chooseNearestTarget(player,opponents,112);
  if(found){alertEnemyBase();applyCombatDamage(found.target,found.target.profile?42:48,player);return;}
  const structures=[...match.towers.filter(t=>t.team===1&&t.hp>0),...match.walls.filter(w=>w.team===1&&w.hp>0),...match.barracks.filter(b=>b.team===1&&b.hp>0),...(match.supportBuildings||[]).filter(b=>b.team===1&&b.hp>0)];
