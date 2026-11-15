@@ -87,3 +87,9 @@ assert.ok(primeWorldSource.includes("window.PrimeCurrentDisplayName=String(p.use
 assert.ok(worldSource.includes('window.PrimeInputSent')&&!worldSource.includes('match.online.attackPulse=false;return v;'),'Guest attack pulses must remain latched until a network send succeeds');
 assert.ok(worldSource.includes('match.online.selfName')&&worldSource.includes('window.PrimeCurrentDisplayName'),'Player identity must come from the authenticated profile, not a hardcoded nickname');
 console.log('Prime attack delivery and dynamic identity regression assertions passed');
+
+const pcHtml=fs.readFileSync('game/competitive/index.html','utf8');
+assert.ok(primeWorldSource.includes("const pages=['home','rank','history','profile','friends','registration','settings','menu','battle']"),'PC page router must include friends so the Friends/Lobby page is actually shown');
+assert.ok(pcHtml.includes('id="friends-page"'),'PC launcher must include the friends/lobby content section');
+assert.ok(!pcHtml.includes(String.fromCharCode(92)+'n'),'PC launcher HTML must not render escaped newline tokens');
+console.log('PC Prime friends-page routing and markup cleanup assertions passed');
