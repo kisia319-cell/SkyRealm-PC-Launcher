@@ -104,7 +104,7 @@ console.log('PC Prime invite auto-create regression assertions passed');
 
 assert.ok(primeWorldSource.includes('processRemoteBuildRequest()')&&primeWorldSource.includes('buildRequest:match.online.buildRequest||null'),'PC online guests must send build requests to the host');
 assert.ok(primeWorldSource.includes('commitBuildPlacement(kind,placement)')&&primeWorldSource.includes('window.PrimeInputSent'),'PC host must commit authoritative guest building requests');
-assert.ok(primeWorldSource.includes('coins=Math.floor(m.playerCoins)')&&primeWorldSource.includes('Общий баланс команды'),'PC guests must see the shared match balance');
+assert.ok(primeWorldSource.includes('coins=Math.floor(localTeam===1?(localBot?.coins||0):m.playerCoins)')&&primeWorldSource.includes("q('hud-balance-value').textContent=coins===null"),'PC guests must see their authoritative team balance in the HUD');
 assert.ok(primeWorldSource.includes('target.respawnAt=match.elapsed+12')&&primeWorldSource.includes('target.isRemotePlayer&&match.online?.mode===\'bots\'&&target.team===0'),'PC co-op teammate death must schedule a 12-second respawn');
 assert.ok(primeWorldSource.includes('!ally.alive&&ally.isRemotePlayer&&match.online?.role===\'host\'&&match.online?.mode===\'bots\'&&ally.respawnAt&&match.elapsed>=ally.respawnAt')&&primeWorldSource.includes('ally.alive=true;ally.respawnAt=0'),'PC host must restore the allied player after the respawn timer');
 assert.ok(!primeWorldSource.includes("ctx.fillRect(-13,-23,26,42)"),'PC fighter hit effect must not draw a white rectangle over dead players');
