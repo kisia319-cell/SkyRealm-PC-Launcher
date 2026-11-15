@@ -343,18 +343,38 @@ window.PrimeApplyRemoteInput=input=>{if(match?.online?.role==='host')match.onlin
 window.PrimeReadInput=()=>{if(!match||match.online?.role!=='guest')return{};const k=pressed;return {up:k.has('KeyW')||k.has('ArrowUp'),down:k.has('KeyS')||k.has('ArrowDown'),left:k.has('KeyA')||k.has('ArrowLeft'),right:k.has('KeyD')||k.has('ArrowRight'),sprint:k.has('ShiftLeft')||k.has('ShiftRight'),attack:k.has('Space')||!!match.online.attackPulse,buildRequest:match.online.buildRequest||null,mineGuardRequest:match.online.mineGuardRequest||null};};
 window.PrimeInputSent=input=>{if(match?.online?.role==='guest'){if(input?.attack)match.online.attackPulse=false;if(input?.buildRequest&&match.online.buildRequest?.id===input.buildRequest.id)match.online.buildRequest=null;if(input?.mineGuardRequest&&match.online.mineGuardRequest?.id===input.mineGuardRequest.id)match.online.mineGuardRequest=null;}};
 window.PrimeApplyHostState=state=>{if(!match?.online||match.online.role!=='guest'||!state)return;try{const cfg=match.online,terrain=match.terrainCanvas,seed=match.worldSeed;match={...state,online:cfg,terrainCanvas:state.worldSeed===seed?terrain:null};match.localEntity=cfg.mode==='bots'?(match.allies?.find(a=>a.isRemotePlayer)||match.allies?.[0]||match.player):(match.bots?.find(b=>b.isRemotePlayer)||match.bots?.[0]||match.player);const selfName=cfg.selfName||match.localEntity?.name||'Ты';if(match.localEntity){match.localEntity.name=selfName;if(match.localEntity.profile)match.localEntity.profile.name=selfName;}match.playerDisplayName=selfName;const opponentName=cfg.opponentName||'Соперник';const title=document.getElementById('battle-title');if(title)title.textContent=cfg.mode==='bots'?'ТЫ: '+selfName+' · НАПАРНИК: '+opponentName:'ТЫ: '+selfName+' · СОПЕРНИК: '+opponentName;updateHud();}catch(e){console.error('Prime host state',e);}};
+let pendingRankedResult=null;
+async function submitRankedResultConfirmation(agree){
+ const pending=pendingRankedResult;if(!pending||pending.busy)return;
+ pending.busy=true;
+ const yes=$('result-confirm'),no=$('result-dispute');if(yes)yes.disabled=true;if(no)no.disabled=true;
+ const copy=$('result-copy');if(copy)copy.textContent='Отправляем твой ответ серверу…';
+ const reportedWinner=agree?pending.winnerId:(pending.winnerId===pending.selfId?pending.opponentId:pending.selfId);
+ try{
+  const result=await PrimeOnline.finish(pending.matchId,reportedWinner,'completed');
+  if(result.status==='awaiting_confirmation'){
+   if(copy)copy.textContent='Ответ принят. Ждём итоговую проверку сервера…';
+   watchPrimeFinalResult(pending.matchId);
+  }else if(result.status==='completed'||result.status==='disputed'){
+   pendingRankedResult=null;
+   const stats=await PrimeOnline.stats();profile.elo=Number(stats.stats?.rating??profile.elo??0);profile.matches=Number(stats.stats?.matches??profile.matches??0);profile.wins=Number(stats.stats?.wins??profile.wins??0);save();renderLeaderboard();
+   if(copy)copy.textContent=result.status==='completed'?'Оба игрока подтвердили результат. ELO обновлён сервером.':'Ответы игроков различаются. Матч оспорен, ELO не изменён.';
+   const controls=$('result-confirm-controls');if(controls)controls.classList.add('hidden');
+  }else if(copy)copy.textContent='Сервер вернул неожиданный статус: '+String(result.status||'unknown');
+ }catch(e){if(copy)copy.textContent='Не удалось отправить подтверждение. Проверь соединение и повтори.';console.error('Prime result confirmation',e);}
+ finally{if(yes)yes.disabled=false;if(no)no.disabled=false;if(pendingRankedResult)pendingRankedResult.busy=false;}
+}
 window.PrimeOnlineFinished=state=>{
  if(!match?.online)return;const online=match.online,coop=online.mode==='bots',winner=state.winner_id??state.result?.proposed_winner??null;
- if(!coop&&state.status==='awaiting_confirmation'){
-  PrimeOnline.finish(online.match_id,winner,'completed').then(async result=>{
-   if(result.status==='completed'||result.status==='disputed'){
-    const stats=await PrimeOnline.stats();profile.elo=Number(stats.stats?.rating??profile.elo??0);profile.matches=Number(stats.stats?.matches)||profile.matches;profile.wins=Number(stats.stats?.wins)||profile.wins;save();renderLeaderboard();
-    const copy=$('result-copy');if(copy)copy.textContent=result.status==='disputed'?'Игроки не подтвердили одинаковый результат. ELO не изменён.':'Результат подтверждён обоими игроками. Рейтинг обновлён.';
-   }
-  }).catch(e=>console.error('Prime result confirmation',e));
+ if(!coop&&state.status==='awaiting_confirmation'&&online.role==='guest'){
+  pendingRankedResult={matchId:online.match_id,winnerId:winner,selfId:online.selfId,opponentId:online.opponentId,busy:false};
+  const controls=$('result-confirm-controls');if(controls)controls.classList.remove('hidden');
  }
  finish(coop?state.result?.outcome==='win':winner===online.selfId,false,state.result||{});
- if(!coop&&state.status==='completed')PrimeOnline.stats().then(x=>{profile.elo=Number(x.stats?.rating??profile.elo??0);profile.matches=Number(x.stats?.matches)||profile.matches;profile.wins=Number(x.stats?.wins)||profile.wins;save();renderLeaderboard();}).catch(()=>{});
+ if(!coop&&state.status==='awaiting_confirmation'){
+  const copy=$('result-copy');if(copy)copy.textContent=online.role==='guest'?'Соперник отправил результат. Подтверди его или оспорь — рейтинг пока не изменён.':'Твой результат отправлен. Ожидаем подтверждение соперника; ELO пока не меняется.';
+ }
+ if(!coop&&state.status==='completed')PrimeOnline.stats().then(x=>{profile.elo=Number(x.stats?.rating??profile.elo??0);profile.matches=Number(x.stats?.matches??profile.matches??0);profile.wins=Number(x.stats?.wins??profile.wins??0);save();renderLeaderboard();}).catch(()=>{});
 };
 window.PrimeOnlineError=message=>{const el=$('performance-hud');if(el&&match?.online)el.title=message;};
 function beginSearch(){
@@ -536,6 +556,8 @@ function finish(win,abandoned=false,serverResult=null){
  $('result-copy').textContent=online?.mode==='bots'?'Кооперативный матч завершён. Монеты обнулены. ELO не изменяется.':'Матч завершён. Монеты обнулены. '+(abandoned?'ELO без изменений.':'Изменение ELO: '+(eloDelta>0?'+':'')+eloDelta);
  $('result-modal').classList.remove('hidden');
 }
+$('result-confirm').addEventListener('click',()=>submitRankedResultConfirmation(true));
+$('result-dispute').addEventListener('click',()=>submitRankedResultConfirmation(false));
 $('result-menu').addEventListener('click',()=>{$('result-modal').classList.add('hidden');match=null;show('menu');});
 $('result-again').addEventListener('click',()=>{$('result-modal').classList.add('hidden');match=null;show('menu');beginSearch();});
 $('leave-match').addEventListener('click',requestLeaveMatch);
