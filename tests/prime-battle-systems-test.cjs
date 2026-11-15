@@ -40,3 +40,28 @@ assert.equal(enemyHero.hp,84,'Player-owned outpost attacks enemy bots');
 assert.ok(Math.abs(recoveringAlly.hp-52.4)<1e-9,'Friendly troops beside their outpost recover health');
 
 console.log('Prime battle systems: all tests passed.');
+
+
+const riftFunction=extractFunction(js,'updateEnergyRift');
+const riftMatch={elapsed:85,energyRift:{x:0,y:0,active:false,nextAt:85,expiresAt:0,captureTeam:null,progress:0},player:{x:0,y:0,team:0,alive:true},allies:[],units:[],bots:[],playerCoins:0};
+vm.runInNewContext(riftFunction+'\\nupdateEnergyRift(4);',{match:riftMatch,addCombatFeed:()=>{},getBotDifficulty:()=>({income:1})});
+assert.equal(riftMatch.playerCoins,260,'Capturing the energy rift rewards the team with 260 coins');
+assert.equal(riftMatch.riftBuffTeam,0,'Captured rift grants the buff to the capturing team');
+assert.equal(riftMatch.riftBuffUntil,107,'Rift damage buff lasts 22 seconds');
+assert.equal(riftMatch.energyRift.active,false,'Captured rift closes after capture');
+const riftDamage=extractFunction(js,'applyCombatDamage'),riftTarget={team:1,x:0,y:0,hp:200,alive:true},riftAttacker={team:0};
+const riftDamageMatch={player:riftAttacker,allies:[],units:[],weather:{type:'clear'},commander:{warCryUntil:0,shieldUntil:0},elapsed:5,riftBuffTeam:0,riftBuffUntil:25,tracers:[],damageTexts:[]};
+vm.runInNewContext(riftDamage+'\\napplyCombatDamage(target,100,attacker);',{match:riftDamageMatch,target:riftTarget,attacker:riftAttacker,addDamageNumber:()=>{},addCombatFeed:()=>{}});
+assert.equal(riftTarget.hp,80,'Energy rift increases capturing team damage by 20 percent');
+assert.ok(js.includes('bot.damage=48;'),'Enemy bot heroes must use identical damage independent of bot difficulty; unit upgrades remain separate');
+const respawnTarget={team:1,profile:{},isRemotePlayer:true,x:1,y:1,hp:100,maxHp:100,alive:true},respawnMatch={player:{},allies:[],units:[],weather:{type:'clear'},commander:{warCryUntil:0,shieldUntil:0},elapsed:5,tracers:[],damageTexts:[]};
+vm.runInNewContext(riftDamage+'\\napplyCombatDamage(target,100,attacker);',{match:respawnMatch,target:respawnTarget,attacker:riftAttacker,addDamageNumber:()=>{},addCombatFeed:()=>{}});
+assert.equal(respawnTarget.alive,false,'A defeated remote fighter must enter the respawn state');
+assert.equal(respawnTarget.respawnAt,17,'A defeated remote fighter returns after 12 seconds');
+const loopSource=extractFunction(js,'loop');
+assert.ok(!loopSource.includes('match.bots.every')&&!loopSource.includes('rival&&!rival.alive')&&!loopSource.includes('match.player.hp<=0'),'Online kills and player deaths must not finish the match');
+assert.ok(js.includes("if(match.towers.filter(t=>t.team===1).every(t=>t.hp<=0)){finish(true);return;}"),'Victory is checked only after all enemy towers are destroyed');
+assert.ok(js.includes("if(ownTower&&ownTower.hp<=0){finish(false);return;}"),'Defeat is checked when the home tower is destroyed');
+assert.ok(js.includes("match.online?.mode==='pvp'&&bot.respawnAt&&match.elapsed>=bot.respawnAt"),'Online PvP opponents must respawn after the delay');
+assert.ok(html.includes('id="hud-rift"'),'The energy rift objective must have a HUD indicator');
+console.log('Prime online match rules and energy rift regression assertions passed');
