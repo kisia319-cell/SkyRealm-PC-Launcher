@@ -623,7 +623,7 @@
       '<div class="command-section"><div class="command-section-head"><div><div class="section-kicker">ПРОИЗВОДИТЕЛЬНОСТЬ</div><h2>Профили компьютера</h2><p>Меняют существующие параметры игры и сохраняют их через штатный механизм.</p></div><span class="command-feedback" id="command-profile-status">Выбери профиль</span></div>',
       '<div class="command-preset-grid"><button class="command-preset" data-performance-preset="eco" type="button"><b>♧ Экономный</b><span>Низкая графика · 30 FPS · меньше нагрузки</span></button><button class="command-preset" data-performance-preset="balanced" type="button"><b>◈ Сбалансированный</b><span>Средняя графика · 60 FPS · стандартный режим</span></button><button class="command-preset" data-performance-preset="competitive" type="button"><b>⚡ Соревновательный</b><span>Низкая графика · до 120 FPS · без VSync</span></button><button class="command-preset" data-performance-preset="quality" type="button"><b>✧ Качество</b><span>Высокая графика · 60 FPS · синхронизация</span></button></div></div>',
       '<div class="command-two-column"><article class="command-card"><div class="command-section-head"><div><div class="section-kicker">ПЕРЕД ЗАПУСКОМ</div><h2>Проверка готовности</h2></div><span class="command-status-dot" id="command-preflight-dot"></span></div><p>Проверяет игровые файлы, версии, загрузку процессора, память и свободное место. Данные остаются на этом компьютере.</p><button class="secondary-btn" id="command-preflight" type="button">Проверить компьютер и игру</button><div class="command-report" id="command-preflight-report" aria-live="polite">Проверка ещё не запускалась.</div></article>',
-      '<article class="command-card"><div class="command-section-head"><div><div class="section-kicker">БЕЗОПАСНОСТЬ МИРОВ</div><h2>Резервное копирование</h2></div><span class="command-status-dot command-status-safe"></span></div><p>Создай архив сохранений или восстанови последний архив. Перед восстановлением будет создана страховочная копия.</p><div class="command-actions"><button class="secondary-btn" id="command-backup-worlds" type="button">Создать копию</button><button class="secondary-btn" id="command-restore-worlds" type="button">Восстановить копию</button></div><div class="command-report" id="command-backup-report" aria-live="polite">Игра должна быть закрыта во время операции.</div></article></div>',
+      '<article class="command-card"><div class="command-section-head"><div><div class="section-kicker">БЕЗОПАСНОСТЬ МИРОВ</div><h2>Резервное копирование</h2></div><span class="command-status-dot command-status-safe"></span></div><p>Создавай точки сохранения, просматривай историю и восстанавливай конкретную копию. Перед восстановлением лаунчер создаст страховочный архив текущего состояния.</p><div class="command-actions"><button class="secondary-btn" id="command-backup-worlds" type="button">Создать копию</button><button class="secondary-btn" id="command-restore-worlds" type="button">Обновить список</button></div><div class="command-report" id="command-backup-report" aria-live="polite">Игра должна быть закрыта во время операции.</div><div class="command-backup-history"><label for="command-backup-select">Сохранённые точки восстановления</label><select id="command-backup-select" aria-label="Выбери резервную копию"><option value="">Загружаем список…</option></select><button class="secondary-btn" id="command-restore-selected-worlds" type="button" disabled>Восстановить выбранную копию</button><div class="command-backup-history-report" id="command-backup-history-report" aria-live="polite">История ещё не загружена.</div></div></article></div>',
       '<div class="command-two-column"><article class="command-card command-session-card"><div class="command-section-head"><div><div class="section-kicker">ЛИЧНЫЙ ПЛАНИРОВЩИК</div><h2>Таймер игровой сессии</h2></div><span id="command-session-state">Готов к запуску</span></div><div class="command-session-clock" id="command-session-clock">45:00</div><div class="command-session-track"><span id="command-session-fill"></span></div>',
       '<div class="command-duration-row" id="command-session-durations"><button data-session-minutes="25" type="button">25 мин</button><button data-session-minutes="45" type="button">45 мин</button><button data-session-minutes="60" type="button">60 мин</button><button data-session-minutes="90" type="button">90 мин</button></div><div class="command-actions"><button class="primary-btn" id="command-session-start" type="button">Начать</button><button class="secondary-btn" id="command-session-pause" type="button" disabled>Пауза</button><button class="secondary-btn" id="command-session-reset" type="button" disabled>Сбросить</button></div><p id="command-session-label" class="command-note">Это личный таймер, а не автоматический учёт фактически проведённого в игре времени.</p><div class="command-report" id="command-session-history">Завершённых сессий пока нет.</div></article>',
       '<article class="command-card"><div class="command-section-head"><div><div class="section-kicker">ВНЕШНИЙ ВИД</div><h2>Акцентный стиль</h2></div><span class="command-feedback">Сохраняется локально</span></div><p>Измени цветовую тему лаунчера, не затрагивая игровые миры и сохранения.</p><div class="command-theme-grid"><button data-command-theme="ember" type="button"><i class="theme-dot ember"></i>Огонь</button><button data-command-theme="violet" type="button"><i class="theme-dot violet"></i>Аметист</button><button data-command-theme="ice" type="button"><i class="theme-dot ice"></i>Лёд</button><button data-command-theme="emerald" type="button"><i class="theme-dot emerald"></i>Изумруд</button></div><div class="command-theme-preview"><span></span><b>SkyRealm</b><small>Предпросмотр акцента</small></div></article></div>'
@@ -638,6 +638,7 @@
       $('#command-preflight')?.addEventListener('click',runCommandPreflight);
       $('#command-backup-worlds')?.addEventListener('click',runCommandBackup);
       $('#command-restore-worlds')?.addEventListener('click',runCommandRestore);
+      $('#command-restore-selected-worlds')?.addEventListener('click',runCommandRestoreSelected);
       $('#command-session-start')?.addEventListener('click',startCommandSession);
       $('#command-session-pause')?.addEventListener('click',pauseCommandSession);
       $('#command-session-reset')?.addEventListener('click',resetCommandSession);
@@ -651,7 +652,7 @@
   function openCommandCenterPage(){
     ensureCommandCenterPage();document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-command-center'));
     document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page==='command-center'));
-    if($('#crumb-label'))$('#crumb-label').textContent='СТАРТОВЫЙ ЦЕНТР';if($('.main'))$('.main').scrollTop=0;
+    if($('#crumb-label'))$('#crumb-label').textContent='СТАРТОВЫЙ ЦЕНТР';if($('.main'))$('.main').scrollTop=0;refreshCommandBackups();
   }
   function applyPerformancePreset(name){
     const presets={eco:{quality:'low',fps:30,vsync:true,saver:true,label:'Экономный'},balanced:{quality:'medium',fps:60,vsync:true,saver:false,label:'Сбалансированный'},competitive:{quality:'low',fps:120,vsync:false,saver:true,label:'Соревновательный'},quality:{quality:'high',fps:60,vsync:true,saver:false,label:'Качество'}};
@@ -678,15 +679,61 @@
       if(report)report.textContent=lines.join('\n');if(dot)dot.classList.add(diag?.ok&&diag.healthy?'command-status-safe':'command-status-bad');
     }catch(e){if(report)report.textContent=e.message||'Не удалось выполнить проверку.';if(dot)dot.classList.add('command-status-bad');}finally{if(button)button.disabled=false;}
   }
+  async function refreshCommandBackups(){
+    const button=$('#command-restore-worlds'),select=$('#command-backup-select'),restore=$('#command-restore-selected-worlds'),status=$('#command-backup-history-report');
+    if(!select||!status)return;
+    if(button)button.disabled=true;
+    status.textContent='Загружаем историю резервных копий…';
+    try{
+      const api=window.pywebview?.api;
+      if(!api?.list_world_backups)throw new Error('История резервных копий доступна в установленном Windows-лаунчере.');
+      const result=await api.list_world_backups();
+      if(!result?.ok)throw new Error(result?.message||'Не удалось получить список копий.');
+      const backups=Array.isArray(result.backups)?result.backups:[];
+      select.replaceChildren();
+      if(!backups.length){
+        const empty=document.createElement('option');empty.value='';empty.textContent='Резервных копий пока нет';select.append(empty);
+      }else{
+        backups.forEach(item=>{
+          if(!item||typeof item.name!=='string'||!/^skyrealm-worlds-\d{8}-\d{6}-\d{9}\.zip$/.test(item.name))return;
+          const option=document.createElement('option');option.value=item.name;
+          const date=new Date(item.created_at);const dateLabel=Number.isNaN(date.getTime())?item.created_at||item.name:date.toLocaleString('ru-RU');
+          const size=(Math.max(0,Number(item.size_bytes)||0)/1048576).toFixed(2);
+          option.textContent=dateLabel+' · '+(Number(item.files)||0)+' файлов · '+size+' МБ';
+          select.append(option);
+        });
+      }
+      const hasBackup=select.options.length>0&&!!select.value;
+      if(restore)restore.disabled=!hasBackup;
+      status.textContent=backups.length
+        ?'Найдено копий: '+Number(result.total||backups.length)+'. Выбери дату и восстанови нужное состояние.'
+        :'Копий пока нет. Создай первую точку восстановления перед следующей игровой сессией.';
+    }catch(error){
+      select.replaceChildren();const option=document.createElement('option');option.value='';option.textContent='История недоступна';select.append(option);
+      if(restore)restore.disabled=true;status.textContent=error.message||'Не удалось загрузить историю.';
+    }finally{if(button)button.disabled=false;}
+  }
   async function runCommandBackup(){
     const button=$('#command-backup-worlds'),report=$('#command-backup-report'),api=window.pywebview?.api;if(button)button.disabled=true;if(report)report.textContent='Создаём архив сохранений…';
-    try{if(!api?.backup_worlds)throw new Error('Резервное копирование доступно в установленном Windows-лаунчере.');const result=await api.backup_worlds();if(!result?.ok)throw new Error(result?.message||'Не удалось создать архив.');if(report)report.textContent='Резервная копия создана: '+result.path+' · файлов: '+(result.files??'—');}
+    try{if(!api?.backup_worlds)throw new Error('Резервное копирование доступно в установленном Windows-лаунчере.');const result=await api.backup_worlds();if(!result?.ok)throw new Error(result?.message||'Не удалось создать архив.');if(report)report.textContent='Резервная копия создана: '+result.path+' · файлов: '+(result.files??'—');await refreshCommandBackups();}
     catch(e){if(report)report.textContent=e.message||'Ошибка резервного копирования.';}finally{if(button)button.disabled=false;}
   }
   async function runCommandRestore(){
-    const button=$('#command-restore-worlds'),report=$('#command-backup-report'),api=window.pywebview?.api;if(!confirm('Восстановить последний архив миров? Перед заменой текущих данных будет создана страховочная копия. Закрой игру перед продолжением.'))return;if(button)button.disabled=true;if(report)report.textContent='Проверяем архив и создаём страховочную копию…';
-    try{if(!api?.restore_worlds)throw new Error('Восстановление доступно в установленном Windows-лаунчере.');const result=await api.restore_worlds();if(!result?.ok)throw new Error(result?.message||'Не удалось восстановить архив.');if(report)report.textContent='Миры восстановлены. Страховочная копия: '+result.safety_backup;}
-    catch(e){if(report)report.textContent=e.message||'Ошибка восстановления.';}finally{if(button)button.disabled=false;}
+    await refreshCommandBackups();
+  }
+  async function runCommandRestoreSelected(){
+    const button=$('#command-restore-selected-worlds'),select=$('#command-backup-select'),report=$('#command-backup-report'),api=window.pywebview?.api,name=select?.value||'';
+    if(!name){if(report)report.textContent='Сначала выбери точку восстановления.';return;}
+    if(!confirm('Восстановить выбранную копию от '+(select.selectedOptions[0]?.textContent||name)+'? Текущее состояние будет сохранено в отдельный страховочный архив. Закрой игру перед продолжением.'))return;
+    if(button)button.disabled=true;if(report)report.textContent='Проверяем архив, готовим файлы и создаём страховочную копию…';
+    try{
+      if(!api?.restore_world_backup)throw new Error('Выбор точки восстановления доступен в обновлённом Windows-лаунчере.');
+      const result=await api.restore_world_backup(name);
+      if(!result?.ok)throw new Error(result?.message||'Не удалось восстановить копию.');
+      if(report)report.textContent='Выбранная копия восстановлена. Файлов: '+(result.files??'—')+'. Страховочная копия: '+result.safety_backup;
+      await refreshCommandBackups();
+    }catch(error){if(report)report.textContent=error.message||'Ошибка восстановления.';}
+    finally{if(button)button.disabled=false;}
   }
   function setCommandSessionDuration(value){const n=Number(value);if(![25,45,60,90].includes(n)||commandSession.running)return;commandSession.duration=n;commandSession.remainingMs=n*60000;commandSession.endsAt=0;saveCommandSession();renderCommandSession();}
   function startCommandSession(){if(commandSession.running)return;if(commandSession.remainingMs<=0)commandSession.remainingMs=commandSession.duration*60000;commandSession.endsAt=Date.now()+commandSession.remainingMs;commandSession.running=true;saveCommandSession();renderCommandSession();}

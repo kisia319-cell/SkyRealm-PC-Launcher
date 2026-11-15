@@ -2,6 +2,8 @@
 import os
 import csv
 import shutil
+import tempfile
+import stat
 import subprocess
 import sys
 import time
@@ -284,7 +286,7 @@ class LauncherApi:
                         bundle.write(item, item.relative_to(profile).as_posix())
                         count += 1
             bundle.writestr("backup-info.json", json.dumps({
-                "format": 1, "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "format": 1, "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "files": count,
                 "application": "SkyRealm", "storage": "Chromium Local Storage"
             }, ensure_ascii=False, indent=2))
         if count == 0:
@@ -301,38 +303,135 @@ class LauncherApi:
         except Exception as exc:
             return {"ok": False, "message": "Не удалось создать копию миров: " + str(exc)}
 
-    def restore_worlds(self):
-        """Restore the newest backup after first creating a safety copy of current saves."""
+    def list_world_backups(self):
+        """List recent world snapshots without exposing arbitrary filesystem paths."""
+        try:
+            backup_dir = self._skyrealm_webview_profile_dir().parent / "backups"
+            if not backup_dir.is_dir():
+                return {"ok": True, "backups": [], "total": 0}
+            archives = sorted(
+                (p for p in backup_dir.glob("skyrealm-worlds-*.zip")
+                 if re.fullmatch(r"skyrealm-worlds-\d{8}-\d{6}-\d{9}\.zip", p.name) and p.is_file()),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            backups = []
+            for archive in archives[:30]:
+                stat_result = archive.stat()
+                created_at = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stat_result.st_mtime))
+                file_count = 0
+                metadata_ok = False
+                try:
+                    with zipfile.ZipFile(archive, "r") as bundle:
+                        members = [item for item in bundle.infolist()
+                                   if not item.is_dir() and item.filename != "backup-info.json"]
+                        file_count = len(members)
+                        try:
+                            metadata = bundle.getinfo("backup-info.json")
+                            if metadata.file_size <= 8192:
+                                payload = json.loads(bundle.read(metadata).decode("utf-8"))
+                                if isinstance(payload, dict) and payload.get("format") == 1:
+                                    created_at = str(payload.get("created_at") or created_at)[:40]
+                                    file_count = max(0, min(100000, int(payload.get("files", file_count))))
+                                    metadata_ok = True
+                        except (KeyError, UnicodeDecodeError, ValueError, OSError):
+                            pass
+                except (zipfile.BadZipFile, OSError):
+                    pass
+                backups.append({
+                    "name": archive.name,
+                    "created_at": created_at,
+                    "files": file_count,
+                    "size_bytes": stat_result.st_size,
+                    "metadata_ok": metadata_ok,
+                })
+            return {"ok": True, "backups": backups, "total": len(archives)}
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось получить список резервных копий: " + str(exc)}
+
+    def restore_world_backup(self, backup_name):
+        """Restore one selected, validated snapshot after first creating a safety copy."""
         try:
             if self._skyrealm_game_is_running():
                 return {"ok": False, "message": "Сначала полностью закрой SkyRealm. Нельзя восстанавливать базу, пока игра запущена."}
-            root = self._skyrealm_webview_profile_dir()
-            backup_dir = root.parent / "backups"
-            archives = sorted(backup_dir.glob("skyrealm-worlds-*.zip"), key=lambda p: p.stat().st_mtime, reverse=True) if backup_dir.exists() else []
-            if not archives:
-                return {"ok": False, "message": "Резервная копия не найдена. Сначала создай её."}
-            safety = self._skyrealm_create_world_backup(prefix="skyrealm-safety")
-            if not safety.get("ok"):
-                return {"ok": False, "message": "Перед восстановлением не удалось сохранить текущие миры: " + safety.get("message", "")}
-            restored = 0
-            profile = root.resolve()
-            with zipfile.ZipFile(archives[0], "r") as bundle:
-                for info in bundle.infolist():
-                    if info.is_dir() or info.filename == "backup-info.json":
-                        continue
-                    relative = Path(info.filename)
-                    if relative.is_absolute() or ".." in relative.parts or "Local Storage" not in relative.parts:
-                        continue
-                    target = (root / relative).resolve()
+            name = str(backup_name or "")
+            if not re.fullmatch(r"skyrealm-worlds-\d{8}-\d{6}-\d{9}\.zip", name):
+                return {"ok": False, "message": "Выбрано недопустимое имя резервной копии."}
+
+            profile = self._skyrealm_webview_profile_dir().resolve()
+            backup_dir = profile.parent / "backups"
+            archive_path = (backup_dir / name).resolve()
+            if archive_path.parent != backup_dir.resolve() or not archive_path.is_file():
+                return {"ok": False, "message": "Выбранная резервная копия не найдена."}
+
+            profile.parent.mkdir(parents=True, exist_ok=True)
+            staged_files = []
+            total_uncompressed = 0
+            with tempfile.TemporaryDirectory(prefix="skyrealm-restore-", dir=str(profile.parent)) as temporary:
+                stage_root = Path(temporary).resolve()
+                with zipfile.ZipFile(archive_path, "r") as bundle:
+                    broken = bundle.testzip()
+                    if broken is not None:
+                        raise ValueError("Архив повреждён: контрольная сумма файла не совпала.")
+                    members = bundle.infolist()
+                    if len(members) > 100000:
+                        raise ValueError("В архиве слишком много файлов.")
+                    for item in members:
+                        if item.is_dir() or item.filename == "backup-info.json":
+                            continue
+                        normalized = item.filename.replace("\\", "/")
+                        parts = tuple(part for part in normalized.split("/") if part not in ("", "."))
+                        if normalized.startswith("/") or not parts or ".." in parts or "Local Storage" not in parts:
+                            raise ValueError("В архиве обнаружен недопустимый путь.")
+                        mode = (item.external_attr >> 16) & 0o170000
+                        if stat.S_ISLNK(mode):
+                            raise ValueError("Архив содержит недопустимую символическую ссылку.")
+                        total_uncompressed += item.file_size
+                        if item.file_size > 256 * 1024 * 1024 or total_uncompressed > 1024 * 1024 * 1024:
+                            raise ValueError("Размер распакованных данных превышает безопасный лимит.")
+                        relative = Path(*parts)
+                        staged = (stage_root / relative).resolve()
+                        if not staged.is_relative_to(stage_root):
+                            raise ValueError("Путь файла выходит за пределы временной папки.")
+                        staged.parent.mkdir(parents=True, exist_ok=True)
+                        with bundle.open(item, "r") as source, staged.open("wb") as destination:
+                            shutil.copyfileobj(source, destination)
+                        staged_files.append((relative, staged))
+
+                if not staged_files:
+                    raise ValueError("В выбранном архиве нет файлов сохранений.")
+
+                safety = self._skyrealm_create_world_backup(prefix="skyrealm-safety")
+                if not safety.get("ok"):
+                    return {"ok": False, "message": "Перед восстановлением не удалось сохранить текущие миры: " + safety.get("message", "")}
+
+                for relative, staged in staged_files:
+                    target = (profile / relative).resolve()
                     if not target.is_relative_to(profile):
-                        continue
+                        raise ValueError("Путь восстановления выходит за пределы хранилища игры.")
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    with bundle.open(info, "r") as source, target.open("wb") as destination:
-                        shutil.copyfileobj(source, destination)
-                    restored += 1
-            if restored == 0:
-                return {"ok": False, "message": "Архив не содержит базы сохранений. Текущие миры не удалены."}
-            return {"ok": True, "files": restored, "safety_backup": safety["path"], "archive": str(archives[0])}
+                    shutil.copy2(staged, target)
+
+            return {
+                "ok": True,
+                "files": len(staged_files),
+                "safety_backup": safety["path"],
+                "archive": str(archive_path),
+                "message": "Выбранная резервная копия восстановлена.",
+            }
+        except Exception as exc:
+            return {"ok": False, "message": "Не удалось восстановить миры: " + str(exc)}
+
+    def restore_worlds(self):
+        """Restore the newest world snapshot for the legacy Settings button."""
+        try:
+            result = self.list_world_backups()
+            if not result.get("ok"):
+                return result
+            backups = result.get("backups") or []
+            if not backups:
+                return {"ok": False, "message": "Резервная копия не найдена. Сначала создай её."}
+            return self.restore_world_backup(backups[0]["name"])
         except Exception as exc:
             return {"ok": False, "message": "Не удалось восстановить миры: " + str(exc)}
 

@@ -107,7 +107,14 @@ assert.match(enhancements,/api\.launch_mod_studio\(\)/,'Mod Studio action must u
 assert.match(enhancements,/api\.get_diagnostics/,'Preflight must call local file diagnostics');
 assert.match(enhancements,/api\.get_system_metrics/,'Preflight must read local machine metrics');
 assert.match(enhancements,/api\.backup_worlds\(\)/,'Backup button must call native backup action');
-assert.match(enhancements,/api\.restore_worlds\(\)/,'Restore button must call native safe restore action');
+assert.match(enhancements,/api\.restore_world_backup\(/,'Selected restore must call the native safe restore action');
+assert.match(launcher,/def list_world_backups\(self\)/,'Launcher must list individual backup snapshots');
+assert.match(launcher,/def restore_world_backup\(self, backup_name\)/,'Launcher must restore a selected snapshot');
+assert.match(launcher,/bundle\.testzip\(\)/,'Selected archives must pass ZIP integrity checks before any save is replaced');
+assert.match(launcher,/skyrealm-safety/,'A safety snapshot must be created before restoring a selected backup');
+assert.match(enhancements,/async function refreshCommandBackups\(\)/,'Start Center must load backup history');
+assert.match(enhancements,/async function runCommandRestoreSelected\(\)/,'Start Center must restore the selected backup');
+for(const id of ['command-backup-select','command-restore-selected-worlds','command-backup-history-report'])assert.ok(enhancements.includes(id),'Missing backup history control: '+id);
 assert.match(enhancements,/restore the last archive|Восстановить последний архив миров/i);
 assert.match(enhancements,/dispatchEvent\(new Event\('change'/,'Performance presets must use existing persisted settings controls');
 assert.match(enhancements,/skyrealm_launcher_perf_profile_v1/,'Selected performance preset must persist');
