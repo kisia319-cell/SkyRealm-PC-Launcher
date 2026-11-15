@@ -1,6 +1,6 @@
 const fs=require("node:fs");const path=require("node:path");const assert=require("node:assert/strict");
 const read=p=>fs.readFileSync(path.join(process.cwd(),p),"utf8");
-const html=read("game/competitive/index.html"),world=read("game/competitive/prime-world.js"),online=read("game/competitive/prime-online.js"),api=read("supabase/functions/skyrealm-prime/index.ts"),migration=read("supabase/migrations/20261113120000_prime_friend_lobbies.sql");
+const html=read("game/competitive/index.html"),world=read("game/competitive/prime-world.js"),online=read("game/competitive/prime-online.js"),api=read("supabase/functions/skyrealm-prime/index.ts"),migration=read("supabase/migrations/20261113120000_prime_friend_lobbies.sql"),teamMigration=read("supabase/migrations/20261115081756_prime_lobby_team_size.sql");
 for(const id of ["friends-page","prime-friend-search","prime-friend-find","prime-friend-list","prime-lobby-invites","prime-lobby-create","prime-lobby-panel","prime-play-bots"])assert.ok(html.includes(id),"Missing Prime social UI: "+id);
 for(const method of ["friends","searchPlayers","addFriend","respondFriend","lobby","createLobby","inviteLobbyFriend","respondLobbyInvite","startLobby","leaveLobby"])assert.ok(online.includes(method+":"),"Missing Prime social client method: "+method);
 for(const route of ["/api/prime/lobby","/api/prime/lobby/invite","/api/prime/lobby/respond","/api/prime/lobby/start","/api/prime/lobby/leave"])assert.ok(api.includes(route),"Missing lobby API route: "+route);
@@ -12,4 +12,5 @@ assert.ok(online.includes('createLobby:(mode,teamSize=1)')&&api.includes('team_s
 assert.ok(world.includes("teamSize=mode==='bots'?2:Math.max(1,Math.min(3,Number(data.team_size)||1))"),"Both clients must start a lobby match with the selected team size");
 assert.ok(world.includes("match.online.mode==='pvp'&&match.team>1")&&world.includes("if(bot.isRemotePlayer&&m.online?.mode==='pvp')continue;"),"2v2/3v3 matches must run AI teammates without overwriting the remote human fighter");
 assert.ok(html.includes('display:inline-flex!important'),"Mobile/desktop media rules must keep 2v2 and 3v3 team options visible");
+assert.ok(teamMigration.includes("team_size smallint")&&teamMigration.includes("between 1 and 3"),"Private lobbies must persist a validated team size");
 console.log("Prime social/lobby integration: all assertions passed");
