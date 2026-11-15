@@ -12,6 +12,7 @@ on:
       - "prime_launcher.py"
       - "prime_launcher_version.txt"
       - "tests/prime-online-test.cjs"
+      - "tests/prime-battle-systems-test.cjs"
 
 permissions:
   contents: write
