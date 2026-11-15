@@ -125,7 +125,7 @@ jobs:
                 & $signTool.FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $pfx /p $env:PRIME_SIGNING_PFX_PASSWORD $exe
                 if ($LASTEXITCODE -ne 0) { throw "Authenticode signing failed for $exe." }
                 $signature = Get-AuthenticodeSignature -FilePath $exe
-                if ($signature.Status -ne "Valid") { throw "Authenticode signature is not valid for $exe: $($signature.Status)." }
+                if ($signature.Status -ne "Valid") { throw "Authenticode signature is not valid for ${exe}: $($signature.Status)." }
               }
               $subject = (Get-AuthenticodeSignature -FilePath $targets[0]).SignerCertificate.Subject
               "SIGNED: Authenticode SHA-256 timestamped signature. Publisher: $subject" | Set-Content -Path "prime_launcher_dist/PrimeLauncher-SIGNATURE.txt" -Encoding UTF8
