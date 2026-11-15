@@ -68,6 +68,9 @@ jobs:
       - name: Build standalone PrimeLauncher
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/prime_launcher_version.txt;." prime_launcher.py
 
+      - name: Build standalone PrimeLauncher portable folder
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_portable_dist --workpath build_prime_launcher_portable/work --specpath build_prime_launcher_portable --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/prime_launcher_version.txt;." 
+
       - name: Verify standalone package
         shell: pwsh
         run: |
@@ -80,6 +83,43 @@ jobs:
             if (-not $normalized.Contains($asset)) { throw "PrimeLauncher is missing bundled asset: $asset" }
           }
 
+      - name: Sign PrimeLauncher binaries when a trusted certificate is configured
+        shell: pwsh
+        env:
+          PRIME_SIGNING_PFX_BASE64: ${{ secrets.PRIME_SIGNING_PFX_BASE64 }}
+          PRIME_SIGNING_PFX_PASSWORD: ${{ secrets.PRIME_SIGNING_PFX_PASSWORD }}
+        run: |
+          $targets = @(
+            "prime_launcher_dist/PrimeLauncher.exe",
+            "prime_launcher_portable_dist/PrimeLauncher/PrimeLauncher.exe"
+          )
+          if ([string]::IsNullOrWhiteSpace($env:PRIME_SIGNING_PFX_BASE64) -and [string]::IsNullOrWhiteSpace($env:PRIME_SIGNING_PFX_PASSWORD)) {
+            "UNSIGNED: no trusted Authenticode certificate is configured for this repository." | Set-Content -Path "prime_launcher_dist/PrimeLauncher-SIGNATURE.txt" -Encoding UTF8
+            Write-Warning "PrimeLauncher artifacts remain unsigned. Add PRIME_SIGNING_PFX_BASE64 and PRIME_SIGNING_PFX_PASSWORD repository secrets to enable trusted signing."
+          } elseif ([string]::IsNullOrWhiteSpace($env:PRIME_SIGNING_PFX_BASE64) -or [string]::IsNullOrWhiteSpace($env:PRIME_SIGNING_PFX_PASSWORD)) {
+            throw "Both PRIME_SIGNING_PFX_BASE64 and PRIME_SIGNING_PFX_PASSWORD must be configured together."
+          } else {
+            $sdk = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
+            $signTool = Get-ChildItem -Path $sdk -Filter signtool.exe -Recurse -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
+              Sort-Object FullName -Descending | Select-Object -First 1
+            if (-not $signTool) { throw "Windows SDK SignTool was not found." }
+            $pfx = Join-Path $env:RUNNER_TEMP "PrimeLauncher-CodeSigning.pfx"
+            try {
+              [System.IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PRIME_SIGNING_PFX_BASE64))
+              foreach ($exe in $targets) {
+                & $signTool.FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $pfx /p $env:PRIME_SIGNING_PFX_PASSWORD $exe
+                if ($LASTEXITCODE -ne 0) { throw "Authenticode signing failed for $exe." }
+                $signature = Get-AuthenticodeSignature -FilePath $exe
+                if ($signature.Status -ne "Valid") { throw "Authenticode signature is not valid for $exe: $($signature.Status)." }
+              }
+              $subject = (Get-AuthenticodeSignature -FilePath $targets[0]).SignerCertificate.Subject
+              "SIGNED: Authenticode SHA-256 timestamped signature. Publisher: $subject" | Set-Content -Path "prime_launcher_dist/PrimeLauncher-SIGNATURE.txt" -Encoding UTF8
+            } finally {
+              if (Test-Path $pfx) { Remove-Item $pfx -Force }
+            }
+          }
+
       - name: Package executable ZIP
         shell: pwsh
         run: |
@@ -87,6 +127,7 @@ jobs:
           $version = (Get-Content prime_launcher_version.txt -Raw).Trim()
           New-Item -ItemType Directory -Force $package | Out-Null
           Copy-Item "prime_launcher_dist/PrimeLauncher.exe" "$package/PrimeLauncher.exe" -Force
+          Copy-Item "prime_launcher_dist/PrimeLauncher-SIGNATURE.txt" "$package/PrimeLauncher-SIGNATURE.txt" -Force
           @"
           PrimeLauncher $version
 
@@ -96,8 +137,19 @@ jobs:
           "@ | Set-Content -Path "$package/README.txt" -Encoding UTF8
           Compress-Archive -Path "$package/*" -DestinationPath "prime_launcher_dist/PrimeLauncher-Windows.zip" -Force
           if (-not (Test-Path "prime_launcher_dist/PrimeLauncher-Windows.zip")) { throw "PrimeLauncher ZIP package was not created" }
-          $hash = (Get-FileHash "prime_launcher_dist/PrimeLauncher-Windows.zip" -Algorithm SHA256).Hash.ToLower()
-          "$hash  PrimeLauncher-Windows.zip" | Set-Content -Path "prime_launcher_dist/PrimeLauncher-Windows.zip.sha256" -Encoding ASCII -NoNewline
+          @"
+          PrimeLauncher $version portable folder build
+
+          Распакуй весь архив в отдельную папку и запускай PrimeLauncher.exe внутри неё.
+          Не перемещай EXE отдельно от папки _internal.
+          "@ | Set-Content -Path "prime_launcher_portable_dist/PrimeLauncher/README.txt" -Encoding UTF8
+          Compress-Archive -Path "prime_launcher_portable_dist/PrimeLauncher/*" -DestinationPath "prime_launcher_dist/PrimeLauncher-Portable.zip" -Force
+          $zipHash = (Get-FileHash "prime_launcher_dist/PrimeLauncher-Windows.zip" -Algorithm SHA256).Hash.ToLower()
+          "$zipHash  PrimeLauncher-Windows.zip" | Set-Content -Path "prime_launcher_dist/PrimeLauncher-Windows.zip.sha256" -Encoding ASCII -NoNewline
+          $exeHash = (Get-FileHash "prime_launcher_dist/PrimeLauncher.exe" -Algorithm SHA256).Hash.ToLower()
+          "$exeHash  PrimeLauncher.exe" | Set-Content -Path "prime_launcher_dist/PrimeLauncher.exe.sha256" -Encoding ASCII -NoNewline
+          $portableHash = (Get-FileHash "prime_launcher_dist/PrimeLauncher-Portable.zip" -Algorithm SHA256).Hash.ToLower()
+          "$portableHash  PrimeLauncher-Portable.zip" | Set-Content -Path "prime_launcher_dist/PrimeLauncher-Portable.zip.sha256" -Encoding ASCII -NoNewline
 
       - name: Upload standalone executable artifact
         uses: actions/upload-artifact@v4
@@ -107,6 +159,10 @@ jobs:
             prime_launcher_dist/PrimeLauncher.exe
             prime_launcher_dist/PrimeLauncher-Windows.zip
             prime_launcher_dist/PrimeLauncher-Windows.zip.sha256
+            prime_launcher_dist/PrimeLauncher-Portable.zip
+            prime_launcher_dist/PrimeLauncher-Portable.zip.sha256
+            prime_launcher_dist/PrimeLauncher.exe.sha256
+            prime_launcher_dist/PrimeLauncher-SIGNATURE.txt
           if-no-files-found: error
           retention-days: 30
 
@@ -124,7 +180,7 @@ jobs:
           
           PrimeLauncher.exe сразу открывает соревновательный мир. Он собран с отдельной точкой входа и не запускает обычное окно SkyRealm. Обычный SkyRealm.exe и игровой архив SkyRealm этой публикацией не пересобираются. Android APK собирается и публикуется в отдельном мобильном репозитории.
           "@
-          gh release create $tag "prime_launcher_dist/PrimeLauncher.exe" "prime_launcher_dist/PrimeLauncher-Windows.zip" "prime_launcher_dist/PrimeLauncher-Windows.zip.sha256" --title "PrimeLauncher $version (standalone)" --notes $notes --prerelease
+          gh release create $tag "prime_launcher_dist/PrimeLauncher.exe" "prime_launcher_dist/PrimeLauncher-Windows.zip" "prime_launcher_dist/PrimeLauncher-Windows.zip.sha256" "prime_launcher_dist/PrimeLauncher-Portable.zip" "prime_launcher_dist/PrimeLauncher-Portable.zip.sha256" "prime_launcher_dist/PrimeLauncher.exe.sha256" "prime_launcher_dist/PrimeLauncher-SIGNATURE.txt" --title "PrimeLauncher $version (standalone)" --notes $notes --prerelease
           if ($LASTEXITCODE -ne 0) { throw "Could not publish standalone PrimeLauncher release" }
           $release = gh release view $tag --json assets,url | ConvertFrom-Json
           if (-not ($release.assets | Where-Object { $_.name -eq "PrimeLauncher.exe" })) {
