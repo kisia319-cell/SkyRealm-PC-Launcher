@@ -23,7 +23,8 @@ async function resolveDisconnect(m:any,connectedUser:string){
  const otherSeen=m.user_a===connectedUser?m.guest_seen_at:m.host_seen_at;
  if(m.status!=="active"||!otherSeen||Date.now()-Date.parse(otherSeen)<RECONNECT_GRACE_MS)return null;
  const coop=await finishCoopBotMatch(m,"abandoned",true);if(coop)return {...coop,reason:"opponent_disconnected"};
- const result=await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:m.user_a,p_winner:connectedUser,p_reason:"abandoned"})});
+ const disconnectedUser=m.user_a===connectedUser?m.user_b:m.user_a;
+ const result=await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:disconnectedUser,p_winner:connectedUser,p_reason:"abandoned"})});
  return {status:"abandoned",winner_id:connectedUser,result,reason:"opponent_disconnected"};
 }
 function safeInput(v:any){if(!v||typeof v!=="object"||Array.isArray(v))throw new ApiError(400,"INVALID_INPUT","Некорректное управление.");const keys=["up","down","left","right","sprint","attack"];const out:any={};for(const k of keys)out[k]=v[k]===true;const actions=Array.isArray(v.actions)?v.actions.slice(0,6):[];const allowed=["warcry","shield","volley","upgrade","train","halt","regroup","guard","build"];out.actions=actions.filter((a:any)=>a&&allowed.includes(String(a.type))).map((a:any)=>({type:String(a.type),kind:String(a.kind||"").slice(0,20),x:Number.isFinite(a.x)?Math.max(0,Math.min(3200,a.x)):undefined,y:Number.isFinite(a.y)?Math.max(0,Math.min(3200,a.y)):undefined}));return out;}
@@ -128,12 +129,11 @@ Deno.serve(async(req:Request)=>{
    const p=await readBody(req,3000),m=await memberMatch(String(p.match_id||""),user.id);
    const coop=await finishCoopBotMatch(m,"abandoned",true);if(coop)return reply({ok:true,...coop});
    const winner=m.user_a===user.id?m.user_b:m.user_a;
-   const result=await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:m.user_a,p_winner:winner,p_reason:"abandoned"})});
+   const result=await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:user.id,p_winner:winner,p_reason:"abandoned"})});
    return reply({ok:true,...result});
   }
   if(route==="/api/prime/finish"&&req.method==="POST"){
    const p=await readBody(req,3000),m=await memberMatch(String(p.match_id||""),user.id);
-   if(m.user_a!==user.id)throw new ApiError(403,"HOST_ONLY","Результат подтверждает ведущий матча.");
    const coop=await finishCoopBotMatch(m,p.outcome==="win"?"win":"loss",p.reason==="abandoned");if(coop)return reply({ok:true,...coop});
    const winner=p.winner_id===m.user_a||p.winner_id===m.user_b?p.winner_id:null;
    const result=await db("rpc/prime_finish_match",{method:"POST",body:JSON.stringify({p_match_id:m.id,p_actor:user.id,p_winner:winner,p_reason:p.reason==="abandoned"?"abandoned":"completed"})});
