@@ -53,7 +53,11 @@ const expected = [
   '20261112131547_prime_online_presence.sql',
   '20261112132846_prime_online_queue_keepalive.sql',
   '20261113120000_prime_friend_lobbies.sql',
-  '20261114113000_prime_transport_single_roundtrip.sql'
+  '20261114113000_prime_transport_single_roundtrip.sql',
+  '20261115081256_prime_dual_result_confirmation.sql',
+  '20261115081504_prime_keep_pending_matches_reserved.sql',
+  '20261115081534_prime_transport_reconnect_grace_120s.sql',
+  '20261115081756_prime_lobby_team_size.sql'
 ];
 const actual = fs.readdirSync(dir).filter(name => name.endsWith('.sql')).sort();
 assert.deepEqual(actual, expected, 'SQL migration files must match the connected Supabase migration history');
@@ -128,11 +132,21 @@ console.log('SkyRealm Supabase migration history tests passed.');
 
 
 
-assert.ok(read(expected[expected.length-2]).includes('create table if not exists public.prime_lobbies'));
-assert.ok(read(expected[expected.length-2]).includes('prime_lobby_one_active_per_user'));
+assert.ok(read(expected[expected.length-5]).includes('create table if not exists public.prime_lobbies'));
+assert.ok(read(expected[expected.length-5]).includes('prime_lobby_one_active_per_user'));
 
-const transportMigration=read(expected[expected.length-1]);
+const resultGuardMigration=read(expected[expected.length-4]);
+assert.ok(resultGuardMigration.includes('prime_match_result_reports'));
+assert.ok(resultGuardMigration.includes("'awaiting_confirmation'"));
+assert.ok(resultGuardMigration.includes("'disputed'"));
+const pendingSlotMigration=read(expected[expected.length-3]);
+assert.ok(pendingSlotMigration.includes("status in ('active','awaiting_confirmation')"));
+const transportMigration=read(expected[expected.length-2]);
 assert.ok(transportMigration.includes('public.prime_host_publish'));
 assert.ok(transportMigration.includes('public.prime_guest_exchange'));
 assert.ok(transportMigration.includes('from public,anon,authenticated'));
 assert.ok(transportMigration.includes('to service_role'));
+assert.ok(transportMigration.includes("interval '120 seconds'"));
+const teamSizeMigration=read(expected[expected.length-1]);
+assert.ok(teamSizeMigration.includes('team_size smallint'));
+assert.ok(teamSizeMigration.includes('between 1 and 3'));
