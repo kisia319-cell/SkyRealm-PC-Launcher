@@ -111,3 +111,14 @@ assert.ok(!primeWorldSource.includes("ctx.fillRect(-13,-23,26,42)"),'PC fighter 
 assert.ok(!pcHtml.includes('body.online-match .battle-tools #build-toggle'),'PC online mode must not hide the build button');
 assert.ok(pcHtml.includes('class="tool-btn" id="balance-toggle"'),'PC online mode must expose the balance button without the hidden class');
 console.log('PC online build/balance/co-op respawn regression assertions passed');
+
+
+// Ranked result integrity: the API accepts authenticated participants, not just the host,
+// and the database waits for two matching reports before changing either rating.
+assert.ok(!primeApi.includes('if(m.user_a!==user.id)throw new ApiError(403,"HOST_ONLY"'), 'A guest must be allowed to confirm the reported result');
+assert.ok(primeApi.includes('p_actor:user.id,p_winner:winner'), 'Each ranked report must be attributed to the currently authenticated participant');
+assert.ok(primeApi.includes('const disconnectedUser=m.user_a===connectedUser?m.user_b:m.user_a'), 'Reconnect expiry must attribute a forfeit to the participant who actually timed out');
+assert.ok(primeWorldSource.includes("state.status==='awaiting_confirmation'")&&primeWorldSource.includes("PrimeOnline.finish(online.match_id,winner,'completed')"), 'The second participant must confirm a proposed result before ELO changes');
+assert.ok(primeWorldSource.includes("result.status==='disputed'")&&primeWorldSource.includes('ELO не изменён'), 'Disputed results must not be presented as rated wins');
+assert.ok(primeWorldSource.includes('const rankedOnline=!!online&&online.mode!==\'bots\';if(!rankedOnline){profile.matches++;'), 'Ranked counters must come from the server after confirmation');
+console.log('Prime dual-player result confirmation and ELO guard assertions passed');
