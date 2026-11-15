@@ -49,7 +49,7 @@ const mineRuntime={
  updateHud:()=>{},applyEnemyDifficulty:()=>{}
 };
 const mineFns=['updateBattleObjectives','spawnMineDefenders'].map(name=>extractPrimeFunction(js,name));
-vm.runInNewContext(mineFns.join('\\n')+'\\nglobalThis.stepMine=updateBattleObjectives;globalThis.buyMineGuard=spawnMineDefenders;',mineRuntime);
+vm.runInNewContext(mineFns.join(String.fromCharCode(10))+String.fromCharCode(10)+'globalThis.stepMine=updateBattleObjectives;globalThis.buyMineGuard=spawnMineDefenders;',mineRuntime);
 mineRuntime.stepMine(12);
 assert.equal(mineRuntime.match.mine.owner,-1,'Living neutral guards must block capture');
 assert.equal(mineRuntime.match.mine.progress,0,'Blocked mine must not accumulate capture progress');
