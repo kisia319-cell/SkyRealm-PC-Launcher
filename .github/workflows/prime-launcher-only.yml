@@ -9,6 +9,7 @@ on:
       - "game/competitive/index.html"
       - "game/competitive/prime-world.js"
       - "game/competitive/prime-online.js"
+      - "prime_launcher.py"
       - "prime_launcher_version.txt"
 
 permissions:
@@ -36,6 +37,7 @@ jobs:
           $required = @(
             "launcher.py",
             "prime_launcher.py",
+            "prime_launcher_version.txt",
             "PrimeLauncher.ico",
             "requirements-build.txt",
             "game/competitive/index.html",
@@ -56,7 +58,7 @@ jobs:
         run: python -m pip install -r requirements-build.txt
 
       - name: Build standalone PrimeLauncher
-        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" prime_launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/prime_launcher_version.txt;." prime_launcher.py
 
       - name: Verify standalone package
         shell: pwsh
@@ -86,6 +88,8 @@ jobs:
           "@ | Set-Content -Path "$package/README.txt" -Encoding UTF8
           Compress-Archive -Path "$package/*" -DestinationPath "prime_launcher_dist/PrimeLauncher-Windows.zip" -Force
           if (-not (Test-Path "prime_launcher_dist/PrimeLauncher-Windows.zip")) { throw "PrimeLauncher ZIP package was not created" }
+          $hash = (Get-FileHash "prime_launcher_dist/PrimeLauncher-Windows.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  PrimeLauncher-Windows.zip" | Set-Content -Path "prime_launcher_dist/PrimeLauncher-Windows.zip.sha256" -Encoding ASCII -NoNewline
 
       - name: Upload standalone executable artifact
         uses: actions/upload-artifact@v4
@@ -94,6 +98,7 @@ jobs:
           path: |
             prime_launcher_dist/PrimeLauncher.exe
             prime_launcher_dist/PrimeLauncher-Windows.zip
+            prime_launcher_dist/PrimeLauncher-Windows.zip.sha256
           if-no-files-found: error
           retention-days: 30
 
@@ -111,7 +116,7 @@ jobs:
           
           PrimeLauncher.exe сразу открывает соревновательный мир. Он собран с отдельной точкой входа и не запускает обычное окно SkyRealm. Обычный SkyRealm.exe и игровой архив SkyRealm этой публикацией не пересобираются. Android APK собирается и публикуется в отдельном мобильном репозитории.
           "@
-          gh release create $tag "prime_launcher_dist/PrimeLauncher.exe" "prime_launcher_dist/PrimeLauncher-Windows.zip" --title "PrimeLauncher $version (standalone)" --notes $notes --prerelease
+          gh release create $tag "prime_launcher_dist/PrimeLauncher.exe" "prime_launcher_dist/PrimeLauncher-Windows.zip" "prime_launcher_dist/PrimeLauncher-Windows.zip.sha256" --title "PrimeLauncher $version (standalone)" --notes $notes --prerelease
           if ($LASTEXITCODE -ne 0) { throw "Could not publish standalone PrimeLauncher release" }
           $release = gh release view $tag --json assets,url | ConvertFrom-Json
           if (-not ($release.assets | Where-Object { $_.name -eq "PrimeLauncher.exe" })) {
