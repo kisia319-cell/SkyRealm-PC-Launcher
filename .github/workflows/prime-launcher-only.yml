@@ -13,6 +13,8 @@ on:
       - "prime_launcher_version.txt"
       - "tests/prime-online-test.cjs"
       - "tests/prime-battle-systems-test.cjs"
+      - "tests/competitive-mode-test.cjs"
+      - "tests/prime-mine-regression-test.cjs"
       - "tests/prime-updater-test.py"
 
 permissions:
@@ -69,7 +71,7 @@ jobs:
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/prime_launcher_version.txt;." prime_launcher.py
 
       - name: Build standalone PrimeLauncher portable folder
-        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_portable_dist --workpath build_prime_launcher_portable/work --specpath build_prime_launcher_portable --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/prime_launcher_version.txt;." 
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_portable_dist --workpath build_prime_launcher_portable/work --specpath build_prime_launcher_portable --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/prime_launcher_version.txt;."
 
       - name: Verify standalone package
         shell: pwsh
@@ -81,6 +83,18 @@ jobs:
           $normalized = $listing.ToLower().Replace("\", "/")
           foreach ($asset in @("game/competitive/index.html", "game/competitive/prime-world.js", "game/competitive/prime-online.js")) {
             if (-not $normalized.Contains($asset)) { throw "PrimeLauncher is missing bundled asset: $asset" }
+          }
+
+      - name: Verify portable folder distribution
+        shell: pwsh
+        run: |
+          $portableRoot = "prime_launcher_portable_dist/PrimeLauncher"
+          $portableExe = Join-Path $portableRoot "PrimeLauncher.exe"
+          if (-not (Test-Path $portableExe)) { throw "Portable PrimeLauncher.exe is missing" }
+          foreach ($asset in @("index.html", "prime-world.js", "prime-online.js")) {
+            if (-not (Get-ChildItem -Path $portableRoot -Recurse -File -Filter $asset -ErrorAction SilentlyContinue | Select-Object -First 1)) {
+              throw "Portable PrimeLauncher is missing $asset"
+            }
           }
 
       - name: Sign PrimeLauncher binaries when a trusted certificate is configured
@@ -179,6 +193,8 @@ jobs:
           Содержит исправление локального игрока на Android/Windows, корректное отображение HP и базы гостя, сохранение кэша карты между сетевыми пакетами, более частую синхронизацию и сглаженный RTT-пинг.
           
           PrimeLauncher.exe сразу открывает соревновательный мир. Он собран с отдельной точкой входа и не запускает обычное окно SkyRealm. Обычный SkyRealm.exe и игровой архив SkyRealm этой публикацией не пересобираются. Android APK собирается и публикуется в отдельном мобильном репозитории.
+
+          Дополнительно приложен PrimeLauncher-Portable.zip (onedir): запускай EXE из распакованной папки вместе с файлами рядом. В релизе есть SHA-256 для EXE и архивов, а PrimeLauncher-SIGNATURE.txt сообщает реальный статус Authenticode. Без настроенного доверенного сертификата сборка остаётся неподписанной; портативная упаковка не гарантирует отсутствие антивирусных срабатываний.
           "@
           gh release create $tag "prime_launcher_dist/PrimeLauncher.exe" "prime_launcher_dist/PrimeLauncher-Windows.zip" "prime_launcher_dist/PrimeLauncher-Windows.zip.sha256" "prime_launcher_dist/PrimeLauncher-Portable.zip" "prime_launcher_dist/PrimeLauncher-Portable.zip.sha256" "prime_launcher_dist/PrimeLauncher.exe.sha256" "prime_launcher_dist/PrimeLauncher-SIGNATURE.txt" --title "PrimeLauncher $version (standalone)" --notes $notes --prerelease
           if ($LASTEXITCODE -ne 0) { throw "Could not publish standalone PrimeLauncher release" }
@@ -188,5 +204,11 @@ jobs:
           }
           if (-not ($release.assets | Where-Object { $_.name -eq "PrimeLauncher-Windows.zip" })) {
             throw "PrimeLauncher-Windows.zip is missing from the published release"
+          }
+          if (-not ($release.assets | Where-Object { $_.name -eq "PrimeLauncher-Portable.zip" })) {
+            throw "PrimeLauncher-Portable.zip is missing from the published release"
+          }
+          foreach ($assetName in @("PrimeLauncher.exe.sha256", "PrimeLauncher-Portable.zip.sha256", "PrimeLauncher-SIGNATURE.txt")) {
+            if (-not ($release.assets | Where-Object { $_.name -eq $assetName })) { throw "$assetName is missing from the published release" }
           }
           Write-Host "Published standalone PrimeLauncher: $($release.url)"
