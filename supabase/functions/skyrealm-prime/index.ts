@@ -149,7 +149,7 @@ Deno.serve(async(req:Request)=>{
    const memberships=await db("prime_lobby_members?select=lobby_id,role,last_seen_at&user_id=eq."+user.id+"&limit=1");
    const membership=memberships?.[0];let lobby=null;
    if(membership){
-    const rooms=await db("prime_lobbies?select=id,owner_id,status,mode,match_id,created_at,updated_at&id=eq."+membership.lobby_id+"&limit=1");
+    const rooms=await db("prime_lobbies?select=id,owner_id,status,mode,team_size,match_id,created_at,updated_at&id=eq."+membership.lobby_id+"&limit=1");
     const room=rooms?.[0];
     if(!room||room.status==="closed"){await db("prime_lobby_members?lobby_id=eq."+membership.lobby_id,{method:"DELETE"});}
     if(room&&room.status!=="closed"){
@@ -168,10 +168,11 @@ Deno.serve(async(req:Request)=>{
    return reply({lobby,invites:(invites||[]).map((x:any)=>({...x,inviter:inviterMap.get(x.inviter_id)||{username:"Игрок"}}))});
   }
   if(route==="/api/prime/lobby"&&req.method==="POST"){
-   const p=await readBody(req,1000),mode=p.mode==="bots"?"bots":"pvp";
+   const p=await readBody(req,1000),mode=p.mode==="bots"?"bots":"pvp",teamSize=Number(p.team_size??1);
+   if(!Number.isInteger(teamSize)||teamSize<1||teamSize>3)throw new ApiError(400,"INVALID_TEAM_SIZE","Размер команды должен быть 1, 2 или 3.");
    const existing=await db("prime_lobby_members?select=lobby_id&user_id=eq."+user.id+"&limit=1");
    if(existing?.length)throw new ApiError(409,"ALREADY_IN_LOBBY","Сначала выйди из текущего лобби.");
-   const created=await db("prime_lobbies",{method:"POST",body:JSON.stringify({owner_id:user.id,status:"lobby",mode})});
+   const created=await db("prime_lobbies",{method:"POST",body:JSON.stringify({owner_id:user.id,status:"lobby",mode,team_size:teamSize})});
    const room=created?.[0];if(!room)throw new ApiError(500,"LOBBY_CREATE_FAILED","Не удалось создать лобби.");
    await db("prime_lobby_members",{method:"POST",body:JSON.stringify({lobby_id:room.id,user_id:user.id,role:"owner"})});
    return reply({lobby:{...room,role:"owner",members:[{user_id:user.id,role:"owner"}]}},201);
@@ -229,7 +230,7 @@ Deno.serve(async(req:Request)=>{
    const match=made?.[0];if(!match)throw new ApiError(500,"MATCH_CREATE_FAILED","Не удалось создать матч.");
    await db("prime_lobbies?id=eq."+lobbyId,{method:"PATCH",body:JSON.stringify({status:"running",match_id:match.id,updated_at:new Date().toISOString()})});
    const people=await db("profiles?select=id,username,display_name&id=eq."+opponent.user_id+"&limit=1");
-   return reply({status:"matched",match_id:match.id,role:"host",seed,mode:room.mode||"pvp",opponent_id:opponent.user_id,opponent:people?.[0]||{username:"Друг"},lobby_id:lobbyId});
+   return reply({status:"matched",match_id:match.id,role:"host",seed,mode:room.mode||"pvp",team_size:room.team_size||1,opponent_id:opponent.user_id,opponent:people?.[0]||{username:"Друг"},lobby_id:lobbyId});
   }
   if(route==="/api/prime/lobby/leave"&&req.method==="POST"){
    const p=await readBody(req,2000),lobbyId=String(p.lobby_id||"");
