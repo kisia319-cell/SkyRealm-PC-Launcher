@@ -327,7 +327,7 @@ async function beginOnlineQueue(){
 async function pollPrimeQueue(){if(!onlineQueueActive)return;const result=await PrimeOnline.queue(profile.elo??0);if(result.status==='matched'){onlineQueueActive=false;if(onlineQueueTimer)clearTimeout(onlineQueueTimer);$('search-title').textContent='Соперник найден!';$('search-detail').textContent='Подготавливаем онлайн-арену...';await startOnlineMatch(result);return;}$('search-title').textContent='Поиск соперника 1 × 1';$('search-detail').textContent='Ты в очереди. Для дуэли нужен второй игрок с другим аккаунтом SkyRealm.';onlineQueueTimer=setTimeout(()=>pollPrimeQueue().catch(e=>{if(onlineQueueActive){$('search-title').textContent='Ошибка поиска';$('search-detail').textContent=e.message;onlineQueueActive=false;$('find-match').disabled=false;}}),1800);}
 async function cancelOnlineQueue(){onlineQueueActive=false;if(onlineQueueTimer)clearTimeout(onlineQueueTimer);if(searchTimer)clearInterval(searchTimer);try{await PrimeOnline.cancelQueue();}catch(_){}$('search-box').classList.add('hidden');$('find-match').disabled=false;}
 async function startOnlineMatch(data){
- const mode=data.mode==='bots'?'bots':'pvp';let selfName=window.PrimeCurrentDisplayName||'Игрок';
+ const mode=data.mode==='bots'?'bots':'pvp';teamSize=mode==='bots'?2:Math.max(1,Math.min(3,Number(data.team_size)||1));let selfName=window.PrimeCurrentDisplayName||'Игрок';
  try{const own=await PrimeOnline.profile(),p=own.profile||{};selfName=p.username||p.display_name||selfName;}catch(_){}
  window.PrimeCurrentDisplayName=selfName;const navName=$('prime-nav-display-name');if(navName)navName.textContent=selfName;
  const opponentName=data.opponent?.username||data.opponent?.display_name||'Соперник';
@@ -389,7 +389,8 @@ async function renderPrimeFriends(){
      try{
       if(!primeCurrentLobby){
        const mode=$("prime-lobby-mode")?.value==="bots"?"bots":"pvp";
-       const created=await PrimeOnline.createLobby(mode);
+       const selectedTeamSize=Number($("prime-team-size")?.value)||teamSize;
+       const created=await PrimeOnline.createLobby(mode,selectedTeamSize);
        primeCurrentLobby=created.lobby||null;
       }
       if(!primeCurrentLobby?.id)throw new Error("Не удалось создать лобби. Нажми «Создать лобби» и попробуй ещё раз.");
@@ -419,7 +420,7 @@ async function renderPrimeFriends(){
   if(!primeCurrentLobby){
    panel.append(socialNode("p","","Создай лобби, затем пригласи друга из списка друзей. В комнате можно сыграть дуэль 1 × 1."));
   }else{
-   const l=primeCurrentLobby;
+   const l=primeCurrentLobby;teamSize=Math.max(1,Math.min(3,Number(l.team_size)||1));const teamSelect=$("prime-team-size");if(teamSelect)teamSelect.value=String(teamSize);
    panel.append(socialNode("div","","Код лобби: "+l.id.slice(0,8).toUpperCase()+" · "+(l.mode==="bots"?"ВДВОЁМ ПРОТИВ БОТОВ":"ДУЭЛЬ 1 × 1")+" · "+(l.status==="running"?"Матч запущен":"Ожидание друга")));
    for(const member of (l.members||[])){
     const name=member.profile?.display_name||member.profile?.username||(member.user_id===PrimeOnline.userId()?"Ты":"Игрок");
@@ -427,7 +428,7 @@ async function renderPrimeFriends(){
    }
    if(l.role==="owner"&&l.status==="lobby"){
     if((l.members||[]).length<2)panel.append(socialNode("p","","Пригласи друга из списка выше. После принятия приглашения появится кнопка запуска."));
-    else panel.append(socialAction(l.mode==="bots"?"НАЧАТЬ КООПЕРАЦИЮ 2 ИГРОКА ПРОТИВ БОТОВ":"НАЧАТЬ ДУЭЛЬ 1 × 1",async()=>{try{const result=await PrimeOnline.startLobby(l.id);socialMessage(l.mode==="bots"?"Напарник подключён. Запускаем бой против ботов.":"Соперник подключён. Запускаем арену.");await startOnlineMatch({...result,mode:l.mode||"pvp"});}catch(e){socialMessage(e.message,true);}},true));
+    else panel.append(socialAction(l.mode==="bots"?"НАЧАТЬ КООПЕРАЦИЮ 2 ИГРОКА ПРОТИВ БОТОВ":"НАЧАТЬ ДУЭЛЬ 1 × 1",async()=>{try{const result=await PrimeOnline.startLobby(l.id);socialMessage(l.mode==="bots"?"Напарник подключён. Запускаем бой против ботов.":"Соперник подключён. Запускаем арену.");await startOnlineMatch({...result,mode:l.mode||"pvp",team_size:l.team_size||1});}catch(e){socialMessage(e.message,true);}},true));
    }else if(l.status==="running"){panel.append(socialNode("p","","Матч уже запущен. Подключись к арене."));if(l.role!=="owner")panel.append(socialAction("ПРИСОЕДИНИТЬСЯ К МАТЧУ",async()=>{try{const state=await PrimeOnline.status(l.match_id),opponent=(l.members||[]).find(x=>x.user_id!==PrimeOnline.userId());await startOnlineMatch({...state,match_id:state.id,opponent_id:opponent?.user_id,opponent:state.opponent,mode:l.mode||"pvp"});}catch(e){socialMessage(e.message,true);}},true));}
    panel.append(socialAction("Покинуть лобби",async()=>{try{await PrimeOnline.leaveLobby(l.id);socialMessage("Ты покинул лобби.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
   }
@@ -449,7 +450,7 @@ async function searchPrimeFriends(){
 $("prime-friend-find")?.addEventListener("click",searchPrimeFriends);
 $("prime-friend-search")?.addEventListener("keydown",e=>{if(e.key==="Enter")searchPrimeFriends();});
 $("prime-friends-refresh")?.addEventListener("click",renderPrimeFriends);
-$("prime-lobby-create")?.addEventListener("click",async()=>{try{const mode=$("prime-lobby-mode")?.value==="bots"?"bots":"pvp";const created=await PrimeOnline.createLobby(mode);primeCurrentLobby=created.lobby||null;socialMessage(mode==="bots"?"Кооперативное лобби создано. Пригласи напарника.":"Лобби создано. Пригласи друга.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}});
+$("prime-lobby-create")?.addEventListener("click",async()=>{try{const mode=$("prime-lobby-mode")?.value==="bots"?"bots":"pvp";const selectedTeamSize=Number($("prime-team-size")?.value)||teamSize;const created=await PrimeOnline.createLobby(mode,selectedTeamSize);primeCurrentLobby=created.lobby||null;socialMessage(mode==="bots"?"Кооперативное лобби создано. Пригласи напарника.":"Лобби создано. Пригласи друга.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}});
 $("prime-play-bots")?.addEventListener("click",()=>{matchKind="training";document.querySelectorAll("[data-kind]").forEach(b=>b.classList.toggle("selected",b.dataset.kind==="training"));show("menu");beginSearch();});
 $("prime-social-back")?.addEventListener("click",()=>show("menu"));
 
@@ -501,7 +502,7 @@ function createMatch(onlineConfig=null){
   match.mine={x:mineX,y:mineY,owner:-1,captureTeam:null,progress:0,incomePerMinute:200,guardCount:4,guardsRemaining:4,defenderCost:900,defenderLimit:2,defendersSpawned:{0:0,1:0},ownerProfile:null};
   for(let i=0;i<match.mine.guardCount;i++){const angle=i*Math.PI/2+.35,hp=165;match.units.push({id:++match.unitCounter,team:2,x:mineX+Math.cos(angle)*45,y:mineY+Math.sin(angle)*38,homeX:mineX,homeY:mineY,kind:'mine-guard',mineGuard:true,hp,maxHp:hp,damage:24,range:118,speed:150,attack:0,attackInterval:1.05,flash:0,alive:true,name:'Охранник шахты'});}
   match.supplyCaches=[{x:midX-100,y:laneY-315,active:true,respawnAt:0},{x:midX+100,y:laneY+315,active:true,respawnAt:0}];match.mercenaryCamp={x:playerBaseX-165,y:playerBaseY-135};match.mercenaryCooldownUntil=0;match.energyRift={x:midX+(Number(worldMeta.seed)%2?90:-90),y:laneY+(Number(worldMeta.seed)%2?260:-260),active:false,nextAt:85,expiresAt:0,captureTeam:null,progress:0};
- if(onlineConfig){const coop=onlineConfig.mode==='bots';match.kind=coop?'co-op-bots':'online';match.team=coop?2:1;match.online={match_id:onlineConfig.match_id,role:onlineConfig.role,mode:coop?'bots':'pvp',selfId:PrimeOnline.userId(),opponentId:onlineConfig.opponent_id,opponentName:onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник',selfName:window.PrimeCurrentDisplayName||'Игрок',remoteInput:{},attackPulse:false};if(coop){const teammate=match.allies[0];if(teammate){teammate.isRemotePlayer=true;teammate.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Союзник';if(onlineConfig.role==='guest')match.localEntity=teammate;}document.body.classList.add('online-match','coop-bots-match');$('battle-title').textContent='ВМЕСТЕ ПРОТИВ БОТОВ · 2 ИГРОКА';}else{const rival=match.bots[0];rival.isRemotePlayer=true;rival.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник';rival.profile={...rival.profile,name:rival.name,elo:1000,coins:0,towerLevel:1};if(onlineConfig.role==='guest')match.localEntity=rival;document.body.classList.add('online-match');$('battle-title').textContent='ОНЛАЙН 1 × 1 · '+rival.name;}}
+ if(onlineConfig){const coop=onlineConfig.mode==='bots';match.kind=coop?'co-op-bots':'online';match.team=coop?2:1;match.online={match_id:onlineConfig.match_id,role:onlineConfig.role,mode:coop?'bots':'pvp',selfId:PrimeOnline.userId(),opponentId:onlineConfig.opponent_id,opponentName:onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник',selfName:window.PrimeCurrentDisplayName||'Игрок',remoteInput:{},attackPulse:false};if(coop){const teammate=match.allies[0];if(teammate){teammate.isRemotePlayer=true;teammate.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Союзник';if(onlineConfig.role==='guest')match.localEntity=teammate;}document.body.classList.add('online-match','coop-bots-match');$('battle-title').textContent='ВМЕСТЕ ПРОТИВ БОТОВ · 2 ИГРОКА';}else{const rival=match.bots[0];rival.isRemotePlayer=true;rival.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник';rival.profile={...rival.profile,name:rival.name,elo:1000,coins:0,towerLevel:1};if(onlineConfig.role==='guest')match.localEntity=rival;document.body.classList.add('online-match');$('battle-title').textContent='ОНЛАЙН '+teamSize+' × '+teamSize+' · '+rival.name;}}
  attackCooldown=0;pressed.clear();$('troops-halt').textContent='|| \u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u043e\u0438\u043d\u043e\u0432';$('regroup-troops').textContent='\u0421\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f';$('guard-mode').textContent='\u041e\u0431\u043e\u0440\u043e\u043d\u0430: \u0412\u041a\u041b';$('rally-troops').textContent='\u0422\u043e\u0447\u043a\u0430 \u0441\u0431\u043e\u0440\u0430';$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
  $('battle-feed').innerHTML='';
  renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');resizeArenaCanvas();drawArena();
@@ -880,7 +881,7 @@ function enemyDirector(dt){
  const m=match;if(!m)return;if(!Array.isArray(m.supportBuildings))m.supportBuildings=[];const difficulty=typeof getBotDifficulty==='function'?getBotDifficulty():{buildDelay:1,attackSpeed:1,income:1,capture:1,heroDamage:1,towerDamage:1};
  for(const bot of m.bots){
   const b=bot.profile,ai=bot.ai;
-  if(!bot.alive)continue;
+  if(!bot.alive)continue;if(bot.isRemotePlayer&&m.online?.mode==='pvp')continue;
   if(m.elapsed>=ai.nextUpgradeAt){
    if(upgradeBotTower(bot))ai.nextUpgradeAt=m.elapsed+(48+Math.random()*24)*difficulty.buildDelay;
    else ai.nextUpgradeAt=m.elapsed+8;
@@ -988,8 +989,8 @@ function loop(now){
 function update(dt){
  const p=match.player;
  match.elapsed+=dt;match.botCoinTick+=dt;updateBattleWeather(dt);updateBattleObjectives(dt);updateEnergyRift(dt);processRemoteBuildRequest();processRemoteMineGuardRequest();
- if(match.botCoinTick>=1){const count=Math.floor(match.botCoinTick);match.botCoinTick-=count;match.playerCoins+=count*COINS_PER_SECOND;if(!match.online||match.online.mode==='bots')for(const bot of match.bots)if(bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}
- if(!match.online||match.online.mode==='bots')enemyDirector(dt);updateSupportBuildings(dt);if(!match.online)respawnDefeatedBots();attackCooldown=Math.max(0,attackCooldown-dt);match.uiTick-=dt;
+ if(match.botCoinTick>=1){const count=Math.floor(match.botCoinTick);match.botCoinTick-=count;match.playerCoins+=count*COINS_PER_SECOND;if(!match.online||match.online.mode==='bots')for(const bot of match.bots)if(bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;else if(match.online?.mode==='pvp'&&match.team>1)for(const bot of match.bots)if(!bot.isRemotePlayer&&bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}
+ if(!match.online||match.online.mode==='bots'||(match.online.mode==='pvp'&&match.team>1))enemyDirector(dt);updateSupportBuildings(dt);if(!match.online)respawnDefeatedBots();attackCooldown=Math.max(0,attackCooldown-dt);match.uiTick-=dt;
  for(const tracer of match.tracers)tracer.life-=dt;match.tracers=match.tracers.filter(t=>t.life>0);
  for(const item of match.damageTexts){item.life-=dt;item.y-=dt*24;}match.damageTexts=match.damageTexts.filter(item=>item.life>0);
  let dx=(pressed.has('KeyD')||pressed.has('ArrowRight')?1:0)-(pressed.has('KeyA')||pressed.has('ArrowLeft')?1:0);
@@ -1015,7 +1016,7 @@ function update(dt){
   else if(match.regroupOrder){const vx=guardX-ally.x,vy=guardY-ally.y,distance=Math.hypot(vx,vy)||1;if(distance>62)moveEntity(ally,vx/distance*ally.speed*dt,vy/distance*ally.speed*dt,12);}
  }
  for(const bot of match.bots){
-  if(match.online&&match.online.mode!=='bots'&&!bot.isRemotePlayer)continue;
+  if(match.online?.mode==='pvp'&&!bot.isRemotePlayer&&match.team<=1)continue;
   if(!bot.alive&&bot.isRemotePlayer&&match.online?.role==='host'&&match.online?.mode==='pvp'&&bot.respawnAt&&match.elapsed>=bot.respawnAt){bot.x=bot.homeX??bot.x;bot.y=bot.homeY??bot.y;bot.hp=bot.maxHp;bot.alive=true;bot.retreating=false;bot.attack=0;bot.flash=.35;bot.respawnAt=0;bot.walkPhase=0;addCombatFeed((bot.name||'Соперник')+' вернулся в бой');}
   if(!bot.alive)continue;
   if(bot.isRemotePlayer&&match.online?.role==='host'){const input=match.online.remoteInput||{};let rx=(input.right?1:0)-(input.left?1:0),ry=(input.down?1:0)-(input.up?1:0);if(rx||ry){const len=Math.hypot(rx,ry),speed=bot.speed*(input.sprint?SPRINT_MULTIPLIER:1);moveEntity(bot,rx/len*speed*dt,ry/len*speed*dt,13);}bot.flash=Math.max(0,bot.flash-dt);bot.attack=Math.max(0,bot.attack-dt);if(input.attack&&bot.attack<=0){bot.attack=.42;const targets=[match.player,...match.allies.filter(a=>a.alive),...match.units.filter(u=>(u.team===0||u.team===2)&&u.alive),...match.towers.filter(t=>t.team===0&&t.hp>0),...match.walls.filter(w=>w.team===0&&w.hp>0),...match.barracks.filter(b=>b.team===0&&b.hp>0)];const found=chooseNearestTarget(bot,targets,112);if(found)applyCombatDamage(found.target,found.target===match.player?42:54,bot);}continue;}
