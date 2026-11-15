@@ -334,7 +334,7 @@ window.PrimeOnline={
  addFriend:username=>social("/api/social/request","POST",{username}),
  respondFriend:(id,decision)=>social("/api/social/respond","POST",{id,decision}),
  lobby:()=>call("/api/prime/lobby"),
- createLobby:mode=>call("/api/prime/lobby","POST",{mode:mode==="bots"?"bots":"pvp"}),
+ createLobby:(mode,teamSize=1)=>call("/api/prime/lobby","POST",{mode:mode==="bots"?"bots":"pvp",team_size:Number(teamSize)||1}),
  inviteLobbyFriend:(lobby_id,friend_id)=>call("/api/prime/lobby/invite","POST",{lobby_id,friend_id}),
  respondLobbyInvite:(invite_id,decision)=>call("/api/prime/lobby/respond","POST",{invite_id,decision}),
  startLobby:lobby_id=>call("/api/prime/lobby/start","POST",{lobby_id}),
