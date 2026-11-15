@@ -214,7 +214,7 @@ Deno.serve(async(req:Request)=>{
   if(route==="/api/prime/lobby/start"&&req.method==="POST"){
    const p=await readBody(req,2000),lobbyId=String(p.lobby_id||"");
    if(!UUID.test(lobbyId))throw new ApiError(400,"INVALID_LOBBY","Некорректное лобби.");
-   const rooms=await db("prime_lobbies?select=id,owner_id,status,mode&id=eq."+lobbyId+"&limit=1"),room=rooms?.[0];
+   const rooms=await db("prime_lobbies?select=id,owner_id,status,mode,team_size&id=eq."+lobbyId+"&limit=1"),room=rooms?.[0];
    if(!room||room.status!=="lobby")throw new ApiError(409,"LOBBY_NOT_READY","Лобби не готово к запуску.");
    if(room.owner_id!==user.id)throw new ApiError(403,"OWNER_ONLY","Запустить матч может только создатель.");
    const members=await db("prime_lobby_members?select=user_id,role&lobby_id=eq."+lobbyId+"&order=joined_at.asc");
