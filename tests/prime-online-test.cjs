@@ -97,7 +97,7 @@ assert.ok(!pcHtml.includes(String.fromCharCode(92)+'n'),'PC launcher HTML must n
 console.log('PC Prime friends-page routing and markup cleanup assertions passed');
 
 // Regression: accepted friends must always get an actionable invite control.
-assert.ok(primeWorldSource.includes('if(rel.status==="accepted"){')&&primeWorldSource.includes('const created=await PrimeOnline.createLobby(mode);')&&primeWorldSource.includes('await PrimeOnline.inviteLobbyFriend(primeCurrentLobby.id,person.id);'),'PC invite action must create an owned lobby when needed, then send the invite');
+assert.ok(primeWorldSource.includes('if(rel.status==="accepted"){')&&primeWorldSource.includes('const created=await PrimeOnline.createLobby(mode,selectedTeamSize);')&&primeWorldSource.includes('await PrimeOnline.inviteLobbyFriend(primeCurrentLobby.id,person.id);'),'PC invite action must create an owned lobby when needed, then send the invite');
 console.log('PC Prime invite auto-create regression assertions passed');
 
 // online build/balance and co-op teammate recovery regression checks
