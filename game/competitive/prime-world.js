@@ -990,7 +990,7 @@ function loop(now){
 function update(dt){
  const p=match.player;
  match.elapsed+=dt;match.botCoinTick+=dt;updateBattleWeather(dt);updateBattleObjectives(dt);updateEnergyRift(dt);processRemoteBuildRequest();processRemoteMineGuardRequest();
- if(match.botCoinTick>=1){const count=Math.floor(match.botCoinTick);match.botCoinTick-=count;match.playerCoins+=count*COINS_PER_SECOND;if(!match.online||match.online.mode==='bots'){for(const bot of match.bots)if(bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}else if(match.online.mode==='pvp'&&match.team>1){for(const bot of match.bots)if(!bot.isRemotePlayer&&bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}}
+ if(match.botCoinTick>=1){const count=Math.floor(match.botCoinTick);match.botCoinTick-=count;match.playerCoins+=count*COINS_PER_SECOND;if(!match.online||match.online.mode==='bots'){for(const bot of match.bots)if(bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}else if(match.online.mode==='pvp'){for(const bot of match.bots)if((bot.isRemotePlayer||match.team>1)&&bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}}
  if(!match.online||match.online.mode==='bots'||(match.online.mode==='pvp'&&match.team>1))enemyDirector(dt);updateSupportBuildings(dt);if(!match.online)respawnDefeatedBots();attackCooldown=Math.max(0,attackCooldown-dt);match.uiTick-=dt;
  for(const tracer of match.tracers)tracer.life-=dt;match.tracers=match.tracers.filter(t=>t.life>0);
  for(const item of match.damageTexts){item.life-=dt;item.y-=dt*24;}match.damageTexts=match.damageTexts.filter(item=>item.life>0);
