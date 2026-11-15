@@ -74,6 +74,7 @@ assert.ok(source.includes('prime-moscow-turn-auth.skyrealm.workers.dev/ice'),'Pr
 assert.ok(source.includes('await iceConfigPromise')&&source.includes('new RTCPeerConnection({iceServers,'),'ICE setup must wait for optional Cloudflare TURN configuration before peer creation');
 assert.ok(source.includes('TURN · Cloudflare'),'Selected relay candidates must be identified as Cloudflare TURN');
 assert.ok(source.includes('EDGE_REGION_CODES')&&source.includes('x-region'),'Selected supported regions must route Supabase Edge Function requests');
+assert.ok(primeApi.includes('const RECONNECT_GRACE_MS=120_000')&&primeApi.includes('Date.now()-Date.parse(otherSeen)<RECONNECT_GRACE_MS'),'Prime matches must remain resumable for a two-minute reconnect window.');
 assert.ok(source.includes('captureEdgeRegion')&&source.includes('x-sb-edge-region'),'The actual Edge Function region must be captured for diagnostics');
 assert.ok(source.includes('saopaulo:"sa-east-1"')&&source.includes('mumbai:"ap-south-1"'),'The selectable region map must cover Asia and South America');
 console.log('Prime P2P/region/relay/co-op regression assertions passed');
