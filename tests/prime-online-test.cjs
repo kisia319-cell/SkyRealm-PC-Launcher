@@ -107,5 +107,5 @@ assert.ok(primeWorldSource.includes('target.respawnAt=match.elapsed+12')&&primeW
 assert.ok(primeWorldSource.includes('!ally.alive&&ally.isRemotePlayer&&match.online?.role===\'host\'&&match.online?.mode===\'bots\'&&ally.respawnAt&&match.elapsed>=ally.respawnAt')&&primeWorldSource.includes('ally.alive=true;ally.respawnAt=0'),'PC host must restore the allied player after the respawn timer');
 assert.ok(!primeWorldSource.includes("ctx.fillRect(-13,-23,26,42)"),'PC fighter hit effect must not draw a white rectangle over dead players');
 assert.ok(!pcHtml.includes('body.online-match .battle-tools #build-toggle'),'PC online mode must not hide the build button');
-assert.ok(pcHtml.includes('id="balance-toggle" class="tool-btn"'),'PC online mode must expose the balance button');
+assert.ok(pcHtml.includes('class="tool-btn" id="balance-toggle"'),'PC online mode must expose the balance button without the hidden class');
 console.log('PC online build/balance/co-op respawn regression assertions passed');
