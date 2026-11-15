@@ -306,7 +306,7 @@ function show(page){
 document.querySelectorAll('.nav button[data-page]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
 $('enter-prime').addEventListener('click',()=>show('menu'));
 $('back-home').addEventListener('click',()=>show('home'));
-document.querySelectorAll('[data-team]').forEach(b=>b.addEventListener('click',()=>{teamSize=Number(b.dataset.team);document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x===b));}));
+document.querySelectorAll('[data-team]').forEach(b=>b.addEventListener('click',()=>{teamSize=Number(b.dataset.team);document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x===b));const teamSelect=$('prime-team-size');if(teamSelect)teamSelect.value=String(teamSize);document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',Number(x.dataset.team)===teamSize));}));
 function syncMatchKindControls(){const controls=$('bot-difficulty-controls');if(controls)controls.classList.toggle('hidden',matchKind==='online');}
 document.querySelectorAll('[data-kind]').forEach(b=>b.addEventListener('click',()=>{
  matchKind=b.dataset.kind;document.querySelectorAll('[data-kind]').forEach(x=>x.classList.toggle('selected',x===b));syncMatchKindControls();
@@ -318,7 +318,7 @@ document.querySelectorAll('[data-difficulty]').forEach(button=>button.addEventLi
 syncBotDifficultyButtons();syncMatchKindControls();
 let onlineQueueActive=false,onlineQueueTimer=0;
 async function beginOnlineQueue(){
- if(teamSize!==1){teamSize=1;document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x.dataset.team==='1'));}
+ if(teamSize!==1){teamSize=1;document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x.dataset.team==='1'));const teamSelect=$('prime-team-size');if(teamSelect)teamSelect.value='1';}
  await PrimeOnline.init();if(!PrimeOnline.hasSession()){openPrimeAuth();$('search-box').classList.remove('hidden');$('search-title').textContent='Нужен аккаунт SkyRealm';$('search-detail').textContent='Войди или зарегистрируйся, чтобы начать онлайн-матч.';return;}
  try{const onlineStats=await PrimeOnline.stats();profile.elo=Number(onlineStats.stats?.rating??0);profile.matches=Number(onlineStats.stats?.matches)||0;profile.wins=Number(onlineStats.stats?.wins)||0;try{const own=await PrimeOnline.profile(),p=own.profile||{};window.PrimeCurrentDisplayName=String(p.username||p.display_name||'Игрок').slice(0,24);}catch(_){window.PrimeCurrentDisplayName='Игрок';}}catch(e){$('search-box').classList.remove('hidden');$('search-title').textContent='Ошибка профиля';$('search-detail').textContent=e.message;return;}
  $('find-match').disabled=true;$('search-box').classList.remove('hidden');$('search-title').textContent='Ищем соперника...';$('search-detail').textContent='Подбор игроков 1 × 1 · рейтинг ±250 · нужны два разных аккаунта SkyRealm';onlineQueueActive=true;
@@ -429,7 +429,7 @@ async function renderPrimeFriends(){
    if(l.role==="owner"&&l.status==="lobby"){
     if((l.members||[]).length<2)panel.append(socialNode("p","","Пригласи друга из списка выше. После принятия приглашения появится кнопка запуска."));
     else panel.append(socialAction(l.mode==="bots"?"НАЧАТЬ КООПЕРАЦИЮ 2 ИГРОКА ПРОТИВ БОТОВ":"НАЧАТЬ ДУЭЛЬ "+(l.team_size||1)+" × "+(l.team_size||1),async()=>{try{const result=await PrimeOnline.startLobby(l.id);socialMessage(l.mode==="bots"?"Напарник подключён. Запускаем бой против ботов.":"Соперник подключён. Запускаем арену.");await startOnlineMatch({...result,mode:l.mode||"pvp",team_size:l.team_size||1});}catch(e){socialMessage(e.message,true);}},true));
-   }else if(l.status==="running"){panel.append(socialNode("p","","Матч уже запущен. Подключись к арене."));if(l.role!=="owner")panel.append(socialAction("ПРИСОЕДИНИТЬСЯ К МАТЧУ",async()=>{try{const state=await PrimeOnline.status(l.match_id),opponent=(l.members||[]).find(x=>x.user_id!==PrimeOnline.userId());await startOnlineMatch({...state,match_id:state.id,opponent_id:opponent?.user_id,opponent:state.opponent,mode:l.mode||"pvp"});}catch(e){socialMessage(e.message,true);}},true));}
+   }else if(l.status==="running"){panel.append(socialNode("p","","Матч уже запущен. Подключись к арене."));if(l.role!=="owner")panel.append(socialAction("ПРИСОЕДИНИТЬСЯ К МАТЧУ",async()=>{try{const state=await PrimeOnline.status(l.match_id),opponent=(l.members||[]).find(x=>x.user_id!==PrimeOnline.userId());await startOnlineMatch({...state,match_id:state.id,opponent_id:opponent?.user_id,opponent:state.opponent,mode:l.mode||"pvp",team_size:l.team_size||1});}catch(e){socialMessage(e.message,true);}},true));}
    panel.append(socialAction("Покинуть лобби",async()=>{try{await PrimeOnline.leaveLobby(l.id);socialMessage("Ты покинул лобби.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
   }
   if(!accepted.length&&pending.length===0)list.append(socialNode("small","","Добавь друга — тогда сможешь приглашать его в закрытые матчи."));
@@ -450,6 +450,7 @@ async function searchPrimeFriends(){
 $("prime-friend-find")?.addEventListener("click",searchPrimeFriends);
 $("prime-friend-search")?.addEventListener("keydown",e=>{if(e.key==="Enter")searchPrimeFriends();});
 $("prime-friends-refresh")?.addEventListener("click",renderPrimeFriends);
+const teamSizeSelect=$("prime-team-size");if(teamSizeSelect){teamSizeSelect.value=String(teamSize);teamSizeSelect.addEventListener("change",()=>{teamSize=Math.max(1,Math.min(3,Number(teamSizeSelect.value)||1));document.querySelectorAll("[data-team]").forEach(x=>x.classList.toggle("selected",Number(x.dataset.team)===teamSize));});}
 $("prime-lobby-create")?.addEventListener("click",async()=>{try{const mode=$("prime-lobby-mode")?.value==="bots"?"bots":"pvp";const selectedTeamSize=Number($("prime-team-size")?.value)||teamSize;const created=await PrimeOnline.createLobby(mode,selectedTeamSize);primeCurrentLobby=created.lobby||null;socialMessage(mode==="bots"?"Кооперативное лобби создано. Пригласи напарника.":"Лобби создано. Пригласи друга.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}});
 $("prime-play-bots")?.addEventListener("click",()=>{matchKind="training";document.querySelectorAll("[data-kind]").forEach(b=>b.classList.toggle("selected",b.dataset.kind==="training"));show("menu");beginSearch();});
 $("prime-social-back")?.addEventListener("click",()=>show("menu"));
