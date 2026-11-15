@@ -507,37 +507,16 @@ def _check_for_prime_update() -> bool:
 
         root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local")) / "SkyRealm" / "PrimeLauncher" / "updates"
         root.mkdir(parents=True, exist_ok=True)
-        archive_path = root / f"PrimeLauncher-{latest}.zip"
-        digest = hashlib.sha256()
         download_url = str(assets["PrimeLauncher-Windows.zip"].get("browser_download_url", ""))
         checksum_url = str(assets["PrimeLauncher-Windows.zip.sha256"].get("browser_download_url", ""))
         if not download_url.startswith("https://") or not checksum_url.startswith("https://"):
             raise ValueError("В релизе отсутствует безопасная HTTPS-ссылка на архив или SHA-256")
-        req = urllib.request.Request(download_url, headers={"User-Agent": "PrimeLauncher-Updater/1.0"})
-        with urllib.request.urlopen(req, timeout=45) as response, archive_path.open("wb") as output:
-            total = 0
-            while True:
-                chunk = response.read(1024 * 1024)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > 1024 * 1024 * 1024:
-                    raise ValueError("Архив обновления превышает 1 ГБ")
-                digest.update(chunk)
-                output.write(chunk)
-        checksum_request = urllib.request.Request(checksum_url, headers={"User-Agent": "PrimeLauncher-Updater/1.0"})
-        with urllib.request.urlopen(checksum_request, timeout=15) as response:
-            expected = response.read(4096).decode("utf-8").strip().split()[0].lower()
-        if not re.fullmatch(r"[0-9a-f]{64}", expected) or digest.hexdigest() != expected:
-            archive_path.unlink(missing_ok=True)
-            raise ValueError("Проверка SHA-256 обновления не пройдена")
-        with zipfile.ZipFile(archive_path, "r") as archive:
-            executables = [item for item in archive.infolist()
-                           if Path(item.filename.replace("\\", "/")).name.lower() == "primelauncher.exe" and not item.is_dir()]
-            if len(executables) != 1 or executables[0].file_size < 1_000_000:
-                raise ValueError("В архиве нет корректного PrimeLauncher.exe")
+        archive_path = _prime_update_progress(latest, download_url, checksum_url)
+        if archive_path is None:
+            _prime_update_log(f"update skipped or cancelled by user: {current} -> {latest}")
+            return False
         _prime_update_log(f"verified update downloaded: {current} -> {latest}; SHA-256 OK")
-        _prime_schedule_self_update(archive_path)
+        _prime_schedule_self_update(archive_path, latest)
         return True
     except Exception as exc:
         _prime_update_log(f"update check/download failed: {type(exc).__name__}: {exc}")
