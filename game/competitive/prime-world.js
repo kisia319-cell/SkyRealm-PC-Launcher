@@ -421,14 +421,14 @@ async function renderPrimeFriends(){
    panel.append(socialNode("p","","Создай лобби, затем пригласи друга из списка друзей. В комнате можно сыграть дуэль 1 × 1."));
   }else{
    const l=primeCurrentLobby;teamSize=Math.max(1,Math.min(3,Number(l.team_size)||1));const teamSelect=$("prime-team-size");if(teamSelect)teamSelect.value=String(teamSize);
-   panel.append(socialNode("div","","Код лобби: "+l.id.slice(0,8).toUpperCase()+" · "+(l.mode==="bots"?"ВДВОЁМ ПРОТИВ БОТОВ":"ДУЭЛЬ 1 × 1")+" · "+(l.status==="running"?"Матч запущен":"Ожидание друга")));
+   panel.append(socialNode("div","","Код лобби: "+l.id.slice(0,8).toUpperCase()+" · "+(l.mode==="bots"?"ВДВОЁМ ПРОТИВ БОТОВ":"ДУЭЛЬ "+(l.team_size||1)+" × "+(l.team_size||1))+" · "+(l.status==="running"?"Матч запущен":"Ожидание друга")));
    for(const member of (l.members||[])){
     const name=member.profile?.display_name||member.profile?.username||(member.user_id===PrimeOnline.userId()?"Ты":"Игрок");
     panel.append(socialNode("div","social-row",(member.role==="owner"?"★ ":"♟ ")+name+(member.user_id===PrimeOnline.userId()?" (ты)":"")));
    }
    if(l.role==="owner"&&l.status==="lobby"){
     if((l.members||[]).length<2)panel.append(socialNode("p","","Пригласи друга из списка выше. После принятия приглашения появится кнопка запуска."));
-    else panel.append(socialAction(l.mode==="bots"?"НАЧАТЬ КООПЕРАЦИЮ 2 ИГРОКА ПРОТИВ БОТОВ":"НАЧАТЬ ДУЭЛЬ 1 × 1",async()=>{try{const result=await PrimeOnline.startLobby(l.id);socialMessage(l.mode==="bots"?"Напарник подключён. Запускаем бой против ботов.":"Соперник подключён. Запускаем арену.");await startOnlineMatch({...result,mode:l.mode||"pvp",team_size:l.team_size||1});}catch(e){socialMessage(e.message,true);}},true));
+    else panel.append(socialAction(l.mode==="bots"?"НАЧАТЬ КООПЕРАЦИЮ 2 ИГРОКА ПРОТИВ БОТОВ":"НАЧАТЬ ДУЭЛЬ "+(l.team_size||1)+" × "+(l.team_size||1),async()=>{try{const result=await PrimeOnline.startLobby(l.id);socialMessage(l.mode==="bots"?"Напарник подключён. Запускаем бой против ботов.":"Соперник подключён. Запускаем арену.");await startOnlineMatch({...result,mode:l.mode||"pvp",team_size:l.team_size||1});}catch(e){socialMessage(e.message,true);}},true));
    }else if(l.status==="running"){panel.append(socialNode("p","","Матч уже запущен. Подключись к арене."));if(l.role!=="owner")panel.append(socialAction("ПРИСОЕДИНИТЬСЯ К МАТЧУ",async()=>{try{const state=await PrimeOnline.status(l.match_id),opponent=(l.members||[]).find(x=>x.user_id!==PrimeOnline.userId());await startOnlineMatch({...state,match_id:state.id,opponent_id:opponent?.user_id,opponent:state.opponent,mode:l.mode||"pvp"});}catch(e){socialMessage(e.message,true);}},true));}
    panel.append(socialAction("Покинуть лобби",async()=>{try{await PrimeOnline.leaveLobby(l.id);socialMessage("Ты покинул лобби.");await renderPrimeFriends();}catch(e){socialMessage(e.message,true);}}));
   }
@@ -989,7 +989,7 @@ function loop(now){
 function update(dt){
  const p=match.player;
  match.elapsed+=dt;match.botCoinTick+=dt;updateBattleWeather(dt);updateBattleObjectives(dt);updateEnergyRift(dt);processRemoteBuildRequest();processRemoteMineGuardRequest();
- if(match.botCoinTick>=1){const count=Math.floor(match.botCoinTick);match.botCoinTick-=count;match.playerCoins+=count*COINS_PER_SECOND;if(!match.online||match.online.mode==='bots')for(const bot of match.bots)if(bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;else if(match.online?.mode==='pvp'&&match.team>1)for(const bot of match.bots)if(!bot.isRemotePlayer&&bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}
+ if(match.botCoinTick>=1){const count=Math.floor(match.botCoinTick);match.botCoinTick-=count;match.playerCoins+=count*COINS_PER_SECOND;if(!match.online||match.online.mode==='bots'){for(const bot of match.bots)if(bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}else if(match.online.mode==='pvp'&&match.team>1){for(const bot of match.bots)if(!bot.isRemotePlayer&&bot.profile)bot.profile.coins+=count*COINS_PER_SECOND*getBotDifficulty().income;}}
  if(!match.online||match.online.mode==='bots'||(match.online.mode==='pvp'&&match.team>1))enemyDirector(dt);updateSupportBuildings(dt);if(!match.online)respawnDefeatedBots();attackCooldown=Math.max(0,attackCooldown-dt);match.uiTick-=dt;
  for(const tracer of match.tracers)tracer.life-=dt;match.tracers=match.tracers.filter(t=>t.life>0);
  for(const item of match.damageTexts){item.life-=dt;item.y-=dt*24;}match.damageTexts=match.damageTexts.filter(item=>item.life>0);
