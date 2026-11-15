@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.resolve(__dirname,'..');
 const js=fs.readFileSync(path.join(root,'game/competitive/prime-world.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'game/competitive/index.html'),'utf8');
-assert.ok(js.includes('match.mine={x:mineX,mineY'), 'Match must create a central mine objective');
+assert.ok(js.includes('match.mine={x:mineX,y:mineY'), 'Match must create a central mine objective');
 assert.ok(js.includes('guardCount:4')&&js.includes('team:2')&&js.includes('mineGuard:true'), 'The mine must spawn four neutral guards');
 assert.ok(js.includes('if(guards.length){mine.captureTeam=null;mine.progress=0;}'), 'Mine capture must be blocked until guards are defeated');
 assert.ok(js.includes('if(mine.progress>=12){mine.owner=team;'), 'Mine capture must complete after a capture timer');
