@@ -18,6 +18,12 @@ import re
 from pathlib import Path
 
 
+def resource_path(relative_path: str) -> str:
+    """Resolve bundled files in both PyInstaller and source execution."""
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return str(base / relative_path)
+
+
 def _report_startup_error(exc: BaseException) -> None:
     details = traceback.format_exc()
     root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
