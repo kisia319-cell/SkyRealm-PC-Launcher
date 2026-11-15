@@ -96,7 +96,7 @@ assert.match(primeOnline,/\/api\/prime\/exchange/,'Guest transport must avoid se
 assert.match(primeHtml,/id="bot-difficulty-controls"/,'Training difficulty controls must be isolated from online mode.');
 assert.match(primeHtml,/id="prime-layout-16x9"/,'PrimeLauncher must use a 16:9 layout on desktop and landscape mobile.');
 assert.match(primeJs,/syncMatchKindControls\(\)/,'Changing match type must hide bot difficulty in online mode.');
-assert.match(primeJs,/if\(!match\.online\|\|match\.online\.mode===\'bots\'\)bot\.profile\.coins\+=count\*COINS_PER_SECOND\*getBotDifficulty\(\)\.income/,'PvP opponents must not earn AI economy, while co-op bots continue developing.');
+assert.match(primeJs,/if\(!match\.online\|\|match\.online\.mode===\'bots\'\)for\(const bot of match\.bots\)if\(bot\.profile\)bot\.profile\.coins\+=count\*COINS_PER_SECOND\*getBotDifficulty\(\)\.income/,'PvP opponents must not earn AI economy, while co-op bots continue developing.');
 assert.match(primeJs,/if\(!match\.online\)respawnDefeatedBots\(\)/,'Training bots must not respawn during online matches.');
 assert.match(primeJs,/if\(match\.online&&match\.online\.mode!==\'bots\'&&!bot\.isRemotePlayer\)continue/,'Standard online matches skip remote bots while co-op mode keeps the AI enemies active.');
 
