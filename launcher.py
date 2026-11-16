@@ -1932,7 +1932,7 @@ if __name__ == "__main__":
         _skyrealm_create_prime_shortcut()
         if _skyrealm_startup_update():
             raise SystemExit(0)
-                html = Path(resource_path("index.html")).resolve().as_uri()
+        html = Path(resource_path("index.html")).resolve().as_uri()
         api = LauncherApi()
         window = webview.create_window(
             "SkyRealm Launcher",
