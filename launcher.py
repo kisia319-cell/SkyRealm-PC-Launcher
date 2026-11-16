@@ -184,7 +184,7 @@ class LauncherApi:
         """Check the public auth health endpoint natively, avoiding WebView CORS stalls."""
         try:
             config_text = Path(resource_path("config.js")).read_text(encoding="utf-8")
-            match = re.search(r'apiBaseUrl\s*:\s*["']([^"']+)["']', config_text)
+            match = re.search(r"apiBaseUrl\s*:\s*['\"]([^'\"]+)['\"]", config_text)
             if not match:
                 return {"ok": False, "online": False, "message": "Адрес сервера не настроен."}
             endpoint = match.group(1).rstrip("/")
