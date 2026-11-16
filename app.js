@@ -746,7 +746,7 @@
     $('#auth-panel').scrollIntoView({behavior:'smooth',block:'center'});
     window.setTimeout(() => $('#username')?.focus({preventScroll:true}), 260);
   });
-  $('.auth-tab').forEach(b => b.addEventListener('click', () => setAuthMode(b.dataset.auth)));
+  $$('.auth-tab').forEach(b => b.addEventListener('click', () => setAuthMode(b.dataset.auth)));
   $('#switch-auth').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'register' : 'login'));
   $$('[data-auth-mode]').forEach(b => b.addEventListener('click', () => {
     const mode = b.dataset.authMode === 'login' ? 'login' : 'register';
