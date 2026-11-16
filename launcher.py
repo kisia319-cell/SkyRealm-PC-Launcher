@@ -184,7 +184,7 @@ class LauncherApi:
         """Check the public auth health endpoint natively, avoiding WebView CORS stalls."""
         try:
             config_text = Path(resource_path("config.js")).read_text(encoding="utf-8")
-            match = re.search(r'apiBaseUrl\\s*:\\s*["\\']([^"\\']+)["\\']', config_text)
+            match = re.search(r'apiBaseUrl\s*:\s*["']([^"']+)["']', config_text)
             if not match:
                 return {"ok": False, "online": False, "message": "Адрес сервера не настроен."}
             endpoint = match.group(1).rstrip("/")
@@ -579,8 +579,7 @@ class LauncherApi:
             request = urllib.request.Request(manifest_url, headers={"User-Agent": "SkyRealmLauncher-UpdateCenter/1.0", "Cache-Control": "no-cache"})
             with urllib.request.urlopen(request, timeout=8) as response:
                 manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
-            root = skyrealm_data_root()
-            install_dir = root / "game"
+            install_dir = skyrealm_game_dir()
             installed_game = ""
             previous_game = ""
             try:
