@@ -25,7 +25,7 @@ let paused=false, enemyCount=0, damaged=0;
 const bridge = {
   getChallengeSnapshot:()=>({worldId:'test-world',paused,day:0}),
   getGameDay:()=>0, getPlayerPosition:()=>({x:100,y:100}),
-  getWorldEventSpawnPoint:()=>({x:140,y:140}),getWorldBounds:()=>({width:5000,height:4000}),
+  getWorldEventSpawnPoint:()=>({x:140,y:140}),getWorldBounds:()=>({width:5000,height:4000}),getBiomeAt:()=> 'forest',isTradeWorld:()=>false,isBossRealm:()=>false,
   getWeaponDamage:()=>20,isCoopWorld:()=>false,isSpecialWorldMode:()=>false,
   getItemCount:n=>inventory[n]||0,spendItem(n,c){if((inventory[n]||0)<c)return false;inventory[n]-=c;return true;},
   addGold(){},spendGold(){return true;},addItem(){},save(){},
@@ -52,6 +52,9 @@ assert.equal(state.contracts.length,4);
 assert.equal(paused,true);
 const contract=state.contracts[0];
 window.SkyRealmAdventureGuild.progressContract(contract.id,2);
+assert.equal(window.SkyRealmAdventureGuild.getState().contracts[0].progress,0);
+window.SkyRealmAdventureGuild.acceptContract(contract.id);
+window.SkyRealmAdventureGuild.progressContract(contract.id,2);
 assert.equal(window.SkyRealmAdventureGuild.getState().contracts[0].progress,2);
 window.SkyRealmAdventureGuild.startExpedition('ruins');
 assert.equal(window.SkyRealmAdventureGuild.getState().expedition.route,'ruins');
@@ -62,4 +65,7 @@ window.SkyRealmAdventureGuild.upgradeCamp('hearth');
 assert.equal(window.SkyRealmAdventureGuild.getState().camp.hearth,1);
 window.SkyRealmAdventureGuild.close();
 assert.equal(paused,false);
+assert.equal(typeof window.SkyRealmAdventureGuild.draw,'function');
+assert.equal(typeof window.SkyRealmAdventureGuild.interact,'function');
+assert.ok(window.SkyRealmAdventureGuild.getHousePosition());
 console.log('SkyRealm adventure guild regression checks passed');
