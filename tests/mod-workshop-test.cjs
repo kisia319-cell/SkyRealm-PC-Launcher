@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const game=fs.readFileSync('game/game.js','utf8');
+const expansion=fs.readFileSync('game/expansion-systems.js','utf8');
 const html=fs.readFileSync('game/index.html','utf8');
 new vm.Script(game,{filename:'game/game.js'});
 assert.ok(game.includes("const MODS_STORAGE_KEY='skyrealm_installed_mods_v1'"),'Installed mods must persist across game restarts and updates');
@@ -53,7 +54,7 @@ console.log('25-mod workshop and full magic checks passed.');
 const additionalModIds=['swift_steps','guardian_oath','herbalist','deep_reserves','treasure_hunter','scavenger','marksman','restful_camp','merchant_guild','scholar','forest_guild','crop_rotation','artisan_guild','geology_scanner','camp_kitchen','power_surge'];
 for(const id of additionalModIds){
   assert.ok(game.includes("id:'"+id+"'"),'Missing added mod '+id);
-  assert.ok(game.includes("isModInstalled('"+id+"')"),'Mod '+id+' has no gameplay effect hook');
+  assert.ok(game.includes("isModInstalled('"+id+"')")||game.includes("isModInstalled?.('"+id+"')")||expansion.includes("isModInstalled('"+id+"')")||expansion.includes("isModInstalled?.('"+id+"')"),'Mod '+id+' has no gameplay effect hook');
   assert.ok(launcherHtml.includes('data-install-mod="'+id+'"'),'Launcher card missing for '+id);
   assert.ok(launcherPy.includes('"'+id+'"'),'Native launcher allow-list missing '+id);
 }
