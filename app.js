@@ -168,7 +168,13 @@
       // Desktop builds use the native HTTP client: WebView fetch can be blocked
       // by cross-origin policy even when the health URL opens normally in a browser.
       if (window.pywebview?.api?.get_cloud_status) {
-        const health = await window.pywebview.api.get_cloud_status();
+        // Bound the native bridge call too: a stalled WebView bridge must never
+        // leave the launcher status permanently on “Connecting”.
+        const nativeCheck = Promise.resolve().then(() => window.pywebview.api.get_cloud_status());
+        const nativeTimeout = new Promise((_, reject) => {
+          timeoutId = window.setTimeout(() => reject(new Error('SERVER_CHECK_TIMEOUT')), 8000);
+        });
+        const health = await Promise.race([nativeCheck, nativeTimeout]);
         if (health?.ok && health.online) {
           setCloudStatus('online',
             currentLanguage === 'en' ? 'Server online' : 'Сервер онлайн',
