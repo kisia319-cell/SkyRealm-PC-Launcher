@@ -50,7 +50,7 @@ assert.ok(game.includes('magicMana=100'),'Magic must initialize with mana');
 assert.ok(launcherPy.includes('"full_magic"'),'Native launcher allowlist must accept full magic');
 console.log('25-mod workshop and full magic checks passed.');
 
-const additionalModIds=['swift_steps','guardian_oath','herbalist','deep_reserves','treasure_hunter','scavenger','marksman','restful_camp','merchant_guild','scholar'];
+const additionalModIds=['swift_steps','guardian_oath','herbalist','deep_reserves','treasure_hunter','scavenger','marksman','restful_camp','merchant_guild','scholar','forest_guild','crop_rotation','artisan_guild','geology_scanner','camp_kitchen','power_surge'];
 for(const id of additionalModIds){
   assert.ok(game.includes("id:'"+id+"'"),'Missing added mod '+id);
   assert.ok(game.includes("isModInstalled('"+id+"')"),'Mod '+id+' has no gameplay effect hook');
@@ -61,9 +61,14 @@ assert.ok(game.includes("isModInstalled('bounty_hunter')&&/монстр|побе
 assert.ok(game.includes("isModInstalled('scholar')?1.12:1"),'Scholar must increase XP.');
 assert.ok(game.includes('window.SkyRealmCustomModHost'),'Safe custom-mod host bridge must be exposed.');
 assert.ok(game.includes('!isCoopWorldSave()&&!isCoopWorldActive()'),'Custom scripts must not run in co-op.');
-console.log('35 built-in mods and effect hooks: OK');
+console.log('41 built-in mods and effect hooks: OK');
 
 assert.ok(game.includes("const MOD_PROFILES_STORAGE_KEY='skyrealm_mod_profiles_v1'"),'Mod profiles must persist locally');
 assert.ok(game.includes('function saveCurrentModProfile()')&&game.includes('function applyModProfile()')&&game.includes('function deleteModProfile()'),'Mod profiles must support save, apply and delete');
 assert.ok(game.includes('MOD_CATALOG.some(mod=>mod.id===id)'),'Restored mod profiles must validate every mod ID against the built-in catalog');
 for(const id of ['mod-profile-name','mod-profile-save','mod-profile-select','mod-profile-apply','mod-profile-delete'])assert.ok(html.includes('id="'+id+'"'),'Missing mod profile control '+id);
+
+const modGridStart=launcherHtml.indexOf('<div class="launcher-mod-grid">');
+const modGridEnd=launcherHtml.indexOf('</div>\n      <div class="mods-launcher-community panel"><div><b>Моды игроков</b>',modGridStart);
+assert.ok(modGridStart>=0&&modGridEnd>modGridStart,'All launcher mod cards must be inside the responsive mod grid');
+for(const id of additionalModIds)assert.ok(launcherHtml.indexOf('data-install-mod="'+id+'"')>modGridStart&&launcherHtml.indexOf('data-install-mod="'+id+'"')<modGridEnd,'Mod '+id+' must be rendered inside the launcher grid');
