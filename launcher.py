@@ -180,6 +180,31 @@ def _js_update(percent: int, stage: str, detail: str) -> None:
 
 
 class LauncherApi:
+    def get_cloud_status(self):
+        """Check the public auth health endpoint natively, avoiding WebView CORS stalls."""
+        try:
+            config_text = Path(resource_path("config.js")).read_text(encoding="utf-8")
+            match = re.search(r'apiBaseUrl\\s*:\\s*["\\']([^"\\']+)["\\']', config_text)
+            if not match:
+                return {"ok": False, "online": False, "message": "Адрес сервера не настроен."}
+            endpoint = match.group(1).rstrip("/")
+            separator = "&" if "?" in endpoint else "?"
+            url = endpoint + separator + "route=%2Fhealth&launcher_check=" + str(time.time_ns())
+            request = urllib.request.Request(url, headers={
+                "User-Agent": "SkyRealmLauncher-Health/1.0",
+                "Cache-Control": "no-cache",
+            })
+            with urllib.request.urlopen(request, timeout=6) as response:
+                payload = json.loads(response.read(32 * 1024).decode("utf-8"))
+                online = response.status == 200 and payload.get("status") == "ok"
+                return {
+                    "ok": True, "online": online,
+                    "service": str(payload.get("service", ""))[:80],
+                    "version": str(payload.get("version", ""))[:40],
+                }
+        except Exception as exc:
+            return {"ok": False, "online": False, "message": str(exc)[:240]}
+
     def minimize(self):
         try:
             window.minimize()
@@ -1908,8 +1933,7 @@ if __name__ == "__main__":
         _skyrealm_create_prime_shortcut()
         if _skyrealm_startup_update():
             raise SystemExit(0)
-        _skyrealm_startup_game_update()
-        html = Path(resource_path("index.html")).resolve().as_uri()
+                html = Path(resource_path("index.html")).resolve().as_uri()
         api = LauncherApi()
         window = webview.create_window(
             "SkyRealm Launcher",
