@@ -239,6 +239,7 @@
     document.head.appendChild(style);
     document.getElementById('skyrealm-adventure-guild-button')?.remove();
     root=document.createElement('div');root.id='skyrealm-adventure-guild';root.hidden=true;root.addEventListener('click',click);document.body.appendChild(root);
+    document.addEventListener('keydown',event=>{if(opened&&event.key==='Escape'){event.preventDefault();close();}},true);
   }
   function boot(){
     ensureUI();
@@ -280,9 +281,9 @@
     ctx.fillStyle='#d9b879';ctx.fillRect(-13,-62,26,65);ctx.fillStyle='#56382d';ctx.fillRect(-9,-57,18,58);ctx.fillStyle='#f4d18b';ctx.beginPath();ctx.arc(7,-28,2.5,0,Math.PI*2);ctx.fill();
     for(const wx of [-52,52]){ctx.fillStyle='#553c35';ctx.fillRect(wx-13,-60,26,27);ctx.fillStyle='#9ed8e6';ctx.fillRect(wx-9,-56,18,19);ctx.strokeStyle='#e9c88d';ctx.lineWidth=3;ctx.strokeRect(wx-13,-60,26,27);ctx.beginPath();ctx.moveTo(wx,-56);ctx.lineTo(wx,-37);ctx.moveTo(wx-9,-47);ctx.lineTo(wx+9,-47);ctx.stroke();}
     ctx.fillStyle='#d6bd83';ctx.fillRect(-31,-101,62,22);ctx.fillStyle='#5a3b31';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ГИЛЬДИЯ',0,-87);
-    ctx.fillStyle='#d7bd83';ctx.fillRect(-2,-197,4,32);ctx.fillStyle='#3b72a7';ctx.beginPath();ctx.moveTo(2,-194);ctx.lineTo(38,-184);ctx.lineTo(2,-173);ctx.closePath();ctx.fill();ctx.fillStyle='#e7c36f';ctx.beginPath();ctx.arc(0,-199,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#d7bd83';ctx.fillRect(-2,-197,4,32);ctx.fillStyle='#3b72a7';ctx.beginPath();ctx.moveTo(2,-194);ctx.quadraticCurveTo(18+Math.sin(time/190)*4,-191,38+Math.sin(time/190)*5,-184);ctx.quadraticCurveTo(18+Math.sin(time/190)*3,-177,2,-173);ctx.closePath();ctx.fill();ctx.fillStyle='#e7c36f';ctx.beginPath();ctx.arc(0,-199,5,0,Math.PI*2);ctx.fill();
     for(const lx of [-91,91]){ctx.fillStyle='#4d3b2f';ctx.fillRect(lx-3,-48,6,24);ctx.fillStyle='#f5c76f';ctx.shadowColor='#ffc86b';ctx.shadowBlur=13*glow;ctx.beginPath();ctx.arc(lx,-52,7,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
-    ctx.fillStyle='#80664a';ctx.fillRect(-20,5,40,15);ctx.fillStyle='#c1a477';ctx.fillRect(-15,5,30,7);
+    ctx.fillStyle='#80664a';ctx.fillRect(-20,5,40,15);ctx.fillStyle='#c1a477';ctx.fillRect(-15,5,30,7);for(let i=0;i<4;i++){ctx.fillStyle=i%2?'#9d927f':'#b6a78c';ctx.beginPath();ctx.ellipse(-17+i*11,28+(i%2)*5,7,3,.12,0,Math.PI*2);ctx.fill();}for(const px of [-111,111]){ctx.fillStyle='#6c4c34';ctx.fillRect(px-8,-2,16,9);ctx.fillStyle='#557d49';ctx.beginPath();ctx.arc(px,-9,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e7b8aa';ctx.beginPath();ctx.arc(px-3,-13,2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f4d27d';ctx.beginPath();ctx.arc(px+4,-8,2,0,Math.PI*2);ctx.fill();}
     ctx.fillStyle='#e9d5a5';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText('E · ВОЙТИ В ГИЛЬДИЮ',0,38);
     ctx.restore();
   }
