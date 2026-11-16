@@ -532,6 +532,7 @@
     if(!ctx||!worldId())return;
     const pet=currentPet();if(pet)drawPet(ctx,state.petX-camX,state.petY-camY,time,pet);
     drawTownProjects(ctx,camX,camY,time);
+    window.SkyRealmAdventureGuild?.draw?.(ctx,camX,camY,time,width,height);
     if(bridge()?.isTradeWorld?.())drawTownCaravan(ctx,bridge()?.getVillageCenters?.()||[],camX,camY,time);
     const raid=state.raid;if(raid){const x=state.petX-camX+150,y=state.petY-camY-112;ctx.save();ctx.globalAlpha=.72;ctx.shadowColor='#a77bff';ctx.shadowBlur=18;ctx.fillStyle=raid.type==='sky'?'#f1cb70':'#9b72ed';ctx.beginPath();ctx.arc(x,y,16+Math.sin(time/130)*2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='900 8px Segoe UI';ctx.textAlign='center';ctx.fillText(raid.phase===3?'\u0424\u0410\u0417\u0410 III':raid.phase===2?'\u0424\u0410\u0417\u0410 II':'\u0420\u0415\u0419\u0414',x,y+3);ctx.restore();}
   }
