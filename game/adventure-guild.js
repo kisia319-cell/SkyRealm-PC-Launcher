@@ -243,6 +243,51 @@
     document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
     window.addEventListener('beforeunload',save);
   }
-  window.SkyRealmAdventureGuild=Object.freeze({VERSION,open,close,getState:()=>JSON.parse(JSON.stringify(state)),progressContract,claimContract,startExpedition,attackExpedition,createTreasure,upgradeCamp});
+
+  function housePosition(){
+    const id=String(bridge()?.getWorldId?.()||'');if(!id)return null;
+    if(houseCache?.id===id)return houseCache;
+    const bounds=bridge()?.getWorldBounds?.()||{width:7040,height:5248};
+    const width=Math.max(1800,Number(bounds.width)||7040),height=Math.max(1500,Number(bounds.height)||5248);
+    const seed=[...id].reduce((n,ch)=>(Math.imul(n^ch.charCodeAt(0),16777619)>>>0),2166136261);
+    const baseX=Math.min(width-260,1152+(seed%7-3)*38),baseY=Math.min(height-230,1088+((seed>>>4)%7-3)*34);
+    for(let ring=0;ring<9;ring++)for(let i=0;i<16;i++){
+      const a=i*Math.PI/8,x=Math.max(180,Math.min(width-180,baseX+Math.cos(a)*ring*74)),y=Math.max(180,Math.min(height-180,baseY+Math.sin(a)*ring*64));
+      const biome=String(bridge()?.getBiomeAt?.(x,y)||'forest').toLowerCase();
+      if(!/water|ocean|sea/.test(biome)){houseCache={id,x,y};return houseCache;}
+    }
+    houseCache={id,x:baseX,y:baseY};return houseCache;
+  }
+  function draw(ctx,camX=0,camY=0,time=0){
+    const snap=snapshot(),b=bridge();if(!snap?.worldId||b?.isCoopWorld?.()||b?.isBossRealm?.()||b?.isSpecialWorldMode?.()||b?.isTradeWorld?.())return;
+    const p=housePosition();if(!p)return;
+    const x=p.x-camX,y=p.y-camY;if(x<-190||x>innerWidth+190||y<-210||y>innerHeight+80)return;
+    const glow=.65+.22*Math.sin(time/360);
+    ctx.save();ctx.translate(Math.round(x),Math.round(y));
+    ctx.fillStyle='rgba(0,0,0,.30)';ctx.beginPath();ctx.ellipse(0,13,105,26,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#8d8b83';ctx.beginPath();ctx.moveTo(-91,5);ctx.lineTo(-82,-45);ctx.lineTo(82,-45);ctx.lineTo(94,5);ctx.closePath();ctx.fill();
+    for(let i=-84;i<90;i+=16){ctx.fillStyle=i%32?'#aaa79a':'#c0b9a7';ctx.fillRect(i,0,12,7);}
+    const wall=ctx.createLinearGradient(-70,-70,70,8);wall.addColorStop(0,'#b77c4b');wall.addColorStop(.5,'#8d5737');wall.addColorStop(1,'#68402f');ctx.fillStyle=wall;ctx.fillRect(-76,-82,152,86);
+    ctx.fillStyle='#4b342e';ctx.fillRect(-81,-88,162,12);
+    ctx.fillStyle='#3b2b39';ctx.beginPath();ctx.moveTo(-94,-82);ctx.lineTo(-58,-145);ctx.lineTo(0,-169);ctx.lineTo(58,-145);ctx.lineTo(94,-82);ctx.closePath();ctx.fill();
+    const roof=ctx.createLinearGradient(0,-170,0,-80);roof.addColorStop(0,'#6f3d56');roof.addColorStop(.55,'#a34e57');roof.addColorStop(1,'#59394b');ctx.fillStyle=roof;ctx.beginPath();ctx.moveTo(-88,-83);ctx.lineTo(-56,-142);ctx.lineTo(0,-164);ctx.lineTo(56,-142);ctx.lineTo(88,-83);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#e0b77b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-84,-84);ctx.lineTo(-55,-140);ctx.lineTo(0,-161);ctx.lineTo(55,-140);ctx.lineTo(84,-84);ctx.stroke();
+    for(let i=-64;i<=64;i+=18){ctx.strokeStyle='rgba(255,215,160,.24)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(i,-94);ctx.lineTo(i*.66,-145+Math.abs(i)*.08);ctx.stroke();}
+    ctx.fillStyle='#d9b879';ctx.fillRect(-13,-62,26,65);ctx.fillStyle='#56382d';ctx.fillRect(-9,-57,18,58);ctx.fillStyle='#f4d18b';ctx.beginPath();ctx.arc(7,-28,2.5,0,Math.PI*2);ctx.fill();
+    for(const wx of [-52,52]){ctx.fillStyle='#553c35';ctx.fillRect(wx-13,-60,26,27);ctx.fillStyle='#9ed8e6';ctx.fillRect(wx-9,-56,18,19);ctx.strokeStyle='#e9c88d';ctx.lineWidth=3;ctx.strokeRect(wx-13,-60,26,27);ctx.beginPath();ctx.moveTo(wx,-56);ctx.lineTo(wx,-37);ctx.moveTo(wx-9,-47);ctx.lineTo(wx+9,-47);ctx.stroke();}
+    ctx.fillStyle='#d6bd83';ctx.fillRect(-31,-101,62,22);ctx.fillStyle='#5a3b31';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ГИЛЬДИЯ',0,-87);
+    ctx.fillStyle='#d7bd83';ctx.fillRect(-2,-197,4,32);ctx.fillStyle='#3b72a7';ctx.beginPath();ctx.moveTo(2,-194);ctx.lineTo(38,-184);ctx.lineTo(2,-173);ctx.closePath();ctx.fill();ctx.fillStyle='#e7c36f';ctx.beginPath();ctx.arc(0,-199,5,0,Math.PI*2);ctx.fill();
+    for(const lx of [-91,91]){ctx.fillStyle='#4d3b2f';ctx.fillRect(lx-3,-48,6,24);ctx.fillStyle='#f5c76f';ctx.shadowColor='#ffc86b';ctx.shadowBlur=13*glow;ctx.beginPath();ctx.arc(lx,-52,7,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+    ctx.fillStyle='#80664a';ctx.fillRect(-20,5,40,15);ctx.fillStyle='#c1a477';ctx.fillRect(-15,5,30,7);
+    ctx.fillStyle='#e9d5a5';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText('E · ВОЙТИ В ГИЛЬДИЮ',0,38);
+    ctx.restore();
+  }
+  function interact(){
+    const snap=snapshot(),p=housePosition(),pos=bridge()?.getPlayerPosition?.();if(!snap?.worldId||!p||!pos)return false;
+    if(bridge()?.isCoopWorld?.()||bridge()?.isBossRealm?.()||bridge()?.isSpecialWorldMode?.()||bridge()?.isTradeWorld?.())return false;
+    if(Math.hypot(pos.x-p.x,pos.y-p.y)>128)return false;
+    open();return true;
+  }
+  window.SkyRealmAdventureGuild=Object.freeze({VERSION,open,close,draw,interact,getHousePosition:housePosition,getState:()=>JSON.parse(JSON.stringify(state)),progressContract,acceptContract,claimContract,startExpedition,attackExpedition,createTreasure,upgradeCamp});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
