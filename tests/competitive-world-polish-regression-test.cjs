@@ -154,3 +154,10 @@ console.log('competitive-world-polish-regression-test: all assertions passed');
 assert.match(js,/function pauseMatch/);assert.match(js,/function resumeMatch/);assert.match(js,/function confirmLeaveMatch/);assert.match(js,/function findDraggableAt/);assert.match(js,/e\.code===\'KeyQ\'/);assert.match(js,/20\*TILE/);assert.match(js,/profile\.botElo/);assert.match(js,/function canEntityOccupy\(x,y,radius=12,mover=null\)/);assert.match(js,/mover\.team===0&&wall\.team===0/);assert.match(js,/barracksLevel-1\)\*3/);assert.match(js,/const interval=building\\.trainInterval\\|\\|/);assert.match(js,/d\.object\.x=safeX/);
 
 assert.match(js,/if\(d\.type===\'base\'\)\{match\.playerBase\.x=safeX/);assert.match(js,/d\.startX/);
+
+// Prime expansion: selectable arenas, four playable classes and five ballista tiers.
+assert.match(html,/id="prime-arena-select"/);assert.match(html,/id="prime-class-select"/);assert.match(html,/id="ability-class"/);assert.match(html,/data-build="ballista"/);
+for(const arena of ['forest','desert','frost'])assert.match(js,new RegExp(arena+":\\{id:'"+arena+"'"));
+for(const cls of ['Воин','Страж','Следопыт','Маг'])assert.ok(js.includes("'"+cls+"':{id:'"+cls+"'"),'Missing playable class '+cls);
+assert.match(js,/function activateClassAbility\(/);assert.match(js,/classAbility\?\.shieldUntil/);assert.match(js,/if\(building\.kind==='ballista'\)/);assert.match(js,/function primeBallistaStats\(/);
+const ballistaFn=extractFunction(js,'primeBallistaStats'),ballistaCtx={};vm.runInNewContext(ballistaFn+';globalThis.one=primeBallistaStats(1);globalThis.five=primeBallistaStats(5);',ballistaCtx);assert.equal(ballistaCtx.one.damage,72);assert.equal(ballistaCtx.one.range,320);assert.equal(ballistaCtx.five.damage,176);assert.equal(ballistaCtx.five.range,432);assert.ok(ballistaCtx.five.fireInterval<ballistaCtx.one.fireInterval);
