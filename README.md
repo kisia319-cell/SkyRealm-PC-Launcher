@@ -227,3 +227,13 @@
 
 - Реестр графики, звуков, шрифтов, игровых ресурсов и непроверенных файлов: [ASSET_AND_LICENSE_REGISTER.md](ASSET_AND_LICENSE_REGISTER.md).
 - Уведомления о стороннем ПО и лицензиях: [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
+
+
+## Game update 0.20.50.150 — Adventure Guild
+
+- Four rotating daily contracts for hunting, mining, forestry, construction, fishing and exploration.
+- Three multi-wave expeditions: Forgotten Ruins, Frost Pass and Abyss Rift.
+- Coordinate-based treasure maps with land-only treasure locations.
+- Four upgradable camp buildings, six collectible relics and a seasonal token festival.
+- Per-world progress persistence, interrupted-expedition recovery and responsive guild UI.
+- Player movement and walking code remain unchanged.
