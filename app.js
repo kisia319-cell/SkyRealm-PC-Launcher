@@ -128,7 +128,6 @@
     if (name === 'community' && currentToken()) { loadSocialFriends(); refreshSocialInvites(); requestSocial('/api/social/active-room').then(x=>socialActiveRoom=x.room).catch(()=>{}); }
   }
   $$('[data-page]').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
-  $$('.news-item').forEach(b => b.addEventListener('click', () => showPage('news')));
 
   function apiConfigured() {
     return /^https?:\/\//i.test(API_BASE) && !/REPLACE-WITH-YOUR|YOUR-SERVER|example\.com/i.test(API_BASE) && API_KEY.length > 10;
