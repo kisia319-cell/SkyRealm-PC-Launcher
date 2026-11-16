@@ -69,6 +69,9 @@ jobs:
           node --check game/cloud-save-ui.js
           node --check game/custom-mods-runtime.js
           node --check game/expansion-systems.js
+          node --check game/adventure-guild.js
+          node --check tests/adventure-guild-test.cjs
+          node tests/adventure-guild-test.cjs
           node --check tests/expansion-systems-test.cjs
           node --check tests/professions-system-test.cjs
           node --check tests/armor-set-test.cjs
