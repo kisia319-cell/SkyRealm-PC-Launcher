@@ -68,4 +68,7 @@ assert.equal(paused,false);
 assert.equal(typeof window.SkyRealmAdventureGuild.draw,'function');
 assert.equal(typeof window.SkyRealmAdventureGuild.interact,'function');
 assert.ok(window.SkyRealmAdventureGuild.getHousePosition());
+assert.ok(source.includes('Эйрин') && source.includes('Мира') && source.includes('Тор'));
+assert.ok(source.includes('E · ВОЙТИ В ГИЛЬДИЮ'));
+assert.ok(!source.includes("button.textContent='🧭 Гильдия'"));
 console.log('SkyRealm adventure guild regression checks passed');
