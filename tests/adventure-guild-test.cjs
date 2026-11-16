@@ -23,7 +23,7 @@ function element(tag) {
 const inventory = {'Древесина':100,'Камень':100,'Железо':50,'Кристалл':20,'Медь':20,'Мифрил':10,'Ткань':20};
 let paused=false, enemyCount=0, damaged=0;
 const bridge = {
-  getChallengeSnapshot:()=>({worldId:'test-world',paused,day:0}),
+  getChallengeSnapshot:()=>({worldId:'test-world',paused,day:0}),getWorldId:()=> 'test-world',
   getGameDay:()=>0, getPlayerPosition:()=>({x:100,y:100}),
   getWorldEventSpawnPoint:()=>({x:140,y:140}),getWorldBounds:()=>({width:5000,height:4000}),getBiomeAt:()=> 'forest',isTradeWorld:()=>false,isBossRealm:()=>false,
   getWeaponDamage:()=>20,isCoopWorld:()=>false,isSpecialWorldMode:()=>false,
