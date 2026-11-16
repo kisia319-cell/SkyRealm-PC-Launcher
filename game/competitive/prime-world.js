@@ -2,6 +2,26 @@
 'use strict';
 const $=id=>document.getElementById(id), SAVE='primeLauncher.profile.v2', WORLD_SAVE='primeLauncher.world.v1', BOT_SAVE='primeLauncher.bots.v1';
 const SIZE=100,TILE=32,WATER_BORDER=15,ENEMY_BASE_DISTANCE_BLOCKS=40,UPGRADE_COST=500,COINS_PER_SECOND=10,SPRINT_MULTIPLIER=1.65,upgradeCost=level=>UPGRADE_COST*level,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+const PRIME_CLASS_KEY='primeLauncher.class.v1',PRIME_ARENA_KEY='primeLauncher.arena.v1';
+const PRIME_CLASS_CONFIGS=Object.freeze({
+ 'Воин':{id:'Воин',hp:150,damage:52,range:126,ability:'cleave',abilityLabel:'Круговой удар',cooldown:14,damageAbility:82,armor:'#536f9d',accent:'#ff9a4d',kind:'warrior'},
+ 'Страж':{id:'Страж',hp:190,damage:42,range:116,ability:'shield',abilityLabel:'Крепкая защита',cooldown:22,damageAbility:0,armor:'#687b91',accent:'#8fd5e8',kind:'guardian'},
+ 'Следопыт':{id:'Следопыт',hp:128,damage:38,range:224,ability:'volley',abilityLabel:'Залп стрел',cooldown:13,damageAbility:58,armor:'#496b52',accent:'#b5df75',kind:'archer'},
+ 'Маг':{id:'Маг',hp:116,damage:34,range:208,ability:'burst',abilityLabel:'Всплеск маны',cooldown:16,damageAbility:64,armor:'#5c4b83',accent:'#c6a2ff',kind:'mage'}
+});
+const PRIME_ARENAS=Object.freeze({
+ forest:{id:'forest',label:'Лесная цитадель',water:['#116b8d','#0d5d82','#155f83','#0d5278'],shore:['#c9b27b','#bda36d','#d0b985'],ground:['#568d4b','#5b934f','#609853','#548849','#639b55','#5a914d','#5d9551','#568c49','#629651']},
+ desert:{id:'desert',label:'Пепельный каньон',water:['#176b83','#145c79','#1c7188','#10536f'],shore:['#dfc28c','#d3b47a','#e8ce9b'],ground:['#b88a4c','#c39454','#c99b5b','#a97a43','#d0a35e','#b4874c','#c79a58','#b8874b','#d4a864']},
+ frost:{id:'frost',label:'Ледяной рубеж',water:['#397f9c','#2e718e','#468da8','#2a6684'],shore:['#b8d2d8','#a9c6d0','#d0e2e4'],ground:['#7faaa9','#8ab6b5','#93bfbe','#739c9e','#9ac5c2','#84adad','#a0c7c5','#789fa1','#8eb8b6']}
+});
+let selectedPrimeClass='Воин',selectedPrimeArena='forest';
+try{const sc=localStorage.getItem(PRIME_CLASS_KEY),sa=localStorage.getItem(PRIME_ARENA_KEY);if(PRIME_CLASS_CONFIGS[sc])selectedPrimeClass=sc;if(PRIME_ARENAS[sa])selectedPrimeArena=sa;}catch(_){}
+function getPrimeClassConfig(id){return PRIME_CLASS_CONFIGS[id]||PRIME_CLASS_CONFIGS['Воин'];}
+function normalizePrimeArena(id){return PRIME_ARENAS[id]?id:'forest';}
+function getPrimeArenaPalette(id){return PRIME_ARENAS[normalizePrimeArena(id)];}
+function primeBallistaStats(level=1){const n=Math.max(1,Math.min(5,Math.floor(Number(level)||1)));return {damage:72+(n-1)*26,range:320+(n-1)*28,fireInterval:Math.max(1.15,2.5-(n-1)*.28)};}
+
 const SKYREALM_DEFAULT_LOOK={skin:'#e8b88c',hair:'#352d3d',armor:'#526fba',accent:'#9cb9ff',eye:'#26334c',face:'normal',hairStyle:'short'};
 const botNames=['Рейвен','Фокс','Нокс','Вега','Шторм','Мира','Дрейк','Сайфер'];
 let profile={elo:0,botElo:0,matches:0,wins:0,history:[]};
@@ -22,7 +42,7 @@ function selectBotDifficulty(value){
  document.querySelectorAll('[data-difficulty]').forEach(button=>button.classList.toggle('selected',button.dataset.difficulty===value));
  const note=$('bot-difficulty-details');if(note)note.textContent=descriptions[value];
 }
-let worldMeta={seed:20261111,size:100,lastTeam:1,lastKind:'training'};
+let worldMeta={seed:20261111,size:100,lastTeam:1,lastKind:'training',lastArena:'forest'}
 try{const s=JSON.parse(localStorage.getItem(SAVE)||'null');if(s&&Number.isFinite(s.elo))profile={...profile,...s};}catch(_){}
 try{const b=JSON.parse(localStorage.getItem(BOT_SAVE)||'null');if(Array.isArray(b))botsProfile=botsProfile.map((x,i)=>({...x,...(b[i]||{})}));}catch(_){}
 try{const w=JSON.parse(localStorage.getItem(WORLD_SAVE)||'null');if(w&&Number.isFinite(w.seed))worldMeta={...worldMeta,...w};}catch(_){}
@@ -70,14 +90,14 @@ async function renderPrimeProfile(){
   $('prime-profile-last').textContent=data.last_match?(data.last_match.status==='completed'?'Завершён':'Не завершён')+' · '+new Date(data.last_match.finished_at||data.last_match.created_at).toLocaleDateString('ru-RU'):'Нет матчей';
   $('prime-profile-status').textContent=p.presence_status==='online'?'● В сети':'Не в сети';
   $('prime-name-edit').value=name;$('prime-class-edit').value=p.player_class||'Воин';$('prime-avatar-edit').value=p.avatar_key||'default';
-  const icons={default:'⚔',guardian:'🛡',ranger:'🏹',mage:'🔮'};const avatar=$('prime-avatar');if(p.avatar_url&&/^https:\/\//i.test(p.avatar_url)){avatar.innerHTML='<img src="'+p.avatar_url.replace(/[&<>\"']/g,'')+'" alt="Аватар" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}else avatar.textContent=icons[p.avatar_key||'default']||'⚔';
+  selectedPrimeClass=getPrimeClassConfig(p.player_class||'Воин').id;try{localStorage.setItem(PRIME_CLASS_KEY,selectedPrimeClass);}catch(_){}const classSelect=$('prime-class-select');if(classSelect)classSelect.value=selectedPrimeClass;const icons={default:'⚔',guardian:'🛡',ranger:'🏹',mage:'🔮'};const avatar=$('prime-avatar');if(p.avatar_url&&/^https:\/\//i.test(p.avatar_url)){avatar.innerHTML='<img src="'+p.avatar_url.replace(/[&<>\"']/g,'')+'" alt="Аватар" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}else avatar.textContent=icons[p.avatar_key||'default']||'⚔';
   $('nav-elo').textContent=st.rating??0;
   if(msg)msg.textContent='Профиль синхронизирован с сервером SkyRealm. Изменения видны другим игрокам.';
  }catch(e){if(msg)msg.textContent='Не удалось загрузить профиль: '+String(e.message);}
 }
 $('prime-profile-save')?.addEventListener('click',async()=>{
  const msg=$('prime-profile-message');msg.textContent='Сохраняем...';
- try{await PrimeOnline.updateProfile({display_name:$('prime-name-edit').value,player_class:$('prime-class-edit').value,avatar_key:$('prime-avatar-edit').value});await renderPrimeProfile();renderLeaderboard();}
+ try{selectedPrimeClass=getPrimeClassConfig($('prime-class-edit').value).id;try{localStorage.setItem(PRIME_CLASS_KEY,selectedPrimeClass);}catch(_){}const classSelect=$('prime-class-select');if(classSelect)classSelect.value=selectedPrimeClass;await PrimeOnline.updateProfile({display_name:$('prime-name-edit').value,player_class:selectedPrimeClass,avatar_key:$('prime-avatar-edit').value});await renderPrimeProfile();renderLeaderboard();}
  catch(e){msg.textContent=e.message;}
 });
 async function syncPrimeCurrentDisplayName(){
@@ -305,6 +325,7 @@ function show(page){
 }
 document.querySelectorAll('.nav button[data-page]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.page)));
 $('enter-prime').addEventListener('click',()=>show('menu'));
+const arenaSelect=$('prime-arena-select'),classSelect=$('prime-class-select');if(arenaSelect){arenaSelect.value=selectedPrimeArena;arenaSelect.addEventListener('change',()=>{selectedPrimeArena=normalizePrimeArena(arenaSelect.value);try{localStorage.setItem(PRIME_ARENA_KEY,selectedPrimeArena);}catch(_){}});}if(classSelect){classSelect.value=selectedPrimeClass;classSelect.addEventListener('change',()=>{selectedPrimeClass=getPrimeClassConfig(classSelect.value).id;try{localStorage.setItem(PRIME_CLASS_KEY,selectedPrimeClass);}catch(_){}const profileClass=$('prime-class-edit');if(profileClass)profileClass.value=selectedPrimeClass;});}
 $('back-home').addEventListener('click',()=>show('home'));
 document.querySelectorAll('[data-team]').forEach(b=>b.addEventListener('click',()=>{teamSize=Number(b.dataset.team);document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',x===b));const teamSelect=$('prime-team-size');if(teamSelect)teamSelect.value=String(teamSize);document.querySelectorAll('[data-team]').forEach(x=>x.classList.toggle('selected',Number(x.dataset.team)===teamSize));}));
 function syncMatchKindControls(){const controls=$('bot-difficulty-controls');if(controls)controls.classList.toggle('hidden',matchKind==='online');}
@@ -495,8 +516,9 @@ function createTower(x,y,owner,isPlayer=false){
 function createMatch(onlineConfig=null){
  if(onlineConfig?.mode==='bots')teamSize=2;
  $('search-box').classList.add('hidden');$('find-match').disabled=false;
- const playerBaseX=SIZE*TILE/2-20*TILE,playerBaseY=SIZE*TILE/2;
- const player={id:0,team:0,x:playerBaseX+110,y:playerBaseY+45,hp:130,maxHp:130,speed:190,sprintStamina:100,maxSprintStamina:100,alive:true,attack:0,flash:0};
+ const playerBaseX=SIZE*TILE/2-20*TILE,playerBaseY=SIZE*TILE/2,arenaId=normalizePrimeArena($('prime-arena-select')?.value||selectedPrimeArena||worldMeta.lastArena),classConfig=getPrimeClassConfig($('prime-class-select')?.value||selectedPrimeClass);
+ selectedPrimeArena=arenaId;selectedPrimeClass=classConfig.id;try{localStorage.setItem(PRIME_ARENA_KEY,arenaId);localStorage.setItem(PRIME_CLASS_KEY,selectedPrimeClass);}catch(_){}
+ const player={id:0,team:0,x:playerBaseX+110,y:playerBaseY+45,hp:classConfig.hp,maxHp:classConfig.hp,speed:190,damage:classConfig.damage,attackRange:classConfig.range,classId:classConfig.id,kind:classConfig.kind,sprintStamina:100,maxSprintStamina:100,alive:true,attack:0,flash:0};
  const allies=[],bots=[],towers=[],difficulty=onlineConfig?BOT_DIFFICULTIES.normal:getBotDifficulty();
  towers.push(createTower(player.x-230,player.y+155,profile,true));
 
@@ -514,9 +536,9 @@ function createMatch(onlineConfig=null){
 
  }
  if(bots.length){const enemyBaseTower=createTower(bots[0].homeX+125,bots[0].homeY-95,bots[0].profile,false);enemyBaseTower.team=1;enemyBaseTower.displayName='\u0426\u0438\u0442\u0430\u0434\u0435\u043b\u044c '+bots[0].name;towers.push(enemyBaseTower);}
- worldMeta={...worldMeta,seed:onlineConfig?.seed||worldMeta.seed,size:SIZE,lastTeam:1,lastKind:onlineConfig?'online':matchKind};localStorage.setItem(WORLD_SAVE,JSON.stringify(worldMeta));
+ worldMeta={...worldMeta,seed:onlineConfig?.seed||worldMeta.seed,size:SIZE,lastTeam:1,lastKind:onlineConfig?'online':matchKind,lastArena:arenaId};localStorage.setItem(WORLD_SAVE,JSON.stringify(worldMeta));
  const walls=[];
- match={playerDisplayName:window.PrimeCurrentDisplayName||'Игрок',player,bots,allies,towers,walls,barracks:[],supportBuildings:[],units:[],tracers:[],damageTexts:[],combatFeed:[],buildPreview:null,playerBase:{x:playerBaseX,y:playerBaseY},enemyBase:{x:player.x+ENEMY_BASE_DISTANCE_BLOCKS*TILE,y:player.y},playerCoins:0,playerTowerLevel:1,kind:'training',team:teamSize,difficulty:botDifficulty,started:performance.now(),finished:false,worldSeed:worldMeta.seed,terrainCanvas:null,uiTick:0,troopsHalted:false,guardMode:true,regroupOrder:false,rallyUntil:0,botCoinTick:0,elapsed:0,nextEnemyAttackAt:300/difficulty.attackSpeed,enemyAssaultUntil:0,enemyAggroUntil:0,enemyDefenseBoostUntil:0,playerHasEngaged:false,enemyCounterAt:0,enemyCounterQueued:false,nextCounterRollAt:0,enemyNoticeUntil:0,playerBaseLevel:1,unitCounter:0,enemyState:'РАЗВИВАЕТ БАЗУ',outposts:[],supplyCaches:[],weather:{type:'clear',until:0,nextAt:75},commander:{warCryUntil:0,shieldUntil:0,cooldowns:{warcry:0,shield:0,volley:0}}};
+ match={playerDisplayName:window.PrimeCurrentDisplayName||'Игрок',player,arenaId,classAbility:{cooldownUntil:0,shieldUntil:0},bots,allies,towers,walls,barracks:[],supportBuildings:[],units:[],tracers:[],damageTexts:[],combatFeed:[],buildPreview:null,playerBase:{x:playerBaseX,y:playerBaseY},enemyBase:{x:player.x+ENEMY_BASE_DISTANCE_BLOCKS*TILE,y:player.y},playerCoins:0,playerTowerLevel:1,kind:'training',team:teamSize,difficulty:botDifficulty,started:performance.now(),finished:false,worldSeed:worldMeta.seed,terrainCanvas:null,uiTick:0,troopsHalted:false,guardMode:true,regroupOrder:false,rallyUntil:0,botCoinTick:0,elapsed:0,nextEnemyAttackAt:300/difficulty.attackSpeed,enemyAssaultUntil:0,enemyAggroUntil:0,enemyDefenseBoostUntil:0,playerHasEngaged:false,enemyCounterAt:0,enemyCounterQueued:false,nextCounterRollAt:0,enemyNoticeUntil:0,playerBaseLevel:1,unitCounter:0,enemyState:'РАЗВИВАЕТ БАЗУ',outposts:[],supplyCaches:[],weather:{type:'clear',until:0,nextAt:75},commander:{warCryUntil:0,shieldUntil:0,cooldowns:{warcry:0,shield:0,volley:0}}};
   const midX=player.x+(match.enemyBase.x-player.x)*.5,laneY=player.y;
   match.outposts=[{id:1,x:midX-220,y:clamp(laneY-190,TILE*(WATER_BORDER+5),SIZE*TILE-TILE*(WATER_BORDER+5)),owner:-1,captureTeam:null,progress:0},{id:2,x:midX,y:laneY,owner:-1,captureTeam:null,progress:0},{id:3,x:midX+220,y:clamp(laneY+190,TILE*(WATER_BORDER+5),SIZE*TILE-TILE*(WATER_BORDER+5)),owner:-1,captureTeam:null,progress:0}];
   const mineX=midX,mineY=clamp(laneY+460,TILE*(WATER_BORDER+5),SIZE*TILE-TILE*(WATER_BORDER+5));
@@ -524,7 +546,7 @@ function createMatch(onlineConfig=null){
   for(let i=0;i<match.mine.guardCount;i++){const angle=i*Math.PI/2+.35,hp=165;match.units.push({id:++match.unitCounter,team:2,x:mineX+Math.cos(angle)*45,y:mineY+Math.sin(angle)*38,homeX:mineX,homeY:mineY,kind:'mine-guard',mineGuard:true,hp,maxHp:hp,damage:24,range:118,speed:150,attack:0,attackInterval:1.05,flash:0,alive:true,name:'Охранник шахты'});}
   match.supplyCaches=[{x:midX-100,y:laneY-315,active:true,respawnAt:0},{x:midX+100,y:laneY+315,active:true,respawnAt:0}];match.mercenaryCamp={x:playerBaseX-165,y:playerBaseY-135};match.mercenaryCooldownUntil=0;match.energyRift={x:midX+(Number(worldMeta.seed)%2?90:-90),y:laneY+(Number(worldMeta.seed)%2?260:-260),active:false,nextAt:85,expiresAt:0,captureTeam:null,progress:0};
  if(onlineConfig){const coop=onlineConfig.mode==='bots';match.kind=coop?'co-op-bots':'online';match.team=coop?2:1;match.online={match_id:onlineConfig.match_id,role:onlineConfig.role,mode:coop?'bots':'pvp',selfId:PrimeOnline.userId(),opponentId:onlineConfig.opponent_id,opponentName:onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник',selfName:window.PrimeCurrentDisplayName||'Игрок',remoteInput:{},attackPulse:false};if(coop){const teammate=match.allies[0];if(teammate){teammate.isRemotePlayer=true;teammate.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Союзник';if(onlineConfig.role==='guest')match.localEntity=teammate;}document.body.classList.add('online-match','coop-bots-match');$('battle-title').textContent='ВМЕСТЕ ПРОТИВ БОТОВ · 2 ИГРОКА';}else{const rival=match.bots[0];rival.isRemotePlayer=true;rival.name=onlineConfig.opponent?.display_name||onlineConfig.opponent?.username||'Соперник';rival.profile={...rival.profile,name:rival.name,elo:1000,coins:0,towerLevel:1};if(onlineConfig.role==='guest')match.localEntity=rival;document.body.classList.add('online-match');$('battle-title').textContent='ОНЛАЙН '+teamSize+' × '+teamSize+' · '+rival.name;}}
- attackCooldown=0;pressed.clear();$('troops-halt').textContent='|| \u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u043e\u0438\u043d\u043e\u0432';$('regroup-troops').textContent='\u0421\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f';$('guard-mode').textContent='\u041e\u0431\u043e\u0440\u043e\u043d\u0430: \u0412\u041a\u041b';$('rally-troops').textContent='\u0422\u043e\u0447\u043a\u0430 \u0441\u0431\u043e\u0440\u0430';$('battle-title').textContent=(teamSize+' × '+teamSize)+' · ТРЕНИРОВКА';
+ attackCooldown=0;pressed.clear();$('troops-halt').textContent='|| \u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u043e\u0438\u043d\u043e\u0432';$('regroup-troops').textContent='\u0421\u043e\u0431\u0440\u0430\u0442\u044c\u0441\u044f';$('guard-mode').textContent='\u041e\u0431\u043e\u0440\u043e\u043d\u0430: \u0412\u041a\u041b';$('rally-troops').textContent='\u0422\u043e\u0447\u043a\u0430 \u0441\u0431\u043e\u0440\u0430';$('battle-title').textContent=(teamSize+' × '+teamSize)+' · '+PRIME_ARENAS[arenaId].label.toUpperCase()+' · '+classConfig.id.toUpperCase();
  $('battle-feed').innerHTML='';
  renderBotList();renderTowerList();$('hp-fill').style.width='100%';$('hp-label').textContent=player.hp+' / '+player.maxHp;updateProfile();updateHud();show('battle');resizeArenaCanvas();drawArena();
 }
@@ -612,6 +634,20 @@ function updateBattleObjectives(dt){
  }
  for(const cache of (m.supplyCaches||[])){if(!cache.active&&m.elapsed>=cache.respawnAt){cache.active=true;addCombatFeed('На карте появился обоз с припасами');}if(!cache.active)continue;let nearest=null,best=42;for(const entry of [...friendly.map(entity=>({entity,team:0})),...hostile.map(entity=>({entity,team:1}))]){const distance=Math.hypot(entry.entity.x-cache.x,entry.entity.y-cache.y);if(distance<best){best=distance;nearest=entry;}}if(!nearest)continue;cache.active=false;cache.respawnAt=m.elapsed+95;if(nearest.team===0){m.playerCoins+=180;addCombatFeed('Ваши войска нашли обоз · +180 ◆');}else{const bot=m.bots.filter(b=>b.alive).sort((a,b)=>Math.hypot(a.x-cache.x,a.y-cache.y)-Math.hypot(b.x-cache.x,b.y-cache.y))[0];if(bot)bot.profile.coins+=180*difficulty.income;addCombatFeed('Соперник перехватил обоз с припасами');}}
 }
+
+function activateClassAbility(){
+ const m=match;if(!m||m.finished||m.online?.role==='guest')return false;const p=m.player,cfg=getPrimeClassConfig(p.classId),state=m.classAbility||(m.classAbility={cooldownUntil:0,shieldUntil:0});
+ if(m.elapsed<state.cooldownUntil){$('tower-feedback').textContent='Способность класса ещё перезаряжается.';return false;}
+ const targets=[...m.bots.filter(b=>b.alive),...m.units.filter(u=>(u.team===1||u.team===2)&&u.alive),...m.towers.filter(t=>t.team===1&&t.hp>0),...m.walls.filter(w=>w.team===1&&w.hp>0),...m.barracks.filter(b=>b.team===1&&b.hp>0),...(m.supportBuildings||[]).filter(b=>b.team===1&&b.hp>0)];
+ if(cfg.ability==='shield'){state.shieldUntil=m.elapsed+6;state.cooldownUntil=m.elapsed+cfg.cooldown;addCombatFeed('Страж поднял бастион · получаемый урон снижен на 58% на 6 сек');}
+ else{const found=chooseNearestTarget(p,targets,cfg.ability==='volley'?520:cfg.ability==='burst'?390:170);if(!found){$('tower-feedback').textContent='В радиусе способности нет вражеских целей.';return false;}state.cooldownUntil=m.elapsed+cfg.cooldown;
+  if(cfg.ability==='cleave'){const nearby=targets.filter(t=>Math.hypot(t.x-p.x,t.y-p.y)<=155).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y)).slice(0,3);for(const t of nearby){m.tracers.push({x1:p.x,y1:p.y-15,x2:t.x,y2:t.y-10,life:.24,maxLife:.24,team:0});applyCombatDamage(t,cfg.damageAbility,p);}addCombatFeed('Воин выполнил круговой удар · целей: '+nearby.length);}
+  else if(cfg.ability==='volley'){const nearby=targets.filter(t=>Math.hypot(t.x-found.target.x,t.y-found.target.y)<=128).slice(0,4);for(const t of nearby){m.tracers.push({x1:p.x,y1:p.y-18,x2:t.x,y2:t.y-12,life:.32,maxLife:.32,team:0});applyCombatDamage(t,cfg.damageAbility,p);}addCombatFeed('Следопыт выпустил залп · целей: '+nearby.length);}
+  else if(cfg.ability==='burst'){const nearby=targets.filter(t=>Math.hypot(t.x-found.target.x,t.y-found.target.y)<=118);for(const t of nearby){m.tracers.push({x1:p.x,y1:p.y-18,x2:t.x,y2:t.y-12,life:.4,maxLife:.4,team:0});applyCombatDamage(t,cfg.damageAbility,p);}addCombatFeed('Маг вызвал всплеск маны · целей: '+nearby.length);}
+ }
+ updateBattleSystemsHud();drawArena();return true;
+}
+
 function castCommanderAbility(kind){
  const m=match,c=m?.commander;if(!m||!c||m.finished)return false;
  if(m.elapsed<(c.cooldowns[kind]||0)){$('tower-feedback').textContent='Способность ещё перезаряжается.';return false;}
@@ -664,6 +700,7 @@ function updateEnergyRift(dt){
 }
 function updateBattleSystemsHud(){
  const m=match;if(!m)return;const c=m.commander,labels={warcry:'⚔ Клич',shield:'🛡 Щит',volley:'☄ Залп'};
+ const classButton=$('ability-class'),classConfig=getPrimeClassConfig(m.player.classId);if(classButton){const left=Math.max(0,Math.ceil((m.classAbility?.cooldownUntil||0)-m.elapsed)),shield=m.classAbility?.shieldUntil>m.elapsed;classButton.disabled=left>0;classButton.textContent=classConfig.abilityLabel+' · '+(shield?'ЩИТ '+Math.ceil(m.classAbility.shieldUntil-m.elapsed)+'с':left?left+'с':'ГОТОВО');}
  for(const key of Object.keys(labels)){const button=$('ability-'+key);if(!button)continue;const left=Math.max(0,Math.ceil((c.cooldowns[key]||0)-m.elapsed));button.disabled=left>0||(key==='volley'&&!m.bots.some(b=>b.alive)&&!m.units.some(u=>u.team===1&&u.alive));button.textContent=labels[key]+' · '+(left?left+'с':'ГОТОВО');}
  const owned=(m.outposts||[]).filter(p=>p.owner===0).length,enemy=(m.outposts||[]).filter(p=>p.owner===1).length,outpost=$('hud-outposts');if(outpost)outpost.textContent='АВАНПОСТЫ '+owned+'/'+(m.outposts||[]).length+' · ВРАГ '+enemy;
  const weather=$('hud-weather');if(weather){const names={clear:'ЯСНО',rain:'ЛИВЕНЬ',fog:'ТУМАН',tailwind:'ПОПУТНЫЙ ВЕТЕР'};weather.textContent='ПОГОДА · '+(names[m.weather?.type||'clear']||'ЯСНО');}const riftHud=$('hud-rift');if(riftHud){if(m.riftBuffUntil>m.elapsed)riftHud.textContent=(m.riftBuffTeam===0?'РАЗЛОМ · ВАШ УРОН +20% ':'РАЗЛОМ · УРОН ВРАГА +20% ')+Math.ceil(m.riftBuffUntil-m.elapsed)+'с';else if(m.energyRift?.active)riftHud.textContent='РАЗЛОМ · ЗАХВАТ '+Math.min(100,Math.round((m.energyRift.progress||0)/4*100))+'%';else riftHud.textContent='РАЗЛОМ · '+formatMatchTime(Math.max(0,(m.energyRift?.nextAt||0)-m.elapsed));}
@@ -714,7 +751,7 @@ function updateHud(){
  const upgradeButton=q('upgrade-tower');
  if(upgradeButton){upgradeButton.disabled=match.playerTowerLevel>=20||match.playerCoins<upgrade;upgradeButton.textContent=match.playerTowerLevel>=20?'Башня MAX':'Улучшить башню · '+upgrade+' ◆ · +300 HP';}
  document.querySelectorAll('[data-build]').forEach(button=>{
-  const cost={wall:150,tower:300,barracks:450,forge:650,infirmary:600,archery:700,stable:800,siege:950,mage:900,market:550}[button.dataset.build]||0;
+  const cost={wall:150,tower:300,barracks:450,forge:650,infirmary:600,archery:700,stable:800,siege:950,mage:900,market:550,ballista:1250}[button.dataset.build]||0;
   button.disabled=coins<cost;
  });
 }
@@ -724,7 +761,7 @@ function upgradeStructureAt(x,y){
  if(!o)return false;
  const level=o.level||1;
  if(level>=5){$('tower-feedback').textContent='Максимальный уровень постройки: 5/5.';return true;}
- const baseCost={wall:100,tower:200,barracks:180,forge:240,infirmary:220,archery:260,stable:300,siege:340,mage:320,market:180};
+ const baseCost={wall:100,tower:200,barracks:180,forge:240,infirmary:220,archery:260,stable:300,siege:340,mage:320,market:180,ballista:520};
  const kind=o.kind==='archer'?'tower':(o.kind||(m.barracks.includes(o)?'barracks':(o.isTower?'tower':'wall'))),cost=(baseCost[kind]||180)*level;
  if(m.playerCoins<cost){$('tower-feedback').textContent='Не хватает '+(cost-Math.floor(m.playerCoins))+' ◆. Для уровня '+(level+1)+' нужно '+cost+' ◆.';return true;}
  m.playerCoins-=cost;o.level=level+1;
@@ -740,6 +777,7 @@ function upgradeStructureAt(x,y){
  if(kind==='siege'){o.trainInterval=Math.max(27,54-(o.level-1)*7);o.unitCapacity=1+Math.floor((o.level-1)/2);}
  if(kind==='mage'){o.damage=36+(o.level-1)*14;o.range=250+(o.level-1)*28;o.fireInterval=Math.max(.85,1.7-(o.level-1)*.18);}
  if(kind==='market')o.incomeRate=3+(o.level-1)*2;
+ if(kind==='ballista'){const stats=primeBallistaStats(o.level);o.damage=stats.damage;o.range=stats.range;o.fireInterval=stats.fireInterval;}
  $('tower-feedback').textContent=(o.displayName||({wall:'Стена',tower:'Башня лучника',barracks:'Казарма',forge:'Кузница',infirmary:'Лазарет',archery:'Стрельбище',stable:'Конюшня',siege:'Осадная мастерская',mage:'Башня магов',market:'Рынок'}[kind]||'Постройка'))+' улучшена до уровня '+o.level+'/5. ХП, функции и модель усилены.';
  save();updateHud();drawArena();return true;
 }
@@ -783,7 +821,7 @@ function addDamageNumber(target,amount,team){
 }
 function applyCombatDamage(target,amount,attacker){
  if(!match||!target||target.hp<=0||target.alive===false)return false;
- let damage=Math.max(1,Math.round(Number(amount)||0));const ranged=!!attacker&&(attacker.kind==='archer'||attacker.kind==='siege'||attacker.kind==='mage'||attacker.isTower);if(ranged){const weather=match.weather?.type;if(weather==='rain')damage=Math.round(damage*.88);else if(weather==='fog')damage=Math.round(damage*.82);else if(weather==='tailwind')damage=Math.round(damage*1.08);}const friendlyFighter=attacker===match.player||match.allies.includes(attacker)||match.units.includes(attacker);if(friendlyFighter&&attacker.team===0&&match.commander?.warCryUntil>match.elapsed)damage=Math.round(damage*1.25);if(target.team===0&&attacker?.team===1&&match.commander?.shieldUntil>match.elapsed)damage=Math.round(damage*.68);if(match.riftBuffUntil>match.elapsed&&match.riftBuffTeam===attacker?.team)damage=Math.round(damage*1.2);const isWarrior=!!attacker&&attacker!==match.player&&(match.allies.includes(attacker)||match.units.includes(attacker));if(isWarrior&&(attacker.team===0||attacker.team===1)){const forge=(match.supportBuildings||[]).find(b=>b.team===attacker.team&&b.kind==='forge'&&b.hp>0&&Math.hypot(b.x-attacker.x,b.y-attacker.y)<(210+(b.level||1)*28));if(forge)damage=Math.round(damage*(1+(forge.bonus||.18)));}const wasAlive=target.alive!==false;
+ let damage=Math.max(1,Math.round(Number(amount)||0));if(target===match.player&&match.classAbility?.shieldUntil>match.elapsed)damage=Math.max(1,Math.round(damage*.42));const ranged=!!attacker&&(attacker.kind==='archer'||attacker.kind==='siege'||attacker.kind==='mage'||attacker.kind==='ballista'||attacker.isTower);if(ranged){const weather=match.weather?.type;if(weather==='rain')damage=Math.round(damage*.88);else if(weather==='fog')damage=Math.round(damage*.82);else if(weather==='tailwind')damage=Math.round(damage*1.08);}const friendlyFighter=attacker===match.player||match.allies.includes(attacker)||match.units.includes(attacker);if(friendlyFighter&&attacker.team===0&&match.commander?.warCryUntil>match.elapsed)damage=Math.round(damage*1.25);if(target.team===0&&attacker?.team===1&&match.commander?.shieldUntil>match.elapsed)damage=Math.round(damage*.68);if(match.riftBuffUntil>match.elapsed&&match.riftBuffTeam===attacker?.team)damage=Math.round(damage*1.2);const isWarrior=!!attacker&&attacker!==match.player&&(match.allies.includes(attacker)||match.units.includes(attacker));if(isWarrior&&(attacker.team===0||attacker.team===1)){const forge=(match.supportBuildings||[]).find(b=>b.team===attacker.team&&b.kind==='forge'&&b.hp>0&&Math.hypot(b.x-attacker.x,b.y-attacker.y)<(210+(b.level||1)*28));if(forge)damage=Math.round(damage*(1+(forge.bonus||.18)));}const wasAlive=target.alive!==false;
  target.hp=Math.max(0,target.hp-damage);target.flash=.24;addDamageNumber(target,damage,attacker?.team??0);
  if(target.hp<=0&&wasAlive&&target!==match.player){
   if(target.team===2&&target.mineGuard){target.alive=false;addCombatFeed('Охранник золотой шахты повержен');}
@@ -866,6 +904,9 @@ function updateSupportBuildings(dt){
   const spend=amount=>{if(team===0)m.playerCoins-=amount;else if(ownerBot)ownerBot.profile.coins-=amount;};
   const friendly=team===0?[...(m.player?[m.player]:[]),...allies.filter(a=>a.alive),...units.filter(u=>u.team===0&&u.alive)]:[...bots.filter(b=>b.alive),...units.filter(u=>u.team===1&&u.alive)];
   const enemies=team===0?[...bots.filter(b=>b.alive),...units.filter(u=>(u.team===1||u.team===2)&&u.alive)]:[...(m.player?[m.player]:[]),...allies.filter(a=>a.alive),...units.filter(u=>(u.team===0||u.team===2)&&u.alive)];
+  if(building.kind==='ballista'){
+   building.fire=(building.fire||0)-dt;if(building.fire<=0){const structures=team===0?[...m.towers.filter(v=>v.team===1&&v.hp>0),...m.walls.filter(v=>v.team===1&&v.hp>0),...m.barracks.filter(v=>v.team===1&&v.hp>0),...(m.supportBuildings||[]).filter(v=>v.team===1&&v.hp>0)]:[...m.towers.filter(v=>v.team===0&&v.hp>0),...m.walls.filter(v=>v.team===0&&v.hp>0),...m.barracks.filter(v=>v.team===0&&v.hp>0),...(m.supportBuildings||[]).filter(v=>v.team===0&&v.hp>0)];const found=chooseNearestTarget(building,[...enemies,...structures],building.range||320);if(found){building.fire=building.fireInterval||2.5;m.tracers.push({x1:building.x,y1:building.y-22,x2:found.target.x,y2:found.target.y-12,life:.38,maxLife:.38,team});applyCombatDamage(found.target,building.damage||72,building);if(team===0)addCombatFeed('Баллиста пробила цель тяжёлым болтом');}}
+  }
   if(building.kind==='market'){if(team===0)m.playerCoins+=(building.incomeRate||3)*dt;else if(ownerBot)ownerBot.profile.coins+=(building.incomeRate||3)*dt;continue;}
   if(building.kind==='infirmary'){
    const radius=190+level*24,rate=building.healRate||10;
@@ -1147,22 +1188,24 @@ function attack(){
  if(!match||match.finished||attackCooldown>0)return;
  if(match.online?.role==='guest'){match.online.attackPulse=true;attackCooldown=.42;return;}
  attackCooldown=.42;
- const player=match.player,opponents=[...match.bots.filter(bot=>bot.alive),...match.units.filter(unit=>(unit.team===1||unit.team===2)&&unit.alive)];
- const found=chooseNearestTarget(player,opponents,112);
- if(found){alertEnemyBase();applyCombatDamage(found.target,found.target.profile?42:48,player);return;}
+ const player=match.player,range=player.attackRange||112,damage=player.damage||48,opponents=[...match.bots.filter(bot=>bot.alive),...match.units.filter(unit=>(unit.team===1||unit.team===2)&&unit.alive)];
+ const found=chooseNearestTarget(player,opponents,range);
+ if(found){alertEnemyBase();if(player.kind==='archer'||player.kind==='mage')match.tracers.push({x1:player.x,y1:player.y-18,x2:found.target.x,y2:found.target.y-12,life:.22,maxLife:.22,team:0});applyCombatDamage(found.target,found.target.profile?damage*.88:damage,player);return;}
  const structures=[...match.towers.filter(t=>t.team===1&&t.hp>0),...match.walls.filter(w=>w.team===1&&w.hp>0),...match.barracks.filter(b=>b.team===1&&b.hp>0),...(match.supportBuildings||[]).filter(b=>b.team===1&&b.hp>0)];
- const structure=chooseNearestTarget(player,structures,112);
+ const structure=chooseNearestTarget(player,structures,range);
  if(structure){alertEnemyBase();applyCombatDamage(structure.target,structure.target.isTower?54:42,player);return;}
  match.tracers.push({x1:player.x,y1:player.y-10,x2:player.x+Math.cos(match.elapsed*7)*34,y2:player.y-18+Math.sin(match.elapsed*7)*22,life:.10,maxLife:.10,team:0});
 }
 window.PrimeMobileAttack=()=>{if(scene!=='battle'||!match||match.finished)return false;attack();return true;};
 window.PrimeMobileAttack=()=>{if(scene==='battle')attack();};
 function drawPrimeWorldDecor(ctx,camX,camY,w,h){
- const seed=match.worldSeed||1, left=Math.max(0,Math.floor((camX+camX%TILE)/TILE)-1),top=Math.max(0,Math.floor((camY+camY%TILE)/TILE)-1);
+ const seed=match.worldSeed||1,theme=match.arenaId||'forest',left=Math.max(0,Math.floor((camX+camX%TILE)/TILE)-1),top=Math.max(0,Math.floor((camY+camY%TILE)/TILE)-1);
  const right=Math.min(SIZE,Math.ceil((camX+w)/TILE)+1),bottom=Math.min(SIZE,Math.ceil((camY+h)/TILE)+1);
  for(let ty=top;ty<bottom;ty++)for(let tx=left;tx<right;tx++){
   const edge=Math.min(tx,ty,SIZE-1-tx,SIZE-1-ty);if(edge<WATER_BORDER+4)continue;
-  const hash=(tx*73856093^ty*19349663^seed)>>>0,kind=hash%37,x=tx*TILE+((hash>>>7)%20)+6-camX,y=ty*TILE+((hash>>>15)%20)+6-camY;
+  const hash=(tx*73856093^ty*19349663^seed)>>>0,kind=hash%47,x=tx*TILE+((hash>>>7)%20)+6-camX,y=ty*TILE+((hash>>>15)%20)+6-camY;
+  if(theme==='desert'&&kind<7){if(kind<3){ctx.fillStyle='#8d704e';ctx.beginPath();ctx.moveTo(x-10,y+4);ctx.lineTo(x-7,y-5);ctx.lineTo(x+1,y-9);ctx.lineTo(x+10,y-2);ctx.lineTo(x+8,y+5);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(255,225,169,.3)';ctx.fillRect(x-5,y-5,8,2);}else if(kind===4){ctx.fillStyle='#4f7548';ctx.fillRect(x-3,y-10,6,18);ctx.fillRect(x-9,y-5,6,4);ctx.fillRect(x+3,y-1,6,4);}else if(kind===5){ctx.fillStyle='#7a5a3b';ctx.fillRect(x-9,y-8,18,16);ctx.fillStyle='#c5a06a';ctx.fillRect(x-11,y-11,22,4);ctx.fillStyle='#3b342c';ctx.fillRect(x-3,y-3,6,11);}else{ctx.strokeStyle='rgba(110,76,43,.58)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-7,y+4);ctx.lineTo(x-2,y-5);ctx.lineTo(x+3,y+1);ctx.lineTo(x+8,y-6);ctx.stroke();}continue;}
+  if(theme==='frost'&&kind<7){if(kind<3){ctx.fillStyle='#385e66';ctx.fillRect(x-2,y-4,4,12);ctx.fillStyle='#8abfc2';ctx.beginPath();ctx.moveTo(x,y-22);ctx.lineTo(x-11,y-2);ctx.lineTo(x+10,y-2);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(245,255,255,.55)';ctx.fillRect(x-1,y-19,2,12);}else if(kind===4){ctx.fillStyle='#75b6c7';ctx.beginPath();ctx.moveTo(x,y-14);ctx.lineTo(x-7,y+5);ctx.lineTo(x+7,y+5);ctx.closePath();ctx.fill();ctx.fillStyle='#e5fbff';ctx.fillRect(x-1,y-11,2,14);}else{ctx.fillStyle='rgba(246,255,255,.32)';ctx.beginPath();ctx.ellipse(x,y+3,8,3,0,0,Math.PI*2);ctx.fill();}continue;}
   if(kind===0||kind===1){ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(x,y+4,7,3,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=kind===0?'#66705a':'#8b8974';ctx.beginPath();ctx.moveTo(x-6,y+2);ctx.lineTo(x-3,y-3);ctx.lineTo(x+3,y-5);ctx.lineTo(x+7,y+1);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(235,229,196,.32)';ctx.fillRect(x-2,y-3,4,1);}
   else if(kind===2){ctx.strokeStyle='#285b32';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y+5);ctx.lineTo(x-2,y-5);ctx.moveTo(x,y+2);ctx.lineTo(x+5,y-4);ctx.moveTo(x-1,y);ctx.lineTo(x-6,y-3);ctx.stroke();ctx.fillStyle='#a9c96b';ctx.fillRect(x+2,y-5,2,2);}
   else if(kind===3){ctx.fillStyle='#34402e';ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#527c45';ctx.beginPath();ctx.arc(x-3,y-4,5,0,Math.PI*2);ctx.arc(x+3,y-2,5,0,Math.PI*2);ctx.fill();}
@@ -1192,7 +1235,7 @@ function drawTower(ctx,t,camX,camY){
 function buildPlacementAtWorld(rawX,rawY,team=0,owner=null){
  const m=match;if(!m||!buildMode)return {valid:false,reason:'Выбери постройку.'};
  const x=Math.floor(rawX/TILE)*TILE+TILE/2,y=Math.floor(rawY/TILE)*TILE+TILE/2;
- const cost={wall:150,tower:300,barracks:450,forge:650,infirmary:600,archery:700,stable:800,siege:950,mage:900,market:550}[buildMode]||0;
+ const cost={wall:150,tower:300,barracks:450,forge:650,infirmary:600,archery:700,stable:800,siege:950,mage:900,market:550,ballista:1250}[buildMode]||0;
  const min=TILE*(WATER_BORDER+1)+20,max=SIZE*TILE-min;
  const bounds=x>=min&&y>=min&&x<=max&&y<=max&&canEntityOccupy(x,y,12);
  const builder=team===1?(owner||m.bots.find(b=>b.isRemotePlayer)?.profile||m.bots[0]?.profile):null,wallet=team===0?m.playerCoins:(builder?.coins||0),home=team===1?m.enemyBase:(m.playerBase||m.player);const baseDistance=Math.hypot(x-home.x,y-home.y);const territory=baseDistance<=20*TILE;
@@ -1215,13 +1258,14 @@ function commitBuildPlacement(kind,placement,team=placement?.team??0,owner=place
  if(kind==='siege')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'siege',level:1,hp:880,maxHp:880,trainTimer:0,trainInterval:54,unitCapacity:1,rotation:placement.rotation||0});
  if(kind==='mage')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'mage',level:1,hp:820,maxHp:820,fire:0,damage:36,range:250,fireInterval:1.7,rotation:placement.rotation||0});
  if(kind==='market')m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'market',level:1,hp:600,maxHp:600,incomeRate:3,rotation:placement.rotation||0});
+ if(kind==='ballista'){const stats=primeBallistaStats(1);m.supportBuildings.push({x:px,y:py,team,owner:structureOwner,kind:'ballista',level:1,hp:920,maxHp:920,fire:0,...stats,rotation:placement.rotation||0});}
  addCombatFeed((kind==='wall'?'Стена':kind==='tower'?'Башня лучника':kind==='barracks'?'Казарма':'Постройка')+' построена');
  save();renderTowerList();updateHud();return true;
 }
 function processRemoteBuildRequest(){
  const m=match,req=m?.online?.remoteInput?.buildRequest;if(!m||m.online?.role!=='host'||!req||!req.id||req.id===m.online.lastBuildRequestId)return;
  m.online.lastBuildRequestId=req.id;
- const allowed=['wall','tower','barracks','forge','infirmary','archery','stable','siege','mage','market'];if(!allowed.includes(req.kind))return;
+ const allowed=['wall','tower','barracks','forge','infirmary','archery','stable','siege','mage','market','ballista'];if(!allowed.includes(req.kind))return;
  const team=m.online.mode==='bots'?0:1,owner=team===1?(m.bots.find(b=>b.isRemotePlayer)?.profile||m.bots[0]?.profile):null;
  const previousMode=buildMode,previousRotation=buildRotation;buildMode=req.kind;buildRotation=Number(req.rotation)||0;
  const placement=buildPlacementAtWorld(Number(req.x),Number(req.y),team,owner);buildMode=previousMode;buildRotation=previousRotation;
@@ -1241,6 +1285,8 @@ function drawBuildPreview(ctx,camX,camY){
  else if(buildMode==='tower'){
   ctx.beginPath();ctx.moveTo(x-23,y+15);ctx.lineTo(x-18,y-7);ctx.lineTo(x-12,y-21);ctx.lineTo(x+12,y-21);ctx.lineTo(x+18,y-7);ctx.lineTo(x+23,y+15);ctx.closePath();ctx.fill();
   ctx.fillRect(x-8,y-36,16,18);ctx.fillRect(x-5,y-43,10,8);
+ }else if(buildMode==='ballista'){
+  ctx.fillRect(x-35,y-12,70,24);ctx.strokeStyle='#c9b17f';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x-31,y-19);ctx.quadraticCurveTo(x,y-34,x+31,y-19);ctx.stroke();ctx.fillStyle='#d7e0e4';ctx.fillRect(x-2,y-33,4,23);
  }else if(buildMode==='stable'||buildMode==='siege'||buildMode==='mage'||buildMode==='market'){
   ctx.fillRect(x-25,y-18,50,36);ctx.beginPath();ctx.moveTo(x-30,y-18);ctx.lineTo(x,y-45);ctx.lineTo(x+30,y-18);ctx.closePath();ctx.fill();
   if(buildMode==='mage'){ctx.fillStyle='#e9d7ff';ctx.beginPath();ctx.arc(x,y-25,7,0,Math.PI*2);ctx.fill();}
@@ -1256,7 +1302,7 @@ function drawBuildPreview(ctx,camX,camY){
 }
 function drawPrimeFighter(ctx,f,camX,camY,isPlayer,isAlly=false){
  const x=f.x-camX,y=f.y-camY,phase=(f.walkPhase||performance.now()/105)+(f.id||0),step=Math.sin(phase)*2.2;
- const look=isPlayer?SKYREALM_DEFAULT_LOOK:{...SKYREALM_DEFAULT_LOOK,armor:isAlly?'#287ca0':'#874d46',accent:isAlly?'#83dcf2':'#e6a078',hair:isAlly?'#26364a':'#35282c',skin:isAlly?'#d9ad86':'#d4a07d'};
+ const classLook=isPlayer?getPrimeClassConfig(f.classId||match?.player?.classId):null,look=isPlayer?{...SKYREALM_DEFAULT_LOOK,armor:classLook?.armor||SKYREALM_DEFAULT_LOOK.armor,accent:classLook?.accent||SKYREALM_DEFAULT_LOOK.accent}:{...SKYREALM_DEFAULT_LOOK,armor:isAlly?'#287ca0':'#874d46',accent:isAlly?'#83dcf2':'#e6a078',hair:isAlly?'#26364a':'#35282c',skin:isAlly?'#d9ad86':'#d4a07d'};
  const armor=look.armor,accent=look.accent,skin=look.skin;
  ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.22,1.22);
  ctx.fillStyle='rgba(16,24,28,.40)';ctx.beginPath();ctx.ellipse(0,13,13,7,0,0,Math.PI*2);ctx.fill();
@@ -1276,7 +1322,7 @@ function drawPrimeFighter(ctx,f,camX,camY,isPlayer,isAlly=false){
  ctx.fillStyle=accent;ctx.fillRect(-10,-4,4,5);ctx.fillRect(6,-4,4,5);
  ctx.strokeStyle=skin;ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(-10,-1);ctx.lineTo(-13-step*.3,7);ctx.moveTo(10,-1);ctx.lineTo(13+step*.3,7);ctx.stroke();
  const swing=f.attack>0?Math.sin(performance.now()/45)*.5:Math.sin(phase*.7)*.06;
- if(f.kind==='archer'){ctx.save();ctx.translate(11,0);ctx.strokeStyle='#d7bd82';ctx.lineWidth=2;ctx.beginPath();ctx.arc(-1,0,10,-1.15,1.15);ctx.stroke();ctx.strokeStyle='#ead9ad';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-2,-9);ctx.lineTo(5,9);ctx.moveTo(-1,0);ctx.lineTo(12,-4);ctx.stroke();ctx.restore();}
+ if(f.classId==='Маг'){ctx.save();ctx.translate(11,1);ctx.strokeStyle='#6b4c9a';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,8);ctx.lineTo(0,-20);ctx.stroke();ctx.fillStyle='#e6d6ff';ctx.shadowColor='#b68aff';ctx.shadowBlur=10;ctx.beginPath();ctx.arc(0,-23,4+Math.sin(performance.now()/150)*1.2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.restore();}else if(f.kind==='archer'){ctx.save();ctx.translate(11,0);ctx.strokeStyle='#d7bd82';ctx.lineWidth=2;ctx.beginPath();ctx.arc(-1,0,10,-1.15,1.15);ctx.stroke();ctx.strokeStyle='#ead9ad';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-2,-9);ctx.lineTo(5,9);ctx.moveTo(-1,0);ctx.lineTo(12,-4);ctx.stroke();ctx.restore();}
  else{ctx.save();ctx.translate(10,1);ctx.rotate(-.22+swing);ctx.strokeStyle='#8d6944';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-2,1);ctx.lineTo(4,4);ctx.stroke();ctx.strokeStyle='#d4b878';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-1,-1);ctx.lineTo(6,5);ctx.stroke();ctx.strokeStyle='#dbe8f5';ctx.lineWidth=2.8;ctx.beginPath();ctx.moveTo(4,2);ctx.lineTo(8,-16);ctx.stroke();ctx.strokeStyle=accent;ctx.lineWidth=1;ctx.shadowColor=accent;ctx.shadowBlur=7;ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(9,-15);ctx.stroke();ctx.restore();}
  // Cloth mantle, shoulder plates, rivets and tiered helmet silhouette.
  ctx.fillStyle=isAlly?'#185e79':(f.team===1?'#71372f':'#243d59');ctx.beginPath();ctx.moveTo(-8,-4);ctx.quadraticCurveTo(-15,5,-13,16);ctx.lineTo(-5,12);ctx.lineTo(-4,1);ctx.fill();
@@ -1288,19 +1334,19 @@ function drawPrimeFighter(ctx,f,camX,camY,isPlayer,isAlly=false){
  ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(isPlayer?(match.online?.selfName||window.PrimeCurrentDisplayName||'Игрок'):(f.name||'Воин'),x,y-35);ctx.shadowBlur=0;
  if(!isPlayer){ctx.fillStyle='#140d0b';ctx.fillRect(x-18,y-42,36,4);ctx.fillStyle=f.team===0?'#70d8ff':'#ff765f';ctx.fillRect(x-18,y-42,36*Math.max(0,f.hp/f.maxHp),4);}
 }
-function buildTerrainCache(seed){
- const c=document.createElement('canvas');c.width=SIZE*TILE;c.height=SIZE*TILE;const g=c.getContext('2d',{alpha:false});
+function buildTerrainCache(seed,arenaId='forest'){
+ const c=document.createElement('canvas');c.width=SIZE*TILE;c.height=SIZE*TILE;const g=c.getContext('2d',{alpha:false}),palette=getPrimeArenaPalette(arenaId);
  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
   const edge=Math.min(x,y,SIZE-1-x,SIZE-1-y),n=(x*17+y*31+(x*y)%23+seed)%9,hash=(x*73856093^y*19349663^seed)>>>0,sx=x*TILE,sy=y*TILE;
   if(edge<WATER_BORDER){
-   g.fillStyle=['#116b8d','#0d5d82','#155f83','#0d5278'][n%4];g.fillRect(sx,sy,TILE,TILE);
+   g.fillStyle=palette.water[n%palette.water.length];g.fillRect(sx,sy,TILE,TILE);
    g.strokeStyle='rgba(177,238,246,.12)';g.lineWidth=1;g.beginPath();g.moveTo(sx+((hash>>>4)%14),sy+8+((hash>>>8)%18));g.quadraticCurveTo(sx+15,sy+((hash>>>12)%25),sx+30,sy+8+((hash>>>16)%18));g.stroke();
   }else if(edge<WATER_BORDER+3){
-   g.fillStyle=['#c9b27b','#bda36d','#d0b985'][n%3];g.fillRect(sx,sy,TILE,TILE);
+   g.fillStyle=palette.shore[n%palette.shore.length];g.fillRect(sx,sy,TILE,TILE);
    g.fillStyle='rgba(255,255,255,.19)';g.fillRect(sx+((hash>>>2)%23),sy+((hash>>>7)%21),5,2);
    g.fillStyle='rgba(105,78,44,.16)';g.fillRect(sx+((hash>>>13)%22),sy+((hash>>>18)%20),7,3);
   }else{
-   g.fillStyle=['#568d4b','#5b934f','#609853','#548849','#639b55','#5a914d','#5d9551','#568c49','#629651'][n];g.fillRect(sx,sy,TILE,TILE);
+   g.fillStyle=palette.ground[n%palette.ground.length];g.fillRect(sx,sy,TILE,TILE);
    const variant=(hash>>>5)%5;
    for(let k=0;k<3;k++){const gx=sx+((hash>>>(k*6+2))%28),gy=sy+((hash>>>(k*5+11))%28);g.fillStyle=k===0?'rgba(224,239,164,.30)':'rgba(24,54,29,.24)';g.fillRect(gx,gy,2+(hash%4),2);}
    if(variant===0){g.fillStyle='rgba(83,75,60,.52)';g.beginPath();g.ellipse(sx+8+(hash%18),sy+9+((hash>>>8)%15),3+(hash%3),2,0,0,Math.PI*2);g.fill();g.fillStyle='rgba(205,193,158,.35)';g.fillRect(sx+7+(hash%18),sy+8+((hash>>>8)%15),3,1);}
@@ -1326,6 +1372,8 @@ function drawSupportBuildings(ctx,camX,camY){
    ctx.fillStyle='#57402d';ctx.fillRect(-36,-17,72,37);ctx.fillStyle='#b48751';ctx.beginPath();ctx.moveTo(-42,-17);ctx.lineTo(0,-50);ctx.lineTo(42,-17);ctx.closePath();ctx.fill();ctx.fillStyle='#2a2523';ctx.fillRect(-18,-12,36,30);ctx.fillStyle='#d7b579';ctx.fillRect(-27,-21,54,5);ctx.fillStyle='#b9a17c';ctx.fillRect(-33,15,66,5);ctx.fillStyle='#f4d08a';ctx.fillRect(-4,-39,8,12);
   }else if(b.kind==='siege'){
    ctx.fillStyle='#494b50';ctx.fillRect(-38,-18,76,38);ctx.fillStyle='#747d86';ctx.fillRect(-32,-25,64,10);ctx.fillStyle='#332c28';ctx.fillRect(-25,-8,50,25);ctx.strokeStyle='#bd9a67';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-24,-18);ctx.lineTo(20,14);ctx.moveTo(24,-18);ctx.lineTo(-20,14);ctx.stroke();ctx.fillStyle='#d8c39a';ctx.fillRect(-7,-39,14,14);ctx.fillStyle='#7e5435';ctx.fillRect(-39,18,78,6);
+  }else if(b.kind==='ballista'){
+   ctx.fillStyle='#49382a';ctx.fillRect(-37,-10,74,28);ctx.fillStyle='#9a7047';ctx.fillRect(-34,-15,68,8);ctx.fillStyle='#302a26';ctx.fillRect(-7,-28,14,35);ctx.fillStyle='#b58b58';ctx.fillRect(-4,-35,8,17);ctx.strokeStyle='#c9b17f';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-34,-18);ctx.quadraticCurveTo(-19,-35,0,-25);ctx.quadraticCurveTo(19,-35,34,-18);ctx.stroke();ctx.strokeStyle='#e0d0a9';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-34,-18);ctx.lineTo(0,-25);ctx.lineTo(34,-18);ctx.stroke();ctx.fillStyle='#d7e0e4';ctx.fillRect(-2,-36,4,24);ctx.fillStyle='#e6c778';ctx.fillRect(-3,-39,6,4);if(l>=3){ctx.fillStyle='#75848d';ctx.fillRect(-42,-6,8,26);ctx.fillRect(34,-6,8,26);}if(l>=5){ctx.shadowColor='#9cecff';ctx.shadowBlur=12;ctx.strokeStyle='#9cecff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-25,17,Math.PI,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;}
   }else if(b.kind==='mage'){
    ctx.fillStyle='#40354e';ctx.fillRect(-31,-18,62,38);ctx.fillStyle='#76639c';ctx.beginPath();ctx.moveTo(-37,-18);ctx.lineTo(0,-54);ctx.lineTo(37,-18);ctx.closePath();ctx.fill();ctx.fillStyle='#c4a8ff';ctx.shadowColor='#a779ff';ctx.shadowBlur=17;ctx.beginPath();ctx.arc(0,-28,9+Math.sin(performance.now()/170)*2,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#e2d3ff';ctx.fillRect(-5,1,10,19);ctx.fillRect(-18,5,36,6);
   }else if(b.kind==='market'){
@@ -1341,7 +1389,7 @@ function drawSupportBuildings(ctx,camX,camY){
   ctx.restore();
   const aura=b.kind==='forge'?210+l*28:b.kind==='infirmary'?190+l*24:0;
   if(aura){ctx.save();ctx.globalAlpha=.10;ctx.fillStyle=b.kind==='forge'?'#ff9a45':'#83e4c3';ctx.beginPath();ctx.arc(x,y,aura,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.52;ctx.strokeStyle=b.kind==='forge'?'#ffb36a':'#9ef3d8';ctx.setLineDash([7,7]);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,aura,0,Math.PI*2);ctx.stroke();ctx.restore();}
-  const title={forge:'КУЗНИЦА',infirmary:'ЛАЗАРЕТ',archery:'СТРЕЛЬБИЩЕ',stable:'КОНЮШНЯ',siege:'ОСАДНАЯ МАСТЕРСКАЯ',mage:'БАШНЯ МАГОВ',market:'РЫНОК'}[b.kind]||'ПОСТРОЙКА';
+  const title={forge:'КУЗНИЦА',infirmary:'ЛАЗАРЕТ',archery:'СТРЕЛЬБИЩЕ',stable:'КОНЮШНЯ',siege:'ОСАДНАЯ МАСТЕРСКАЯ',mage:'БАШНЯ МАГОВ',market:'РЫНОК',ballista:'БАЛЛИСТА'}[b.kind]||'ПОСТРОЙКА';
   ctx.fillStyle='#fff';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(title+' · ур. '+l+'/5',x,y-58);ctx.shadowBlur=0;
   ctx.fillStyle='#160f0c';ctx.fillRect(x-30,y+29,60,5);ctx.fillStyle=b.team===0?'#70d8ff':'#ff765f';ctx.fillRect(x-30,y+29,60*Math.max(0,b.hp/b.maxHp),5);
   if(b.kind==='market'){ctx.fillStyle='#ffe1a0';ctx.font='bold 9px Segoe UI';ctx.fillText('+'+(b.incomeRate||3)+'/сек',x,y+47);}
@@ -1352,11 +1400,11 @@ function drawArena(){
  const rect=c.getBoundingClientRect(),w=rect.width||window.innerWidth,h=rect.height||window.innerHeight,dpr=Number(c.dataset.dpr)||Math.min(1.5,window.devicePixelRatio||1);
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=false;
  const p=match.localEntity||match.player,camX=p.x-w/2,camY=p.y-h/2;
- if(!match.terrainCanvas)match.terrainCanvas=buildTerrainCache(match.worldSeed);ctx.drawImage(match.terrainCanvas,camX,camY,w,h,0,0,w,h);drawPrimeWorldDecor(ctx,camX,camY,w,h);drawBattleObjectives(ctx,camX,camY);
+ if(!match.terrainCanvas)match.terrainCanvas=buildTerrainCache(match.worldSeed,match.arenaId);ctx.drawImage(match.terrainCanvas,camX,camY,w,h,0,0,w,h);drawPrimeWorldDecor(ctx,camX,camY,w,h);drawBattleObjectives(ctx,camX,camY);
  const x0=Math.max(0,Math.floor(camX/TILE)),y0=Math.max(0,Math.floor(camY/TILE)),x1=Math.min(SIZE,Math.ceil((camX+w)/TILE)+1),y1=Math.min(SIZE,Math.ceil((camY+h)/TILE)+1);
- const waveTime=performance.now()/720;
+ const waveTime=performance.now()/720,waterFoam=match.arenaId==='frost'?'#e8fcff':match.arenaId==='desert'?'#f2e2bc':'#b6f5ff';
  const base=match.playerBase;ctx.save();ctx.translate(base.x-camX,base.y-camY);ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,20,82,24,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#343d48';ctx.fillRect(-65,-22,130,48);ctx.fillStyle='#68798a';ctx.fillRect(-58,-30,116,12);ctx.fillStyle='#b4c4d3';for(let k=-2;k<=2;k++)ctx.fillRect(k*24-7,-39,14,10);ctx.fillStyle='#ff9a4d';ctx.fillRect(-8,-18,16,38);ctx.fillStyle='#f8d08a';ctx.fillRect(-3,-14,6,22);ctx.strokeStyle='#ffbf78';ctx.lineWidth=3;ctx.strokeRect(-65,-22,130,48);ctx.restore();
- for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const edge=Math.min(x,y,SIZE-1-x,SIZE-1-y);if(edge>=WATER_BORDER)continue;const sx=x*TILE-camX,sy=y*TILE-camY,seed=(x*73856093^y*19349663^match.worldSeed)>>>0,shimmer=.5+.5*Math.sin(waveTime*1.4+x*.31-y*.22);ctx.save();ctx.globalAlpha=.10+shimmer*.08;ctx.fillStyle='#b6f5ff';ctx.beginPath();ctx.ellipse(sx+8+((seed>>>3)%18),sy+8+((seed>>>9)%17),5+shimmer*5,1.4,Math.sin(waveTime+x*.2)*.18,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.22;ctx.strokeStyle='#b9f5ff';ctx.lineWidth=1.2;const wy=sy+8+Math.sin(waveTime+x*.65+y*.24)*4;ctx.beginPath();ctx.moveTo(sx-2,wy);ctx.quadraticCurveTo(sx+8,wy-3,sx+17,wy+1);ctx.quadraticCurveTo(sx+25,wy+4,sx+34,wy-1);ctx.stroke();ctx.restore();}
+ for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const edge=Math.min(x,y,SIZE-1-x,SIZE-1-y);if(edge>=WATER_BORDER)continue;const sx=x*TILE-camX,sy=y*TILE-camY,seed=(x*73856093^y*19349663^match.worldSeed)>>>0,shimmer=.5+.5*Math.sin(waveTime*1.4+x*.31-y*.22);ctx.save();ctx.globalAlpha=.10+shimmer*.08;ctx.fillStyle=waterFoam;ctx.beginPath();ctx.ellipse(sx+8+((seed>>>3)%18),sy+8+((seed>>>9)%17),5+shimmer*5,1.4,Math.sin(waveTime+x*.2)*.18,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.22;ctx.strokeStyle=waterFoam;ctx.lineWidth=1.2;const wy=sy+8+Math.sin(waveTime+x*.65+y*.24)*4;ctx.beginPath();ctx.moveTo(sx-2,wy);ctx.quadraticCurveTo(sx+8,wy-3,sx+17,wy+1);ctx.quadraticCurveTo(sx+25,wy+4,sx+34,wy-1);ctx.stroke();ctx.restore();}
  match.walls.forEach(w=>{const x=w.x-camX,y=w.y-camY;ctx.save();ctx.translate(x,y);ctx.rotate(w.rotation||0);const ws=1+Math.min(6,(w.level||1)-1)*.055;ctx.scale(ws,ws);ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(-27,-7,54,22);ctx.fillStyle=(w.level||1)>=4?'#596d7b':(w.level||1)>=2?'#3b4651':'#252a31';ctx.fillRect(-25,-11,50,22);ctx.fillStyle=(w.level||1)>=4?'#c9d7df':'#8b929b';ctx.fillRect(-23,-15,46,6);if((w.level||1)>=2){ctx.fillStyle='#b5c4ce';for(let k=-2;k<=2;k++){ctx.fillRect(k*9-2,-18,4,7);ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(k*9-1,-17,1,4);ctx.fillStyle='#b5c4ce';}}if((w.level||1)>=3){ctx.fillStyle='#9daeb9';for(let k=-2;k<=2;k++){ctx.beginPath();ctx.moveTo(k*9-2,-18);ctx.lineTo(k*9,-25);ctx.lineTo(k*9+2,-18);ctx.fill();}}if((w.level||1)>=5){ctx.strokeStyle='#e4c77c';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-24,-7);ctx.lineTo(24,-7);ctx.stroke();}ctx.fillStyle=w.team===0?'#ff873d':'#d65b4a';ctx.fillRect(-25,13,50*Math.max(0,w.hp/w.maxHp),4);ctx.strokeStyle='#b8c5cf';ctx.lineWidth=1.5;ctx.strokeRect(-25,-11,50,22);ctx.restore();ctx.fillStyle='#fff';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText((localStorage.getItem(PRIME_LANG_KEY)==='en'?'WALL Lv. ':'СТЕНА ур.')+w.level,x,y-20);});drawSupportBuildings(ctx,camX,camY);match.barracks.forEach(b=>{const x=b.x-camX,y=b.y-camY;ctx.save();ctx.translate(x,y);ctx.rotate(b.rotation||0);const bs=1+Math.min(8,(b.level||1)-1)*.075;ctx.scale(bs,bs);ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(-24,-18,48,42);ctx.fillStyle=(b.level||1)>=4?'#6b5740':(b.level||1)>=2?'#594333':'#49372b';ctx.fillRect(-22,-20,44,38);ctx.fillStyle='#9a6a43';ctx.beginPath();ctx.moveTo(-27,-20);ctx.lineTo(0,-42);ctx.lineTo(27,-20);ctx.fill();ctx.fillStyle=(b.level||1)>=4?'#e6c36d':'#c5a57a';ctx.fillRect(-18,-17,36,5);ctx.fillStyle='#8b9ba6';if((b.level||1)>=2){ctx.fillRect(-28,-8,6,22);ctx.fillRect(22,-8,6,22);}if((b.level||1)>=3){ctx.fillStyle='#c8d4df';ctx.fillRect(-26,-15,5,18);ctx.fillRect(21,-15,5,18);}if((b.level||1)>=4){ctx.fillStyle='#f2cf75';ctx.fillRect(-3,-47,6,10);}if((b.level||1)>=5){ctx.strokeStyle='#ffe18a';ctx.lineWidth=2;ctx.strokeRect(-31,-28,62,48);ctx.fillStyle='#e7c879';ctx.fillRect(-31,-31,62,4);} 
  // Timber framing, lit windows and a changing heraldic pennant make every tier distinct.
  ctx.fillStyle='#2b2522';ctx.fillRect(-17,-10,8,10);ctx.fillRect(9,-10,8,10);ctx.fillStyle=(b.level||1)>=3?'#f5d58a':'#9fc5ce';ctx.fillRect(-16,-9,6,8);ctx.fillRect(10,-9,6,8);
@@ -1423,7 +1471,7 @@ function drawMiniMap(){
  if(match.mine){ctx.fillStyle=match.mine.owner===0?'#6fd8ef':match.mine.owner===1?'#ef8267':'#d5c18c';ctx.beginPath();ctx.arc(sx(match.mine.x),sy(match.mine.y),5,0,Math.PI*2);ctx.fill();}
  for(const wall of match.walls){ctx.fillStyle=wall.team===0?'#ffb16d':'#ff6868';ctx.fillRect(sx(wall.x)-2,sy(wall.y)-1,4,2);}
  for(const tower of match.towers){if(tower.hp<=0)continue;ctx.fillStyle=tower.team===0?'#e6f3ff':'#ff8576';ctx.fillRect(sx(tower.x)-2,sy(tower.y)-2,4,4);}
- for(const br of match.barracks){ctx.fillStyle=br.team===0?'#96dcff':'#ff9a8c';ctx.fillRect(sx(br.x)-2,sy(br.y)-2,4,4);}for(const b of (match.supportBuildings||[])){ctx.fillStyle=b.kind==='forge'?'#ffad62':b.kind==='infirmary'?'#7ce1bf':b.kind==='mage'?'#c39aff':b.kind==='market'?'#f4d27e':b.kind==='stable'?'#c58a55':b.kind==='siege'?'#aab7c5':'#e4c18b';ctx.fillRect(sx(b.x)-3,sy(b.y)-3,6,6);}
+ for(const br of match.barracks){ctx.fillStyle=br.team===0?'#96dcff':'#ff9a8c';ctx.fillRect(sx(br.x)-2,sy(br.y)-2,4,4);}for(const b of (match.supportBuildings||[])){ctx.fillStyle=b.kind==='forge'?'#ffad62':b.kind==='infirmary'?'#7ce1bf':b.kind==='mage'?'#c39aff':b.kind==='ballista'?'#f0d18b':b.kind==='market'?'#f4d27e':b.kind==='stable'?'#c58a55':b.kind==='siege'?'#aab7c5':'#e4c18b';ctx.fillRect(sx(b.x)-3,sy(b.y)-3,6,6);}
  for(const bot of match.bots){if(!bot.alive)continue;ctx.fillStyle='#ff504d';ctx.beginPath();ctx.arc(sx(bot.x),sy(bot.y),3.2,0,Math.PI*2);ctx.fill();}
  for(const ally of match.allies){if(!ally.alive)continue;ctx.fillStyle='#a1e9ff';ctx.beginPath();ctx.arc(sx(ally.x),sy(ally.y),2.8,0,Math.PI*2);ctx.fill();}
  for(const unit of match.units){if(!unit.alive)continue;ctx.fillStyle=unit.team===0?'#9be8ff':'#ff8a73';ctx.fillRect(sx(unit.x)-1,sy(unit.y)-1,3,3);}
@@ -1440,6 +1488,7 @@ window.addEventListener('keydown',e=>{
  if(e.code==='ShiftLeft'||e.code==='ShiftRight'){pressed.add(e.code);e.preventDefault();return;}
  if(keyDirection(e.code)){pressed.add(e.code);e.preventDefault();e.stopPropagation();}
  else if(e.code==='Space'){e.preventDefault();attack();}
+ else if(e.code==='KeyF'){e.preventDefault();activateClassAbility();}
  else if(e.code==='Escape'){e.preventDefault();if(match.paused)resumeMatch();else pauseMatch();}
 },true);
 window.addEventListener('keyup',e=>{pressed.delete(e.code);},true);
@@ -1484,7 +1533,7 @@ document.querySelectorAll('[data-build]').forEach(b=>b.addEventListener('click',
   buildMode=b.dataset.build;buildRotation=0;document.body.classList.add('prime-building');$('build-panel').classList.add('hidden');$('tower-feedback').textContent='Зелёный призрак следует за курсором. Щёлкни, чтобы поставить постройку.';if(match)match.buildPreview=buildPlacementFromPointer(window.innerWidth/2,window.innerHeight/2);
  }));
 $('mine-guards')?.addEventListener('click',()=>{if(!match||!match.mine)return;if(match.online?.role==='guest'){match.online.mineGuardRequest={id:(match.online.mineGuardSeq=(match.online.mineGuardSeq||0)+1)};$('tower-feedback').textContent='Запрос на защитников шахты отправлен ведущему.';return;}if(!spawnMineDefenders(0,null,false))$('tower-feedback').textContent='Нужно владеть шахтой, иметь 900 ◆ и свободный лимит (максимум 2 защитника).';updateBattleSystemsHud();});
- $('ability-warcry').addEventListener('click',()=>castCommanderAbility('warcry'));$('ability-shield').addEventListener('click',()=>castCommanderAbility('shield'));$('ability-volley').addEventListener('click',()=>castCommanderAbility('volley'));$('hire-mercenaries').addEventListener('click',hireMercenaries);
+ $('ability-warcry').addEventListener('click',()=>castCommanderAbility('warcry'));$('ability-shield').addEventListener('click',()=>castCommanderAbility('shield'));$('ability-volley').addEventListener('click',()=>castCommanderAbility('volley'));$('ability-class').addEventListener('click',activateClassAbility);$('hire-mercenaries').addEventListener('click',hireMercenaries);
  $('troops-halt').addEventListener('click',()=>setTroopsHalted());$('regroup-troops').addEventListener('click',regroupTroops);$('guard-mode').addEventListener('click',toggleGuardMode);$('rally-troops').addEventListener('click',rallyTroops);
 $('train-unit').addEventListener('click',()=>{if(!match)return;const br=match.barracks.find(x=>x.team===0);if(!br){buildMode='barracks';document.body.classList.add('prime-building');$('build-panel').classList.remove('hidden');$('tower-feedback').textContent='Сначала построй казарму: выбери «Дом воинов», затем наведи мышь на место установки.';if(match)match.buildPreview=buildPlacementFromPointer(window.innerWidth/2,window.innerHeight/2);return;}const cap=br.unitCapacity||(8+((br.level||1)-1)*3),army=match.units.filter(u=>u.team===0&&u.alive).length;if(army>=cap){$('tower-feedback').textContent='Казарма достигла вместимости '+army+'/'+cap+'. Улучши казарму до следующего уровня.';return;}if(match.playerCoins<100){$('tower-feedback').textContent='Для найма воина нужно 100 ◆.';return;}match.playerCoins-=100;spawnUnit(0,br.x,br.y);updateHud();});
 updateProfile();
