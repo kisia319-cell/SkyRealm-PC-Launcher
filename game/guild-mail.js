@@ -61,7 +61,7 @@
   function accept(id){const m=state.letters.find(x=>x.id===id),q=currentQuest(m);if(!m||!q||m.task.accepted||m.task.claimed)return;m.task.accepted=true;save();render();}
   function claim(id){
     const m=state.letters.find(x=>x.id===id),q=currentQuest(m);if(!m||!q||!m.task.accepted||m.task.claimed||m.task.progress<q.goal)return;
-    m.task.claimed=true;bridge()?.addGold?.(q.reward*100);bridge()?.awardXP?.(q.xp,'почтовое поручение');bridge()?.addXP?.(q.xp);save();render();
+    m.task.claimed=true;bridge()?.addGold?.(q.reward*100);if(typeof bridge()?.awardXP==='function')bridge().awardXP(q.xp,'почтовое поручение');else bridge()?.addXP?.(q.xp);save();render();
   }
   function render(){
     if(!root||root.hidden)return;
