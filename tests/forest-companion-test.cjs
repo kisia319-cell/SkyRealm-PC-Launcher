@@ -13,7 +13,7 @@ const bridge={
  getPlayerPosition:()=>({...player}),
  getChallengeSnapshot:()=>({paused:false,day}),
  getGameDay:()=>day,
- isNightTime:()=>true,
+ isNightTime:()=>false,
  isBossRealm:()=>false,isTradeWorld:()=>false,isCoopWorld:()=>false,
  isCaveMode:()=>false,isMineMode:()=>false,isHouseMode:()=>false,isDungeonMode:()=>false,
  getItemCount:name=>inventory[name]||0,
