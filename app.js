@@ -27,7 +27,7 @@
     }
   };
   const t = (key) => LANGUAGE_TEXT[currentLanguage][key] || LANGUAGE_TEXT.ru[key] || key;
-  const getPageNames = () => ({home:t('pageHome'),registration:t('pageRegistration'),profile:t('pageProfile'),competitive:currentLanguage==='en'?'Competitive':'Соревновательный',news:t('pageNews'),shop:t('pageShop'),mods:t('pageMods'),community:t('pageCommunity'),support:t('pageSupport'),settings:t('pageSettings')});
+  const getPageNames = () => ({home:t('pageHome'),registration:t('pageRegistration'),profile:t('pageProfile'),competitive:currentLanguage==='en'?'Competitive':'Соревновательный',mods:t('pageMods'),community:t('pageCommunity'),support:t('pageSupport'),settings:t('pageSettings')});
   let pageNames = getPageNames();
   let gameLaunchBusy = false;
   const toast = (message) => {
