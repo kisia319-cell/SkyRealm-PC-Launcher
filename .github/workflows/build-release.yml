@@ -70,6 +70,9 @@ jobs:
           node --check game/custom-mods-runtime.js
           node --check game/expansion-systems.js
           node --check game/adventure-guild.js
+          node --check game/guild-mail.js
+          node --check tests/guild-mail-test.cjs
+          node tests/guild-mail-test.cjs
           node --check tests/adventure-guild-test.cjs
           node tests/adventure-guild-test.cjs
           node --check tests/expansion-systems-test.cjs
