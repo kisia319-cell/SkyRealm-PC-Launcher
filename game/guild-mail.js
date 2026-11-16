@@ -38,7 +38,7 @@
   }
   function ensureDay(){
     const day=dayNow();if(state.day===day&&state.letters.some(x=>x.day===day))return;
-    const letter=LETTERS[day%LETTERS.length],task=TASKS[(day*5+Math.floor(day/3))%TASKS.length];
+    const letter=LETTERS[day%LETTERS.length],task=TASKS[day%TASKS.length];
     state.day=day;state.letters.push({id:'day-'+day,day,from:letter.from,subject:letter.subject,body:letter.body,read:false,task:{id:task.id,accepted:false,progress:0,claimed:false}});
     state.letters=state.letters.slice(-45);save();
   }
