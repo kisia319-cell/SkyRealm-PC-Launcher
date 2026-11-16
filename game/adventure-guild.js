@@ -65,6 +65,7 @@
     const seed=(day*9301+49297)%233280;
     let n=seed;
     for(let i=pool.length-1;i>0;i--){n=(n*9301+49297)%233280;const j=n%(i+1);[pool[i],pool[j]]=[pool[j],pool[i]];}
+    if(state.expedition) bridge()?.clearEventEnemies?.(state.expedition.eventId);
     state.day=day;state.contracts=pool.slice(0,4).map(c=>({id:c.id,progress:0,claimed:false}));
     state.expedition=null;
     save();
@@ -73,7 +74,7 @@
   function itemCount(name){ return Math.max(0,Number(bridge()?.getItemCount?.(name))||0); }
   function canPay(cost){ return Object.entries(cost).every(([name,count])=>itemCount(name)>=count); }
   function pay(cost){ if(!canPay(cost))return false; for(const [name,count] of Object.entries(cost)) if(!bridge()?.spendItem?.(name,count)) return false; return true; }
-  function rewardGold(amount){ const campBonus=1+(state.camp.hearth||0)*.05;bridge()?.addGold?.(Math.round(amount*campBonus)*100); }
+  function rewardGold(amount){ const campBonus=1+(state.camp.hearth||0)*.05, relicBonus=1+state.relics.length*.02;bridge()?.addGold?.(Math.round(amount*campBonus*relicBonus)*100); }
   function addToken(amount){ state.tokens=clamp(state.tokens+Math.max(0,Math.floor(amount)),0,99999); }
   function progressContract(id,amount=1){
     const contract=state.contracts.find(x=>x.id===id&&!x.claimed);if(!contract)return;
@@ -111,7 +112,7 @@
   }
   function attackExpedition(){
     const e=state.expedition;if(!e)return;
-    const b=bridge(),def=ROUTES[e.route],damage=Math.max(1,Math.round((Number(b?.getWeaponDamage?.())||12)*(1+(state.camp.workshop||0)*.04)));
+    const b=bridge(),def=ROUTES[e.route],damage=Math.max(1,Math.round((Number(b?.getWeaponDamage?.())||12)*(1+(state.camp.workshop||0)*.04)*(1+state.relics.length*.03)));
     const hit=b?.damageEventEnemy?.(e.eventId,damage);
     if(!hit){notify('Противник не найден. Проверь, не завершился ли бой.');return;}
     const remaining=Number(b?.getEventEnemyCount?.(e.eventId))||0;
@@ -202,7 +203,7 @@
     else if(action==='attack')attackExpedition();
     else if(action==='abandon'){if(state.expedition){bridge()?.clearEventEnemies?.(state.expedition.eventId);state.expedition=null;save();notify('Экспедиция отменена.');}}
     else if(action==='camp')upgradeCamp(id);
-    else if(action==='treasure-create'){if((Number(bridge()?.getGold?.())||0)<35||!bridge()?.spendGold?.(35))notify('Для карты нужно 35 золота.');else createTreasure();}
+    else if(action==='treasure-create'){const b=bridge();if(!b?.getWorldBounds?.()||!b?.getPlayerPosition?.()||b?.isCoopWorld?.()||b?.isSpecialWorldMode?.())notify('Карту можно использовать в обычном одиночном мире.');else if((Number(b?.getGold?.())||0)<35||!b?.spendGold?.(35))notify('Для карты нужно 35 золота.');else createTreasure();}
     else if(action==='treasure-claim')claimTreasure();
     else if(action==='exchange')exchangeTokens(id);
     render();
