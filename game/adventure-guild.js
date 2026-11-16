@@ -286,10 +286,12 @@
     ctx.fillStyle='#80664a';ctx.fillRect(-20,5,40,15);ctx.fillStyle='#c1a477';ctx.fillRect(-15,5,30,7);for(let i=0;i<4;i++){ctx.fillStyle=i%2?'#9d927f':'#b6a78c';ctx.beginPath();ctx.ellipse(-17+i*11,28+(i%2)*5,7,3,.12,0,Math.PI*2);ctx.fill();}for(const px of [-111,111]){ctx.fillStyle='#6c4c34';ctx.fillRect(px-8,-2,16,9);ctx.fillStyle='#557d49';ctx.beginPath();ctx.arc(px,-9,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e7b8aa';ctx.beginPath();ctx.arc(px-3,-13,2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f4d27d';ctx.beginPath();ctx.arc(px+4,-8,2,0,Math.PI*2);ctx.fill();}
     ctx.fillStyle='#e9d5a5';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText('E · ВОЙТИ В ГИЛЬДИЮ',0,38);
     ctx.restore();
+    window.SkyRealmGuildMail?.draw?.(ctx,p,camX,camY,time);
   }
   function interact(){
     const snap=snapshot(),p=housePosition(),pos=bridge()?.getPlayerPosition?.();if(!snap?.worldId||!p||!pos)return false;
     if(bridge()?.isCoopWorld?.()||bridge()?.isBossRealm?.()||bridge()?.isSpecialWorldMode?.()||bridge()?.isTradeWorld?.())return false;
+    if(window.SkyRealmGuildMail?.interact?.(p,pos))return true;
     if(Math.hypot(pos.x-p.x,pos.y-p.y)>128)return false;
     open();return true;
   }
