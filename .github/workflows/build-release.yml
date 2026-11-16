@@ -54,6 +54,8 @@ jobs:
           node --check game/game.js
           node --check game/edition-system.js
           node --check game/forest-ecosystem.js
+          node --check tests/night-fireflies-test.cjs
+          node tests/night-fireflies-test.cjs
           node --check game/world-expansion.js
           node --check game/multiplayer-core.js
           node --check game/multiplayer-client.js
