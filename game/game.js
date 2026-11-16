@@ -6988,7 +6988,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(k==='f'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){cycleMagicSpell();return;}
     if(k==='g'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){castMagicSpell();return;}
     if (e.repeat && ['e','i'].includes(k)) return;
-    if (k === 'e' && !paused && !signDialogOpen && !inventoryDialogOpen) { interact(); return; }
+    if (k === 'e' && !paused && !signDialogOpen && !inventoryDialogOpen) { if(window.SkyRealmAdventureGuild?.interact?.())return; interact(); return; }
     if (k === 't' && !paused && !signDialogOpen && !inventoryDialogOpen) { interactNpcShop(); return; }
     if (k === 'q' && !paused && !signDialogOpen && !inventoryDialogOpen) { startDodge(); return; }
     if(k==='c'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){startCombatGuard();return;}
