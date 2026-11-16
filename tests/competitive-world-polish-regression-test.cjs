@@ -161,3 +161,5 @@ for(const arena of ['forest','desert','frost'])assert.match(js,new RegExp(arena+
 for(const cls of ['Воин','Страж','Следопыт','Маг'])assert.ok(js.includes("'"+cls+"':{id:'"+cls+"'"),'Missing playable class '+cls);
 assert.match(js,/function activateClassAbility\(/);assert.match(js,/classAbility\?\.shieldUntil/);assert.match(js,/if\(building\.kind==='ballista'\)/);assert.match(js,/function primeBallistaStats\(/);
 const ballistaFn=extractFunction(js,'primeBallistaStats'),ballistaCtx={};vm.runInNewContext(ballistaFn+';globalThis.one=primeBallistaStats(1);globalThis.five=primeBallistaStats(5);',ballistaCtx);assert.equal(ballistaCtx.one.damage,72);assert.equal(ballistaCtx.one.range,320);assert.equal(ballistaCtx.five.damage,176);assert.equal(ballistaCtx.five.range,432);assert.ok(ballistaCtx.five.fireInterval<ballistaCtx.one.fireInterval);
+
+assert.match(js,/ballista:\{cost:1250,hp:920,data:\{fire:0,\.\.\.primeBallistaStats\(1\)\}\}/,'bots can build and use ballistas too');
