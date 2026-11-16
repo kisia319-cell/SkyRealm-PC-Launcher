@@ -344,3 +344,14 @@ window.PrimeOnline={
  leave:matchId=>call("/api/prime/leave","POST",{match_id:matchId})
 };
 })();
+// TEMPORARY PRE-RELEASE OFFLINE MODE.
+(()=>{"use strict";
+const disabled=()=>Promise.resolve({disabled:true,message:"Онлайн-функции временно отключены до релиза игры."});
+const api=window.PrimeOnline;
+if(api){
+ ["queue","cancelQueue","status","leaderboard","stats","lobby","createLobby","inviteLobbyFriend","respondLobbyInvite","startLobby","leaveLobby","friends","searchPlayers","addFriend","respondFriend","finish","leave"].forEach(k=>{if(typeof api[k]==="function")api[k]=disabled;});
+ api.startTransport=function(){api.stopTransport?.();window.PrimeOnlineTransport="OFFLINE";window.PrimeOnlinePath="Онлайн временно отключён";window.PrimeOnlinePingSource="OFFLINE";};
+ api.stopTransport?.();
+}
+window.PrimeOnlineTemporarilyDisabled=true;
+})();
