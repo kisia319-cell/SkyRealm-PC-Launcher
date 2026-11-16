@@ -57,6 +57,7 @@ const restarted=boot();
 restarted.update(.1);
 assert.equal(restarted.getState().fireflies[0].lastHarvestDay,4,'Harvest cooldown survives a world reload');
 night=false;
+player={x:0,y:0};
 assert.equal(restarted.interact(),false,'Daytime swarms cannot be harvested');
 assert.ok(source.includes('function drawFireflies(')&&source.includes('drawFireflies(ctx,cx,cy,t,w,h);'),'Firefly swarms have a dedicated animated renderer');
 console.log('Night firefly tests passed: deterministic spawns, animated night rendering, harvest rewards and persistent cooldown.');
