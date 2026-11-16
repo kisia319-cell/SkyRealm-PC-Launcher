@@ -165,13 +165,25 @@
       endpoint.searchParams.set('route', '/health');
       controller = new AbortController();
 
-      // The health route is public (verify_jwt=false). A plain GET avoids CORS
-      // preflight. HTTP success is enough: do not await or parse the response body.
+      // Desktop builds use the native HTTP client: WebView fetch can be blocked
+      // by cross-origin policy even when the health URL opens normally in a browser.
+      if (window.pywebview?.api?.get_cloud_status) {
+        const health = await window.pywebview.api.get_cloud_status();
+        if (health?.ok && health.online) {
+          setCloudStatus('online',
+            currentLanguage === 'en' ? 'Server online' : 'Сервер онлайн',
+            currentLanguage === 'en' ? 'Cloud authentication is available.' : 'Облачная авторизация доступна.');
+        } else {
+          setCloudStatus('offline',
+            currentLanguage === 'en' ? 'Cloud unreachable' : 'Нет связи с облаком',
+            health?.message || (currentLanguage === 'en' ? 'Health check failed.' : 'Проверка сервера не прошла.'));
+        }
+        return;
+      }
+
+      // Browser preview fallback.
       const request = fetch(endpoint.toString(), {
-        method: 'GET',
-        cache: 'no-store',
-        credentials: 'omit',
-        signal: controller.signal
+        method: 'GET', cache: 'no-store', credentials: 'omit', signal: controller.signal
       });
       const timeout = new Promise((_, reject) => {
         timeoutId = window.setTimeout(() => {
@@ -180,7 +192,6 @@
         }, 8000);
       });
       const response = await Promise.race([request, timeout]);
-
       if (response.ok) {
         setCloudStatus('online',
           currentLanguage === 'en' ? 'Server online' : 'Сервер онлайн',
@@ -935,8 +946,39 @@
     }
   } catch (_) { /* ignore malformed URL fragments */ }
 
-  // Check once at startup and refresh periodically without blocking the interface.
+  // Show the pre-release notice every time the desktop launcher opens.
+  (function showPreReleaseNotice() {
+    if (document.getElementById('skyrealm-pre-release-notice')) return;
+    const style = document.createElement('style');
+    style.textContent = '#skyrealm-pre-release-notice{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:20px;background:#020713e8;backdrop-filter:blur(10px);font-family:Inter,Segoe UI,sans-serif}#skyrealm-pre-release-notice .notice{width:min(560px,100%);padding:30px;border:1px solid #8eb5ff88;border-radius:18px;background:linear-gradient(145deg,#142641,#091322);box-shadow:0 22px 90px #000b;text-align:center;color:#edf4ff}#skyrealm-pre-release-notice h2{color:#a9c9ff;margin:0 0 15px;font-size:24px}#skyrealm-pre-release-notice p{line-height:1.7;color:#d6e2f5}#skyrealm-pre-release-notice button{margin-top:16px;padding:12px 34px;border:1px solid #9fc0ff;border-radius:9px;background:linear-gradient(110deg,#5d83d8,#8fb7ff);color:#071326;font-weight:900;cursor:pointer}#skyrealm-pre-release-notice button:disabled{opacity:.4;cursor:not-allowed}';
+    document.head.appendChild(style);
+    const overlay = document.createElement('div');
+    overlay.id = 'skyrealm-pre-release-notice';
+    overlay.innerHTML = '<div class="notice" role="dialog" aria-modal="true"><h2>Важное уведомление</h2><p>Внимание онлайн-сервера будут доступны только после того, как игра появится в Steam и других площадках.</p><button type="button" disabled>Хорошо</button></div>';
+    document.body.appendChild(overlay);
+    const button = overlay.querySelector('button');
+    window.setTimeout(() => { button.disabled = false; }, 3500);
+    button.addEventListener('click', () => overlay.remove());
+  })();
+
+  async function checkStartupGameUpdate() {
+    if (!window.pywebview?.api?.get_update_status) return;
+    try {
+      const state = await window.pywebview.api.get_update_status();
+      if (!state?.ok || !state.game_update_available) return;
+      $('#game-update-version').textContent = state.latest_game_version || '—';
+      $('#game-update-current').textContent = state.game_version || '—';
+      $('#game-update-overlay').hidden = false;
+    } catch (_) { /* A failed update check must never block launcher startup. */ }
+  }
+
+  // Start checks once the native bridge is ready, then refresh server status periodically.
   checkCloudStatus();
+  checkStartupGameUpdate();
+  window.addEventListener('pywebviewready', () => {
+    checkCloudStatus();
+    checkStartupGameUpdate();
+  }, {once:true});
   window.setInterval(() => {
     if (document.visibilityState !== 'hidden') checkCloudStatus();
   }, 60_000);
@@ -1287,21 +1329,31 @@
     if (gameLaunchBusy) return;
     if (allowUpdate === null && window.pywebview?.api?.launch_game) {
       try {
-        const response = await fetch('https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json?check=' + Date.now(), {cache:'no-store'});
-        if (response.ok) {
-          const manifest = await response.json();
-          const update = await window.pywebview.api.get_diagnostics();
-          const current = update?.version || 'не установлена';
-          const parts = value => String(value).split('.').map(Number);
-          const newer = (left,right) => { const x=parts(left),y=parts(right); for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0);} return false; };
-          if (manifest.game_version && newer(manifest.game_version,current)) {
-            $('#game-update-version').textContent = manifest.game_version;
-            $('#game-update-current').textContent = current;
+        if (window.pywebview.api.get_update_status) {
+          const state = await window.pywebview.api.get_update_status();
+          if (state?.ok && state.game_update_available) {
+            $('#game-update-version').textContent = state.latest_game_version || '—';
+            $('#game-update-current').textContent = state.game_version || '—';
             $('#game-update-overlay').hidden = false;
             return;
           }
+        } else {
+          const response = await fetch('https://raw.githubusercontent.com/kisia319-cell/SkyRealm-PC-Launcher/main/manifest.json?check=' + Date.now(), {cache:'no-store'});
+          if (response.ok) {
+            const manifest = await response.json();
+            const update = await window.pywebview.api.get_diagnostics();
+            const current = update?.version || 'не установлена';
+            const parts = value => String(value).split('.').map(Number);
+            const newer = (left,right) => { const x=parts(left),y=parts(right); for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0);} return false; };
+            if (manifest.game_version && newer(manifest.game_version,current)) {
+              $('#game-update-version').textContent = manifest.game_version;
+              $('#game-update-current').textContent = current;
+              $('#game-update-overlay').hidden = false;
+              return;
+            }
+          }
         }
-      } catch (_) { /* Network errors must not prevent launching the installed game. */ }
+      } catch (_) { /* Network errors must never prevent launching the installed game. */ }
       allowUpdate = true;
     }
     if (allowUpdate === null) allowUpdate = true;
