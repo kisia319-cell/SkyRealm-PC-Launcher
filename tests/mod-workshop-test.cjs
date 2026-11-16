@@ -21,6 +21,7 @@ assert.ok(game.includes("(isModInstalled('miners_luck')?0.15:0)"),'Miner Luck mu
 assert.ok(game.includes("isModInstalled('survivalist')?12:10"),'Survivalist must reduce hunger drain');
 assert.ok(game.includes('MOD_CATALOG.some(mod=>mod.id===id)'),'Only known mod IDs may be restored from local storage');
 assert.ok(html.includes('Установка не меняет миры и сохранения.'),'Catalog must explain save safety for player-made mods');
+assert.ok(html.includes('41 встроенный мод + моды игроков'),'In-game main menu must show the full built-in mod count');
 console.log('Mod workshop: five gameplay effects, persistent installs, catalog UI and save safety passed.');
 
 for(const id of ['skill_expansion','brutal_world','blood_moon'])assert.ok(game.includes("id:'"+id+"'"),'Missing new mod '+id);
