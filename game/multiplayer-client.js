@@ -1,5 +1,7 @@
 (() => {
 'use strict';
+// The multiplayer client must not initialize or contact servers before public release.
+if(window.SKYREALM_PRE_RELEASE_OFFLINE===true)return;
 const root=typeof globalThis!=='undefined'?globalThis:window;
 const API_URL='https://jaaguprbfrzrcwuusher.supabase.co/functions/v1/skyrealm-coop';
 const PUBLIC_KEY='sb_publishable_MKaNYqw3r0BLa1GTDVvjfw_yU3Wd6QL';
