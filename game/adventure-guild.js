@@ -160,8 +160,12 @@
     if(state.treasure&&!state.treasure.claimed){notify('Сначала найди уже отмеченный клад.');return;}
     const b=bridge(),bounds=b?.getWorldBounds?.(),pos=b?.getPlayerPosition?.();
     if(!bounds||!pos||b?.isCoopWorld?.()||b?.isSpecialWorldMode?.()){notify('Карту сокровищ можно использовать в обычном одиночном мире.');return;}
-    const margin=160,x=clamp(Math.round(margin+Math.random()*Math.max(1,bounds.width-margin*2)),margin,bounds.width-margin);
-    const y=clamp(Math.round(margin+Math.random()*Math.max(1,bounds.height-margin*2)),margin,bounds.height);
+    const margin=160;let x=pos.x,y=pos.y,attempts=0;
+    do{
+      x=clamp(Math.round(margin+Math.random()*Math.max(1,bounds.width-margin*2)),margin,bounds.width-margin);
+      y=clamp(Math.round(margin+Math.random()*Math.max(1,bounds.height-margin*2)),margin,bounds.height);
+      attempts++;
+    }while(attempts<32&&/water|ocean|sea/i.test(String(b?.getBiomeAt?.(x,y)||'')));
     state.treasure={x,y,claimed:false};save();notify('Клад отмечен на карте. Найди его по координатам и расстоянию в журнале.');render();
   }
   function claimTreasure(){
