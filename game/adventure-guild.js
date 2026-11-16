@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION = 1;
+  const VERSION = 2;
   const KEY = 'skyrealm-adventure-expansion-v1:';
   const $ = id => document.getElementById(id);
   const bridge = () => window.SkyRealmSeaBridge;
@@ -11,7 +11,7 @@
     expedition: null, treasure: null, camp: {hearth:0,workshop:0,observatory:0,infirmary:0},
     relics: [], stats: {contracts:0,expeditions:0,treasures:0}, lastExplore:0
   });
-  let state = fresh(), worldId = '', opened = false, root = null, button = null, tickHandle = 0, lastTick = 0;
+  let state = fresh(), worldId = '', opened = false, root = null, tickHandle = 0, lastTick = 0, houseCache = null;
   let originalRecordProfession = null;
   const CONTRACTS = [
     {id:'hunter',name:'Охота на нечисть',profession:'hunter',goal:5,desc:'Победи врагов и получи опыт охотника.',gold:95,xp:55},
@@ -44,7 +44,7 @@
       if(raw && raw.version===VERSION){
         const clean=fresh();
         clean.day=Math.max(-1,Math.floor(Number(raw.day)||-1));
-        clean.contracts=Array.isArray(raw.contracts)?raw.contracts.filter(x=>CONTRACTS.some(c=>c.id===x.id)).map(x=>({id:x.id,progress:clamp(Math.floor(Number(x.progress)||0),0,99),claimed:!!x.claimed})): [];
+        clean.contracts=Array.isArray(raw.contracts)?raw.contracts.filter(x=>CONTRACTS.some(c=>c.id===x.id)).map(x=>({id:x.id,progress:clamp(Math.floor(Number(x.progress)||0),0,99),claimed:!!x.claimed,accepted:x.accepted!==false})): [];
         clean.contractClaims=Array.isArray(raw.contractClaims)?raw.contractClaims.filter(x=>typeof x==='string').slice(-60):[];
         clean.tokens=clamp(Math.floor(Number(raw.tokens)||0),0,99999);
         clean.expedition=raw.expedition&&ROUTES[raw.expedition.route]?{route:raw.expedition.route,wave:clamp(Math.floor(Number(raw.expedition.wave)||1),1,3),eventId:String(raw.expedition.eventId||'').slice(0,120),startedAt:Math.max(0,Number(raw.expedition.startedAt)||0)}:null;
@@ -66,7 +66,7 @@
     let n=seed;
     for(let i=pool.length-1;i>0;i--){n=(n*9301+49297)%233280;const j=n%(i+1);[pool[i],pool[j]]=[pool[j],pool[i]];}
     if(state.expedition) bridge()?.clearEventEnemies?.(state.expedition.eventId);
-    state.day=day;state.contracts=pool.slice(0,4).map(c=>({id:c.id,progress:0,claimed:false}));
+    state.day=day;state.contracts=pool.slice(0,4).map(c=>({id:c.id,progress:0,claimed:false,accepted:false}));
     state.expedition=null;
     save();
   }
@@ -77,7 +77,7 @@
   function rewardGold(amount){ const campBonus=1+(state.camp.hearth||0)*.05, relicBonus=1+state.relics.length*.02;bridge()?.addGold?.(Math.round(amount*campBonus*relicBonus)*100); }
   function addToken(amount){ state.tokens=clamp(state.tokens+Math.max(0,Math.floor(amount)),0,99999); }
   function progressContract(id,amount=1){
-    const contract=state.contracts.find(x=>x.id===id&&!x.claimed);if(!contract)return;
+    const contract=state.contracts.find(x=>x.id===id&&!x.claimed&&x.accepted);if(!contract)return;
     contract.progress=clamp(contract.progress+Math.max(0,Math.floor(Number(amount)||0)),0,99);save();
   }
   function wrapProfession(){
@@ -93,9 +93,10 @@
     };
     wrapped.__adventureWrapped=true;b.recordProfession=wrapped;
   }
+  function acceptContract(id){const entry=state.contracts.find(x=>x.id===id&&!x.claimed);if(!entry)return;entry.accepted=true;save();notify('Поручение принято. Прогресс будет записываться по мере игры.');render();}
   function claimContract(id){
     const entry=state.contracts.find(x=>x.id===id),def=CONTRACTS.find(x=>x.id===id);
-    if(!entry||!def||entry.claimed||entry.progress<def.goal){notify('Сначала выполни условия контракта.');return;}
+    if(!entry||!def||!entry.accepted||entry.claimed||entry.progress<def.goal){notify('Сначала возьми и выполни поручение.');return;}
     entry.claimed=true;state.stats.contracts++;rewardGold(def.gold);addToken(1+(state.camp.observatory||0));
     bridge()?.addItem?.('Опыт гильдии',def.xp,'Награда за контракт гильдии');
     save();notify('Контракт выполнен: '+def.name+'! Награда получена.');render();
@@ -193,7 +194,7 @@
     const day=state.day, contracts=state.contracts.map(entry=>{
       const def=CONTRACTS.find(c=>c.id===entry.id);if(!def)return '';
       const done=entry.progress>=def.goal;
-      return '<article class="adv-card"><div class="adv-card-head"><b>'+esc(def.name)+'</b><span>'+entry.progress+'/'+def.goal+'</span></div><p>'+esc(def.desc)+'</p><div class="adv-progress"><i style="width:'+Math.round(entry.progress/def.goal*100)+'%"></i></div><button data-adv="claim" data-id="'+def.id+'" '+(entry.claimed||!done?'disabled':'')+'>'+(entry.claimed?'Получено':done?'Забрать награду':'Выполняется')+'</button></article>';
+      return '<article class="adv-card"><div class="adv-card-head"><b>'+esc(def.name)+'</b><span>'+entry.progress+'/'+def.goal+'</span></div><p>'+esc(def.desc)+'</p><div class="adv-progress"><i style="width:'+Math.round(entry.progress/def.goal*100)+'%"></i></div><button data-adv="'+(entry.accepted?'claim':'accept')+'" data-id="'+def.id+'" '+(entry.claimed||(entry.accepted&&!done)?'disabled':'')+'>'+(entry.claimed?'Получено':!entry.accepted?'Взять поручение':done?'Забрать награду':'Выполняется')+'</button></article>';
     }).join('');
     const routes=Object.entries(ROUTES).map(([id,r])=>'<article class="adv-card"><b>'+esc(r.name)+'</b><p>'+esc(r.desc)+'</p><small>'+r.waves+' волны · до '+r.enemies+' врагов · '+r.reward+' золота</small><button data-adv="route" data-id="'+id+'" '+(state.expedition?'disabled':'')+'>Начать экспедицию</button></article>').join('');
     const camp=Object.entries(CAMP).map(([id,c])=>{const level=state.camp[id]||0;return '<article class="adv-card"><div class="adv-card-head"><b>'+c.icon+' '+esc(c.name)+'</b><span>Ур. '+level+'/3</span></div><p>'+esc(c.desc)+'</p><button data-adv="camp" data-id="'+id+'" '+(level>=3?'disabled':'')+'>Улучшить · '+(level>=3?'максимум':Object.entries(c.cost[level]).map(x=>esc(x[0])+' ×'+x[1]).join(', '))+'</button></article>';}).join('');
@@ -206,15 +207,16 @@
   function open(){
     const snap=snapshot();if(!snap?.worldId){notify('Сначала загрузи игровой мир.');return;}
     if(bridge()?.isCoopWorld?.()){notify('Гильдия искателей пока доступна в одиночных мирах.');return;}
-    load();wrapProfession();reconcileExpedition();opened=true;root.hidden=false;button.hidden=true;bridge()?.pause?.();render();
+    load();wrapProfession();reconcileExpedition();opened=true;root.hidden=false;bridge()?.pause?.();render();
   }
   function close(){
-    if(!opened)return;opened=false;root.hidden=true;bridge()?.resume?.();if(button)button.hidden=!snapshot()?.worldId||!!bridge()?.isCoopWorld?.();
+    if(!opened)return;opened=false;root.hidden=true;bridge()?.resume?.();
   }
   function click(event){
     const el=event.target?.closest?.('[data-adv]');if(!el)return;
     const action=el.dataset.adv,id=el.dataset.id||'';
     if(action==='close'){close();return;}
+    if(action==='accept'){acceptContract(id);return;}
     if(action==='tab'){tab=id;render();return;}
     if(action==='claim')claimContract(id);
     else if(action==='route')startExpedition(id);
@@ -231,7 +233,7 @@
     const style=document.createElement('style');
     style.textContent='#skyrealm-adventure-guild{position:fixed;inset:0;z-index:10040}#skyrealm-adventure-guild[hidden]{display:none}.adv-backdrop{position:absolute;inset:0;display:grid;place-items:center;padding:18px;background:#030916d9;backdrop-filter:blur(8px)}.adv-dialog{width:min(980px,100%);max-height:min(88vh,850px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #6687bd88;border-radius:18px;background:linear-gradient(145deg,#142842,#091525);box-shadow:0 25px 90px #000b;color:#edf4ff;font:14px Segoe UI,Arial,sans-serif}.adv-dialog header,.adv-dialog footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 21px;background:#09182a;border-bottom:1px solid #ffffff18}.adv-dialog header small{color:#9cb9e9;letter-spacing:2px;font-size:9px}.adv-dialog h2{margin:4px 0;font-size:23px}.adv-dialog header p,.adv-dialog p{color:#a9bdd8;line-height:1.5}.adv-close{font-size:25px!important;padding:5px 13px!important}.adv-dialog button{border:1px solid #7599d1;border-radius:8px;padding:9px 13px;background:linear-gradient(110deg,#527ac5,#86a9e9);color:#081529;font-weight:800;cursor:pointer}.adv-dialog button:disabled{opacity:.38;cursor:not-allowed}.adv-dialog button.secondary{background:#263b56;color:#dbe8ff}.adv-dialog nav{display:flex;gap:7px;padding:12px 18px;overflow-x:auto;border-bottom:1px solid #ffffff18}.adv-dialog nav button{white-space:nowrap;background:#1b304b;color:#dbe8ff}.adv-dialog nav button.active{background:#8eb4f3;color:#071426}.adv-dialog main{padding:18px 20px;overflow:auto;min-height:180px}.adv-section h3{margin:0 0 7px;font-size:17px}.adv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:11px;margin-top:14px}.adv-card{padding:14px;border:1px solid #385579;border-radius:12px;background:#0b1b30}.adv-card p{min-height:36px;margin:7px 0;font-size:12px}.adv-card small{display:block;color:#b6c8e1;margin:8px 0}.adv-card button{margin-top:8px;width:100%}.adv-card button:disabled{opacity:.45}.adv-card-head{display:flex;justify-content:space-between;gap:10px}.adv-card-head span{color:#b6c8e1;font-variant-numeric:tabular-nums}.adv-progress{height:6px;border-radius:8px;background:#263d5c;overflow:hidden}.adv-progress i{display:block;height:100%;background:linear-gradient(90deg,#53c9a6,#a8e8c9)}.adv-section>button{margin:10px 8px 0 0}.adv-relics{display:flex;flex-wrap:wrap;gap:9px;margin:18px 0}.adv-relic{padding:11px 14px;border:1px solid #354a65;border-radius:9px;background:#0c1a2b;color:#8092ab}.adv-relic.found{border-color:#bd9d58;color:#ffdf9a;background:#342d20}.adv-dialog footer{border-top:1px solid #ffffff18;border-bottom:0;color:#9fb2ce;font-size:11px}.adv-dialog footer button{white-space:nowrap}@media(max-width:600px){.adv-backdrop{padding:5px}.adv-dialog{max-height:96vh}.adv-dialog header,.adv-dialog footer{padding:12px}.adv-dialog main{padding:13px}.adv-dialog h2{font-size:19px}.adv-dialog footer{align-items:flex-start;flex-direction:column}}';
     document.head.appendChild(style);
-    button=document.createElement('button');button.id='skyrealm-adventure-guild-button';button.type='button';button.textContent='🧭 Гильдия';button.style.cssText='position:fixed;right:22px;top:118px;z-index:10020;padding:10px 14px;border:1px solid #8eb4ee;border-radius:11px;background:linear-gradient(120deg,#284e7c,#4776ad);color:#fff;font-weight:900;box-shadow:0 8px 24px #0006;cursor:pointer';button.hidden=true;button.addEventListener('click',open);document.body.appendChild(button);
+    document.getElementById('skyrealm-adventure-guild-button')?.remove();
     root=document.createElement('div');root.id='skyrealm-adventure-guild';root.hidden=true;root.addEventListener('click',click);document.body.appendChild(root);
   }
   function boot(){
