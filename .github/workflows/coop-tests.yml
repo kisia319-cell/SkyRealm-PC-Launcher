@@ -24,6 +24,10 @@ jobs:
       - run: node --check game/boss-realm-hub.js
       - run: node tests/boss-realm-hub-test.cjs
       - run: node tests/world-events-expansion-test.cjs
+      - run: node --check tests/night-fireflies-test.cjs
+      - run: node tests/night-fireflies-test.cjs
+      - run: node --check tests/forest-companion-test.cjs
+      - run: node tests/forest-companion-test.cjs
       - run: node tests/multiplayer-client-test.cjs
       - run: node --check tests/staff-authorization-test.cjs
       - run: node --check tests/gameplay-regression-test.cjs
