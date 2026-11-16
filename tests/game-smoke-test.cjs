@@ -50,7 +50,7 @@ assert.ok(gameHtml.includes('id="save-world-now"'), 'Pause menu must offer manua
 assert.ok(launcherHtml.includes('id="check-game-files"'), 'Launcher settings must expose game file diagnostics');
 assert.ok(launcherHtml.includes('id="open-update-log"'), 'Launcher settings must expose the update log');
 assert.ok(launcherHtml.includes('https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest'), 'News must link to the latest real release');
-assert.ok(launcherHtml.includes('Никаких скрытых покупок'), 'Shop must clearly disclose that purchases are not enabled');
+assert.ok(!launcherHtml.includes('data-page="shop"') && !launcherHtml.includes('id="page-shop"'), 'Removed launcher shop must stay absent from navigation and page content');
 assert.ok(app.includes('function runGameDiagnostics()'), 'Launcher diagnostics button must be wired');
 assert.ok(py.includes('def get_diagnostics(self):') && py.includes('def open_update_log(self):'), 'Desktop launcher must provide diagnostics and log actions');
 assert.ok(py.includes('installed_files_ok'), 'Play flow must repair missing or size-mismatched installed files');
