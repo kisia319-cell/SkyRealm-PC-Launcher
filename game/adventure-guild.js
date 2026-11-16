@@ -41,7 +41,7 @@
     worldId=id; state=fresh();
     try {
       const raw=JSON.parse(localStorage.getItem(KEY+id)||'null');
-      if(raw && raw.version===VERSION){
+      if(raw && Number(raw.version)>=1 && Number(raw.version)<=VERSION){
         const clean=fresh();
         clean.day=Math.max(-1,Math.floor(Number(raw.day)||-1));
         clean.contracts=Array.isArray(raw.contracts)?raw.contracts.filter(x=>CONTRACTS.some(c=>c.id===x.id)).map(x=>({id:x.id,progress:clamp(Math.floor(Number(x.progress)||0),0,99),claimed:!!x.claimed,accepted:x.accepted!==false})): [];
@@ -209,7 +209,7 @@
   let tab='contracts';
   function open(){
     const snap=snapshot();if(!snap?.worldId){notify('Сначала загрузи игровой мир.');return;}
-    if(bridge()?.isCoopWorld?.()){notify('Гильдия искателей пока доступна в одиночных мирах.');return;}
+    if(bridge()?.isCoopWorld?.()||bridge()?.isBossRealm?.()||bridge()?.isSpecialWorldMode?.()||bridge()?.isTradeWorld?.()){notify('Дом гильдии доступен в обычном одиночном мире.');return;}
     load();wrapProfession();reconcileExpedition();opened=true;root.hidden=false;bridge()?.pause?.();render();
   }
   function close(){
@@ -242,7 +242,7 @@
   }
   function boot(){
     ensureUI();
-    const refresh=()=>{const snap=snapshot();if(snap?.worldId&&snap.worldId!==worldId)load();if(snap?.worldId)rotateContracts();if(button)button.hidden=!snap?.worldId||snap.paused||opened||!!bridge()?.isCoopWorld?.();};
+    const refresh=()=>{const snap=snapshot();if(snap?.worldId&&snap.worldId!==worldId)load();if(snap?.worldId)rotateContracts();};
     refresh();tickHandle=window.setInterval(refresh,1000);
     document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});
     window.addEventListener('beforeunload',save);
