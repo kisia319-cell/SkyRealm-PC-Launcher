@@ -129,6 +129,19 @@
     }
     save();render();
   }
+  function reconcileExpedition(){
+    const e=state.expedition;if(!e)return;
+    const remaining=Number(bridge()?.getEventEnemyCount?.(e.eventId));
+    if(!Number.isFinite(remaining)||remaining>0)return;
+    const def=ROUTES[e.route];
+    if(e.wave<def.waves){
+      const pos=bridge()?.getWorldEventSpawnPoint?.()||bridge()?.getPlayerPosition?.();
+      const nextId=e.eventId+'-wave-'+(e.wave+1);
+      const spawned=bridge()?.spawnEventEnemies?.(nextId,pos.x,pos.y,def.enemies);
+      if(spawned){e.wave++;e.eventId=nextId;save();notify('Экспедиция продолжена после загрузки мира.');}
+      else{state.expedition=null;save();notify('Незавершённая экспедиция отменена: не удалось восстановить следующую волну.');}
+    }else finishExpedition(true);
+  }
   function finishExpedition(won){
     const e=state.expedition;if(!e)return;
     const def=ROUTES[e.route],b=bridge();
@@ -157,6 +170,7 @@
     if(distance>95){notify('Ты ещё далеко от клада: '+Math.round(distance)+' м.');return;}
     t.claimed=true;state.stats.treasures++;rewardGold(180+Math.floor(Math.random()*121));
     bridge()?.addItem?.('Кристалл',2,'Сокровище');bridge()?.addItem?.('Жемчуг',1,'Сокровище');
+    const relic=RELICS.find(name=>!state.relics.includes(name));if(relic){state.relics.push(relic);bridge()?.addItem?.(relic,1,'Редкая реликвия из клада');}
     addToken(2);save();notify('Сокровище найдено! Получены золото, кристаллы и сезонные жетоны.');render();
   }
   function upgradeCamp(id){
@@ -188,7 +202,7 @@
   function open(){
     const snap=snapshot();if(!snap?.worldId){notify('Сначала загрузи игровой мир.');return;}
     if(bridge()?.isCoopWorld?.()){notify('Гильдия искателей пока доступна в одиночных мирах.');return;}
-    load();wrapProfession();opened=true;root.hidden=false;button.hidden=true;bridge()?.pause?.();render();
+    load();wrapProfession();reconcileExpedition();opened=true;root.hidden=false;button.hidden=true;bridge()?.pause?.();render();
   }
   function close(){
     if(!opened)return;opened=false;root.hidden=true;bridge()?.resume?.();if(button)button.hidden=!snapshot()?.worldId||!!bridge()?.isCoopWorld?.();
