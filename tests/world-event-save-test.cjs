@@ -18,7 +18,8 @@ assert.match(load,/for\(const raw of d\.worldEventEnemies\.slice\(0,12\)\)/,'loa
 assert.match(load,/if\(!eventId&&!villageRaid\)continue/,'unrelated monsters must not be restored from event data');
 assert.match(load,/if\(hp<=0\)continue/,'defeated enemies must not respawn');
 assert.match(load,/expansionEventId:eventId/,'restored enemies must retain their event identity');
-assert.match(load,/villageRaid,forestTreant:raw\.forestTreant===true/,'special event flags must survive reload');
+assert.match(load,/villageRaid,villageGuardian:raw\.villageGuardian===true/,'village guard state must survive reload');
+assert.match(load,/forestTreant:raw\.forestTreant===true,forestMiniBoss:raw\.forestMiniBoss===true/,'special forest event flags must survive reload');
 assert.match(load,/territoryRadius:Math\.max/,'territory data must be bounded');
 
 console.log('World event save regression checks passed: active raid enemies, HP, event IDs and village-raid flags survive save/load; defeated and invalid entries are rejected.');
