@@ -2,8 +2,9 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const root=path.resolve(__dirname,'..');
 const game=fs.readFileSync(path.join(root,'game','game.js'),'utf8');
 const biome=game.match(/function biomeAt\(x,y\)\{([^}]+)\}/)?.[1]||'';
-assert.match(biome,/return 'forest'/,'ordinary valley must default to forest, not snow');
-assert.doesNotMatch(biome,/return 'snow'/,'snow palette must not cover the default valley');
+assert.match(biome,/return 'snow'/,'the default winter biome must remain compatible with snow gameplay');
+assert.match(game,/clearedSnowTiles\.has\(tileKey\(x,y\)\)\|\|isForestTile\(x,y\)/,'the forest zone must use its own green forest texture');
+assert.match(game,/biomeAt\(t\.x\/TILE,t\.y\/TILE\)==='snow'&&!isForestTile/,'trees in the forest zone must use green, not snowy foliage');
 assert.match(game,/h > \(biomeAt\(x,y\)==='jungle'\?\.945:\.958\)/,'normal worlds must generate visible forests');
 assert.match(game,/function drawMainRoads\(camX,camY\)/,'roads must be drawn as continuous shapes');
 const ground=game.slice(game.indexOf('function drawGround('),game.indexOf('function drawTradeGround'));
