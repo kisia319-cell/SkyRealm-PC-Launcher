@@ -1,0 +1,16 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..');
+const game=fs.readFileSync(path.join(root,'game','game.js'),'utf8');
+const biome=game.match(/function biomeAt\(x,y\)\{([^}]+)\}/)?.[1]||'';
+assert.match(biome,/return 'forest'/,'ordinary valley must default to forest, not snow');
+assert.doesNotMatch(biome,/return 'snow'/,'snow palette must not cover the default valley');
+assert.match(game,/h > \(biomeAt\(x,y\)==='jungle'\?\.945:\.958\)/,'normal worlds must generate visible forests');
+assert.match(game,/function drawMainRoads\(camX,camY\)/,'roads must be drawn as continuous shapes');
+const ground=game.slice(game.indexOf('function drawGround('),game.indexOf('function drawTradeGround'));
+assert.ok(ground.includes('drawMainRoads(camX,camY)'),'normal ground must render continuous roads');
+assert.doesNotMatch(ground,/isForestTile\(x,y\).*fillRect\(sx,sy,TILE,TILE\)/,'no per-tile forest overlay may create a checkerboard');
+assert.doesNotMatch(ground,/if\(pathAt\(x,y\)\)\{ctx\.fillStyle/,'roads must not be painted as isolated square tiles');
+assert.match(game,/const cx=36\*TILE\+16,cy=18\*TILE\+16/,'hamlet must be placed beside the starting village');
+const ps=game.indexOf('function drawPlayer('),pe=game.indexOf('\n  function ',ps+15);
+assert.match(game.slice(ps,pe),/ctx\.scale\(2\.2,2\.2\)/,'player sprite must be large enough to read at fullscreen scale');
+console.log('World rendering regression passed: forest biome, non-checkered ground, continuous roads, nearby hamlet, enlarged player.');
