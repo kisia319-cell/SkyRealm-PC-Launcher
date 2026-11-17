@@ -1367,7 +1367,7 @@ let audioContext=null;
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли',jungle:'Затерянные джунгли'})[biomeAt(x,y)]||'Лесная долина';}
   function drawGrassTexture(target,x,y,sx,sy,h,biome,quality){
     // Stable, low-cost surface grain is generated once per world tile and reused from the atlas.
-    const palettes={forest:['#315f43','#376b49','#2c583d','#4b8052','#3b7048','#7ca95f'],snow:['#c5d8dc','#b7cdd3','#d2e0e2','#e6f0ef','#adc5ce','#f7fbf8'],desert:['#c3a267','#d0b276','#b79555','#dfc58b','#b18b4d','#f0d59a'],blight:['#46513e','#3d4939','#525d42','#68734c','#4d5c40','#9aa15b'],jungle:['#1d5839','#236a42','#174d32','#398653','#2c7548','#a0d16c'],volcano:['#514039','#62473c','#3e3432','#86513a','#765b4b','#d17a43']};
+    const palettes={forest:['#315f43','#376b49','#2c583d','#4b8052','#3b7048','#7ca95f'],snow:['#c5d8dc','#b7cdd3','#d2e0e2','#e6f0ef','#adc5ce','#f7fbf8'],desert:['#c3a267','#d0b276','#b79555','#dfc58b','#b18b4d','#f0d59a'],blight:['#46513e','#3d4939','#525d42','#68734c','#4d5c40','#9aa15b'],jungle:['#1c603d','#164d35','#14502f','#398653','#2c7548','#a0d16c'],volcano:['#594039','#43352f','#332c31','#86513a','#765b4b','#d17a43']};
     const p=palettes[biome]||palettes.forest;
     // One shared base colour per biome removes the old checkerboard tile boundaries.
     target.fillStyle=p[1];target.fillRect(sx,sy,TILE,TILE);target.save();
