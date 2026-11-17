@@ -1,0 +1,17 @@
+const fs=require('node:fs');
+const path=require('node:path');
+const assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..');
+const game=fs.readFileSync(path.join(root,'game','game.js'),'utf8');
+const start=game.indexOf('function drawValleyBirds(camX,camY,time){');
+const end=game.indexOf('\n  function ',start+1);
+assert.ok(start>=0&&end>start,'valley bird renderer must exist as an independent function');
+const birds=game.slice(start,end);
+assert.ok(birds.includes('const flight=(time*.034)%(width+260)-130'),'birds must fly smoothly across the visible valley');
+assert.ok(birds.includes('Math.sin(time/88+i*1.25)'),'bird wings must animate');
+assert.ok(birds.includes('isNightTime()?0.22:0.54'),'bird silhouettes must dim at night');
+assert.ok(!/player\.(?:x|y)\s*=/.test(birds),'bird renderer must not alter player position');
+assert.ok(!/movementDirections|keys\.(?:add|delete|clear)|velocity/.test(birds),'bird renderer must not touch walking or physics');
+const draw=game.slice(game.indexOf('function draw(dt,time)'),game.indexOf('function placeSelectedStructure'));
+assert.ok(draw.includes("if(gameSettings.graphicsQuality!=='low') drawValleyBirds(camX,camY,time);"),'flock must render in normal worlds at medium and high quality');
+console.log('Valley birds render test passed: animated, quality-gated and isolated from movement/physics.');
