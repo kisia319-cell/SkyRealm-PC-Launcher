@@ -5,7 +5,7 @@ const biome=game.match(/function biomeAt\(x,y\)\{([^}]+)\}/)?.[1]||'';
 assert.match(biome,/return 'snow'/,'the default winter biome must remain compatible with snow gameplay');
 assert.match(game,/clearedSnowTiles\.has\(tileKey\(x,y\)\)\|\|isForestTile\(x,y\)/,'the forest zone must use its own green forest texture');
 assert.match(game,/biomeAt\(t\.x\/TILE,t\.y\/TILE\)==='snow'&&!isForestTile/,'trees in the forest zone must use green, not snowy foliage');
-assert.match(game,/h > \(biomeAt\(x,y\)==='jungle'\?\.945:\.958\)/,'normal worlds must generate visible forests');
+assert.match(game,/isForestTile\(x,y\)\|\|biomeAt\(x,y\)==='jungle'/,'the forest region must receive dense natural trees');
 assert.match(game,/function drawMainRoads\(camX,camY\)/,'roads must be drawn as continuous shapes');
 const ground=game.slice(game.indexOf('function drawGround('),game.indexOf('function drawTradeGround'));
 assert.ok(ground.includes('drawMainRoads(camX,camY)'),'normal ground must render continuous roads');
