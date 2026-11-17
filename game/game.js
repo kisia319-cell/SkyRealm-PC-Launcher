@@ -2164,6 +2164,25 @@ function updateVillageNpcs(dt){
     ctx.restore();
   }
   function drawFireflies(camX,camY,time){for(const f of world.fireflies){const x=f.x-camX,y=f.y-camY;if(x<-15||x>width+15||y<-15||y>height+15)continue;const a=.25+.65*(.5+.5*Math.sin(time/500+f.phase));ctx.fillStyle='rgba(255,231,136,'+a+')';ctx.beginPath();ctx.arc(x,y,1.5+a,0,Math.PI*2);ctx.fill();}}
+
+  function drawValleyBirds(camX,camY,time){
+    // Purely decorative flock: no player, collision, inventory, save or movement state is touched.
+    const flight=(time*.034)%(width+260)-130;
+    const x0=camX+flight,y0=camY+height*.16+Math.sin(time/760)*9;
+    ctx.save();ctx.globalAlpha=isNightTime()?0.22:0.54;ctx.lineCap='round';
+    for(let i=0;i<7;i++){
+      const x=x0+(i-3)*18+Math.sin(time/520+i*1.4)*4;
+      const y=y0+Math.sin(time/410+i*1.7)*8+(i%3)*5;
+      const flap=Math.sin(time/88+i*1.25)*4.2,scale=.76+(i%3)*.12;
+      ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
+      ctx.strokeStyle='#263b3c';ctx.lineWidth=2.3;ctx.beginPath();
+      ctx.moveTo(-7,flap);ctx.quadraticCurveTo(-3,-5,0,0);ctx.quadraticCurveTo(3,-5,7,flap);ctx.stroke();
+      ctx.strokeStyle='rgba(229,236,220,.34)';ctx.lineWidth=.8;ctx.beginPath();
+      ctx.moveTo(-5,flap*.7);ctx.lineTo(0,0);ctx.lineTo(5,flap*.7);ctx.stroke();ctx.restore();
+    }
+    ctx.restore();
+  }
+
   function drawEmergencyWorld(){
     // Recovery renderer: if a decorative drawing routine fails, keep the playable world visible.
     ctx.save();
@@ -3211,6 +3230,7 @@ function updateVillageNpcs(dt){
        drawTradeShop(FARMER_SHOP,camX,camY,'ЛАВКА ФЕРМЕРА','T · СЕМЕНА И УРОЖАЙ','#6b9b4e');
     }else{
       if(gameSettings.graphicsQuality!=='low') drawFlowers(camX,camY,time);
+      if(gameSettings.graphicsQuality!=='low') drawValleyBirds(camX,camY,time);
       drawCabin(camX,camY); drawVillageSettlements(camX,camY,time); drawValleyHamlet(camX,camY,time); drawQuarryOutpost(camX,camY,time); drawFences(camX,camY); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
       for(const rock of world.rocks){const x=rock.x-camX,y=rock.y-camY;if(x>-30&&x<width+30&&y>-30&&y<height+30)drawRock(rock,camX,camY);}
       for(const tree of world.trees){const x=tree.x-camX,y=tree.y-camY;if(x>-60&&x<width+60&&y>-70&&y<height+40)drawTree(tree,camX,camY);}drawForestStumps(camX,camY,time);
