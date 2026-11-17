@@ -1,12 +1,12 @@
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');const root=path.resolve(__dirname,'..');const game=fs.readFileSync(path.join(root,'game/game.js'),'utf8');const html=fs.readFileSync(path.join(root,'game/index.html'),'utf8');
 assert.match(game,/function drawGrassTexture\(target,x,y,sx,sy,h,biome,quality\)/,'biome ground texture renderer exists');
-assert.match(game,/Irregular colour patches blend across tile edges; there is deliberately no square tile border/,'grass tiles must not draw a hard grid');
+assert.match(game,/One shared base colour per biome removes the old checkerboard tile boundaries/,'grass tiles must not draw a hard grid');
 assert.match(game,/function drawVillageSettlements\(camX,camY,time\)/,'settlement renderer exists');
-const normal=game.match(/drawCabin\(camX,camY\);\s*drawVillageSettlements\(camX,camY,time\);\s*drawQuarryOutpost/);assert.ok(normal,'ordinary world must draw settlements beside the cabin');
-assert.match(game,/biomeAt\(x,y\)==='jungle'\?\.978:\.988/,'natural forest density restored');
-assert.match(game,/ctx\.scale\(1\.28,1\.28\)/,'player visual scale increased without changing movement');
-assert.match(game,/ctx\.fillRect\(-4,-12,3,3\)/,'visible eyes restored');
+const normal=game.match(/drawCabin\(camX,camY\);\s*drawVillageSettlements\(camX,camY,time\);\s*drawValleyHamlet\(camX,camY,time\);\s*drawQuarryOutpost/);assert.ok(normal,'ordinary world must draw settlements and the guaranteed valley hamlet');
+assert.match(game,/biomeAt\(x,y\)==='jungle'\?\.972:\.984/,'natural forest density restored');
+const player=game.slice(game.indexOf('function drawPlayer('),game.indexOf('\n  function ',game.indexOf('function drawPlayer(')));assert.match(player,/ctx\.scale\(1\.62,1\.62\)/,'player visual scale increased without changing movement');\nassert.match(game,/function drawValleyHamlet\(/,'older saves receive a guaranteed decorative valley hamlet');\nconst npc=game.slice(game.indexOf('function drawNpcCharacter('),game.indexOf('function drawPlayer('));assert.match(npc,/ctx\.scale\(1\.28,1\.28\)/,'NPC sprites keep their intended enlarged scale');
+assert.match(game,/ctx\.fillRect\(-4,-12,4,4\)/,'visible eyes restored');
 assert.match(game,/ctx\.roundRect\(-13,-1,5,12,2\)/,'visible arms restored');
-assert.match(game,/pg\.addColorStop\(0/,'detailed path texture exists');
+assert.match(game,/ctx\.fillStyle='#8c7551'/,'detailed path texture exists');
 assert.match(html,/<canvas id="world"/,'main world canvas remains present');
 console.log('Visual renderer regression tests passed: normal-world settlements, dense forests, seamless terrain and detailed player.');
