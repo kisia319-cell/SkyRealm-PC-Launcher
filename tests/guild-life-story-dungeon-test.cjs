@@ -1,4 +1,4 @@
-﻿const fs=require('fs');const path=require('path');const root=process.env.USERPROFILE+'\\Downloads\\SkyRealm-Complete-Work\\SkyRealm-PC-Launcher-main';
+const fs=require('fs');const path=require('path');const root=path.resolve(__dirname,'..');
 const guild=fs.readFileSync(path.join(root,'game/adventure-guild.js'),'utf8');
 const mail=fs.readFileSync(path.join(root,'game/guild-mail.js'),'utf8');
 const game=fs.readFileSync(path.join(root,'game/game.js'),'utf8');
