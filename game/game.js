@@ -1335,7 +1335,7 @@ let audioContext=null;
     world.ancientForestSeeded=false;world.trees.length=0;world.rocks.length=0;world.flowers.length=0;world.fireflies.length=0;world.signs.length=0;world.fences.length=0;quarryAnchorCache=null;
     for (let y = 2; y < ROWS - 2; y++) for (let x = 2; x < COLS - 2; x++) {
       const h = hash(x, y);
-      if (h > (biomeAt(x,y)==='jungle'?.945:.958) && !nearPath(x, y) && !nearVillage(x, y)) world.trees.push({ x: x * TILE + 16, y: y * TILE + 17, size: 0.85 + hash(y, x) * .42, tint: Math.floor(hash(x + 44, y) * 3), fruitful: hash(x + 701, y + 313) > .94 });
+      if (h > ((isForestTile(x,y)||biomeAt(x,y)==='jungle')?.945:.958) && !nearPath(x, y) && !nearVillage(x, y)) world.trees.push({ x: x * TILE + 16, y: y * TILE + 17, size: 0.85 + hash(y, x) * .42, tint: Math.floor(hash(x + 44, y) * 3), fruitful: hash(x + 701, y + 313) > .94 });
       if (h < .013 && !nearPath(x, y) && !nearVillage(x,y)) { const rockSize=0.7+hash(y,x+4)*0.65, vein=hash(x+107,y+811); const ore=vein<.028?'Кристалл':vein<.09?'Железо':vein<.145?'Уголь':vein<.205?'Медь':'Камень'; const hits=Math.max(2,Math.min(4,Math.round(rockSize*2.4)+1)); world.rocks.push({x:x*TILE+16,y:y*TILE+21,s:rockSize,ore,quality:1+Math.floor(hash(x+19,y+83)*3),hp:hits,maxHp:hits,regrowAt:0,hitFlash:0}); }
       if (h > .53 && h < .552) world.flowers.push({x:x*TILE+hash(x,y+10)*25+3,y:y*TILE+hash(x+3,y)*26+3,c:Math.floor(hash(y+7,x)*4)});
       if (h > .79 && h < .792) world.fireflies.push({x:x*TILE+hash(x+19,y)*TILE,y:y*TILE+hash(x,y+19)*TILE,phase:hash(x+1,y+3)*6.28});
@@ -1363,7 +1363,7 @@ let audioContext=null;
   function roundedRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
   function waterAt(x,y){if(tradeWorldMode)return false;const cx=52,cy=36,dx=(x-cx)/6.5,dy=(y-cy)/4.3;return dx*dx+dy*dy<1;}
   function pathAt(x,y){if(tradeWorldMode){const sx=tradeEntranceX,sy=tradeEntranceY;if(x>=sx-3&&x<=FARMER_SHOP.x+4&&Math.abs(y-sy)<=2.1)return true;for(const v of tradeVillageLayouts()){const dx=v.x-sx,dy=v.y-sy,t=dx?(x-sx)/dx:0;if(t>=0&&t<=1&&Math.abs(y-(sy+dy*t))<=1.6)return true;}return false;}if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y;if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;if(x>=35&&x<=40&&y>=17&&y<=21)return true;const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));if((y>=25&&y<=27&&x>=34&&x<=48)||(Math.abs(y-31)<=1&&x>=44&&x<=vx)||(Math.abs(x-vx)<=1&&y>=31&&y<=vy+3))return true;return false;}
-  function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';return 'forest';}
+  function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';return 'snow';}
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли',jungle:'Затерянные джунгли'})[biomeAt(x,y)]||'Лесная долина';}
   function drawGrassTexture(target,x,y,sx,sy,h,biome,quality){
     // Stable, low-cost surface grain is generated once per world tile and reused from the atlas.
@@ -1381,7 +1381,7 @@ let audioContext=null;
     target.restore();
   }
   function drawGrass(x,y,sx,sy){
-    const h=hash(x,y),biome=clearedSnowTiles.has(tileKey(x,y))?'forest':biomeAt(x,y);
+    const h=hash(x,y),biome=(clearedSnowTiles.has(tileKey(x,y))||isForestTile(x,y))?'forest':biomeAt(x,y);
     const quality=gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost';
     if(!surfaceGroundTileCache){
       const atlas=document.createElement('canvas');atlas.width=2048;atlas.height=2048;
@@ -1434,7 +1434,7 @@ let audioContext=null;
   function drawTree(t,camX,camY){
     const x=t.x-camX,y=t.y-camY,s=t.size;
     ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(ambientTime/1250+t.x*.013+t.y*.009)*.012);ctx.scale(s,s);
-    const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow';
+    const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow'&&!isForestTile(t.x/TILE,t.y/TILE);
     ctx.fillStyle=snowy?'#756b61':'#61462f';ctx.fillRect(-5,-3,10,24);
     ctx.fillStyle=snowy?'#a9a39a':'#7b5937';ctx.fillRect(-2,1,3,15);
     const colors=snowy?[['#536f7b','#a9c5d0','#edf7fa'],['#617d89','#b9d0d8','#f5fbff'],['#4c6877','#9fbcc9','#e3f2f7']][t.tint]:[['#174536','#20583f','#2c704c'],['#23503b','#2b6645','#438050'],['#1d493b','#28664d','#367e5a']][t.tint];
