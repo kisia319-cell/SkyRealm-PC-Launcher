@@ -57,3 +57,19 @@ const ctx=new Proxy({createLinearGradient(){return {addColorStop(){}};},fillText
 api.draw(ctx,{x:500,y:500},0,0,0);
 assert.ok(drawn.includes('E · ПОЧТА'),'mailbox has a world interaction prompt');
 console.log('Guild mail regression tests passed.');
+// Extended 30-day story and branching-choice regression.
+for(let nextDay=2;nextDay<=4;nextDay++){api.close();day=nextDay;api.open();}
+let campaign=api.getState();
+const decisionLetter=campaign.letters.find(x=>x.day===4);
+assert.ok(decisionLetter&&decisionLetter.choices&&decisionLetter.choices.length===2,'day 5 must present a meaningful story choice');
+const mailRoot=nodes.get('skyrealm-guild-mail');
+mailRoot.listeners.click({target:{closest:()=>({dataset:{gm:'choice',id:'day-4',choice:'rescue'}})}});
+assert.equal(api.getState().letters.find(x=>x.day===4).decision,'rescue','choice must be persisted on the letter');
+assert.equal(api.getState().decisions['day-4'],'rescue','choice must be persisted in campaign state');
+api.close();day=5;api.open();
+assert.match(api.getState().letters.find(x=>x.day===5).body,/Жители уже добрались до лагеря/,'the next letter must reflect the earlier choice');
+for(let nextDay=6;nextDay<30;nextDay++){api.close();day=nextDay;api.open();}
+assert.equal(api.getState().letters.length,30,'one unique campaign letter must arrive per in-game day through day 30');
+assert.ok(api.getState().letters.find(x=>x.day===29),'the campaign finale must arrive on day 30');
+api.close();
+console.log('Guild 30-day campaign branch, persistence and finale tests passed.');
