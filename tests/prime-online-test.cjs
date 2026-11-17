@@ -23,8 +23,17 @@ const context={
  setInterval:fn=>{intervals.push(fn);return intervals.length;},clearInterval:()=>{},
  fetch:async(url,init)=>{const parsed=new URL(url),route=parsed.searchParams.get('route');calls.push({route,method:init.method,authorization:init.headers.Authorization,body:init.body?JSON.parse(init.body):null});return{ok:true,status:200,json:async()=>replies[route]||{ok:true}};}
 };
-vm.runInNewContext(source,context);
+const offlineContext={...context,window:{pywebview:context.window.pywebview}};
+vm.runInNewContext(source,offlineContext);
+assert.match(source,/TEMPORARY PRE-RELEASE OFFLINE MODE/,'release candidate must retain the pre-release online gate');
+const onlineSource=source.replace(/\/\/ TEMPORARY PRE-RELEASE OFFLINE MODE\.\r?\n\(\(\)=>\{"use strict";[\s\S]*?window\.PrimeOnlineTemporarilyDisabled=true;\r?\n\}\)\(\);\s*$/,'');
+assert.notEqual(onlineSource,source,'the online implementation must remain testable separately from the temporary offline wrapper');
+vm.runInNewContext(onlineSource,context);
 (async()=>{
+ const offlineResult=await offlineContext.window.PrimeOnline.queue(1000);
+ assert.equal(offlineContext.window.PrimeOnlineTemporarilyDisabled,true,'pre-release build must flag online features as temporarily disabled');
+ assert.equal(offlineResult.disabled,true,'pre-release queue action must report an intentional offline state');
+ assert.match(offlineResult.message,/Онлайн-функции временно отключены/);
  assert.equal(await context.window.PrimeOnline.init(),true,'Prime must receive the authenticated SkyRealm token through the native bridge');
  assert.equal(context.window.PrimeOnline.hasSession(),true);
  assert.equal(context.window.PrimeOnline.userId(),userId);
