@@ -1335,12 +1335,12 @@ let audioContext=null;
     world.ancientForestSeeded=false;world.trees.length=0;world.rocks.length=0;world.flowers.length=0;world.fireflies.length=0;world.signs.length=0;world.fences.length=0;quarryAnchorCache=null;
     for (let y = 2; y < ROWS - 2; y++) for (let x = 2; x < COLS - 2; x++) {
       const h = hash(x, y);
-      if (h > (biomeAt(x,y)==='jungle'?.972:.984) && !nearPath(x, y) && !nearVillage(x, y)) world.trees.push({ x: x * TILE + 16, y: y * TILE + 17, size: 0.85 + hash(y, x) * .42, tint: Math.floor(hash(x + 44, y) * 3), fruitful: hash(x + 701, y + 313) > .94 });
+      if (h > (biomeAt(x,y)==='jungle'?.945:.958) && !nearPath(x, y) && !nearVillage(x, y)) world.trees.push({ x: x * TILE + 16, y: y * TILE + 17, size: 0.85 + hash(y, x) * .42, tint: Math.floor(hash(x + 44, y) * 3), fruitful: hash(x + 701, y + 313) > .94 });
       if (h < .013 && !nearPath(x, y) && !nearVillage(x,y)) { const rockSize=0.7+hash(y,x+4)*0.65, vein=hash(x+107,y+811); const ore=vein<.028?'Кристалл':vein<.09?'Железо':vein<.145?'Уголь':vein<.205?'Медь':'Камень'; const hits=Math.max(2,Math.min(4,Math.round(rockSize*2.4)+1)); world.rocks.push({x:x*TILE+16,y:y*TILE+21,s:rockSize,ore,quality:1+Math.floor(hash(x+19,y+83)*3),hp:hits,maxHp:hits,regrowAt:0,hitFlash:0}); }
       if (h > .53 && h < .552) world.flowers.push({x:x*TILE+hash(x,y+10)*25+3,y:y*TILE+hash(x+3,y)*26+3,c:Math.floor(hash(y+7,x)*4)});
       if (h > .79 && h < .792) world.fireflies.push({x:x*TILE+hash(x+19,y)*TILE,y:y*TILE+hash(x,y+19)*TILE,phase:hash(x+1,y+3)*6.28});
     }
-    for(let fy=Math.max(ROWS-26,3);fy<ROWS-3;fy+=6)for(let fx=Math.max(COLS-31,3);fx<COLS-3;fx+=6){if(!nearPath(fx,fy)&&!waterAt(fx+.5,fy+.5)&&Math.abs(fy-(ROWS-13))>2&&Math.hypot(fx-(COLS-14),fy-(ROWS-13))>5&&hash(fx+401,fy+809)>.82)world.trees.push({x:fx*TILE+16,y:fy*TILE+17,size:.85+hash(fy+90,fx+70)*.35,tint:Math.floor(hash(fx+44,fy+99)*3),fruitful:hash(fx+701,fy+313)>.94});}
+    for(let fy=Math.max(ROWS-26,3);fy<ROWS-3;fy+=6)for(let fx=Math.max(COLS-31,3);fx<COLS-3;fx+=6){if(!nearPath(fx,fy)&&!waterAt(fx+.5,fy+.5)&&Math.abs(fy-(ROWS-13))>2&&Math.hypot(fx-(COLS-14),fy-(ROWS-13))>5&&hash(fx+401,fy+809)>.52)world.trees.push({x:fx*TILE+16,y:fy*TILE+17,size:.85+hash(fy+90,fx+70)*.35,tint:Math.floor(hash(fx+44,fy+99)*3),fruitful:hash(fx+701,fy+313)>.94});}
     setupVillageNpcs();
     world.signs.push({ x: 34*TILE+16, y: 22*TILE+12 });
     // A tiny village fence around a cabin.
@@ -1363,7 +1363,7 @@ let audioContext=null;
   function roundedRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
   function waterAt(x,y){if(tradeWorldMode)return false;const cx=52,cy=36,dx=(x-cx)/6.5,dy=(y-cy)/4.3;return dx*dx+dy*dy<1;}
   function pathAt(x,y){if(tradeWorldMode){const sx=tradeEntranceX,sy=tradeEntranceY;if(x>=sx-3&&x<=FARMER_SHOP.x+4&&Math.abs(y-sy)<=2.1)return true;for(const v of tradeVillageLayouts()){const dx=v.x-sx,dy=v.y-sy,t=dx?(x-sx)/dx:0;if(t>=0&&t<=1&&Math.abs(y-(sy+dy*t))<=1.6)return true;}return false;}if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y;if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;if(x>=35&&x<=40&&y>=17&&y<=21)return true;const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));if((y>=25&&y<=27&&x>=34&&x<=48)||(Math.abs(y-31)<=1&&x>=44&&x<=vx)||(Math.abs(x-vx)<=1&&y>=31&&y<=vy+3))return true;return false;}
-  function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';return 'snow';}
+  function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';return 'forest';}
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли',jungle:'Затерянные джунгли'})[biomeAt(x,y)]||'Лесная долина';}
   function drawGrassTexture(target,x,y,sx,sy,h,biome,quality){
     // Stable, low-cost surface grain is generated once per world tile and reused from the atlas.
@@ -1401,8 +1401,18 @@ let audioContext=null;
     const ax=(slot%64)*TILE,ay=Math.floor(slot/64)*TILE;
     ctx.drawImage(cache.canvas,ax,ay,TILE,TILE,sx,sy,TILE,TILE);
   }
-    function drawGround(camX,camY){const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
-    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const sx=Math.floor(x*TILE-camX),sy=Math.floor(y*TILE-camY);drawGrass(x,y,sx,sy);if(isForestTile(x,y)&&biomeAt(x,y)!=='snow'){ctx.fillStyle=(hash(x+81,y+39)>.55?'rgba(8,43,27,.44)':'rgba(10,54,32,.32)');ctx.fillRect(sx,sy,TILE,TILE);}if(pathAt(x,y)){ctx.fillStyle='#8c7551';ctx.fillRect(sx,sy,TILE,TILE);for(let pi=0;pi<8;pi++){const px=sx+2+hash(x*7+pi*13,y*11+pi*5)*28,py=sy+2+hash(x*17+pi*3,y*5+pi*19)*28;ctx.fillStyle=pi%2?'rgba(220,197,151,.45)':'rgba(61,47,31,.28)';ctx.beginPath();ctx.ellipse(px,py,1.8+hash(x+pi,y)*2.1,.9+hash(x,y+pi)*1.3,hash(x+pi*3,y+pi)*.8,0,Math.PI*2);ctx.fill();}if(hash(x+701,y+131)>.22){ctx.strokeStyle='rgba(70,53,34,.34)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(sx+4,sy+7);ctx.lineTo(sx+12,sy+10);ctx.lineTo(sx+18,sy+8);ctx.stroke();}}if(waterAt(x+.5,y+.5)){ctx.fillStyle='#246786';ctx.fillRect(sx,sy,TILE,TILE);ctx.fillStyle='#398ca0';let w=hash(x,y);if(w>.25)ctx.fillRect(sx+3,sy+7+Math.floor(w*11),10+Math.floor(w*9),2);if(w>.7)ctx.fillRect(sx+17,sy+23,8,2);}}}
+    function drawMainRoads(camX,camY){
+    const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));
+    const roads=[[[3,26],[36,26]],[[27,22],[37,12]],[[35,19],[40,19]],[[36,26],[48,26]],[[48,26],[vx,31]],[[vx,31],[vx,vy+3]]];
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+    for(const road of roads){ctx.beginPath();ctx.moveTo(road[0][0]*TILE-camX,road[0][1]*TILE-camY);for(let i=1;i<road.length;i++)ctx.lineTo(road[i][0]*TILE-camX,road[i][1]*TILE-camY);ctx.strokeStyle='#6d573e';ctx.lineWidth=62;ctx.stroke();ctx.strokeStyle='#a68a61';ctx.lineWidth=49;ctx.stroke();}
+    for(let i=0;i<150;i++){const wx=(i*37%Math.max(1,vx*2+20))*TILE+hash(i+71,29)*TILE,wy=(i*19%Math.max(1,vy+30))*TILE+hash(i+91,53)*TILE;if(!pathAt(wx/TILE,wy/TILE))continue;const px=wx-camX,py=wy-camY;if(px<-8||px>width+8||py<-8||py>height+8)continue;ctx.fillStyle=i%3?'rgba(73,55,35,.25)':'rgba(231,210,169,.34)';ctx.beginPath();ctx.ellipse(px,py,1.5+(i%3),.8+(i%2),i*.7,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  }
+  function drawGround(camX,camY){const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const sx=Math.floor(x*TILE-camX),sy=Math.floor(y*TILE-camY);drawGrass(x,y,sx,sy);if(waterAt(x+.5,y+.5)){ctx.fillStyle='#246786';ctx.fillRect(sx,sy,TILE,TILE);ctx.fillStyle='#398ca0';let w=hash(x,y);if(w>.25)ctx.fillRect(sx+3,sy+7+Math.floor(w*11),10+Math.floor(w*9),2);if(w>.7)ctx.fillRect(sx+17,sy+23,8,2);}}
+    drawMainRoads(camX,camY);
+  }
   function drawTradeGround(camX,camY){
     const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1);
     const y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
@@ -1819,7 +1829,7 @@ function setupVillageNpcs(){
   function drawValleyHamlet(camX,camY,time){
     // A guaranteed decorative hamlet keeps the valley from looking abandoned in older saves.
     // These scenery props are visual only: they do not change collision, harvesting or movement.
-    const cx=Math.floor(COLS*.43)*TILE+16,cy=Math.floor(ROWS*.18)*TILE+16,x=cx-camX,y=cy-camY;
+    const cx=36*TILE+16,cy=18*TILE+16,x=cx-camX,y=cy-camY;
     if(x<-620||x>width+620||y<-560||y>height+560)return;
     ctx.save();ctx.globalAlpha=.98;ctx.fillStyle='rgba(54,70,45,.22)';ctx.beginPath();ctx.ellipse(x,y+12,330,255,-.08,0,Math.PI*2);ctx.fill();
     ctx.lineCap='round';ctx.strokeStyle='#725a3d';ctx.lineWidth=30;ctx.beginPath();ctx.moveTo(x-330,y+42);ctx.lineTo(x+330,y+42);ctx.moveTo(x,y-285);ctx.lineTo(x,y+285);ctx.stroke();
@@ -2106,7 +2116,7 @@ function updateVillageNpcs(dt){
   }
   function drawPlayer(camX,camY,dt){
     const x=player.x-camX,y=player.y-camY;player.frame += dt*(Math.abs(player.vx)+Math.abs(player.vy)>.01?11:3);const step=Math.sin(player.frame)*2.2;
-    ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.62,1.62);
+    ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(2.2,2.2);
     if(combatCinematic?.active){
       const cp=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
       const charge=Math.sin(Math.min(1,cp/.58)*Math.PI)*11;
