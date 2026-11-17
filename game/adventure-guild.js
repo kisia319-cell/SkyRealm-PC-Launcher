@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION = 2;
+  const VERSION = 3;
   const KEY = 'skyrealm-adventure-expansion-v1:';
   const $ = id => document.getElementById(id);
   const bridge = () => window.SkyRealmSeaBridge;
@@ -9,6 +9,7 @@
   const fresh = () => ({
     version: VERSION, day: -1, contracts: [], contractClaims: [], tokens: 0,
     expedition: null, treasure: null, camp: {hearth:0,workshop:0,observatory:0,infirmary:0},
+    rooms: {archive:0,trophy:0,dormitory:0,workshop:0},
     relics: [], stats: {contracts:0,expeditions:0,treasures:0}, lastExplore:0
   });
   let state = fresh(), worldId = '', opened = false, root = null, tickHandle = 0, lastTick = 0, houseCache = null;
@@ -32,6 +33,12 @@
     observatory:{name:'Обсерватория',icon:'🔭',desc:'Больше жетонов сезонного события.',cost:[{Древесина:20,Камень:25,Кристалл:2},{Древесина:40,Камень:40,Кристалл:5,Медь:8},{Древесина:65,Камень:60,Кристалл:9,Мифрил:2}]},
     infirmary:{name:'Лазарет',icon:'✚',desc:'Восстановление здоровья и бонус после экспедиции.',cost:[{Древесина:25,Камень:20,Ткань:5},{Древесина:45,Камень:35,Ткань:10,Железо:5},{Древесина:65,Камень:50,Ткань:16,Железо:12}]}
   };
+  const ROOMS = {
+    archive:{name:'Архив карт и хроник',icon:'📚',desc:'Каждый уровень добавляет 3% к наградам за контракты.',cost:[{Древесина:25,Камень:18},{Древесина:40,Камень:28,Кристалл:2}]},
+    trophy:{name:'Зал трофеев',icon:'🏆',desc:'Выставляет реликвии и добавляет 2% к наградам за каждую ступень.',cost:[{Древесина:30,Камень:25,Железо:6},{Древесина:50,Камень:40,Мифрил:2}]},
+    dormitory:{name:'Жилые комнаты',icon:'🛏️',desc:'Снижает урон в экспедициях на 8% за уровень.',cost:[{Древесина:35,Камень:12,Ткань:8},{Древесина:55,Камень:22,Ткань:15}]},
+    workshop:{name:'Ремесленная мастерская',icon:'⚒️',desc:'Даёт дополнительные материалы после успешной экспедиции.',cost:[{Древесина:35,Камень:20,Железо:8},{Древесина:55,Камень:35,Железо:16}]}
+  };
   const RELICS = ['Печать руин','Сердце инея','Око разлома','Компас первопроходца','Клык хранителя','Лунный осколок'];
   function snapshot(){ return bridge()?.getChallengeSnapshot?.() || null; }
   function save(){ try { if(worldId) localStorage.setItem(KEY+worldId, JSON.stringify(state)); bridge()?.save?.(); } catch(e){ console.warn('[SkyRealm adventure save]',e); } }
@@ -50,6 +57,7 @@
         clean.expedition=raw.expedition&&ROUTES[raw.expedition.route]?{route:raw.expedition.route,wave:clamp(Math.floor(Number(raw.expedition.wave)||1),1,3),eventId:String(raw.expedition.eventId||'').slice(0,120),startedAt:Math.max(0,Number(raw.expedition.startedAt)||0)}:null;
         clean.treasure=raw.treasure&&Number.isFinite(Number(raw.treasure.x))&&Number.isFinite(Number(raw.treasure.y))?{x:Math.max(0,Number(raw.treasure.x)),y:Math.max(0,Number(raw.treasure.y)),claimed:!!raw.treasure.claimed}:null;
         for(const id of Object.keys(clean.camp)) clean.camp[id]=clamp(Math.floor(Number(raw.camp?.[id])||0),0,3);
+        for(const id of Object.keys(clean.rooms)) clean.rooms[id]=clamp(Math.floor(Number(raw.rooms?.[id])||0),0,2);
         clean.relics=Array.isArray(raw.relics)?Array.from(new Set(raw.relics.filter(x=>RELICS.includes(x)))):[];
         clean.stats={contracts:Math.max(0,Number(raw.stats?.contracts)||0),expeditions:Math.max(0,Number(raw.stats?.expeditions)||0),treasures:Math.max(0,Number(raw.stats?.treasures)||0)};
         clean.lastExplore=Math.max(0,Number(raw.lastExplore)||0);
@@ -74,7 +82,7 @@
   function itemCount(name){ return Math.max(0,Number(bridge()?.getItemCount?.(name))||0); }
   function canPay(cost){ return Object.entries(cost).every(([name,count])=>itemCount(name)>=count); }
   function pay(cost){ if(!canPay(cost))return false; for(const [name,count] of Object.entries(cost)) if(!bridge()?.spendItem?.(name,count)) return false; return true; }
-  function rewardGold(amount){ const campBonus=1+(state.camp.hearth||0)*.05, relicBonus=1+state.relics.length*.02;bridge()?.addGold?.(Math.round(amount*campBonus*relicBonus)*100); }
+  function rewardGold(amount){ const campBonus=1+(state.camp.hearth||0)*.05, relicBonus=1+state.relics.length*.02, roomBonus=1+(state.rooms.archive||0)*.03+(state.rooms.trophy||0)*.02;bridge()?.addGold?.(Math.round(amount*campBonus*relicBonus*roomBonus)*100); }
   function addToken(amount){ state.tokens=clamp(state.tokens+Math.max(0,Math.floor(amount)),0,99999); }
   function progressContract(id,amount=1){
     const contract=state.contracts.find(x=>x.id===id&&!x.claimed&&x.accepted);if(!contract)return;
@@ -126,7 +134,7 @@
         else{finishExpedition(false);notify('Следующая волна не смогла появиться. Экспедиция завершена без награды за неё.');}
       }else finishExpedition(true);
     }else{
-      const now=Date.now();if(now-lastTick>2500){lastTick=now;const incoming=Math.max(1,Math.round(5+e.wave*3-(state.camp.infirmary||0)*1.2));b?.damagePlayer?.(incoming);}
+      const now=Date.now();if(now-lastTick>2500){lastTick=now;const incoming=Math.max(1,Math.round((5+e.wave*3-(state.camp.infirmary||0)*1.2)*(1-(state.rooms.dormitory||0)*.08)));b?.damagePlayer?.(incoming);}
     }
     save();render();
   }
@@ -149,7 +157,7 @@
     b?.clearEventEnemies?.(e.eventId);
     if(won){
       state.stats.expeditions++;rewardGold(def.reward);addToken(def.token+(state.camp.observatory||0));
-      b?.addItem?.('Кристалл',1+(state.camp.workshop||0),'Награда экспедиции');
+      b?.addItem?.('Кристалл',1+(state.camp.workshop||0)+(state.rooms.workshop||0),'Награда экспедиции');
       b?.addItem?.('Опыт гильдии',80+def.token*20,'Награда экспедиции');
       const relic=def.relic;if(!state.relics.includes(relic)){state.relics.push(relic);b?.addItem?.(relic,1,'Реликвия гильдии');}
       if(state.camp.infirmary>0)b?.restoreHealth?.();
@@ -183,6 +191,7 @@
     const cost=def.cost[level];if(!pay(cost)){notify('Не хватает материалов для улучшения.');return;}
     state.camp[id]=level+1;save();notify(def.name+' улучшен до уровня '+(level+1)+'.');render();
   }
+  function upgradeRoom(id){const def=ROOMS[id],level=state.rooms[id]||0;if(!def||level>=2)return;const cost=def.cost[level];if(!pay(cost)){notify('Не хватает материалов для новой комнаты.');return;}state.rooms[id]=level+1;save();notify(def.name+' построена / улучшена. Гильдия стала больше!');render();}
   function exchangeTokens(kind){
     const offers={potion:{cost:3,items:[['Большое зелье',1]]},crystal:{cost:5,items:[['Кристалл',4]]},gear:{cost:9,items:[['Мифрил',2],['Кристалл',3]]}};
     const offer=offers[kind];if(!offer||state.tokens<offer.cost){notify('Не хватает сезонных жетонов.');return;}
@@ -198,13 +207,15 @@
     }).join('');
     const routes=Object.entries(ROUTES).map(([id,r])=>'<article class="adv-card"><b>'+esc(r.name)+'</b><p>'+esc(r.desc)+'</p><small>'+r.waves+' волны · до '+r.enemies+' врагов · '+r.reward+' золота</small><button data-adv="route" data-id="'+id+'" '+(state.expedition?'disabled':'')+'>Начать экспедицию</button></article>').join('');
     const camp=Object.entries(CAMP).map(([id,c])=>{const level=state.camp[id]||0;return '<article class="adv-card"><div class="adv-card-head"><b>'+c.icon+' '+esc(c.name)+'</b><span>Ур. '+level+'/3</span></div><p>'+esc(c.desc)+'</p><button data-adv="camp" data-id="'+id+'" '+(level>=3?'disabled':'')+'>Улучшить · '+(level>=3?'максимум':Object.entries(c.cost[level]).map(x=>esc(x[0])+' ×'+x[1]).join(', '))+'</button></article>';}).join('');
+
+    const rooms=Object.entries(ROOMS).map(([id,r])=>{const level=state.rooms[id]||0;const detail=id==='trophy'?'Собрано реликвий: '+state.relics.length+'/'+RELICS.length:r.desc;return '<article class="adv-card"><div class="adv-card-head"><b>'+r.icon+' '+esc(r.name)+'</b><span>Ур. '+level+'/2</span></div><p>'+esc(detail)+'</p><div class="adv-progress"><i style="width:'+level*50+'%"></i></div><button data-adv="room" data-id="'+id+'" '+(level>=2?'disabled':'')+'>'+(level>=2?'Комната улучшена':'Построить / улучшить · '+Object.entries(r.cost[level]).map(x=>esc(x[0])+' ×'+x[1]).join(', '))+'</button></article>';}).join('');
     const expedition=state.expedition?'<section class="adv-section"><h3>⚔️ Текущая экспедиция</h3><p>'+esc(ROUTES[state.expedition.route].name)+' · волна '+state.expedition.wave+'/'+ROUTES[state.expedition.route].waves+' · врагов: '+(Number(bridge()?.getEventEnemyCount?.(state.expedition.eventId))||0)+'</p><button data-adv="attack">Атаковать оружием ('+Math.max(1,Math.round(Number(bridge()?.getWeaponDamage?.())||12))+' урона)</button><button class="secondary" data-adv="abandon">Отступить</button></section>':'';
     const treasure=state.treasure&&!state.treasure.claimed?(()=>{const pos=bridge()?.getPlayerPosition?.()||{x:0,y:0},dist=Math.round(Math.hypot(state.treasure.x-pos.x,state.treasure.y-pos.y));return '<section class="adv-section"><h3>🗺️ Карта сокровищ</h3><p>Координаты: X '+Math.round(state.treasure.x)+', Y '+Math.round(state.treasure.y)+' · осталось '+dist+' м.</p><button data-adv="treasure-claim" '+(dist>95?'disabled':'')+'>Открыть клад</button></section>';})():'';
     const relics=RELICS.map(name=>'<span class="adv-relic '+(state.relics.includes(name)?'found':'')+'">'+(state.relics.includes(name)?'✦ ':'◇ ')+esc(name)+'</span>').join('');
     const hallNpc=tab==='contracts'?'mentor':['expeditions','treasure','relics'].includes(tab)?'scout':'quartermaster';
     const hallText=hallNpc==='mentor'?'Приветствую, искатель. Выбери поручение и подтверди его принятие — после этого твои действия начнут засчитываться.':hallNpc==='scout'?'Я отмечаю опасные маршруты и старые тайники. Выбирай экспедицию или отправляйся за картой сокровищ.':'Здесь хранятся припасы и реликвии. Улучшай лагерь, обменивай жетоны и готовься к дальним походам.';
     const hallMarkup='<section class="adv-hall"><div class="adv-hall-scene"><div class="adv-hall-sign">✦ ЗАЛ ИСКАТЕЛЕЙ ✦</div><div class="adv-hall-shelf shelf-left">📚<br>📜<br>🗝️</div><div class="adv-hall-map">🗺️<span>КАРТА КОРОЛЕВСТВА</span></div><div class="adv-hall-fire">🔥</div><div class="adv-hall-shelf shelf-right">⚔️<br>🏆<br>💎</div></div><div class="adv-npc-row"><button class="adv-npc '+(hallNpc==='mentor'?'selected':'')+'" data-adv="npc" data-id="mentor"><span class="adv-portrait portrait-mentor"><i class="hair"></i><i class="face"></i><i class="body"></i><i class="jewel"></i></span><b>Эйрин</b><small>Наставник гильдии</small></button><button class="adv-npc '+(hallNpc==='scout'?'selected':'')+'" data-adv="npc" data-id="scout"><span class="adv-portrait portrait-scout"><i class="hair"></i><i class="face"></i><i class="body"></i><i class="jewel"></i></span><b>Мира</b><small>Следопыт и картограф</small></button><button class="adv-npc '+(hallNpc==='quartermaster'?'selected':'')+'" data-adv="npc" data-id="quartermaster"><span class="adv-portrait portrait-quartermaster"><i class="hair"></i><i class="face"></i><i class="body"></i><i class="jewel"></i></span><b>Тор</b><small>Хранитель припасов</small></button></div><div class="adv-dialogue"><b>'+(hallNpc==='mentor'?'ЭЙРИН · НАСТАВНИК':hallNpc==='scout'?'МИРА · СЛЕДОПЫТ':'ТОР · ХРАНИТЕЛЬ')+'</b><span>'+hallText+'</span></div></section>';
-    root.innerHTML='<div class="adv-backdrop"><section class="adv-dialog" role="dialog" aria-modal="true" aria-label="Гильдия искателей">'+hallMarkup+'<header><div><small>SKYREALM · ADVENTURE GUILD</small><h2>Гильдия искателей</h2><p>День '+(day+1)+' · жетоны фестиваля: <b>'+state.tokens+'</b></p></div><button data-adv="close" class="adv-close" aria-label="Закрыть">×</button></header><nav><button data-adv="tab" data-id="contracts" class="'+(tab==='contracts'?'active':'')+'">Контракты</button><button data-adv="tab" data-id="expeditions" class="'+(tab==='expeditions'?'active':'')+'">Экспедиции</button><button data-adv="tab" data-id="camp" class="'+(tab==='camp'?'active':'')+'">Лагерь</button><button data-adv="tab" data-id="treasure" class="'+(tab==='treasure'?'active':'')+'">Сокровища</button><button data-adv="tab" data-id="relics" class="'+(tab==='relics'?'active':'')+'">Реликвии</button><button data-adv="tab" data-id="festival" class="'+(tab==='festival'?'active':'')+'">Фестиваль</button></nav><main>'+(tab==='contracts'?'<section class="adv-section"><h3>📜 Ежедневные поручения</h3><p>Задания обновляются каждый игровой день. Награда: золото, опыт гильдии и жетоны.</p><div class="adv-grid">'+contracts+'</div></section>':tab==='expeditions'?'<section class="adv-section"><h3>🧭 Походы за пределы поселения</h3><p>Побеждай волны врагов. Урон зависит от текущего оружия. В одиночном обычном мире.</p><div class="adv-grid">'+routes+'</div></section>':tab==='camp'?'<section class="adv-section"><h3>🏕️ Развитие лагеря</h3><p>Четыре постройки дают постоянные бонусы в этом мире.</p><div class="adv-grid">'+camp+'</div></section>':tab==='treasure'?'<section class="adv-section"><h3>🗺️ Охота за сокровищами</h3><p>Карта создаёт клад в случайной точке мира. Подойди ближе 95 метров, чтобы забрать награду.</p><button data-adv="treasure-create" '+(state.treasure&&!state.treasure.claimed?'disabled':'')+'>Составить карту · 35 золота</button>'+treasure+'</section>':tab==='relics'?'<section class="adv-section"><h3>💎 Коллекция древних реликвий</h3><p>Собирай уникальные трофеи за экспедиции и особые достижения.</p><div class="adv-relics">'+relics+'</div><p>Найдено: '+state.relics.length+'/'+RELICS.length+'</p></section>':'<section class="adv-section"><h3>🎪 Сезонный фестиваль</h3><p>Жетоны выдаются за контракты, экспедиции и найденные сокровища. Сезон соответствует текущему игровому времени.</p><div class="adv-grid"><article class="adv-card"><b>Большое зелье</b><p>3 жетона</p><button data-adv="exchange" data-id="potion">Обменять</button></article><article class="adv-card"><b>Кристаллы ×4</b><p>5 жетонов</p><button data-adv="exchange" data-id="crystal">Обменять</button></article><article class="adv-card"><b>Мифрил ×2 и кристаллы ×3</b><p>9 жетонов</p><button data-adv="exchange" data-id="gear">Обменять</button></article></div></section>')+expedition+ '</main><footer><span>Контракты: '+state.stats.contracts+' · экспедиции: '+state.stats.expeditions+' · клады: '+state.stats.treasures+'</span><button data-adv="close">Вернуться в мир</button></footer></section></div>';
+    root.innerHTML='<div class="adv-backdrop"><section class="adv-dialog" role="dialog" aria-modal="true" aria-label="Гильдия искателей">'+hallMarkup+'<header><div><small>SKYREALM · ADVENTURE GUILD</small><h2>Гильдия искателей</h2><p>День '+(day+1)+' · жетоны фестиваля: <b>'+state.tokens+'</b></p></div><button data-adv="close" class="adv-close" aria-label="Закрыть">×</button></header><nav><button data-adv="tab" data-id="contracts" class="'+(tab==='contracts'?'active':'')+'">Доска объявлений</button><button data-adv="tab" data-id="expeditions" class="'+(tab==='expeditions'?'active':'')+'">Экспедиции</button><button data-adv="tab" data-id="camp" class="'+(tab==='camp'?'active':'')+'">Лагерь</button><button data-adv="tab" data-id="rooms">Комнаты</button><button data-adv="tab" data-id="treasure" class="'+(tab==='treasure'?'active':'')+'">Сокровища</button><button data-adv="tab" data-id="relics" class="'+(tab==='relics'?'active':'')+'">Реликвии</button><button data-adv="tab" data-id="festival" class="'+(tab==='festival'?'active':'')+'">Фестиваль</button></nav><main>'+(tab==='contracts'?'<section class="adv-section"><h3>📜 Ежедневные поручения</h3><p>Задания обновляются каждый игровой день. Награда: золото, опыт гильдии и жетоны.</p><div class="adv-grid">'+contracts+'</div></section>':tab==='expeditions'?'<section class="adv-section"><h3>🧭 Походы за пределы поселения</h3><p>Побеждай волны врагов. Урон зависит от текущего оружия. В одиночном обычном мире.</p><div class="adv-grid">'+routes+'</div></section>':tab==='camp'?'<section class="adv-section"><h3>🏕️ Развитие лагеря</h3><p>Четыре постройки дают постоянные бонусы в этом мире.</p><div class="adv-grid">'+camp+'</div></section>':tab==='rooms'?'<section class="adv-section"><h3>🏰 Комнаты гильдии</h3><p>Расширяй штаб: архив, зал трофеев, жилые комнаты и мастерская. Улучшения сохраняются в каждом мире.</p><div class="adv-grid">'+rooms+'</div></section>':tab==='treasure'?'<section class="adv-section"><h3>🗺️ Охота за сокровищами</h3><p>Карта создаёт клад в случайной точке мира. Подойди ближе 95 метров, чтобы забрать награду.</p><button data-adv="treasure-create" '+(state.treasure&&!state.treasure.claimed?'disabled':'')+'>Составить карту · 35 золота</button>'+treasure+'</section>':tab==='relics'?'<section class="adv-section"><h3>💎 Коллекция древних реликвий</h3><p>Собирай уникальные трофеи за экспедиции и особые достижения.</p><div class="adv-relics">'+relics+'</div><p>Найдено: '+state.relics.length+'/'+RELICS.length+'</p></section>':'<section class="adv-section"><h3>🎪 Сезонный фестиваль</h3><p>Жетоны выдаются за контракты, экспедиции и найденные сокровища. Сезон соответствует текущему игровому времени.</p><div class="adv-grid"><article class="adv-card"><b>Большое зелье</b><p>3 жетона</p><button data-adv="exchange" data-id="potion">Обменять</button></article><article class="adv-card"><b>Кристаллы ×4</b><p>5 жетонов</p><button data-adv="exchange" data-id="crystal">Обменять</button></article><article class="adv-card"><b>Мифрил ×2 и кристаллы ×3</b><p>9 жетонов</p><button data-adv="exchange" data-id="gear">Обменять</button></article></div></section>')+expedition+ '</main><footer><span>Контракты: '+state.stats.contracts+' · экспедиции: '+state.stats.expeditions+' · клады: '+state.stats.treasures+'</span><button data-adv="close">Вернуться в мир</button></footer></section></div>';
   }
   let tab='contracts';
   function open(){
@@ -227,6 +238,7 @@
     else if(action==='attack')attackExpedition();
     else if(action==='abandon'){if(state.expedition){bridge()?.clearEventEnemies?.(state.expedition.eventId);state.expedition=null;save();notify('Экспедиция отменена.');}}
     else if(action==='camp')upgradeCamp(id);
+    else if(action==='room')upgradeRoom(id);
     else if(action==='treasure-create'){const b=bridge();if(!b?.getWorldBounds?.()||!b?.getPlayerPosition?.()||b?.isCoopWorld?.()||b?.isSpecialWorldMode?.())notify('Карту можно использовать в обычном одиночном мире.');else if((Number(b?.getGold?.())||0)<35||!b?.spendGold?.(35))notify('Для карты нужно 35 золота.');else createTreasure();}
     else if(action==='treasure-claim')claimTreasure();
     else if(action==='exchange')exchangeTokens(id);
@@ -286,7 +298,16 @@
     ctx.fillStyle='#80664a';ctx.fillRect(-20,5,40,15);ctx.fillStyle='#c1a477';ctx.fillRect(-15,5,30,7);for(let i=0;i<4;i++){ctx.fillStyle=i%2?'#9d927f':'#b6a78c';ctx.beginPath();ctx.ellipse(-17+i*11,28+(i%2)*5,7,3,.12,0,Math.PI*2);ctx.fill();}for(const px of [-111,111]){ctx.fillStyle='#6c4c34';ctx.fillRect(px-8,-2,16,9);ctx.fillStyle='#557d49';ctx.beginPath();ctx.arc(px,-9,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e7b8aa';ctx.beginPath();ctx.arc(px-3,-13,2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f4d27d';ctx.beginPath();ctx.arc(px+4,-8,2,0,Math.PI*2);ctx.fill();}
     ctx.fillStyle='#e9d5a5';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText('E · ВОЙТИ В ГИЛЬДИЮ',0,38);
     ctx.restore();
+    drawGuildBoard(ctx,p,camX,camY,time);
+    drawGuildResidents(ctx,p,camX,camY,time);
     window.SkyRealmGuildMail?.draw?.(ctx,p,camX,camY,time);
+  }
+  function drawGuildBoard(ctx,p,camX,camY,time){const x=p.x+108-camX,y=p.y+22-camY;if(x<-55||x>innerWidth+55||y<-55||y>innerHeight+55)return;ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.fillStyle='#0007';ctx.beginPath();ctx.ellipse(0,12,25,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4c3023';ctx.fillRect(-19,-31,38,43);ctx.fillStyle='#9b6940';ctx.fillRect(-16,-28,32,36);ctx.strokeStyle='#d6b276';ctx.lineWidth=2;ctx.strokeRect(-16,-28,32,36);for(let i=0;i<3;i++){ctx.fillStyle=['#f1dfb5','#e6d1a0','#f4e6c6'][i];ctx.fillRect(-12,-24+i*10,24,7);ctx.fillStyle='#80634a';ctx.fillRect(-9,-21+i*10,16,1);ctx.fillRect(-9,-18+i*10,11,1);}ctx.fillStyle='#a83d43';ctx.fillRect(-2,-37,4,8);ctx.fillStyle='#f1d28e';ctx.font='bold 7px Segoe UI';ctx.textAlign='center';ctx.fillText('ОБЪЯВЛЕНИЯ',0,-41);ctx.fillStyle='#ffe09b';ctx.globalAlpha=.65+.3*Math.sin(time/280);ctx.beginPath();ctx.arc(16,-30,3,0,Math.PI*2);ctx.fill();ctx.restore();}
+  function drawGuildResidents(ctx,p,camX,camY,time){
+    const day=Number(bridge()?.getGameDay?.())||0,minute=((Number(bridge()?.getGameMinuteTotal?.())||day*1440)%1440+1440)%1440,hour=minute/60;
+    const activity=hour<6?'Отдыхает':hour<10?'Работает':hour<15?'Общается':hour<20?'Патрулирует':'Отдыхает';
+    const residents=[{name:'Эйрин',phase:0,color:'#6e8bb8',hair:'#c8b9a6'},{name:'Мира',phase:2.1,color:'#56836c',hair:'#a95f3d'},{name:'Тор',phase:4.2,color:'#9b7049',hair:'#46352d'}];
+    residents.forEach((npc,i)=>{const t=time/2400+npc.phase+day*.37,wx=hour>=6&&hour<10?p.x+(i-1)*46:hour>=10&&hour<15?p.x+(i-1)*31:p.x+Math.cos(t)*82,wy=hour<6||hour>=20?p.y+12+(i%2)*7:hour>=6&&hour<10?p.y+28:hour<15?p.y+43+Math.sin(t)*3:p.y+36+Math.sin(t*.72)*17,x=wx-camX,y=wy-camY;if(x<-30||x>innerWidth+30||y<-20||y>innerHeight+30)return;const bob=hour<6||hour>=20?Math.sin(time/650+i)*.5:Math.sin(time/170+i)*1.8,step=activity==='Работает'?0:Math.sin(time/115+i*2.2);ctx.save();ctx.translate(Math.round(x),Math.round(y+bob));ctx.fillStyle='#0007';ctx.beginPath();ctx.ellipse(0,3,10,4,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#332a2a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-3,-3);ctx.lineTo(-4+step*2,3);ctx.moveTo(3,-3);ctx.lineTo(4-step*2,3);ctx.stroke();ctx.fillStyle=npc.color;ctx.fillRect(-7,-18,14,16);ctx.fillStyle='#d8ad8a';ctx.beginPath();ctx.arc(0,-23,6,0,Math.PI*2);ctx.fill();ctx.fillStyle=npc.hair;ctx.fillRect(-6,-29,12,5);ctx.fillStyle='#2c2530';ctx.fillRect(-3,-24,1.5,1.5);ctx.fillRect(2,-24,1.5,1.5);ctx.strokeStyle='#d8ad8a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-6,-14);ctx.lineTo(-10+step*2,-8);ctx.moveTo(6,-14);ctx.lineTo(10-step*2,-8);ctx.stroke();if(Math.sin(time/1400+i*2)>0.94){ctx.fillStyle='#f4dfb2';ctx.fillRect(-23,-43,46,12);ctx.strokeStyle='#9c8159';ctx.strokeRect(-23,-43,46,12);ctx.fillStyle='#473a2e';ctx.font='8px Segoe UI';ctx.textAlign='center';ctx.fillText(npc.name+' · '+activity,0,-35);}ctx.restore();});
   }
   function interact(){
     const snap=snapshot(),p=housePosition(),pos=bridge()?.getPlayerPosition?.();if(!snap?.worldId||!p||!pos)return false;
