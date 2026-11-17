@@ -1366,8 +1366,8 @@ let audioContext=null;
   function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';return 'snow';}
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли',jungle:'Затерянные джунгли'})[biomeAt(x,y)]||'Лесная долина';}
   function drawGrassTexture(target,x,y,sx,sy,h,biome,quality){
-    const palettes={
-      forest:['#315f43','#376b49','#2c583d','#4b8052','#3b7048','#7ca95f'],
+    // Stable, low-cost surface grain is generated once per world tile and reused from the atlas.
+    const palettes={forest:['#315f43','#376b49','#2c583d','#4b8052','#3b7048','#7ca95f'],
       snow:['#c5d8dc','#b7cdd3','#d2e0e2','#e6f0ef','#adc5ce','#f7fbf8'],
       desert:['#c3a267','#d0b276','#b79555','#dfc58b','#b18b4d','#f0d59a'],
       blight:['#46513e','#3d4939','#525d42','#68734c','#4d5c40','#9aa15b'],
