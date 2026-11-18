@@ -1,0 +1,17 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..');
+const game=fs.readFileSync(path.join(root,'game','game.js'),'utf8');
+const guild=fs.readFileSync(path.join(root,'game','adventure-guild.js'),'utf8');
+assert.match(game,/ctx\.scale\(1\.28,1\.28\)/,'player sprite scale reduced');
+assert.match(game,/ctx\.lineWidth=42;ctx\.stroke\(\);ctx\.strokeStyle='#a68a61';ctx\.lineWidth=33/,'paths use narrower classic widths');
+assert.match(game,/function drawGrassTexture\(target,x,y,sx,sy,h,biome,quality\)\{[\s\S]*?const palettes=/,'stylized low-detail ground renderer exists');
+assert.doesNotMatch(game,/const patches=quality\?17:11/,'dense realistic ground speckling removed');
+assert.match(game,/window\.SkyRealmAdventureGuild\?\.isBlocked\?\.\(x,y\)/,'main movement collision checks guild structure');
+assert.match(guild,/function isBlocked\(x,y\)/,'guild exposes collision geometry');
+assert.match(guild,/isBlocked,getHousePosition/,'guild collision hook is exported');
+assert.match(guild,/if\(!inDoor\)return true/,'guild walls block movement while front door remains open');
+assert.match(guild,/Math\.abs\(pos\.x-p\.x\)>42/,'guild interaction is limited to the front entrance');
+assert.match(game,/function safeDeathLootPosition\(originX,originY,index=0,avoidHome=false\)/,'death loot uses safe placement search');
+assert.match(game,/const wasInHouse=inHouse,[^;]*deathX=wasInHouse\?bedSpawn\.x:player\.x/,'death inside the home uses world bed spawn rather than interior coordinates');
+assert.match(game,/safeDeathLootPosition\(deathX,deathY,dropped,wasInHouse\)/,'dropped items are moved away from blocked house tiles');
+console.log('Guild collision, entrance, player scale, stylized ground and safe death-loot tests passed.');
