@@ -13,6 +13,7 @@
     relics: [], stats: {contracts:0,expeditions:0,treasures:0}, lastExplore:0
   });
   let state = fresh(), worldId = '', opened = false, root = null, tickHandle = 0, lastTick = 0, houseCache = null;
+  let insideGuild = false, interiorOrigin = null;
   let originalRecordProfession = null;
   const CONTRACTS = [
     {id:'hunter',name:'Охота на нечисть',profession:'hunter',goal:5,desc:'Победи врагов и получи опыт охотника.',gold:95,xp:55},
@@ -278,6 +279,7 @@
   function draw(ctx,camX=0,camY=0,time=0){
     const snap=snapshot(),b=bridge();if(!snap?.worldId||b?.isCoopWorld?.()||b?.isBossRealm?.()||b?.isSpecialWorldMode?.()||b?.isTradeWorld?.())return;
     const p=housePosition();if(!p)return;
+    if(insideGuild&&interiorOrigin){drawGuildInterior(ctx,camX,camY,time);return;}
     const x=p.x-camX,y=p.y-camY;if(x<-190||x>innerWidth+190||y<-210||y>innerHeight+80)return;
     const glow=.65+.22*Math.sin(time/360);
     ctx.save();ctx.translate(Math.round(x),Math.round(y));
@@ -302,6 +304,21 @@
     drawGuildResidents(ctx,p,camX,camY,time);
     window.SkyRealmGuildMail?.draw?.(ctx,p,camX,camY,time);
   }
+  function drawGuildInterior(ctx,camX,camY,time){
+    const o=interiorOrigin;if(!o)return;const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight);ctx.save();
+    const bg=ctx.createLinearGradient(camX,camY,camX,camY+h);bg.addColorStop(0,'#241d27');bg.addColorStop(.55,'#49352e');bg.addColorStop(1,'#211b22');ctx.fillStyle=bg;ctx.fillRect(camX,camY,w,h);
+    ctx.fillStyle='#765039';ctx.fillRect(o.x-178,o.y-120,356,240);
+    for(let y=-112;y<112;y+=18){ctx.fillStyle='rgba(35,22,17,.22)';ctx.fillRect(o.x-170,o.y+y,340,2);}
+    ctx.fillStyle='#4a3028';ctx.fillRect(o.x-184,o.y-130,368,14);ctx.fillRect(o.x-184,o.y-130,14,260);ctx.fillRect(o.x+170,o.y-130,14,260);ctx.fillRect(o.x-184,o.y-130,368,10);
+    ctx.fillStyle='#9a7048';ctx.fillRect(o.x-170,o.y-116,340,8);ctx.fillRect(o.x-170,o.y+116,132,8);ctx.fillRect(o.x+38,o.y+116,132,8);ctx.fillStyle='#d6b57b';ctx.fillRect(o.x-30,o.y+105,60,16);
+    const glow=.65+.18*Math.sin(time/360);ctx.fillStyle='#30252a';ctx.fillRect(o.x-24,o.y-112,48,34);ctx.fillStyle='#ffb75e';ctx.shadowColor='#ff9d48';ctx.shadowBlur=16*glow;ctx.beginPath();ctx.arc(o.x,o.y-94,9,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle='#3b2925';ctx.fillRect(o.x-148,o.y-90,48,65);ctx.fillStyle='#b88750';ctx.fillRect(o.x-144,o.y-86,40,57);for(let i=0;i<4;i++){ctx.fillStyle='#f4e4bf';ctx.fillRect(o.x-139,o.y-80+i*12,30,8);}
+    ctx.fillStyle='#593a2a';ctx.fillRect(o.x+74,o.y-48,86,35);ctx.fillStyle='#a97947';ctx.fillRect(o.x+78,o.y-45,78,27);ctx.fillStyle='#4a3025';ctx.fillRect(o.x-54,o.y+22,108,24);ctx.fillStyle='#9a6c3e';ctx.fillRect(o.x-49,o.y+18,98,22);
+    const people=[{x:-76,y:-18,name:'Эйрин',coat:'#6e8bb8',hair:'#c8b9a6'},{x:0,y:-30,name:'Мира',coat:'#56836c',hair:'#a95f3d'},{x:82,y:-18,name:'Тор',coat:'#9b7049',hair:'#46352d'}];
+    for(let i=0;i<people.length;i++){const n=people[i],px=o.x+n.x,py=o.y+n.y+Math.sin(time/240+i)*1.2;ctx.fillStyle='#0007';ctx.beginPath();ctx.ellipse(px,py+5,12,4,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=n.coat;ctx.fillRect(px-8,py-18,16,18);ctx.fillStyle='#d8ad8a';ctx.beginPath();ctx.arc(px,py-25,7,0,Math.PI*2);ctx.fill();ctx.fillStyle=n.hair;ctx.fillRect(px-7,py-32,14,6);ctx.fillStyle='#f2dfbd';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText(n.name,px,py-40);}
+    ctx.fillStyle='#f2d9a5';ctx.font='bold 13px Segoe UI';ctx.textAlign='center';ctx.fillText('ГИЛЬДИЯ ПРИКЛЮЧЕНЦЕВ',o.x,o.y-91);ctx.fillStyle='#fff0c5';ctx.font='bold 11px Segoe UI';ctx.fillText('E · ОБРАТИТЬСЯ К СОТРУДНИКУ',o.x,o.y+88);
+    ctx.fillStyle='rgba(20,15,20,.76)';ctx.fillRect(camX+12,camY+h-42,Math.min(410,w-24),30);ctx.fillStyle='#f2dfbd';ctx.font='12px Segoe UI';ctx.textAlign='left';ctx.fillText('WASD — ходить   E — поговорить   Южная дверь — выход',camX+24,camY+h-22);ctx.restore();
+  }
   function drawGuildBoard(ctx,p,camX,camY,time){const x=p.x+108-camX,y=p.y+22-camY;if(x<-55||x>innerWidth+55||y<-55||y>innerHeight+55)return;ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.fillStyle='#0007';ctx.beginPath();ctx.ellipse(0,12,25,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4c3023';ctx.fillRect(-19,-31,38,43);ctx.fillStyle='#9b6940';ctx.fillRect(-16,-28,32,36);ctx.strokeStyle='#d6b276';ctx.lineWidth=2;ctx.strokeRect(-16,-28,32,36);for(let i=0;i<3;i++){ctx.fillStyle=['#f1dfb5','#e6d1a0','#f4e6c6'][i];ctx.fillRect(-12,-24+i*10,24,7);ctx.fillStyle='#80634a';ctx.fillRect(-9,-21+i*10,16,1);ctx.fillRect(-9,-18+i*10,11,1);}ctx.fillStyle='#a83d43';ctx.fillRect(-2,-37,4,8);ctx.fillStyle='#f1d28e';ctx.font='bold 7px Segoe UI';ctx.textAlign='center';ctx.fillText('ОБЪЯВЛЕНИЯ',0,-41);ctx.fillStyle='#ffe09b';ctx.globalAlpha=.65+.3*Math.sin(time/280);ctx.beginPath();ctx.arc(16,-30,3,0,Math.PI*2);ctx.fill();ctx.restore();}
   function drawGuildResidents(ctx,p,camX,camY,time){
     const day=Number(bridge()?.getGameDay?.())||0,minute=((Number(bridge()?.getGameMinuteTotal?.())||day*1440)%1440+1440)%1440,hour=minute/60;
@@ -312,6 +329,7 @@
   function isBlocked(x,y){
     if(!Number.isFinite(x)||!Number.isFinite(y))return false;
     const b=bridge();if(!snapshot()?.worldId||b?.isCoopWorld?.()||b?.isBossRealm?.()||b?.isSpecialWorldMode?.()||b?.isTradeWorld?.())return false;
+    if(insideGuild&&interiorOrigin){const dx=x-interiorOrigin.x,dy=y-interiorOrigin.y;if(dx<-174||dx>174||dy<-118||dy>120)return true;if(Math.abs(dx)<58&&dy>4&&dy<48)return true;if(dx>68&&dx<164&&dy>-56&&dy<-8)return true;return false;}
     const p=housePosition();if(!p)return false;
     const dx=x-p.x,dy=y-p.y;
     // Solid walls and rear of the guild; leave a narrow opening at the front door.
@@ -320,16 +338,16 @@
       if(!inDoor)return true;
     }
     // The outdoor notice board is a physical object, not a walk-through decoration.
-    if(dx>88&&dx<132&&dy>-2&&dy<48)return true;
     return false;
   }
   function interact(){
     const snap=snapshot(),p=housePosition(),pos=bridge()?.getPlayerPosition?.();if(!snap?.worldId||!p||!pos)return false;
     if(bridge()?.isCoopWorld?.()||bridge()?.isBossRealm?.()||bridge()?.isSpecialWorldMode?.()||bridge()?.isTradeWorld?.())return false;
+    if(insideGuild&&interiorOrigin){const dx=pos.x-interiorOrigin.x,dy=pos.y-interiorOrigin.y;if(dy>82&&Math.abs(dx)<54){insideGuild=false;interiorOrigin=null;notify('Вы вышли из гильдии.');return true;}if(Math.abs(dx+76)<46&&Math.abs(dy+18)<48){tab='contracts';open();return true;}if(Math.abs(dx)<48&&Math.abs(dy+30)<48){tab='expeditions';open();return true;}if(Math.abs(dx-82)<48&&Math.abs(dy+18)<48){tab='camp';open();return true;}if(Math.abs(dx)<48&&Math.abs(dy+72)<48){tab='contracts';open();return true;}notify('Подойди к сотруднику или доске заданий.');return true;}
     if(window.SkyRealmGuildMail?.interact?.(p,pos))return true;
     if(Math.abs(pos.x-p.x)>42||pos.y<p.y-18||pos.y>p.y+104)return false;
-    open();return true;
+    insideGuild=true;interiorOrigin={x:pos.x,y:pos.y};notify('Ты вошёл в гильдию. Подойди к сотруднику и нажми E. Южная дверь ведёт наружу.');return true;
   }
-  window.SkyRealmAdventureGuild=Object.freeze({VERSION,open,close,draw,interact,isBlocked,getHousePosition:housePosition,getState:()=>JSON.parse(JSON.stringify(state)),progressContract,acceptContract,claimContract,startExpedition,attackExpedition,createTreasure,upgradeCamp});
+  window.SkyRealmAdventureGuild=Object.freeze({VERSION,open,close,draw,interact,isBlocked,isInside:()=>insideGuild,getHousePosition:housePosition,getState:()=>JSON.parse(JSON.stringify(state)),progressContract,acceptContract,claimContract,startExpedition,attackExpedition,createTreasure,upgradeCamp});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
