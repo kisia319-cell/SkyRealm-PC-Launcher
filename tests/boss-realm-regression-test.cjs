@@ -75,6 +75,7 @@ assert.ok(source.includes('fruitful: hash(x + 701, y + 313) > .94')&&source.incl
 assert.ok(source.includes("root_eater:{name:'Корнеед'")&&source.includes("m.realmType==='root_eater'")&&source.includes("m.realmType==='root_eater')&&ratio<.66") ,'Root Eater must be a three-phase elite with a guaranteed trophy.');
 assert.ok(source.includes("forest_king:{name:'Король Древнего Леса'")&&source.includes('bossRealmState.awakenedTrees>=5'),'Five awakened trees must unlock the Forest King.');
 assert.ok(source.includes('function ensureBossRealmForest()')&&source.includes('function startBossRealmForestTrial()'),'Ancient Forest and Root Crypt must be present in Boss Realm.');
+assert.ok(source.includes("m.realmType==='awakened_tree'&&!m.awakenedFromTree")&&source.includes('Пять побеждённых древних стражей'),'Root Crypt guardians must provide a tree-free alternate unlock path for the Forest King.');
 const bossForestSeed=source.slice(source.indexOf('function ensureBossRealmForest()'),source.indexOf('function drawForestStumps'));
 const bossForestDraw=source.slice(source.indexOf('function drawBossRealmForest('),source.indexOf('function drawForestStumps'));
 assert.ok(bossForestSeed.includes('world.trees.length=0')&&!bossForestSeed.includes('world.trees.push'),'Boss Realm must clear and not seed environmental trees.');
