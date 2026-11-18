@@ -75,6 +75,11 @@ assert.ok(source.includes('fruitful: hash(x + 701, y + 313) > .94')&&source.incl
 assert.ok(source.includes("root_eater:{name:'Корнеед'")&&source.includes("m.realmType==='root_eater'")&&source.includes("m.realmType==='root_eater')&&ratio<.66") ,'Root Eater must be a three-phase elite with a guaranteed trophy.');
 assert.ok(source.includes("forest_king:{name:'Король Древнего Леса'")&&source.includes('bossRealmState.awakenedTrees>=5'),'Five awakened trees must unlock the Forest King.');
 assert.ok(source.includes('function ensureBossRealmForest()')&&source.includes('function startBossRealmForestTrial()'),'Ancient Forest and Root Crypt must be present in Boss Realm.');
+const bossForestSeed=source.slice(source.indexOf('function ensureBossRealmForest()'),source.indexOf('function drawForestStumps'));
+const bossForestDraw=source.slice(source.indexOf('function drawBossRealmForest('),source.indexOf('function drawForestStumps'));
+assert.ok(bossForestSeed.includes('world.trees.length=0')&&!bossForestSeed.includes('world.trees.push'),'Boss Realm must clear and not seed environmental trees.');
+assert.ok(bossForestDraw.includes('drawRock(')&&!bossForestDraw.includes('drawTree(')&&!bossForestDraw.includes('drawForestStumps('),'Boss Realm must keep ore rocks but render no trees or stumps.');
+
 assert.ok(source.includes('function updateTreeRegrowth()')&&source.includes('regrowAt'),'Felled trees must regrow after a world-time cooldown.');
 assert.ok(source.includes('SkyRealmForestEcosystem?.update?.(dt)')&&source.includes('SkyRealmLivingWorld?.update?.(dt)'),'Forest and living-world systems must be updated by the simulation.');
 
