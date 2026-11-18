@@ -59,6 +59,8 @@ assert.ok(gameHtml.includes('360 × 260') && !gameHtml.includes('180 × 130 · �
 
 assert.match(version, /^\d+\.\d+\.\d+\.\d+$/, 'game/version.txt must include the cumulative bug-fix counter');
 assert.ok(gameHtml.includes(version), 'game/index.html version label must match game/version.txt');
+assert.ok(game.includes("forest:['#285b43','#2a6047','#285840','#397451','#306849','#4d8254']") && game.includes('function drawGround(camX,camY)') && game.includes('drawGrass(x,y,sx,sy)'), 'Ordinary valley must use the classic green tile ground painter.');
+assert.ok(game.includes("return 'forest';") && game.includes('else{drawGround(camX,camY);drawPond(camX,camY);'), 'The ordinary-world render branch must select the green classic ground renderer.');
 
 const gameLanguage = fs.readFileSync('game/game-language.js', 'utf8');
 assert.ok(gameLanguage.includes('"ТВОЙ БУДУЩИЙ МИР": "YOUR FUTURE WORLD"'), 'English locale must cover the world menu heading');
