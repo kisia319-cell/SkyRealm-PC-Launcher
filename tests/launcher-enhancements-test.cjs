@@ -97,6 +97,9 @@ assert.ok(html.includes('data-page="support"') && html.includes('id="page-suppor
 assert.ok(html.includes('href="mailto:kisia319@gmail.com"'),'Support page must show the requested email in static HTML');
 assert.ok(html.includes('href="tel:+79962819878"'),'Support page must show the requested phone number in static HTML');
 assert.ok(app.includes("support:t('pageSupport')"),'The core launcher navigation must recognize the support page and its breadcrumb');
+assert.match(app,/function startStartupGameUpdateChecks\(\)/,'Startup update checks must retry if the pywebview bridge event fired before app.js loaded');
+assert.match(app,/attempts < 40/,'Startup update detection must retry for a delayed native bridge');
+assert.match(app,/document\.addEventListener\('DOMContentLoaded', startStartupGameUpdateChecks/,'Startup update detection must also run after DOM readiness');
 
 
 // PrimeLauncher Start Center: six real launcher-level tools, not decorative cards.
