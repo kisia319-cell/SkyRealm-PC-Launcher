@@ -376,7 +376,7 @@ console.log('SkyRealm tree-regrowth regression tests passed.');
 
 // Regression: the dedicated ancient grove must not be suppressed by the
 // ordinary-world village proximity guard. Its position is intentionally near
-// the Boss Realm spawn/settlement marker, so only water and paths are excluded.
+// the Boss Realm spawn/settlement marker; the realm now keeps its stone deposits but has no environmental trees.
 const ancientForestFn = extractFunction('ensureBossRealmForest');
 const ancientForestContext = {
   bossRealmMode: true,
@@ -391,8 +391,8 @@ const ancientForestContext = {
 };
 execute(ancientForestContext, [ancientForestFn], ['ensureBossRealmForest']);
 ancientForestContext.ensureBossRealmForest();
-assert.ok(ancientForestContext.world.trees.filter(tree=>tree.ancient).length>=20,
-  'The Ancient Forest must generate trees even when the grove is within the village proximity guard.');
+assert.equal(ancientForestContext.world.trees.length,0,
+  'Boss Realm must not generate visible or collidable environmental trees.');
 assert.ok(ancientForestContext.world.rocks.filter(rock=>rock.ancient).length>0,
   'The Ancient Forest must generate mineable stone and crystal deposits.');
 console.log('SkyRealm Ancient Forest seeding regression tests passed.');
