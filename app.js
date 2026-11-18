@@ -966,24 +966,46 @@
     button.addEventListener('click', () => overlay.remove());
   })();
 
+  let startupGameUpdateCheckComplete = false;
+  let startupGameUpdateCheckInFlight = false;
   async function checkStartupGameUpdate() {
-    if (!window.pywebview?.api?.get_update_status) return;
+    if (startupGameUpdateCheckComplete || startupGameUpdateCheckInFlight) return startupGameUpdateCheckComplete;
+    const api = window.pywebview?.api;
+    if (!api?.get_update_status) return false;
+    startupGameUpdateCheckInFlight = true;
     try {
-      const state = await window.pywebview.api.get_update_status();
-      if (!state?.ok || !state.game_update_available) return;
-      $('#game-update-version').textContent = state.latest_game_version || '—';
-      $('#game-update-current').textContent = state.game_version || '—';
-      $('#game-update-overlay').hidden = false;
-    } catch (_) { /* A failed update check must never block launcher startup. */ }
+      const state = await api.get_update_status();
+      if (!state?.ok) return false;
+      startupGameUpdateCheckComplete = true;
+      if (!state.game_update_available) return true;
+      const version = $('#game-update-version');
+      const current = $('#game-update-current');
+      const overlay = $('#game-update-overlay');
+      if (version) version.textContent = state.latest_game_version || '—';
+      if (current) current.textContent = state.game_version || '—';
+      if (overlay) overlay.hidden = false;
+      return true;
+    } catch (_) { /* A failed update check must never block launcher startup. */
+      return false;
+    } finally { startupGameUpdateCheckInFlight = false; }
   }
 
-  // Start checks once the native bridge is ready, then refresh server status periodically.
+  // pywebviewready can fire before app.js subscribes. Retry until the native bridge answers.
+  function startStartupGameUpdateChecks() {
+    let attempts = 0;
+    const poll = async () => {
+      if (await checkStartupGameUpdate()) return;
+      if (++attempts < 40) window.setTimeout(poll, 500);
+    };
+    poll();
+  }
   checkCloudStatus();
-  checkStartupGameUpdate();
+  startStartupGameUpdateChecks();
   window.addEventListener('pywebviewready', () => {
     checkCloudStatus();
-    checkStartupGameUpdate();
-  }, {once:true});
+    startStartupGameUpdateChecks();
+  });
+  document.addEventListener('DOMContentLoaded', startStartupGameUpdateChecks, {once:true});
   window.setInterval(() => {
     if (document.visibilityState !== 'hidden') checkCloudStatus();
   }, 60_000);
