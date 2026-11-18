@@ -1335,17 +1335,14 @@ let audioContext=null;
     world.ancientForestSeeded=false;world.trees.length=0;world.rocks.length=0;world.flowers.length=0;world.fireflies.length=0;world.signs.length=0;world.fences.length=0;quarryAnchorCache=null;
     for (let y = 2; y < ROWS - 2; y++) for (let x = 2; x < COLS - 2; x++) {
       const h = hash(x, y);
-      if (h > (biomeAt(x,y)==='jungle'?.972:.984) && !nearPath(x, y) && !nearVillage(x, y)) world.trees.push({ x: x * TILE + 16, y: y * TILE + 17, size: 0.85 + hash(y, x) * .42, tint: Math.floor(hash(x + 44, y) * 3), fruitful: hash(x + 701, y + 313) > .94 });
+      if (h > ((isForestTile(x,y)||biomeAt(x,y)==='jungle')?.945:.958) && !nearPath(x, y) && !nearVillage(x, y)) world.trees.push({ x: x * TILE + 16, y: y * TILE + 17, size: 0.85 + hash(y, x) * .42, tint: Math.floor(hash(x + 44, y) * 3), fruitful: hash(x + 701, y + 313) > .94 });
       if (h < .013 && !nearPath(x, y) && !nearVillage(x,y)) { const rockSize=0.7+hash(y,x+4)*0.65, vein=hash(x+107,y+811); const ore=vein<.028?'Кристалл':vein<.09?'Железо':vein<.145?'Уголь':vein<.205?'Медь':'Камень'; const hits=Math.max(2,Math.min(4,Math.round(rockSize*2.4)+1)); world.rocks.push({x:x*TILE+16,y:y*TILE+21,s:rockSize,ore,quality:1+Math.floor(hash(x+19,y+83)*3),hp:hits,maxHp:hits,regrowAt:0,hitFlash:0}); }
       if (h > .53 && h < .552) world.flowers.push({x:x*TILE+hash(x,y+10)*25+3,y:y*TILE+hash(x+3,y)*26+3,c:Math.floor(hash(y+7,x)*4)});
       if (h > .79 && h < .792) world.fireflies.push({x:x*TILE+hash(x+19,y)*TILE,y:y*TILE+hash(x,y+19)*TILE,phase:hash(x+1,y+3)*6.28});
     }
-    for(let fy=Math.max(ROWS-26,3);fy<ROWS-3;fy+=6)for(let fx=Math.max(COLS-31,3);fx<COLS-3;fx+=6){if(!nearPath(fx,fy)&&!waterAt(fx+.5,fy+.5)&&Math.abs(fy-(ROWS-13))>2&&Math.hypot(fx-(COLS-14),fy-(ROWS-13))>5&&hash(fx+401,fy+809)>.82)world.trees.push({x:fx*TILE+16,y:fy*TILE+17,size:.85+hash(fy+90,fx+70)*.35,tint:Math.floor(hash(fx+44,fy+99)*3),fruitful:hash(fx+701,fy+313)>.94});}
+    for(let fy=Math.max(ROWS-26,3);fy<ROWS-3;fy+=6)for(let fx=Math.max(COLS-31,3);fx<COLS-3;fx+=6){if(!nearPath(fx,fy)&&!waterAt(fx+.5,fy+.5)&&Math.abs(fy-(ROWS-13))>2&&Math.hypot(fx-(COLS-14),fy-(ROWS-13))>5&&hash(fx+401,fy+809)>.52)world.trees.push({x:fx*TILE+16,y:fy*TILE+17,size:.85+hash(fy+90,fx+70)*.35,tint:Math.floor(hash(fx+44,fy+99)*3),fruitful:hash(fx+701,fy+313)>.94});}
     setupVillageNpcs();
     world.signs.push({ x: 34*TILE+16, y: 22*TILE+12 });
-    // A tiny village fence around a cabin.
-    for (let x=34;x<=39;x++) { world.fences.push({x:x*TILE+16,y:17*TILE+16}); world.fences.push({x:x*TILE+16,y:21*TILE+16}); }
-    for (let y=18;y<=20;y++) { if(y!==20) world.fences.push({x:34*TILE+16,y:y*TILE+16}); world.fences.push({x:39*TILE+16,y:y*TILE+16}); }
   }
   function isForestTile(x,y){return x>=COLS-32&&x<=COLS-3&&y>=ROWS-27&&y<=ROWS-3;}
   function inForest(x,y){return isForestTile(Math.floor(x/TILE),Math.floor(y/TILE));}
@@ -1365,44 +1362,29 @@ let audioContext=null;
   function pathAt(x,y){if(tradeWorldMode){const sx=tradeEntranceX,sy=tradeEntranceY;if(x>=sx-3&&x<=FARMER_SHOP.x+4&&Math.abs(y-sy)<=2.1)return true;for(const v of tradeVillageLayouts()){const dx=v.x-sx,dy=v.y-sy,t=dx?(x-sx)/dx:0;if(t>=0&&t<=1&&Math.abs(y-(sy+dy*t))<=1.6)return true;}return false;}if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y;if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;if(x>=35&&x<=40&&y>=17&&y<=21)return true;const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));if((y>=25&&y<=27&&x>=34&&x<=48)||(Math.abs(y-31)<=1&&x>=44&&x<=vx)||(Math.abs(x-vx)<=1&&y>=31&&y<=vy+3))return true;return false;}
   function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';return 'snow';}
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли',jungle:'Затерянные джунгли'})[biomeAt(x,y)]||'Лесная долина';}
-  function drawGrassTexture(target,x,y,sx,sy,h,biome,quality){
-    // Stable, low-cost surface grain is generated once per world tile and reused from the atlas.
-    const palettes={forest:['#315f43','#376b49','#2c583d','#4b8052','#3b7048','#7ca95f'],snow:['#c5d8dc','#b7cdd3','#d2e0e2','#e6f0ef','#adc5ce','#f7fbf8'],desert:['#c3a267','#d0b276','#b79555','#dfc58b','#b18b4d','#f0d59a'],blight:['#46513e','#3d4939','#525d42','#68734c','#4d5c40','#9aa15b'],jungle:['#1c603d','#164d35','#14502f','#398653','#2c7548','#a0d16c'],volcano:['#594039','#43352f','#332c31','#86513a','#765b4b','#d17a43']};
-    const p=palettes[biome]||palettes.forest;
-    // One shared base colour per biome removes the old checkerboard tile boundaries.
-    target.fillStyle=p[1];target.fillRect(sx,sy,TILE,TILE);target.save();
-    const patches=quality?17:11;
-    for(let i=0;i<patches;i++){const px=sx+1.5+hash(x*31+i*17,y*23+i*11)*(TILE-3),py=sy+1.5+hash(x*13+i*29,y*37+i*7)*(TILE-3),rx=2.2+hash(x+i*7,y+13)*4.8,ry=1.5+hash(x+19,y+i*5)*3.5;target.fillStyle=i%3===0?'rgba(8,24,16,.15)':i%3===1?'rgba(197,226,157,.17)':'rgba(255,255,255,.075)';target.beginPath();target.ellipse(px,py,rx,ry,hash(x+i,y-i)*.8,0,Math.PI*2);target.fill();}
-    if(biome==='forest'||biome==='jungle'||biome==='blight'){const clusters=quality?5:3;for(let c=0;c<clusters;c++){const gx=sx+3+hash(x*7+c*19,y*11+c*3)*(TILE-6),gy=sy+5+hash(x*13+c*5,y*17+c*23)*(TILE-10),len=4+hash(x+c*31,y+c*9)*5;target.strokeStyle=biome==='jungle'?'rgba(156,220,117,.72)':biome==='blight'?'rgba(177,190,112,.62)':'rgba(143,194,126,.68)';target.lineWidth=1.25;target.beginPath();target.moveTo(gx-3,gy+len);target.quadraticCurveTo(gx-3,gy+2,gx-1,gy);target.moveTo(gx,gy+len);target.quadraticCurveTo(gx,gy+1,gx+1,gy-1);target.moveTo(gx+3,gy+len);target.quadraticCurveTo(gx+4,gy+2,gx+5,gy+1);target.stroke();}for(let i=0;i<3;i++){const px=sx+4+hash(x+7+i*11,y+91)*24,py=sy+4+hash(x+31,y+17+i*7)*24;target.fillStyle=i%2?'rgba(186,220,120,.7)':'rgba(28,77,46,.42)';target.beginPath();target.ellipse(px,py,2.5,1.7,-.3,0,Math.PI*2);target.fill();}}
-    else if(biome==='snow'){for(let i=0;i<(quality?10:6);i++){const px=sx+2+hash(x+i*19,y+71)*28,py=sy+2+hash(x+43,y+i*17)*28;target.fillStyle=i%2?'rgba(255,255,255,.75)':'rgba(121,158,174,.32)';target.beginPath();target.ellipse(px,py,1.5+hash(x+i,y)*2,1+hash(x,y+i)*1.2,0,0,Math.PI*2);target.fill();}target.strokeStyle='rgba(255,255,255,.34)';target.lineWidth=1.2;target.beginPath();target.moveTo(sx+2,sy+23);target.quadraticCurveTo(sx+13,sy+16,sx+30,sy+22);target.stroke();}
-    else if(biome==='desert'){for(let i=0;i<(quality?9:5);i++){const px=sx+2+hash(x+i*13,y+51)*28,py=sy+2+hash(x+17,y+i*29)*28;target.fillStyle=i%2?'rgba(115,83,43,.34)':'rgba(255,236,183,.45)';target.beginPath();target.ellipse(px,py,2+hash(x+i,y)*2,1.1,0,0,Math.PI*2);target.fill();}target.strokeStyle='rgba(255,231,179,.3)';target.beginPath();target.moveTo(sx+2,sy+10+hash(x,y+7)*10);target.quadraticCurveTo(sx+14,sy+4,sx+30,sy+11);target.stroke();}
-    else if(biome==='volcano'){const crack=hash(x+27,y+59);if(crack>.25){target.strokeStyle='rgba(28,15,16,.7)';target.lineWidth=1.5;target.beginPath();target.moveTo(sx+5,sy+4);target.lineTo(sx+11,sy+13);target.lineTo(sx+8,sy+20);target.lineTo(sx+18,sy+26);target.stroke();if(crack>.72){target.strokeStyle='rgba(255,137,73,.9)';target.shadowColor='#ff784b';target.shadowBlur=6;target.beginPath();target.moveTo(sx+11,sy+13);target.lineTo(sx+18,sy+16);target.stroke();target.shadowBlur=0;}}}
-    if(quality){for(let i=0;i<5;i++){const px=sx+2+hash(x+81+i*7,y+29)*28,py=sy+2+hash(x+19,y+81+i*11)*28;target.fillStyle=i%2?'rgba(20,30,23,.3)':'rgba(255,255,255,.22)';target.beginPath();target.arc(px,py,.8+hash(x+i,y-i)*1.2,0,Math.PI*2);target.fill();}}
-    target.restore();
-  }
-  function drawGrass(x,y,sx,sy){
-    const h=hash(x,y),biome=clearedSnowTiles.has(tileKey(x,y))?'forest':biomeAt(x,y);
-    const quality=gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost';
-    if(!surfaceGroundTileCache){
-      const atlas=document.createElement('canvas');atlas.width=2048;atlas.height=2048;
-      const atlasContext=atlas.getContext('2d');atlasContext.imageSmoothingEnabled=false;
-      surfaceGroundTileCache={canvas:atlas,context:atlasContext,slots:new Map(),order:new Array(4096),next:0};
+    function drawGrassTexture(target,x,y,sx,sy,h,biome,quality){
+    const palettes={forest:'#47764b',snow:'#d0dfe1',desert:'#c8aa70',blight:'#59634b',jungle:'#34734c',volcano:'#57423a'};
+    const base=palettes[biome]||palettes.forest;
+    target.fillStyle=base;target.fillRect(sx,sy,TILE,TILE);
+    // Simple illustrated ground: a few soft marks, no photographic grain or dense speckles.
+    const count=biome==='snow'?3:2;
+    for(let i=0;i<count;i++){
+      const px=sx+4+hash(x*17+i*13,y*29+i*7)*(TILE-8),py=sy+4+hash(x*31+i*5,y*11+i*19)*(TILE-8);
+      target.fillStyle=biome==='snow'?(i%2?'rgba(255,255,255,.32)':'rgba(111,145,160,.16)'):'rgba(255,255,255,.09)';
+      target.beginPath();target.ellipse(px,py,2.2,1.35,hash(x+i,y-i),0,Math.PI*2);target.fill();
     }
-    const cache=surfaceGroundTileCache,key=x+':'+y+':'+biome+':'+(quality?'detail':'simple');
-    let slot=cache.slots.get(key);
-    if(slot===undefined){
-      slot=cache.next;cache.next=(cache.next+1)%4096;
-      const oldKey=cache.order[slot];if(oldKey!==undefined)cache.slots.delete(oldKey);
-      cache.order[slot]=key;cache.slots.set(key,slot);
-      const ax=(slot%64)*TILE,ay=Math.floor(slot/64)*TILE;
-      cache.context.clearRect(ax,ay,TILE,TILE);
-      drawGrassTexture(cache.context,x,y,ax,ay,h,biome,quality);
-    }
-    const ax=(slot%64)*TILE,ay=Math.floor(slot/64)*TILE;
-    ctx.drawImage(cache.canvas,ax,ay,TILE,TILE,sx,sy,TILE,TILE);
+    if(biome==='volcano'&&hash(x+27,y+59)>.7){target.strokeStyle='rgba(35,22,20,.35)';target.lineWidth=1;target.beginPath();target.moveTo(sx+9,sy+8);target.lineTo(sx+15,sy+17);target.lineTo(sx+12,sy+23);target.stroke();}
+  }  function drawGrass(x,y,sx,sy){const h=hash(x,y),biome=clearedSnowTiles.has(tileKey(x,y))?'forest':biomeAt(x,y);const palettes={forest:['#285b43','#2a6047','#285840','#397451','#306849','#4d8254'],snow:['#b9cbd0','#a7bdc7','#c3d4d8','#d9e7e9','#afc8d1','#f0f6f6'],desert:['#b99a58','#c4a767','#ad8d4d','#d3b875','#b89a5d','#e2c981'],blight:['#3d493c','#354438','#46503a','#52603f','#43523b','#7f8a48'],jungle:['#164d35','#1c603d','#14502f','#2e8a4e','#267544','#8bcf62'],volcano:['#43352f','#594039','#332c31','#a64b2f','#7d6650','#ff9d4f']};const p=palettes[biome];ctx.fillStyle=h>.5?p[0]:h>.2?p[1]:p[2];ctx.fillRect(sx,sy,TILE,TILE);if(gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost'){ctx.fillStyle=p[3];ctx.fillRect(sx+3+(h*9|0),sy+5,TILE*.22,TILE*.12);if(h>.68){ctx.fillStyle=p[5];ctx.fillRect(sx+21,sy+19,2,5);}if(biome==='jungle'&&h>.32){ctx.fillStyle='#9fe07a';ctx.fillRect(sx+5+(h*13|0),sy+15,5,3);ctx.fillStyle='#0d3828';ctx.fillRect(sx+20,sy+5+(h*7|0),3,8);}else if(biome==='snow'&&h>.35){ctx.fillStyle='#f5fbff99';ctx.fillRect(sx+5+(h*16|0),sy+7+(h*11|0),3,2);}else if(biome==='desert'&&h>.55){ctx.fillStyle='#e9d49a';ctx.fillRect(sx+6,sy+23,7,2);}else if(biome==='blight'&&h>.72){ctx.fillStyle='#a3bf55';ctx.fillRect(sx+19,sy+8,3,3);}} }
+    function drawMainRoads(camX,camY){
+    const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));
+    const roads=[[[3,26],[36,26]],[[27,22],[37,12]],[[35,19],[40,19]],[[36,26],[48,26]],[[48,26],[vx,31]],[[vx,31],[vx,vy+3]]];
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+    for(const road of roads){ctx.beginPath();ctx.moveTo(road[0][0]*TILE-camX,road[0][1]*TILE-camY);for(let i=1;i<road.length;i++)ctx.lineTo(road[i][0]*TILE-camX,road[i][1]*TILE-camY);ctx.strokeStyle='#6d573e';ctx.lineWidth=42;ctx.stroke();ctx.strokeStyle='#a68a61';ctx.lineWidth=33;ctx.stroke();}
+    for(let i=0;i<150;i++){const wx=(i*37%Math.max(1,vx*2+20))*TILE+hash(i+71,29)*TILE,wy=(i*19%Math.max(1,vy+30))*TILE+hash(i+91,53)*TILE;if(!pathAt(wx/TILE,wy/TILE))continue;const px=wx-camX,py=wy-camY;if(px<-8||px>width+8||py<-8||py>height+8)continue;ctx.fillStyle=i%3?'rgba(73,55,35,.25)':'rgba(231,210,169,.34)';ctx.beginPath();ctx.ellipse(px,py,1.5+(i%3),.8+(i%2),i*.7,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
   }
-    function drawGround(camX,camY){const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
-    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const sx=Math.floor(x*TILE-camX),sy=Math.floor(y*TILE-camY);drawGrass(x,y,sx,sy);if(isForestTile(x,y)&&biomeAt(x,y)!=='snow'){ctx.fillStyle=(hash(x+81,y+39)>.55?'rgba(8,43,27,.44)':'rgba(10,54,32,.32)');ctx.fillRect(sx,sy,TILE,TILE);}if(pathAt(x,y)){ctx.fillStyle='#8c7551';ctx.fillRect(sx,sy,TILE,TILE);for(let pi=0;pi<8;pi++){const px=sx+2+hash(x*7+pi*13,y*11+pi*5)*28,py=sy+2+hash(x*17+pi*3,y*5+pi*19)*28;ctx.fillStyle=pi%2?'rgba(220,197,151,.45)':'rgba(61,47,31,.28)';ctx.beginPath();ctx.ellipse(px,py,1.8+hash(x+pi,y)*2.1,.9+hash(x,y+pi)*1.3,hash(x+pi*3,y+pi)*.8,0,Math.PI*2);ctx.fill();}if(hash(x+701,y+131)>.22){ctx.strokeStyle='rgba(70,53,34,.34)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(sx+4,sy+7);ctx.lineTo(sx+12,sy+10);ctx.lineTo(sx+18,sy+8);ctx.stroke();}}if(waterAt(x+.5,y+.5)){ctx.fillStyle='#246786';ctx.fillRect(sx,sy,TILE,TILE);ctx.fillStyle='#398ca0';let w=hash(x,y);if(w>.25)ctx.fillRect(sx+3,sy+7+Math.floor(w*11),10+Math.floor(w*9),2);if(w>.7)ctx.fillRect(sx+17,sy+23,8,2);}}}
+  function drawGround(camX,camY){const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const sx=Math.floor(x*TILE-camX),sy=Math.floor(y*TILE-camY);drawGrass(x,y,sx,sy);if(isForestTile(x,y)&&biomeAt(x,y)!=='snow'){ctx.fillStyle=(hash(x+81,y+39)>.55?'rgba(8,43,27,.44)':'rgba(10,54,32,.32)');ctx.fillRect(sx,sy,TILE,TILE);}if(pathAt(x,y)){ctx.fillStyle='#967c54';ctx.fillRect(sx,sy,TILE,TILE);ctx.fillStyle='#b0996d';const h=hash(x,y);ctx.fillRect(sx+4,sy+4,4,2);if(h>.3)ctx.fillRect(sx+20,sy+22,5,2);ctx.fillStyle='#806845';ctx.fillRect(sx+14,sy+12,2,2);}if(waterAt(x+.5,y+.5)){ctx.fillStyle='#246786';ctx.fillRect(sx,sy,TILE,TILE);ctx.fillStyle='#398ca0';let w=hash(x,y);if(w>.25)ctx.fillRect(sx+3,sy+7+Math.floor(w*11),10+Math.floor(w*9),2);if(w>.7)ctx.fillRect(sx+17,sy+23,8,2);}}}
   function drawTradeGround(camX,camY){
     const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1);
     const y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
@@ -1819,7 +1801,7 @@ function setupVillageNpcs(){
   function drawValleyHamlet(camX,camY,time){
     // A guaranteed decorative hamlet keeps the valley from looking abandoned in older saves.
     // These scenery props are visual only: they do not change collision, harvesting or movement.
-    const cx=Math.floor(COLS*.43)*TILE+16,cy=Math.floor(ROWS*.18)*TILE+16,x=cx-camX,y=cy-camY;
+    const cx=36*TILE+16,cy=18*TILE+16,x=cx-camX,y=cy-camY;
     if(x<-620||x>width+620||y<-560||y>height+560)return;
     ctx.save();ctx.globalAlpha=.98;ctx.fillStyle='rgba(54,70,45,.22)';ctx.beginPath();ctx.ellipse(x,y+12,330,255,-.08,0,Math.PI*2);ctx.fill();
     ctx.lineCap='round';ctx.strokeStyle='#725a3d';ctx.lineWidth=30;ctx.beginPath();ctx.moveTo(x-330,y+42);ctx.lineTo(x+330,y+42);ctx.moveTo(x,y-285);ctx.lineTo(x,y+285);ctx.stroke();
@@ -2106,7 +2088,7 @@ function updateVillageNpcs(dt){
   }
   function drawPlayer(camX,camY,dt){
     const x=player.x-camX,y=player.y-camY;player.frame += dt*(Math.abs(player.vx)+Math.abs(player.vy)>.01?11:3);const step=Math.sin(player.frame)*2.2;
-    ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.62,1.62);
+    ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.28,1.28);
     if(combatCinematic?.active){
       const cp=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
       const charge=Math.sin(Math.min(1,cp/.58)*Math.PI)*11;
@@ -3231,7 +3213,7 @@ function updateVillageNpcs(dt){
     }else{
       if(gameSettings.graphicsQuality!=='low') drawFlowers(camX,camY,time);
       if(gameSettings.graphicsQuality!=='low') drawValleyBirds(camX,camY,time);
-      drawCabin(camX,camY); drawVillageSettlements(camX,camY,time); drawValleyHamlet(camX,camY,time); drawQuarryOutpost(camX,camY,time); drawFences(camX,camY); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
+      drawCabin(camX,camY); drawQuarryOutpost(camX,camY,time); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
       for(const rock of world.rocks){const x=rock.x-camX,y=rock.y-camY;if(x>-30&&x<width+30&&y>-30&&y<height+30)drawRock(rock,camX,camY);}
       for(const tree of world.trees){const x=tree.x-camX,y=tree.y-camY;if(x>-60&&x<width+60&&y>-70&&y<height+40)drawTree(tree,camX,camY);}drawForestStumps(camX,camY,time);
       world.signs.forEach(s=>drawSign(s,camX,camY));drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawWorldEventCamp(camX,camY,time);drawWorldEventTraveler(camX,camY,time);drawWorldEventShrine(camX,camY,time);window.SkyRealmExpansionSystems?.drawWorldEvent?.(ctx,camX,camY,time,width,height);drawWolfCage(camX,camY,time);if(!bossRealmMode){drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);}drawWolfCompanion(camX,camY,time);drawBossRealmPortal(camX,camY,time);if(bossRealmMode){ctx.fillStyle='rgba(31,20,78,.20)';ctx.fillRect(0,0,width,height);}const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
@@ -4487,6 +4469,19 @@ function updateVillageNpcs(dt){
     else{player.x=bedSpawn.x;player.y=bedSpawn.y;}
     updateVitals();saveGame();returnToMainMenu();
   }
+  function safeDeathLootPosition(originX,originY,index=0,avoidHome=false){
+    const golden=2.399963229728653;
+    for(let ring=0;ring<14;ring++){
+      const radius=(avoidHome?132:22)+ring*22;
+      for(let spoke=0;spoke<8;spoke++){
+        const angle=(index*golden)+(ring*8+spoke)*Math.PI/4;
+        const x=Math.max(TILE,Math.min((COLS-2)*TILE,originX+Math.cos(angle)*radius));
+        const y=Math.max(TILE,Math.min((ROWS-2)*TILE,originY+Math.sin(angle)*radius));
+        if(!blocked(x,y)&&!waterAt(x/TILE,y/TILE))return {x,y};
+      }
+    }
+    return {x:Math.max(TILE,Math.min((COLS-2)*TILE,originX+180)),y:Math.max(TILE,Math.min((ROWS-2)*TILE,originY+160))};
+  }
   function respawnPlayerAfterDefeat(sharedCoopEvent=false){
     if(deathScreenOpen)return;
     if(!sharedCoopEvent){
@@ -4504,7 +4499,8 @@ function updateVillageNpcs(dt){
       }
     }
     const penalties={easy:{gold:200,hunger:10,items:0,dropChance:0},medium:{gold:500,hunger:20,items:2,dropChance:.65},hard:{gold:1500,hunger:35,items:4,dropChance:.8},hell:{gold:3000,hunger:55,items:999,dropChance:.72},impossible:{gold:5000,hunger:70,items:999,dropChance:.9}};
-    const cfg=penalties[currentDifficulty]||penalties.medium,deathX=player.x,deathY=player.y;let dropped=0;
+    const wasInHouse=inHouse,cfg=penalties[currentDifficulty]||penalties.medium,deathX=wasInHouse?bedSpawn.x:player.x,deathY=wasInHouse?bedSpawn.y:player.y;let dropped=0;
+    if(wasInHouse)inHouse=false;
     walletCents=Math.max(0,walletCents-cfg.gold);hunger=Math.max(0,hunger-cfg.hunger);
     const candidates=inventoryItems.filter(i=>i.count>0&&!['Деревянный меч','Топор','Кирка'].includes(i.name)).sort(()=>Math.random()-.5);
     let remaining=cfg.items;
@@ -4513,7 +4509,7 @@ function updateVillageNpcs(dt){
       const wanted=(currentDifficulty==='hell'||currentDifficulty==='impossible')?Math.max(1,Math.ceil(item.count*((currentDifficulty==='impossible'?.55:.35)+Math.random()*(currentDifficulty==='impossible'?.35:.4)))):Math.min(item.count,1+Math.floor(Math.random()*2));
       const amount=Math.min(item.count,wanted,remaining);if(amount<=0)continue;
       item.count-=amount;remaining-=amount;
-      if(Math.random()<cfg.dropChance&&lootDrops.length<76){lootDrops.push({x:deathX+(Math.random()-.5)*48,y:deathY+(Math.random()-.5)*42,name:item.name,count:amount,life:240,phase:Math.random()*6.28});dropped+=amount;}
+      if(Math.random()<cfg.dropChance&&lootDrops.length<76){const safe=safeDeathLootPosition(deathX,deathY,dropped,wasInHouse);lootDrops.push({x:safe.x,y:safe.y,name:item.name,count:amount,life:240,phase:Math.random()*6.28});dropped+=amount;}
     }
     if(dungeonMode){dungeonMode=false;player.x=dungeonReturn.x;player.y=dungeonReturn.y;}
     if(caveMode){caveMode=false;caveSecretRoom=0;player.x=caveReturn.x;player.y=caveReturn.y;}
@@ -5152,7 +5148,7 @@ function updateWolfAndDog(dt){
   }
   function houseFurnitureBlocked(x,y){const r=9,boxes=[[42,35,148,186],[153,91,190,143],[174,27,272,61],[286,72,379,98],[272,105,390,177],[296,201,380,279],[155,266,190,296]];return boxes.some(([l,t,rr,b])=>x+r>l&&x-r<rr&&y+r>t&&y-r<b);}
   function houseInteractionNear(x,y,rect){return x>=rect[0]&&x<=rect[2]&&y>=rect[1]&&y<=rect[3];}
-  function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>322||houseFurnitureBlocked(x,y);}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(bossRealmMode)return false;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){const forest=villageCenters.find(v=>v.id==='forest');if(forest){const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270];for(let row=0;row<3;row++)for(let col=0;col<6;col++){const hx=forest.x*TILE+16+xOffsets[col]+(row===1?28:row===2?-24:0),hy=forest.y*TILE+16+rowY[row];if(x>hx-76&&x<hx+76&&y>hy-12*TILE-54&&y<hy-12*TILE+84)return true;}}for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
+  function blocked(x,y){if(inHouse){return x<24||x>396||y<24||y>322||houseFurnitureBlocked(x,y);}const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);if(tx<1||ty<1||tx>=COLS-1||ty>=ROWS-1)return true;if(bossRealmMode)return false;if(!tradeWorldMode&&window.SkyRealmAdventureGuild?.isBlocked?.(x,y))return true;if(waterAt(tx+.5,ty+.5))return true;if(placedStructures.some(s=>(['furnace','storage'].includes(s.type))&&Math.hypot(x-s.x,y-s.y)<(s.type==='storage'?20:20)))return true;if(tradeWorldMode){const forest=villageCenters.find(v=>v.id==='forest');if(forest){const xOffsets=[-500,-300,-100,100,300,500],rowY=[-255,20,270];for(let row=0;row<3;row++)for(let col=0;col<6;col++){const hx=forest.x*TILE+16+xOffsets[col]+(row===1?28:row===2?-24:0),hy=forest.y*TILE+16+rowY[row];if(x>hx-76&&x<hx+76&&y>hy-12*TILE-54&&y<hy-12*TILE+84)return true;}}for(const sh of [SELL_SHOP,BUY_SHOP,FARMER_SHOP])if(Math.abs(x-(sh.x*TILE+16))<43&&Math.abs(y-(sh.y*TILE+16))<27)return true;return false;}const hx=36*TILE-120,hy=15*TILE-120;if(x>hx&&x<hx+320&&y>hy+30&&y<hy+305&&!(x>hx+137&&x<hx+183&&y>hy+270))return true;for(const t of world.trees){if(Math.abs(t.x-x)>31||Math.abs(t.y-y)>33)continue;const dx=t.x-x,dy=t.y-y;if(dx*dx+dy*dy<20*20)return true;}for(const r of world.rocks){const dx=r.x-x,dy=r.y-y;if(dx*dx+dy*dy<17*17)return true;}return false;}
   function updateObjective(){
     if(dungeonMode){const cleared=dungeonClearedRooms.includes(dungeonRoom);document.getElementById('objective').textContent=dungeonRoom===5?(cleared?(dungeonChestOpened?'Выйди из руин':'Открой сундук Архонта'):'Победи Архонта руин'):cleared?'Найди дверь в следующую комнату':'Победи стража комнаты '+dungeonRoom;document.getElementById('location-name').textContent='Древние руины · '+dungeonRoom+'/5';return;}
     if(caveMode){document.getElementById('objective').textContent=caveChestOpened?'Вернись в долину или исследуй пещеру':'Найди сияющий сундук в тайной пещере';document.getElementById('location-name').textContent='Тайная пещера';return;}
