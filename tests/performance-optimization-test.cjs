@@ -8,8 +8,9 @@ assert.equal((game.match(/function drawMineGroundTile\(/g) || []).length, 1,
 assert.match(game, /let mineGroundRenderCache=null/);
 assert.match(game, /let surfaceGroundTileCache=null/);
 assert.match(game, /function drawGrassTexture\(target,x,y,sx,sy,h,biome,quality\)/);
-assert.match(game, /new Array\(4096\)/);
-assert.match(game, /ctx\.drawImage\(cache\.canvas/);
+// The restored classic tile renderer intentionally bypasses the newer per-tile surface atlas.
+assert.match(game, /function drawGrass\(x,y,sx,sy\)/,'classic ground renderer avoids the newer surface-atlas raster style');
+assert.match(game, /ctx\.fillRect\(sx,sy,TILE,TILE\)/,'ground tiles are painted directly in the original pixel-art style');
 assert.match(game, /const chunkTiles=4,cacheKey=\[mineSeed,mineDepth,mineLevel,dpr/);
 assert.match(game, /const maxChunks=32;let buildBudget=2/);
 assert.match(game, /cache\.chunks\.set\(key,chunk\)/);
