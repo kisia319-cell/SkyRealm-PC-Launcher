@@ -53,7 +53,7 @@ assert.ok(source.includes('function drawBossRealmGroundTile(')&&source.includes(
 assert.ok(source.includes('function ensureBossRealmDungeonSites()')&&source.includes('if(alreadyReady)return existing;'), 'Boss Realm arena records must be reused instead of rebuilt on every update');
 const perfUpdate=source.slice(bossUpdateStart,bossUpdateEnd);
 assert.ok(perfUpdate.includes('const realmSites=ensureBossRealmDungeonSites();')&&perfUpdate.includes('activeRadiusSq')&&perfUpdate.includes('realmSites.find'), 'Boss Realm simulation must precompute its active window and reuse arena lookup data');
-assert.ok(source.includes('function drawGrassTexture(target,x,y,sx,sy,h,biome,quality)')&&source.includes('const palettes={forest:')&&source.includes("const quality=gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost'")&&source.includes('Stable, low-cost surface grain is generated once per world tile'), 'Ordinary-world biomes must retain deterministic layered ground textures through the bounded tile atlas.');
+assert.ok(source.includes('function drawGrass(x,y,sx,sy)')&&source.includes("forest:['#285b43','#2a6047','#285840','#397451','#306849','#4d8254']")&&source.includes('function drawGround(')&&source.includes('if(pathAt(x,y))'), 'Ordinary-world biomes and paths must use the restored original classic tile-based ground renderer.');
 
 const corruptionStart=source.indexOf('function drawBossRealmCreatureMuseums(camX,camY,time)');
 const corruptionEnd=source.indexOf('function drawBossRealmWreckage',corruptionStart);
