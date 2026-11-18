@@ -151,6 +151,7 @@
     if(!bossRealmMode||!m?.bossRealmCreature||m.bossRealmDefeatRecorded)return false;
     m.bossRealmDefeatRecorded=true;
     bossRealmState.kills=Math.min(100000,Math.max(0,Math.floor(Number(bossRealmState.kills)||0))+1);
+    if(m.realmType==='awakened_tree'&&!m.awakenedFromTree){bossRealmState.awakenedTrees=Math.min(10000,(Number(bossRealmState.awakenedTrees)||0)+1);toast('ДРЕВНИЙ СТРАЖ ПОВЕРЖЕН · ПРОГРЕСС КОРОЛЯ ЛЕСА: '+bossRealmState.awakenedTrees+'/5');}
     const d=BOSS_REALM_CREATURES[m.realmType];if(!d)return true;
     handleBossRealmDungeonDefeat(m);
     const tier=d.tier;
@@ -209,7 +210,7 @@
       if(bossRealmHazard){bossRealmHazard.timer=Math.max(0,bossRealmHazard.timer-step);if(bossRealmHazard.timer<=0){const h=bossRealmHazard;bossRealmHazard=null;spawnVisualBurst(h.x,h.y,h.kind==='storm'?38:30,'spark',h.kind==='storm'?'#83dfff':'#ff9b55');if(Math.hypot(player.x-h.x,player.y-h.y)<72)bossRealmHurtPlayer(h.kind==='storm'?46:36,h.kind==='storm'?'Молния Шторма богов':'Падающий метеорит',h.kind==='storm'?'#83dfff':'#ff9b55');}}
     }else if(bossRealmHazard){bossRealmHazard=null;bossRealmHazardCooldown=0;}
     const majorBossPresent=monsters.some(m=>m.bossRealmCreature&&['boss','god'].includes(BOSS_REALM_CREATURES[m.realmType]?.tier));
-    if(bossRealmState.awakenedTrees>=5&&!bossRealmState.defeatedBosses.includes('forest_king')&&!majorBossPresent){const grove=bossRealmGrovePosition();if(spawnBossRealmCreature('forest_king',grove.x,grove.y))toast('ПРОБУЖДЁН КОРОЛЬ ДРЕВНЕГО ЛЕСА! Пять срубленных древних деревьев разбудили хозяина рощи.');}
+    if(bossRealmState.awakenedTrees>=5&&!bossRealmState.defeatedBosses.includes('forest_king')&&!majorBossPresent){const grove=bossRealmGrovePosition();if(spawnBossRealmCreature('forest_king',grove.x,grove.y))toast('ПРОБУЖДЁН КОРОЛЬ ДРЕВНЕГО ЛЕСА! Пять побеждённых древних стражей открыли путь к хозяину рощи.');}
     if(bossRealmState.kills>=8&&!majorBossPresent){
       const mainBosses=['abyss_king','rift_dragon','ancient_devourer','end_knight'];
       const secretBosses=['magma_behemoth','frost_empress','void_mirror'];
