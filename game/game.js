@@ -1360,7 +1360,7 @@ let audioContext=null;
   function roundedRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
   function waterAt(x,y){if(tradeWorldMode)return false;const cx=52,cy=36,dx=(x-cx)/6.5,dy=(y-cy)/4.3;return dx*dx+dy*dy<1;}
   function pathAt(x,y){if(tradeWorldMode){const sx=tradeEntranceX,sy=tradeEntranceY;if(x>=sx-3&&x<=FARMER_SHOP.x+4&&Math.abs(y-sy)<=2.1)return true;for(const v of tradeVillageLayouts()){const dx=v.x-sx,dy=v.y-sy,t=dx?(x-sx)/dx:0;if(t>=0&&t<=1&&Math.abs(y-(sy+dy*t))<=1.6)return true;}return false;}if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y;if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;if(x>=35&&x<=40&&y>=17&&y<=21)return true;const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));if((y>=25&&y<=27&&x>=34&&x<=48)||(Math.abs(y-31)<=1&&x>=44&&x<=vx)||(Math.abs(x-vx)<=1&&y>=31&&y<=vy+3))return true;return false;}
-  function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';return 'snow';}
+  function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';if(x>COLS*.70&&y<ROWS*.46)return 'snow';return 'forest';}
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли',jungle:'Затерянные джунгли'})[biomeAt(x,y)]||'Лесная долина';}
     function drawGrassTexture(target,x,y,sx,sy,h,biome,quality){
     const palettes={forest:'#47764b',snow:'#d0dfe1',desert:'#c8aa70',blight:'#59634b',jungle:'#34734c',volcano:'#57423a'};
@@ -1374,12 +1374,12 @@ let audioContext=null;
       target.beginPath();target.ellipse(px,py,2.2,1.35,hash(x+i,y-i),0,Math.PI*2);target.fill();
     }
     if(biome==='volcano'&&hash(x+27,y+59)>.7){target.strokeStyle='rgba(35,22,20,.35)';target.lineWidth=1;target.beginPath();target.moveTo(sx+9,sy+8);target.lineTo(sx+15,sy+17);target.lineTo(sx+12,sy+23);target.stroke();}
-  }  function drawGrass(x,y,sx,sy){const h=hash(x,y),biome=clearedSnowTiles.has(tileKey(x,y))?'forest':biomeAt(x,y);const palettes={forest:['#285b43','#2a6047','#285840','#397451','#306849','#4d8254'],snow:['#b9cbd0','#a7bdc7','#c3d4d8','#d9e7e9','#afc8d1','#f0f6f6'],desert:['#b99a58','#c4a767','#ad8d4d','#d3b875','#b89a5d','#e2c981'],blight:['#3d493c','#354438','#46503a','#52603f','#43523b','#7f8a48'],jungle:['#164d35','#1c603d','#14502f','#2e8a4e','#267544','#8bcf62'],volcano:['#43352f','#594039','#332c31','#a64b2f','#7d6650','#ff9d4f']};const p=palettes[biome];ctx.fillStyle=h>.5?p[0]:h>.2?p[1]:p[2];ctx.fillRect(sx,sy,TILE,TILE);if(gameSettings.graphicsQuality!=='low'&&gameSettings.performanceMode!=='boost'){ctx.fillStyle=p[3];ctx.fillRect(sx+3+(h*9|0),sy+5,TILE*.22,TILE*.12);if(h>.68){ctx.fillStyle=p[5];ctx.fillRect(sx+21,sy+19,2,5);}if(biome==='jungle'&&h>.32){ctx.fillStyle='#9fe07a';ctx.fillRect(sx+5+(h*13|0),sy+15,5,3);ctx.fillStyle='#0d3828';ctx.fillRect(sx+20,sy+5+(h*7|0),3,8);}else if(biome==='snow'&&h>.35){ctx.fillStyle='#f5fbff99';ctx.fillRect(sx+5+(h*16|0),sy+7+(h*11|0),3,2);}else if(biome==='desert'&&h>.55){ctx.fillStyle='#e9d49a';ctx.fillRect(sx+6,sy+23,7,2);}else if(biome==='blight'&&h>.72){ctx.fillStyle='#a3bf55';ctx.fillRect(sx+19,sy+8,3,3);}} }
+  }  function drawGrass(x,y,sx,sy){const h=hash(x,y),biome=clearedSnowTiles.has(tileKey(x,y))?'forest':biomeAt(x,y);drawGrassTexture(ctx,x,y,sx,sy,h,biome,gameSettings.graphicsQuality);}
     function drawMainRoads(camX,camY){
     const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));
     const roads=[[[3,26],[36,26]],[[27,22],[37,12]],[[35,19],[40,19]],[[36,26],[48,26]],[[48,26],[vx,31]],[[vx,31],[vx,vy+3]]];
     ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-    for(const road of roads){ctx.beginPath();ctx.moveTo(road[0][0]*TILE-camX,road[0][1]*TILE-camY);for(let i=1;i<road.length;i++)ctx.lineTo(road[i][0]*TILE-camX,road[i][1]*TILE-camY);ctx.strokeStyle='#6d573e';ctx.lineWidth=42;ctx.stroke();ctx.strokeStyle='#a68a61';ctx.lineWidth=33;ctx.stroke();}
+    for(const road of roads){ctx.beginPath();ctx.moveTo(road[0][0]*TILE-camX,road[0][1]*TILE-camY);for(let i=1;i<road.length;i++)ctx.lineTo(road[i][0]*TILE-camX,road[i][1]*TILE-camY);ctx.strokeStyle='#6d573e';ctx.lineWidth=28;ctx.stroke();ctx.strokeStyle='#a68a61';ctx.lineWidth=20;ctx.stroke();}
     for(let i=0;i<150;i++){const wx=(i*37%Math.max(1,vx*2+20))*TILE+hash(i+71,29)*TILE,wy=(i*19%Math.max(1,vy+30))*TILE+hash(i+91,53)*TILE;if(!pathAt(wx/TILE,wy/TILE))continue;const px=wx-camX,py=wy-camY;if(px<-8||px>width+8||py<-8||py>height+8)continue;ctx.fillStyle=i%3?'rgba(73,55,35,.25)':'rgba(231,210,169,.34)';ctx.beginPath();ctx.ellipse(px,py,1.5+(i%3),.8+(i%2),i*.7,0,Math.PI*2);ctx.fill();}
     ctx.restore();
   }
@@ -2088,7 +2088,7 @@ function updateVillageNpcs(dt){
   }
   function drawPlayer(camX,camY,dt){
     const x=player.x-camX,y=player.y-camY;player.frame += dt*(Math.abs(player.vx)+Math.abs(player.vy)>.01?11:3);const step=Math.sin(player.frame)*2.2;
-    ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(1.28,1.28);
+    ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(.84,.84);
     if(combatCinematic?.active){
       const cp=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
       const charge=Math.sin(Math.min(1,cp/.58)*Math.PI)*11;
