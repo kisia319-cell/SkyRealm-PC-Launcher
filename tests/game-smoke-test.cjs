@@ -364,6 +364,12 @@ assert.ok(game.includes("const SKYREALM_GAME_MODE = (() =>") && game.includes("c
 assert.ok(game.includes("const WORLD_LIST_KEY = IS_APOCALYPSE_MODE ? 'skyrealm_apocalypse_worlds_v1' : 'skyrealm_worlds_v1';"), 'Apocalypse worlds must have a separate world list');
 assert.ok(game.includes("function worldSaveKey(id){return (IS_APOCALYPSE_MODE?'skyrealm_apocalypse_game_save_v2_':'skyrealm_game_save_v2_')+id;}"), 'Apocalypse world save files must not collide with regular worlds');
 assert.ok(game.includes("const LEGACY_SAVE_KEY = IS_APOCALYPSE_MODE ? 'skyrealm_apocalypse_game_save_v1' : 'skyrealm_game_save_v1';"), 'Apocalypse must not migrate or overwrite the regular legacy save');
+assert.ok(game.includes('function drawApocalypseGround(camX,camY,time)') && game.includes('drawApocalypseGround(camX,camY,time);'), 'Apocalypse must use its own ash-and-broken-asphalt terrain renderer instead of the ordinary grass/pond ground');
+assert.ok(game.includes('const anchors=[') && game.includes('8*TILE+10,y:19*TILE+18,w:184,h:126') && game.includes('21*TILE+10,y:7*TILE+8,w:166,h:116'), 'Apocalypse must draw fixed ruined-city landmarks around the initial starting region');
+assert.ok(game.includes('ЗАРАЖЁННЫЙ РАЙОН · СЕКТОР 01'), 'Apocalypse must use an infected-sector world label instead of the normal forest label');
+assert.ok(game.includes("if(!IS_APOCALYPSE_MODE){") && game.includes('drawCabin(camX,camY); drawQuarryOutpost') && game.includes('if(!IS_APOCALYPSE_MODE)drawSheep'), 'Ordinary valley decorations and livestock must not leak into the Apocalypse starting area');
+assert.ok(launcher.includes('SkyRealmApocalypse.exe') && launcher.includes('skyrealmapocalypse') && launcher.includes('requested_mode == "apocalypse"'), 'Apocalypse must have a dedicated executable that always forces the apocalypse mode');
+
 assert.ok(game.includes("gameMode:SKYREALM_GAME_MODE"), 'New world metadata must record its game mode');
 assert.ok(['apocalypse-play','apocalypse-settings','apocalypse-coop'].every(id=>gameHtml.includes('id="'+id+'"')), 'Apocalypse menu must expose Play, Settings and Co-op buttons');
 assert.ok(game.includes("document.getElementById('apocalypse-play')?.addEventListener") && game.includes("document.getElementById('apocalypse-settings')?.addEventListener") && game.includes("document.getElementById('apocalypse-coop')?.addEventListener"), 'All Apocalypse menu buttons must have working handlers');
