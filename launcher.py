@@ -1308,7 +1308,10 @@ def run_game_window(game_html: str) -> None:
             launch_params["installMod"] = requested_mod
     if os.environ.get("SKYREALM_OPEN_CLOUD_SAVES") == "1":
         launch_params["cloudSaves"] = "1"
-    if os.environ.get("SKYREALM_GAME_MODE", "").strip().lower() == "apocalypse":
+    # The dedicated Apocalypse runner is authoritative: it cannot silently fall back
+    # to the normal edition even when launched without a --mode argument.
+    apocalypse_runner = Path(sys.executable).stem.lower() in {"skyrealmapocalypse", "skyrealm-apocalypse"}
+    if apocalypse_runner or os.environ.get("SKYREALM_GAME_MODE", "").strip().lower() == "apocalypse":
         launch_params["mode"] = "apocalypse"
     page_url = "http://127.0.0.1:" + str(port) + "/" + file_path.name + "?" + urlencode(launch_params)
     try:
@@ -1897,7 +1900,7 @@ if __name__ == "__main__":
             else:
                 # Explicit mode argument is authoritative for standalone Hub launches.
                 # Keep the environment variable for backwards compatibility with older runners.
-                requested_mode = ""
+                requested_mode = "apocalypse" if Path(sys.executable).stem.lower() in {"skyrealmapocalypse", "skyrealm-apocalypse"} else ""
                 if "--mode" in sys.argv:
                     try:
                         requested_mode = sys.argv[sys.argv.index("--mode") + 1].strip().lower()
@@ -1907,7 +1910,7 @@ if __name__ == "__main__":
                     if argument.lower().startswith("--mode="):
                         requested_mode = argument.split("=", 1)[1].strip().lower()
                         break
-                if requested_mode == "apocalypse":
+                if requested_mode == "apocalypse" or Path(sys.executable).stem.lower() in {"skyrealmapocalypse", "skyrealm-apocalypse"}:
                     os.environ["SKYREALM_GAME_MODE"] = "apocalypse"
                 elif requested_mode == "normal":
                     os.environ.pop("SKYREALM_GAME_MODE", None)
