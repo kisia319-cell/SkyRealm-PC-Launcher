@@ -723,7 +723,7 @@
   function setWorldDifficulty(id){currentDifficulty=DIFFICULTIES[id]?id:'medium';const cfg=difficultyConfig();COLS=cfg.cols;ROWS=cfg.rows;}
   function configureTreasureChests(){treasureChests.length=0;treasureChests.push({id:'forest',x:18*TILE+16,y:28*TILE+16,opened:false},{id:'lake',x:46*TILE+16,y:48*TILE+16,opened:false},{id:'ridge',x:82*TILE+16,y:27*TILE+16,opened:false});const extra={easy:0,medium:1,hard:2,hell:4,impossible:7}[currentDifficulty]||0;for(let i=0;i<extra;i++){const tx=COLS-9-(i%2)*11,ty=ROWS-9-Math.floor(i/2)*11;treasureChests.push({id:'frontier-'+i,x:tx*TILE+16,y:ty*TILE+16,opened:false});}}
   const WORLD_LIST_KEY = IS_APOCALYPSE_MODE ? 'skyrealm_apocalypse_worlds_v1' : 'skyrealm_worlds_v1';
-  const LEGACY_SAVE_KEY = 'skyrealm_game_save_v1';
+  const LEGACY_SAVE_KEY = IS_APOCALYPSE_MODE ? 'skyrealm_apocalypse_game_save_v1' : 'skyrealm_game_save_v1';
   let saveKey = LEGACY_SAVE_KEY;
   let currentWorldId = null;
   let currentWorldName = '';
@@ -6338,7 +6338,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   function escapeHtml(value){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
   function makeWorldId(){return 'world_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
-  function worldSaveKey(id){return 'skyrealm_game_save_v2_'+id;}
+  function worldSaveKey(id){return (IS_APOCALYPSE_MODE?'skyrealm_apocalypse_game_save_v2_':'skyrealm_game_save_v2_')+id;}
   function readWorlds(){
     let worlds=[];
 
