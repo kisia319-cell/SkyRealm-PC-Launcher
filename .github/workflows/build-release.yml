@@ -214,6 +214,8 @@ jobs:
 
           # Publish both a directly downloadable executable and a convenient portable ZIP.
           Copy-Item "dist/SkyRealm.exe" "update_release/SkyRealm.exe" -Force
+          Copy-Item "game_runner_dist/SkyRealmGame.exe" "update_release/SkyRealmGame.exe" -Force
+          if (-not (Test-Path "update_release/SkyRealmGame.exe")) { throw "SkyRealmGame.exe was not built" }
           Copy-Item "prime_launcher_dist/PrimeLauncher.exe" "update_release/PrimeLauncher.exe" -Force
           $primeHash = (Get-FileHash "update_release/PrimeLauncher.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
           Copy-Item "launcher_version.txt" "update_release/launcher_version.txt" -Force
@@ -222,7 +224,7 @@ jobs:
           Copy-Item "ASSET_AND_LICENSE_REGISTER.md" "update_release/ASSET_AND_LICENSE_REGISTER.md" -Force
           Copy-Item "requirements-build.txt" "update_release/requirements-build.txt" -Force
           Copy-Item "build-dependencies.txt" "update_release/build-dependencies.txt" -Force
-          Compress-Archive -Path "update_release/SkyRealm.exe","update_release/PrimeLauncher.exe","update_release/launcher_version.txt","update_release/README.txt","update_release/THIRD_PARTY_NOTICES.txt","update_release/ASSET_AND_LICENSE_REGISTER.md","update_release/requirements-build.txt","update_release/build-dependencies.txt" -DestinationPath "update_release/SkyRealm_Windows.zip" -Force
+          Compress-Archive -Path "update_release/SkyRealm.exe","update_release/SkyRealmGame.exe","update_release/PrimeLauncher.exe","update_release/launcher_version.txt","update_release/README.txt","update_release/THIRD_PARTY_NOTICES.txt","update_release/ASSET_AND_LICENSE_REGISTER.md","update_release/requirements-build.txt","update_release/build-dependencies.txt" -DestinationPath "update_release/SkyRealm_Windows.zip" -Force
 
           Copy-Item "ASSET_AND_LICENSE_REGISTER.md" "game/ASSET_AND_LICENSE_REGISTER.md" -Force
           Copy-Item "THIRD_PARTY_NOTICES.txt" "game/THIRD_PARTY_NOTICES.txt" -Force
