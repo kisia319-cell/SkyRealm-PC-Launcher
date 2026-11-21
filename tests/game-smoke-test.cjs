@@ -116,7 +116,7 @@ for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
   assert.ok(line, 'Missing map size for difficulty: ' + difficulty);
   assert.ok(line.includes('cols:' + cols + ',rows:' + rows), 'Incorrect doubled map size for difficulty: ' + difficulty);
 }
-assert.ok(game.includes("function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)"), 'Biome regions must scale with the larger map');
+assert.ok(game.includes("function biomeAt(x,y){if(IS_APOCALYPSE_MODE)return 'blight';if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)"), 'Biome regions must scale with the larger map');
 
 assert.ok(gameHtml.includes('content="'+version+'"'), 'Game HTML version metadata must match game/version.txt');
 assert.ok(gameHtml.includes('id="anvil-enchant-weapon"'), 'Enchanting button must exist in game UI');
@@ -288,7 +288,7 @@ assert.ok(releaseWorkflow.includes('This release contains the game archive built
 const previewWorkflow = fs.readFileSync('.github/workflows/publish-coop-preview.yml', 'utf8');
 assert.ok(previewWorkflow.includes('SOURCE_COMMIT') && previewWorkflow.includes('git diff --quiet "$SOURCE_COMMIT" origin/main -- game/'), 'Preview workflow must refuse to publish an archive after game source has advanced');
 
-assert.ok(fs.readFileSync('game_runner_version.txt','utf8').trim()==='0.9.11', 'Changes to the separate game runner must use a new runner version so installed EXEs are replaced');
+assert.ok(fs.readFileSync('game_runner_version.txt','utf8').trim()==='0.9.13', 'Changes to the separate game runner must use a new runner version so installed EXEs are replaced');
 
 assert.ok(py.includes('def file_sha256(path: Path) -> str:') && py.includes('file_sha256(install_dir / p.relative_to(source_dir)) == file_sha256(p)'), 'Installed game integrity must compare file hashes, not only file sizes');
 assert.ok(py.includes('file_sha256(runner_path) != file_sha256(bundled_runner)'), 'Separate game runner updates must compare SHA-256 to detect same-size binary changes');
