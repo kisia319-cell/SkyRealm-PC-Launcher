@@ -2386,7 +2386,7 @@ function updateVillageNpcs(dt){
     if(dodgeTimer>0){ctx.strokeStyle='#a8d9ff';ctx.lineWidth=4;ctx.globalAlpha=dodgeTimer/.24;ctx.beginPath();ctx.arc(px,py,30,0,Math.PI*1.6);ctx.stroke();ctx.globalAlpha=1;}
     drawRemotePlayers(0,0);
   }
-  function drawForestLabel(camX,camY){const x=(COLS-18)*TILE-camX,y=(ROWS-26)*TILE-camY;if(x<-220||x>width+220||y<-40||y>height+40)return;ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#d4f5b4';ctx.shadowColor='#143a1d';ctx.shadowBlur=8;ctx.fillText('ЛЕС · ЛОГОВО ОБОРОТНЯ',x,y);ctx.restore();}
+  function drawForestLabel(camX,camY){if(IS_APOCALYPSE_MODE){drawApocalypseAreaLabel();return;}const x=(COLS-18)*TILE-camX,y=(ROWS-26)*TILE-camY;if(x<-220||x>width+220||y<-40||y>height+40)return;ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#d4f5b4';ctx.shadowColor='#143a1d';ctx.shadowBlur=8;ctx.fillText('ЛЕС · ЛОГОВО ОБОРОТНЯ',x,y);ctx.restore();}
   function drawWolfBoss(camX,camY,time=0){
     if(!wolfBossActive)return;
     const x=wolfBossX-camX,y=wolfBossY-camY;
@@ -3181,8 +3181,54 @@ function updateVillageNpcs(dt){
     ctx.translate(-width/2+panX,-height/2+panY);
     return true;
   }
+  function drawApocalypseGround(camX,camY,time){
+    const x0=Math.max(0,Math.floor(camX/TILE)-1),x1=Math.min(COLS,Math.ceil((camX+width)/TILE)+1),y0=Math.max(0,Math.floor(camY/TILE)-1),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE)+1);
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+      const sx=Math.floor(x*TILE-camX),sy=Math.floor(y*TILE-camY),h=hash(x+2401,y+8107),v=hash(x+411,y+1771);
+      const asphalt=pathAt(x,y);
+      const base=asphalt?(h>.56?'#29282a':'#353236'):(h>.78?'#393632':h>.38?'#302f2e':'#292b2b');
+      ctx.fillStyle=base;ctx.fillRect(sx,sy,TILE,TILE);
+      ctx.strokeStyle='rgba(11,12,13,.28)';ctx.lineWidth=1;ctx.strokeRect(sx+.5,sy+.5,TILE-1,TILE-1);
+      if(asphalt){
+        ctx.fillStyle='rgba(125,104,83,.2)';ctx.fillRect(sx+4,sy+4,3,2);ctx.fillRect(sx+23,sy+23,4,2);
+        ctx.strokeStyle='#17191b';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(sx+8,sy+5);ctx.lineTo(sx+12,sy+13);ctx.lineTo(sx+8,sy+21);ctx.moveTo(sx+12,sy+13);ctx.lineTo(sx+19,sy+16);ctx.stroke();
+        if(h>.84){ctx.strokeStyle='rgba(221,174,111,.5)';ctx.setLineDash([7,8]);ctx.beginPath();ctx.moveTo(sx+16,sy+2);ctx.lineTo(sx+16,sy+30);ctx.stroke();ctx.setLineDash([]);}
+      }else{
+        if(h>.35){ctx.strokeStyle='rgba(10,11,12,.44)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(sx+3,sy+6+v*8);ctx.lineTo(sx+12,sy+11+v*7);ctx.lineTo(sx+9,sy+19);ctx.lineTo(sx+21,sy+25);ctx.stroke();}
+        if(h>.73){ctx.fillStyle='#51463c';ctx.fillRect(sx+5,sy+19,7,4);ctx.fillRect(sx+18,sy+6,5,3);}
+        if(v>.92){ctx.save();ctx.globalAlpha=.38;ctx.fillStyle='#9d4b3b';ctx.shadowColor='#c33f39';ctx.shadowBlur=9;ctx.beginPath();ctx.ellipse(sx+16,sy+16,9,5,0,0,Math.PI*2);ctx.fill();ctx.restore();}
+      }
+      if(waterAt(x+.5,y+.5)){
+        ctx.fillStyle='#172d32';ctx.fillRect(sx,sy,TILE,TILE);ctx.strokeStyle='#6b4c3d';ctx.lineWidth=2;ctx.strokeRect(sx+1,sy+1,TILE-2,TILE-2);
+        ctx.fillStyle='rgba(133,70,53,.32)';ctx.beginPath();ctx.ellipse(sx+16,sy+16,11+v*5,4+h*3,.2,0,Math.PI*2);ctx.fill();
+        if(gameSettings.graphicsQuality!=='low'){ctx.strokeStyle='rgba(167,185,150,.35)';ctx.beginPath();ctx.moveTo(sx+5,sy+9);ctx.lineTo(sx+20,sy+12);ctx.stroke();}
+      }
+    }
+    // Fixed ash drift and hot seams are tied to the world so the ground does not shimmer while walking.
+    for(let gy=y0;gy<y1;gy+=4)for(let gx=x0;gx<x1;gx+=4){const h=hash(gx+3201,gy+9201);if(h<.84)continue;const x=gx*TILE+hash(gx+11,gy+4)*TILE-camX,y=gy*TILE+hash(gx+7,gy+18)*TILE-camY;ctx.save();ctx.globalAlpha=.28;ctx.fillStyle=h>.96?'#b34a3d':'#b2a49a';ctx.fillRect(x,y,2+h*2,1.5);ctx.restore();}
+  }
+  function drawApocalypseAreaLabel(){
+    ctx.save();ctx.textAlign='left';ctx.font='900 11px Segoe UI';ctx.fillStyle='#f1b5a8';ctx.shadowColor='#17090b';ctx.shadowBlur=8;ctx.fillText('ЗАРАЖЁННЫЙ РАЙОН · СЕКТОР 01',18,height-26);ctx.restore();
+  }
   function drawApocalypseRuins(camX,camY,time){
     if(!IS_APOCALYPSE_MODE)return;
+    // Guaranteed collapsed city blocks around the starting shelter. These landmarks are fixed in world space.
+    const anchors=[
+      {x:8*TILE+10,y:19*TILE+18,w:184,h:126,kind:0},{x:31*TILE+12,y:16*TILE+12,w:170,h:148,kind:1},
+      {x:35*TILE+8,y:34*TILE+10,w:208,h:112,kind:2},{x:5*TILE+8,y:34*TILE+8,w:144,h:108,kind:1},
+      {x:21*TILE+10,y:7*TILE+8,w:166,h:116,kind:2}
+    ];
+    for(const a of anchors){const x=a.x-camX,y=a.y-camY;if(x<-a.w-60||x>width+60||y<-a.h-90||y>height+90)continue;ctx.save();ctx.translate(x,y);
+      ctx.fillStyle='rgba(0,0,0,.48)';ctx.beginPath();ctx.ellipse(0,a.h*.31,a.w*.66,15,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#1b1b1e';ctx.fillRect(-a.w*.5,-a.h*.34,a.w,a.h*.68);ctx.fillStyle='#46403d';ctx.fillRect(-a.w*.5+7,-a.h*.34+7,a.w-14,a.h*.68-10);
+      ctx.fillStyle='#111417';ctx.fillRect(-a.w*.35,-a.h*.12,a.w*.16,a.h*.36);ctx.fillRect(a.w*.17,-a.h*.22,a.w*.18,a.h*.25);
+      ctx.fillStyle='#1c1b1e';ctx.beginPath();ctx.moveTo(-a.w*.58,-a.h*.34);ctx.lineTo(-a.w*.28,-a.h*.78);ctx.lineTo(-a.w*.04,-a.h*.42);ctx.lineTo(a.w*.2,-a.h*.72);ctx.lineTo(a.w*.58,-a.h*.34);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#765347';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-a.w*.44,-a.h*.26);ctx.lineTo(-a.w*.2,-a.h*.03);ctx.lineTo(-a.w*.3,a.h*.13);ctx.moveTo(a.w*.27,-a.h*.24);ctx.lineTo(a.w*.06,a.h*.02);ctx.lineTo(a.w*.2,a.h*.17);ctx.stroke();
+      ctx.fillStyle='#8d4037';ctx.shadowColor='#c34c3e';ctx.shadowBlur=12;ctx.globalAlpha=.7;ctx.fillRect(-a.w*.47,a.h*.20,a.w*.92,4);ctx.globalAlpha=1;ctx.shadowBlur=0;
+      for(let n=0;n<7;n++){const px=(hash(a.kind*11+n,Math.floor(a.x))*0.9-.45)*a.w,py=a.h*.28+hash(n+31,Math.floor(a.y))*18;ctx.fillStyle=n%2?'#82766c':'#554d47';ctx.fillRect(px,py,8+hash(n,Math.floor(a.x))*13,4+hash(n+8,Math.floor(a.y))*5);}
+      if(a.kind===1){ctx.strokeStyle='#b2a39a';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-a.w*.46,-a.h*.34);ctx.lineTo(-a.w*.63,-a.h*.55);ctx.moveTo(a.w*.38,-a.h*.34);ctx.lineTo(a.w*.57,-a.h*.6);ctx.stroke();}
+      ctx.restore();
+    }
     const left=Math.max(4,Math.floor(camX/TILE/23)*23-23),top=Math.max(4,Math.floor(camY/TILE/19)*19-19);
     for(let gy=top;gy<ROWS-5;gy+=19)for(let gx=left;gx<COLS-5;gx+=23){
       if(hash(gx+311,gy+907)<.56)continue;
@@ -3245,7 +3291,7 @@ function updateVillageNpcs(dt){
       ctx.transform(1,Math.sin(p*Math.PI)*.075,Math.sin(p*Math.PI)*-.045,1,0,0);
       ctx.translate(-focusX+panX,-focusY+panY);
     }
-    if(tradeWorldMode){drawTradeGround(camX,camY);}else if(bossRealmMode){drawBossRealmGround(camX,camY,time);drawBossRealmEnvironment(camX,camY,time);drawBossRealmForest(camX,camY,time);window.SkyRealmBossExploration?.draw?.(ctx,camX,camY,time,width,height);window.SkyRealmBossRealmHub?.draw?.(ctx,camX,camY,time,width,height);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);if(IS_APOCALYPSE_MODE)drawApocalypseRuins(camX,camY,time);}
+    if(tradeWorldMode){drawTradeGround(camX,camY);}else if(bossRealmMode){drawBossRealmGround(camX,camY,time);drawBossRealmEnvironment(camX,camY,time);drawBossRealmForest(camX,camY,time);window.SkyRealmBossExploration?.draw?.(ctx,camX,camY,time,width,height);window.SkyRealmBossRealmHub?.draw?.(ctx,camX,camY,time,width,height);}else if(IS_APOCALYPSE_MODE){drawApocalypseGround(camX,camY,time);drawPlacedStructures(camX,camY);drawApocalypseRuins(camX,camY,time);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
     if(bossRealmMode){drawMonsters(camX,camY,time);drawLootDrops(camX,camY,time);drawBossRealmPortal(camX,camY,time);}
     else if(tradeWorldMode){
       drawPlacedStructures(camX,camY);drawTradeEntrance(camX,camY); drawVillageSettlements(camX,camY,time); drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);
@@ -3253,12 +3299,14 @@ function updateVillageNpcs(dt){
       drawTradeShop(BUY_SHOP,camX,camY,'ЛАВКА РУДОКОПА','T · ОТКРЫТЬ ЛАВКУ','#70818d');
        drawTradeShop(FARMER_SHOP,camX,camY,'ЛАВКА ФЕРМЕРА','T · СЕМЕНА И УРОЖАЙ','#6b9b4e');
     }else{
-      if(gameSettings.graphicsQuality!=='low') drawFlowers(camX,camY,time);
-      if(gameSettings.graphicsQuality!=='low') drawValleyBirds(camX,camY,time);
-      drawCabin(camX,camY); drawQuarryOutpost(camX,camY,time); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
+      if(!IS_APOCALYPSE_MODE){
+        if(gameSettings.graphicsQuality!=='low') drawFlowers(camX,camY,time);
+        if(gameSettings.graphicsQuality!=='low') drawValleyBirds(camX,camY,time);
+        drawCabin(camX,camY); drawQuarryOutpost(camX,camY,time); drawMineEntrance(camX,camY); drawTradeEntrance(camX,camY);
+      }
       for(const rock of world.rocks){const x=rock.x-camX,y=rock.y-camY;if(x>-30&&x<width+30&&y>-30&&y<height+30)drawRock(rock,camX,camY);}
       for(const tree of world.trees){const x=tree.x-camX,y=tree.y-camY;if(x>-60&&x<width+60&&y>-70&&y<height+40)drawTree(tree,camX,camY);}drawForestStumps(camX,camY,time);
-      world.signs.forEach(s=>drawSign(s,camX,camY));drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawWorldEventCamp(camX,camY,time);drawWorldEventTraveler(camX,camY,time);drawWorldEventShrine(camX,camY,time);window.SkyRealmExpansionSystems?.drawWorldEvent?.(ctx,camX,camY,time,width,height);drawWolfCage(camX,camY,time);if(!bossRealmMode){drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);}drawWolfCompanion(camX,camY,time);drawBossRealmPortal(camX,camY,time);if(bossRealmMode){ctx.fillStyle='rgba(31,20,78,.20)';ctx.fillRect(0,0,width,height);}const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
+      world.signs.forEach(s=>drawSign(s,camX,camY));if(!IS_APOCALYPSE_MODE)drawSheep(camX,camY,time);drawTreasureChests(camX,camY,time);drawLootDrops(camX,camY,time);drawMonsters(camX,camY,time);drawForestLabel(camX,camY);drawDungeonGate(camX,camY,time);drawMeteorPoint(camX,camY,time);drawWorldEventCamp(camX,camY,time);drawWorldEventTraveler(camX,camY,time);drawWorldEventShrine(camX,camY,time);window.SkyRealmExpansionSystems?.drawWorldEvent?.(ctx,camX,camY,time,width,height);drawWolfCage(camX,camY,time);if(!bossRealmMode){drawWolfBoss(camX,camY,time);drawBiomeBosses(camX,camY,time);}drawWolfCompanion(camX,camY,time);drawBossRealmPortal(camX,camY,time);if(bossRealmMode){ctx.fillStyle='rgba(31,20,78,.20)';ctx.fillRect(0,0,width,height);}const cx=74*TILE+16-camX,cy=18*TILE+16-camY;ctx.save();ctx.fillStyle='#151a23';ctx.beginPath();ctx.ellipse(cx,cy,34,24,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#6c7d8c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#6fe1f4';ctx.shadowColor='#55d7f2';ctx.shadowBlur=12;ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ПЕЩЕРА',cx,cy-30);ctx.restore();
     }
     window.SkyRealmLivingWorld?.draw?.(ctx,camX,camY,time,width,height);window.SkyRealmForestEcosystem?.draw?.(ctx,camX,camY,time,width,height);window.SkyRealmAdventureGuild?.draw?.(ctx,camX,camY,time);
     if(gameSettings.graphicsQuality==='high'){
