@@ -360,3 +360,12 @@ assert.ok(game.includes('s.vsync = s.vsync !== false'),'Game settings must norma
 
 assert.ok(game.includes('function drawBossRealmWreckage(camX,camY,time)') && game.includes('drawBossRealmWreckage(camX,camY,time);'), 'Boss Realm must render the detailed ruined environment');
 assert.ok(game.includes('function showDeathScreen(context)') && game.includes('ВЫ УМЕРЛИ') && game.includes('data-death-respawn') && game.includes('data-death-menu'), 'Death must display working respawn and main-menu actions');
+assert.ok(game.includes("const SKYREALM_GAME_MODE = (() =>") && game.includes("const IS_APOCALYPSE_MODE = SKYREALM_GAME_MODE === 'apocalypse'"), 'Apocalypse mode must be selected explicitly from the launcher URL');
+assert.ok(game.includes("const WORLD_LIST_KEY = IS_APOCALYPSE_MODE ? 'skyrealm_apocalypse_worlds_v1' : 'skyrealm_worlds_v1';"), 'Apocalypse worlds must have a separate world list');
+assert.ok(game.includes("function worldSaveKey(id){return (IS_APOCALYPSE_MODE?'skyrealm_apocalypse_game_save_v2_':'skyrealm_game_save_v2_')+id;}"), 'Apocalypse world save files must not collide with regular worlds');
+assert.ok(game.includes("const LEGACY_SAVE_KEY = IS_APOCALYPSE_MODE ? 'skyrealm_apocalypse_game_save_v1' : 'skyrealm_game_save_v1';"), 'Apocalypse must not migrate or overwrite the regular legacy save');
+assert.ok(game.includes("gameMode:SKYREALM_GAME_MODE"), 'New world metadata must record its game mode');
+assert.ok(['apocalypse-play','apocalypse-settings','apocalypse-coop'].every(id=>gameHtml.includes('id="'+id+'"')), 'Apocalypse menu must expose Play, Settings and Co-op buttons');
+assert.ok(game.includes("document.getElementById('apocalypse-play')?.addEventListener") && game.includes("document.getElementById('apocalypse-settings')?.addEventListener") && game.includes("document.getElementById('apocalypse-coop')?.addEventListener"), 'All Apocalypse menu buttons must have working handlers');
+assert.ok(gameHtml.includes('body.apocalypse-mode .main-menu-actions{display:none!important}'), 'Apocalypse must use its own three-button menu without replacing the regular Hub');
+assert.ok(launcher.includes('launch_params["mode"] = "apocalypse"') && launcher.includes('SKYREALM_GAME_MODE'), 'The Windows launcher must forward the Apocalypse mode to its game runner');
