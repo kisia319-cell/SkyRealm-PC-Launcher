@@ -1,5 +1,14 @@
 (() => {
-  const SKYREALM_GAME_MODE = (() => { try { const params=new URLSearchParams(window.location.search); return (params.get('mode')||params.get('edition')||'').toLowerCase()==='apocalypse' ? 'apocalypse' : 'normal'; } catch (_) { return 'normal'; } })();
+  const SKYREALM_GAME_MODE = (() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      // The dedicated Apocalypse package embeds an edition flag in its own HTML.
+      // This package identity is authoritative; URL arguments are only a fallback.
+      const buildEdition = String(window.SKYREALM_BUILD_EDITION || document.documentElement.dataset.skyrealmEdition || '').trim().toLowerCase();
+      const requestedEdition = (buildEdition || params.get('mode') || params.get('edition') || '').toLowerCase();
+      return requestedEdition === 'apocalypse' ? 'apocalypse' : 'normal';
+    } catch (_) { return String(window.SKYREALM_BUILD_EDITION || '').toLowerCase() === 'apocalypse' ? 'apocalypse' : 'normal'; }
+  })();
   const IS_APOCALYPSE_MODE = SKYREALM_GAME_MODE === 'apocalypse';
   if (IS_APOCALYPSE_MODE) { document.documentElement.classList.add('apocalypse-mode'); document.body.classList.add('apocalypse-mode'); document.title = 'SkyRealm — Apocalypse'; }
   const canvas = document.getElementById('world');

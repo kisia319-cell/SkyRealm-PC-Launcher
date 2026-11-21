@@ -43,7 +43,7 @@ jobs:
             "launcher.py", "update_helper.py", "launcher_version.txt",
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "community-mods.css", "community-mods.js", "config.js", "realm.jpg", "icon.png",
-            "SkyRealm.ico", "PrimeLauncher.ico", "game/index.html", "game/game.js", "game/version.txt", "game/bugfix_counter.txt",
+            "SkyRealm.ico", "PrimeLauncher.ico", "game/index.html", "game/game.js", "game/version.txt", "tests/apocalypse-edition-test.cjs", "game/bugfix_counter.txt",
             "game/edition-system.js", "game/forest-ecosystem.js", "game/world-expansion.js", "game/competitive/index.html", "game/competitive/prime-world.js", "game/competitive/prime-online.js", "game/multiplayer-core.js", "game/multiplayer-client.js", "game/multiplayer-ui.js", "game/sea-system.js", "game/living-world.js", "game/cloud-save-ui.js", "game/custom-mods-runtime.js", "game/custom-mods.css", "game/expansion-systems.js"
           )
           $missing = @($required | Where-Object { -not (Test-Path $_) })
@@ -52,6 +52,8 @@ jobs:
           }
           python -m py_compile launcher.py update_helper.py
           node --check game/game.js
+          node --check tests/apocalypse-edition-test.cjs
+          node tests/apocalypse-edition-test.cjs
           node --check game/edition-system.js
           node --check game/forest-ecosystem.js
           node --check game/world-expansion.js
@@ -248,6 +250,18 @@ jobs:
           $apocalypseStage = "update_release/apocalypse-game-stage"
           New-Item -ItemType Directory -Force $apocalypseStage | Out-Null
           Copy-Item "game/*" $apocalypseStage -Recurse -Force
+
+          # Make the standalone Apocalypse package self-identifying before game.js runs.
+          # This prevents a lost CLI argument or URL query from silently booting normal SkyRealm.
+          $apocalypseHtmlPath = Join-Path $apocalypseStage "index.html"
+          $apocalypseHtml = [System.IO.File]::ReadAllText($apocalypseHtmlPath)
+          $editionBootstrap = '<script id="skyrealm-build-edition">window.SKYREALM_BUILD_EDITION="apocalypse";document.documentElement.dataset.skyrealmEdition="apocalypse";</script>'
+          if ($apocalypseHtml -notmatch 'window\.SKYREALM_BUILD_EDITION') {
+            $apocalypseHtml = $apocalypseHtml.Replace("<head>", "<head>`n  " + $editionBootstrap)
+          }
+          if ($apocalypseHtml -notmatch 'window\.SKYREALM_BUILD_EDITION') { throw "Apocalypse package is missing its mandatory edition bootstrap" }
+          [System.IO.File]::WriteAllText($apocalypseHtmlPath, $apocalypseHtml, [System.Text.UTF8Encoding]::new($false))
+
           $apocalypseEdition = @{ edition = "apocalypse"; mode = "apocalypse"; game_version = $gameVersion; launcher = "SkyRealmApocalypse.exe"; save_namespace = "skyrealm_apocalypse_worlds_v1" } | ConvertTo-Json
           Set-Content -Path (Join-Path $apocalypseStage "APOCALYPSE_EDITION.json") -Value $apocalypseEdition -Encoding utf8
           Compress-Archive -Path "$apocalypseStage/*" -DestinationPath "update_release/SkyRealm_Apocalypse_Game.zip" -Force
