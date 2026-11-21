@@ -528,7 +528,7 @@
     ctx.strokeStyle='#8a6544';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(28,-4);ctx.lineTo(50,-7+sway);ctx.lineTo(58,1);ctx.stroke();ctx.fillStyle='#986a48';ctx.beginPath();ctx.ellipse(58,-7+sway,11,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d2b18a';ctx.beginPath();ctx.arc(67,-13+sway,6,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#d8bd87';ctx.fillRect(-12,-48,3,20);ctx.fillStyle=caravan.status==='complete'?'#8bd8b5':'#d65f56';ctx.beginPath();ctx.moveTo(-9,-47);ctx.lineTo(13,-40);ctx.lineTo(-9,-32);ctx.closePath();ctx.fill();ctx.fillStyle='#f7d58a';ctx.shadowColor='#ffd27e';ctx.shadowBlur=9;ctx.beginPath();ctx.arc(-4,-22,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#f1f5ea';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('КАРАВАН',0,-57);ctx.restore();
   }
-  function draw(ctx,camX,camY,time){
+  function draw(ctx,camX,camY,time,width,height){
     if(!ctx||!worldId())return;
     const pet=currentPet();if(pet)drawPet(ctx,state.petX-camX,state.petY-camY,time,pet);
     drawTownProjects(ctx,camX,camY,time);
