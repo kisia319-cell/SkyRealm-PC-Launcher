@@ -152,6 +152,16 @@ jobs:
       - name: Build game window executable
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealmGame --distpath game_runner_dist --workpath build_game_runner/work --specpath build_game_runner launcher.py
 
+      - name: Build dedicated Apocalypse game executable
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name SkyRealmApocalypse --distpath apocalypse_runner_dist --workpath build_apocalypse_runner/work --specpath build_apocalypse_runner launcher.py
+
+      - name: Verify dedicated Apocalypse runner
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "apocalypse_runner_dist/SkyRealmApocalypse.exe")) { throw "SkyRealmApocalypse.exe was not built" }
+          $bytes = [System.IO.File]::ReadAllBytes("apocalypse_runner_dist/SkyRealmApocalypse.exe")
+          if ($bytes.Length -lt 1000000 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "SkyRealmApocalypse.exe is not a valid Windows executable" }
+
       - name: Build PrimeLauncher runtime
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" launcher.py
 
@@ -216,6 +226,8 @@ jobs:
           Copy-Item "dist/SkyRealm.exe" "update_release/SkyRealm.exe" -Force
           Copy-Item "game_runner_dist/SkyRealmGame.exe" "update_release/SkyRealmGame.exe" -Force
           if (-not (Test-Path "update_release/SkyRealmGame.exe")) { throw "SkyRealmGame.exe was not built" }
+          Copy-Item "apocalypse_runner_dist/SkyRealmApocalypse.exe" "update_release/SkyRealmApocalypse.exe" -Force
+          if (-not (Test-Path "update_release/SkyRealmApocalypse.exe")) { throw "SkyRealmApocalypse.exe was not built" }
           Copy-Item "prime_launcher_dist/PrimeLauncher.exe" "update_release/PrimeLauncher.exe" -Force
           $primeHash = (Get-FileHash "update_release/PrimeLauncher.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
           Copy-Item "launcher_version.txt" "update_release/launcher_version.txt" -Force
@@ -225,6 +237,16 @@ jobs:
           Copy-Item "requirements-build.txt" "update_release/requirements-build.txt" -Force
           Copy-Item "build-dependencies.txt" "update_release/build-dependencies.txt" -Force
           Compress-Archive -Path "update_release/SkyRealm.exe","update_release/SkyRealmGame.exe","update_release/PrimeLauncher.exe","update_release/launcher_version.txt","update_release/README.txt","update_release/THIRD_PARTY_NOTICES.txt","update_release/ASSET_AND_LICENSE_REGISTER.md","update_release/requirements-build.txt","update_release/build-dependencies.txt" -DestinationPath "update_release/SkyRealm_Windows.zip" -Force
+
+          # Apocalypse receives its own runtime and a separately marked content package.
+          Compress-Archive -Path "update_release/SkyRealmApocalypse.exe" -DestinationPath "update_release/SkyRealm_Apocalypse_Windows.zip" -Force
+          $apocalypseStage = "update_release/apocalypse-game-stage"
+          New-Item -ItemType Directory -Force $apocalypseStage | Out-Null
+          Copy-Item "game/*" $apocalypseStage -Recurse -Force
+          $apocalypseEdition = @{ edition = "apocalypse"; mode = "apocalypse"; game_version = $gameVersion; launcher = "SkyRealmApocalypse.exe"; save_namespace = "skyrealm_apocalypse_worlds_v1" } | ConvertTo-Json
+          Set-Content -Path (Join-Path $apocalypseStage "APOCALYPSE_EDITION.json") -Value $apocalypseEdition -Encoding utf8
+          Compress-Archive -Path "$apocalypseStage/*" -DestinationPath "update_release/SkyRealm_Apocalypse_Game.zip" -Force
+          if ((Get-Item "update_release/SkyRealm_Apocalypse_Windows.zip").Length -lt 1000000 -or (Get-Item "update_release/SkyRealm_Apocalypse_Game.zip").Length -lt 100000) { throw "Apocalypse edition archives are unexpectedly small" }
 
           Copy-Item "ASSET_AND_LICENSE_REGISTER.md" "game/ASSET_AND_LICENSE_REGISTER.md" -Force
           Copy-Item "THIRD_PARTY_NOTICES.txt" "game/THIRD_PARTY_NOTICES.txt" -Force
@@ -271,10 +293,14 @@ jobs:
           $notes = [string]$releaseManifest.notes
           if ([string]::IsNullOrWhiteSpace($notes)) { throw "Release manifest notes are empty" }
           $notes = [string]$releaseManifest.notes
+          $notes += "`n`n**SkyRealm Apocalypse — отдельное издание:** собственный исполняемый файл SkyRealmApocalypse.exe, отдельный пакет игры и сохранения, заставка с разрушенным городом, заражённая местность, выжженные деревья и заражённые враги, которые выходят на охоту даже днём. Обычный SkyRealm запускается по-прежнему через SkyRealmGame.exe."
           $notes += "`n`nPrimeLauncher для Windows доступен отдельным файлом: https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/PrimeLauncher.exe"
           $assets = @(
             "dist/SkyRealm.exe",
             "update_release/PrimeLauncher.exe",
+            "update_release/SkyRealmApocalypse.exe",
+            "update_release/SkyRealm_Apocalypse_Windows.zip",
+            "update_release/SkyRealm_Apocalypse_Game.zip",
             "update_release/SkyRealm_Windows.zip",
             "update_release/SkyRealm_Update.zip",
             "update_release/SkyRealm_Game.zip",
