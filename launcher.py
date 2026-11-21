@@ -1308,10 +1308,12 @@ def run_game_window(game_html: str) -> None:
             launch_params["installMod"] = requested_mod
     if os.environ.get("SKYREALM_OPEN_CLOUD_SAVES") == "1":
         launch_params["cloudSaves"] = "1"
+    if os.environ.get("SKYREALM_GAME_MODE", "").strip().lower() == "apocalypse":
+        launch_params["mode"] = "apocalypse"
     page_url = "http://127.0.0.1:" + str(port) + "/" + file_path.name + "?" + urlencode(launch_params)
     try:
         game_window = webview.create_window(
-            "SkyRealm — Первый рассвет",
+            "SkyRealm — Apocalypse" if launch_params.get("mode") == "apocalypse" else "SkyRealm — Первый рассвет",
             page_url,
             width=width,
             height=height,
