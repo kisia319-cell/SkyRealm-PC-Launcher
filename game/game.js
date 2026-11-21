@@ -1369,7 +1369,7 @@ let audioContext=null;
   let tradeLayoutsCache=null,tradeLayoutsCols=0,tradeLayoutsRows=0;
   function tradeVillageLayouts(){if(tradeLayoutsCache&&tradeLayoutsCols===COLS&&tradeLayoutsRows===ROWS)return tradeLayoutsCache;tradeLayoutsCols=COLS;tradeLayoutsRows=ROWS;return tradeLayoutsCache=[{id:'forest',x:Math.floor(COLS*.18),y:Math.floor(ROWS*.28),name:'ЛЕСНОЙ ПРИЧАЛ',biome:'forest',houses:['merchant','farmer']},{id:'snow',x:Math.floor(COLS*.75),y:Math.floor(ROWS*.10),name:'СНЕЖНАЯ СТОЯНКА',biome:'snow',houses:['hunter','guard']},{id:'desert',x:Math.floor(COLS*.08),y:Math.floor(ROWS*.78),name:'ПЕСЧАНЫЙ БАЗАР',biome:'desert',houses:['builder']},{id:'volcano',x:Math.floor(COLS*.52),y:Math.floor(ROWS*.08),name:'УГОЛЬНАЯ КРЕПОСТЬ',biome:'volcano',houses:['miner','mage']},{id:'blight',x:Math.floor(COLS*.78),y:Math.floor(ROWS*.76),name:'ЗАРОСШАЯ ЗАСТАВА',biome:'blight',houses:['alchemist']}];}
   function nearVillage(x,y){const x2=Math.floor(COLS*.62),y2=Math.floor(ROWS*.58);return (x>29&&x<48&&y>13&&y<36)||(x>x2-8&&x<x2+9&&y>y2-8&&y<y2+9)||tradeVillageLayouts().some(v=>Math.hypot(x-v.x,y-v.y)<19);}
-  function resize(){const r=canvas.getBoundingClientRect();const deviceDpr=window.devicePixelRatio||1;const quality=gameSettings.graphicsQuality;const baseDpr=gameSettings.performanceMode==='boost'?Math.max(.72,Math.min(deviceDpr,1)*.82):quality==='low'?Math.max(.65,Math.min(deviceDpr,1)*.72):quality==='high'?Math.min(2,deviceDpr*1.45):Math.min(deviceDpr,1.15);dpr=baseDpr*(gameSettings.performanceMode==='boost'||quality==='low'?1:adaptiveRenderScale);width=r.width;height=r.height;canvas.width=Math.max(1,Math.floor(width*dpr));canvas.height=Math.max(1,Math.floor(height*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=quality!=='low';}
+  function resize(){const r=canvas.getBoundingClientRect();const cssWidth=Math.max(1,Number(r.width)||Number(canvas.clientWidth)||Number(window.innerWidth)||1);const cssHeight=Math.max(1,Number(r.height)||Number(canvas.clientHeight)||Number(window.innerHeight)||1);const deviceDpr=window.devicePixelRatio||1;const quality=gameSettings.graphicsQuality;const baseDpr=gameSettings.performanceMode==='boost'?Math.max(.72,Math.min(deviceDpr,1)*.82):quality==='low'?Math.max(.65,Math.min(deviceDpr,1)*.72):quality==='high'?Math.min(2,deviceDpr*1.45):Math.min(deviceDpr,1.15);dpr=baseDpr*(gameSettings.performanceMode==='boost'||quality==='low'?1:adaptiveRenderScale);width=cssWidth;height=cssHeight;canvas.width=Math.max(1,Math.floor(cssWidth*dpr));canvas.height=Math.max(1,Math.floor(cssHeight*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=quality!=='low';}
   function roundedRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
   function waterAt(x,y){if(tradeWorldMode)return false;const cx=52,cy=36,dx=(x-cx)/6.5,dy=(y-cy)/4.3;return dx*dx+dy*dy<1;}
   function pathAt(x,y){if(tradeWorldMode){const sx=tradeEntranceX,sy=tradeEntranceY;if(x>=sx-3&&x<=FARMER_SHOP.x+4&&Math.abs(y-sy)<=2.1)return true;for(const v of tradeVillageLayouts()){const dx=v.x-sx,dy=v.y-sy,t=dx?(x-sx)/dx:0;if(t>=0&&t<=1&&Math.abs(y-(sy+dy*t))<=1.6)return true;}return false;}if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y;if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;if(x>=35&&x<=40&&y>=17&&y<=21)return true;const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));if((y>=25&&y<=27&&x>=34&&x<=48)||(Math.abs(y-31)<=1&&x>=44&&x<=vx)||(Math.abs(x-vx)<=1&&y>=31&&y<=vy+3))return true;return false;}
@@ -2186,11 +2186,14 @@ function updateVillageNpcs(dt){
 
   function drawEmergencyWorld(){
     // Recovery renderer: if a decorative drawing routine fails, keep the playable world visible.
+    const bounds=canvas.getBoundingClientRect();
+    const emergencyWidth=Math.max(1,Number.isFinite(width)&&width>0?width:Number(canvas.clientWidth)||Number(bounds.emergencyWidth)||Number(window.innerWidth)||1);
+    const emergencyHeight=Math.max(1,Number.isFinite(height)&&height>0?height:Number(canvas.clientHeight)||Number(bounds.emergencyHeight)||Number(window.innerHeight)||1);
     ctx.save();
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.fillStyle='#285b43';ctx.fillRect(0,0,width,height);
-    const camX=Math.max(0,Math.min(COLS*TILE-width,player.x-width/2));
-    const camY=Math.max(0,Math.min(ROWS*TILE-height,player.y-height/2));
+    ctx.fillStyle='#285b43';ctx.fillRect(0,0,emergencyWidth,emergencyHeight);
+    const camX=Math.max(0,Math.min(COLS*TILE-emergencyWidth,player.x-emergencyWidth/2));
+    const camY=Math.max(0,Math.min(ROWS*TILE-emergencyHeight,player.y-emergencyHeight/2));
     let cinematicZoom=1,cinematicShakeX=0,cinematicShakeY=0;
     if(combatCinematic?.active){
       const p=Math.max(0,Math.min(1,combatCinematic.elapsed/combatCinematic.duration));
@@ -2200,11 +2203,11 @@ function updateVillageNpcs(dt){
       const focusX=focusWorldX-camX,focusY=focusWorldY-camY;
       const shake=combatCinematicImpactFlash>0?combatCameraShake:1.8;
       cinematicShakeX=(Math.random()-.5)*shake;cinematicShakeY=(Math.random()-.5)*shake;
-      ctx.save();ctx.translate(width/2+cinematicShakeX,height/2+cinematicShakeY);ctx.scale(cinematicZoom,cinematicZoom);ctx.translate(-focusX,-focusY);
+      ctx.save();ctx.translate(emergencyWidth/2+cinematicShakeX,emergencyHeight/2+cinematicShakeY);ctx.scale(cinematicZoom,cinematicZoom);ctx.translate(-focusX,-focusY);
     }else ctx.save();
 
-    const x0=Math.max(0,Math.floor(camX/TILE)),x1=Math.min(COLS,Math.ceil((camX+width)/TILE));
-    const y0=Math.max(0,Math.floor(camY/TILE)),y1=Math.min(ROWS,Math.ceil((camY+height)/TILE));
+    const x0=Math.max(0,Math.floor(camX/TILE)),x1=Math.min(COLS,Math.ceil((camX+emergencyWidth)/TILE));
+    const y0=Math.max(0,Math.floor(camY/TILE)),y1=Math.min(ROWS,Math.ceil((camY+emergencyHeight)/TILE));
     for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
       const sx=Math.floor(x*TILE-camX),sy=Math.floor(y*TILE-camY),h=hash(x,y);
       ctx.fillStyle=h>.5?'#285b43':h>.2?'#2a6047':'#285840';ctx.fillRect(sx,sy,TILE,TILE);
@@ -7545,5 +7548,5 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     document.getElementById('apocalypse-settings')?.addEventListener('click',openSettingsFromMainMenu);
     document.getElementById('apocalypse-coop')?.addEventListener('click',()=>document.getElementById('menu-coop')?.click());
   }
-  setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); void refreshStaffRole(true);setInterval(()=>{if(!document.hidden)void refreshStaffRole(true);},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshStaffRole(true);}); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();applyHudPositions();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
+  resize();setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); void refreshStaffRole(true);setInterval(()=>{if(!document.hidden)void refreshStaffRole(true);},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshStaffRole(true);}); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();applyHudPositions();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
 })();
