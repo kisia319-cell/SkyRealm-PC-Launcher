@@ -1,4 +1,7 @@
 (() => {
+  const SKYREALM_GAME_MODE = (() => { try { return new URLSearchParams(window.location.search).get('mode') === 'apocalypse' ? 'apocalypse' : 'normal'; } catch (_) { return 'normal'; } })();
+  const IS_APOCALYPSE_MODE = SKYREALM_GAME_MODE === 'apocalypse';
+  if (IS_APOCALYPSE_MODE) { document.documentElement.classList.add('apocalypse-mode'); document.body.classList.add('apocalypse-mode'); document.title = 'SkyRealm — Apocalypse'; }
   const canvas = document.getElementById('world');
   function initialVsyncEnabled(){
     try{
@@ -719,7 +722,7 @@
   function bossMaxHp(){return difficultyConfig().bossHp;}
   function setWorldDifficulty(id){currentDifficulty=DIFFICULTIES[id]?id:'medium';const cfg=difficultyConfig();COLS=cfg.cols;ROWS=cfg.rows;}
   function configureTreasureChests(){treasureChests.length=0;treasureChests.push({id:'forest',x:18*TILE+16,y:28*TILE+16,opened:false},{id:'lake',x:46*TILE+16,y:48*TILE+16,opened:false},{id:'ridge',x:82*TILE+16,y:27*TILE+16,opened:false});const extra={easy:0,medium:1,hard:2,hell:4,impossible:7}[currentDifficulty]||0;for(let i=0;i<extra;i++){const tx=COLS-9-(i%2)*11,ty=ROWS-9-Math.floor(i/2)*11;treasureChests.push({id:'frontier-'+i,x:tx*TILE+16,y:ty*TILE+16,opened:false});}}
-  const WORLD_LIST_KEY = 'skyrealm_worlds_v1';
+  const WORLD_LIST_KEY = IS_APOCALYPSE_MODE ? 'skyrealm_apocalypse_worlds_v1' : 'skyrealm_worlds_v1';
   const LEGACY_SAVE_KEY = 'skyrealm_game_save_v1';
   let saveKey = LEGACY_SAVE_KEY;
   let currentWorldId = null;
@@ -6341,7 +6344,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
 
     try{const saved=JSON.parse(localStorage.getItem(WORLD_LIST_KEY)||'[]');if(Array.isArray(saved))worlds=saved.filter(w=>w&&typeof w.id==='string'&&typeof w.name==='string');}catch(_){}
     // Preserve a pre-world-menu save by migrating it to a first world exactly once.
-    if(!worlds.length&&localStorage.getItem('skyrealm_legacy_world_migrated')!=='1'){
+    if(!IS_APOCALYPSE_MODE&&!worlds.length&&localStorage.getItem('skyrealm_legacy_world_migrated')!=='1'){
       try{
         const legacy=localStorage.getItem(LEGACY_SAVE_KEY);
         if(legacy){const old=JSON.parse(legacy);const id=makeWorldId();worlds=[{id,name:'Мой первый мир',createdAt:Date.now(),updatedAt:Date.now()}];localStorage.setItem(worldSaveKey(id),JSON.stringify(old));localStorage.setItem(WORLD_LIST_KEY,JSON.stringify(worlds));}
@@ -6352,7 +6355,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   }
   function writeWorlds(worlds){localStorage.setItem(WORLD_LIST_KEY,JSON.stringify(worlds));}
   function formatWorldDate(value){try{return new Date(value||Date.now()).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}catch(_){return 'SkyRealm';}}
-  const WORLD_FAVORITES_KEY='skyrealm_world_favorites_v1';
+  const WORLD_FAVORITES_KEY=IS_APOCALYPSE_MODE?'skyrealm_apocalypse_world_favorites_v1':'skyrealm_world_favorites_v1';
   function readFavoriteWorldIds(){try{const value=JSON.parse(localStorage.getItem(WORLD_FAVORITES_KEY)||'[]');return Array.isArray(value)?value.filter(id=>typeof id==='string'&&id.length<=80):[];}catch(_){return [];}}
   function toggleFavoriteWorld(id){const favorites=new Set(readFavoriteWorldIds());if(favorites.has(id))favorites.delete(id);else favorites.add(id);localStorage.setItem(WORLD_FAVORITES_KEY,JSON.stringify([...favorites]));}
   function renderWorldList(){
@@ -6428,13 +6431,13 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function deleteWorld(id){const worlds=readWorlds(),record=worlds.find(w=>w.id===id);if(!record)return;if(!window.confirm('Удалить мир «'+record.name+'» вместе с его сохранением? Это действие нельзя отменить.'))return;try{localStorage.removeItem(worldSaveKey(id));const remaining=worlds.filter(w=>w.id!==id);writeWorlds(remaining);if(currentWorldId===id){currentWorldId=null;currentWorldName='';saveKey=LEGACY_SAVE_KEY;}renderWorldList();toast('Мир удалён. Осталось миров: '+remaining.length+'.');}catch(e){toast('Не удалось удалить мир: '+String(e));}}
   function openWorldCreate(){
     const shade=document.getElementById('world-create-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');
-    const input=document.getElementById('world-name-input');input.value='Мой мир';setTimeout(()=>{input.focus();input.select();},30);
+    const input=document.getElementById('world-name-input');input.value=IS_APOCALYPSE_MODE?'Последний рубеж':'Мой мир';setTimeout(()=>{input.focus();input.select();},30);
   }
   function closeWorldCreate(){const shade=document.getElementById('world-create-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');}
   function createWorld(name){
-    const clean=String(name||'').trim().replace(/\s+/g,' ').slice(0,32)||'Мой мир';
+    const clean=String(name||'').trim().replace(/\s+/g,' ').slice(0,32)||(IS_APOCALYPSE_MODE?'Последний рубеж':'Мой мир');
     const worlds=readWorlds();if(worlds.length>=50){closeWorldCreate();toast('Достигнут лимит 50 миров. Удали ненужный мир, чтобы создать новый.');return;}
-    const record={id:makeWorldId(),name:clean,createdAt:Date.now(),updatedAt:Date.now(),difficulty:null};
+    const record={id:makeWorldId(),name:clean,createdAt:Date.now(),updatedAt:Date.now(),difficulty:null,gameMode:SKYREALM_GAME_MODE};
     worlds.push(record);writeWorlds(worlds);closeWorldCreate();enterWorld(record.id);
   }
   function openRenameWorld(id){
@@ -7400,5 +7403,28 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       spawnVisualBurst(spot.x,spot.y,16,'spark',kind==='watchtower'?'#f3cf86':'#d7b17b');
       toast((kind==='house'?'Новый дом построен':kind==='storage'?'Деревенское хранилище построено':'Сторожевая башня построена')+'!');return true;
     },isNightTime:()=>isNightTime(),petAttackNearest:(damage)=>{if(isCoopWorldSave())return false;const p=player,amount=Math.max(1,Math.min(350,Math.round((Number(damage)||1)*1.35)));let target=null,best=156;for(const m of monsters){if(!m||m.hp<=0||m.boss||m.isBoss)continue;const tier=m.bossRealmCreature?BOSS_REALM_CREATURES[m.realmType]?.tier:null;if(tier==='boss'||tier==='god')continue;const d=Math.hypot(p.x-m.x,p.y-m.y);if(d<best){best=d;target=m;}}if(!target)return false;target.hp=Math.max(0,target.hp-amount);target.flash=.18;spawnVisualBurst(target.x,target.y,7,'spark','#9be7ff');const killed=target.hp<=0;if(killed){if(target.bossRealmCreature)recordBossRealmDefeat(target);notifyExpansionEnemyDefeated(target);const index=monsters.indexOf(target);if(index>=0)monsters.splice(index,1);dropMonsterLoot(target);awardXP(12,'\u041f\u043e\u043c\u043e\u0449\u044c \u043f\u0438\u0442\u043e\u043c\u0446\u0430');trackAdventureQuest('hunt',1,false);drawMinimap();}saveGame();return {hit:true,killed};},scheduleGodRebirth:(name,id,multiplier=1.7)=>scheduleNemesis('boss',id,name,id==='neptune'?'wisp':'shadow',multiplier),getWeaponDamage:()=>weaponDamage(equipment.weapon),getWeaponName:()=>equipment.weapon,damagePlayer:amount=>{const hit=Math.max(0,Number(amount)||0);player.hp=Math.max(0,player.hp-hit*(1-armorReduction()));updateVitals();if(player.hp<=0)respawnPlayerAfterDefeat();saveGame();return player.hp;},getSeaData:()=>seaWorldData,setSeaData:data=>{seaWorldData=data&&typeof data==='object'?JSON.parse(JSON.stringify(data)):null;saveGame();},pause:()=>{paused=true;keys.clear();pressedMovementCodes.clear();movementDirections.clear();},resume:()=>{paused=false;keys.clear();pressedMovementCodes.clear();movementDirections.clear();last=performance.now();canvas?.focus?.();},save:()=>saveGame(),toast:message=>toast(String(message||''))};
+  if (IS_APOCALYPSE_MODE) {
+    const kicker=document.querySelector('.main-menu-kicker');
+    const heading=document.querySelector('.main-menu-brand h1');
+    const intro=document.querySelector('.main-menu-brand p');
+    const version=document.querySelector('.main-menu-version');
+    const worldHeading=document.querySelector('.world-selector-heading h2');
+    const worldIntro=document.querySelector('.world-selector-intro');
+    if(kicker)kicker.textContent='SKYREALM · APOCALYPSE';
+    if(heading)heading.innerHTML='Последний рассвет <span>уже наступил</span>';
+    if(intro)intro.textContent='Мир изменился. Найди убежище, подготовься к вылазкам и выживи.';
+    if(version)version.innerHTML='<span class="live-pip"></span> APOCALYPSE SURVIVAL';
+    if(worldHeading)worldHeading.textContent='Твои убежища';
+    if(worldIntro)worldIntro.textContent='Сохранения Apocalypse хранятся отдельно от обычных миров SkyRealm. Продолжи выживание или создай новое убежище.';
+    const realm=document.querySelector('.realm-name');if(realm)realm.textContent='APOCALYPSE';
+    const realmSub=document.querySelector('.realm-sub');if(realmSub)realmSub.textContent='ПОСЛЕДНИЙ РУБЕЖ';
+    document.getElementById('apocalypse-play')?.addEventListener('click',()=>{
+      const worlds=readWorlds().sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
+      if(!worlds.length){openWorldCreate();return;}
+      enterWorld(worlds[0].id);
+    });
+    document.getElementById('apocalypse-settings')?.addEventListener('click',openSettingsFromMainMenu);
+    document.getElementById('apocalypse-coop')?.addEventListener('click',()=>document.getElementById('menu-coop')?.click());
+  }
   setWorldDifficulty('medium');configureTreasureChests();setupWorld(); resetWorldState(); renderInventory(); syncSettingsControls(); applyVisualSettings(); syncAdminMenu(); renderWorldList(); updateClockDisplay(true); resize(); void refreshStaffRole(true);setInterval(()=>{if(!document.hidden)void refreshStaffRole(true);},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshStaffRole(true);}); window.addEventListener('beforeunload',()=>{if(currentWorldId)saveGame();}); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&currentWorldId)saveGame();}); window.addEventListener('resize',()=>{resize();applyHudPositions();try{draw(0,performance.now());}catch(error){console.error('SkyRealm resize render error:',error);drawEmergencyWorld();}}); window.addEventListener('error',event=>{console.error('SkyRealm runtime error:',event.error||event.message);try{drawEmergencyWorld();}catch(_){}}); initHudDragging(); drawMinimap(); requestAnimationFrame(tick);
 })();
