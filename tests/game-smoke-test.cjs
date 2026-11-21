@@ -368,7 +368,7 @@ assert.ok(game.includes('function drawApocalypseGround(camX,camY,time)') && game
 assert.ok(game.includes('const anchors=[') && game.includes('8*TILE+10,y:19*TILE+18,w:184,h:126') && game.includes('21*TILE+10,y:7*TILE+8,w:166,h:116'), 'Apocalypse must draw fixed ruined-city landmarks around the initial starting region');
 assert.ok(game.includes('ЗАРАЖЁННЫЙ РАЙОН · СЕКТОР 01'), 'Apocalypse must use an infected-sector world label instead of the normal forest label');
 assert.ok(game.includes("if(!IS_APOCALYPSE_MODE){") && game.includes('drawCabin(camX,camY); drawQuarryOutpost') && game.includes('if(!IS_APOCALYPSE_MODE)drawSheep'), 'Ordinary valley decorations and livestock must not leak into the Apocalypse starting area');
-assert.ok(launcher.includes('SkyRealmApocalypse.exe') && launcher.includes('skyrealmapocalypse') && launcher.includes('requested_mode == "apocalypse"'), 'Apocalypse must have a dedicated executable that always forces the apocalypse mode');
+assert.ok(launcher.includes('{"skyrealmapocalypse", "skyrealm-apocalypse"}') && launcher.includes('requested_mode == "apocalypse"') && releaseWorkflow.includes('--name SkyRealmApocalypse'), 'Apocalypse must have a dedicated executable that always forces the apocalypse mode');
 
 assert.ok(game.includes("gameMode:SKYREALM_GAME_MODE"), 'New world metadata must record its game mode');
 assert.ok(['apocalypse-play','apocalypse-settings','apocalypse-coop'].every(id=>gameHtml.includes('id="'+id+'"')), 'Apocalypse menu must expose Play, Settings and Co-op buttons');
