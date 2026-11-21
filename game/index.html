@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta name="skyrealm-game-version" content="0.20.50.170">
+  <meta name="skyrealm-game-version" content="0.20.50.171">
 <meta charset="utf-8">
 <link rel="stylesheet" href="custom-mods.css">
 <link rel="stylesheet" href="cinematic-loading.css">
@@ -255,6 +255,38 @@
   #toast.toast:before{left:12px;width:25px;height:25px;font-size:15px}
 }
 </style>
+<style id="apocalypse-mode-style">
+body.apocalypse-mode{background:#090b12}
+body.apocalypse-mode .main-menu-shade{background:radial-gradient(ellipse at 72% 12%,rgba(131,43,48,.34),transparent 45%),radial-gradient(ellipse at 18% 88%,rgba(82,31,35,.2),transparent 48%),rgba(4,5,10,.9)}
+body.apocalypse-mode .main-menu-window{border-color:#78434a;background:linear-gradient(145deg,rgba(36,20,27,.99),rgba(9,12,19,.99) 72%)}
+body.apocalypse-mode .main-menu-hero{background:linear-gradient(120deg,#4a2028aa,#17131ca8);border-color:#9b515126}
+body.apocalypse-mode .main-menu-emblem{background:linear-gradient(145deg,#a34b4b,#3a1823);border-color:#d58b8b66;box-shadow:0 10px 34px #8c343433}
+body.apocalypse-mode .main-menu-brand h1 span{color:#ffaaa1}
+body.apocalypse-mode .main-menu-version{border-color:#78434a;background:#281820;color:#e6b6b3}
+body.apocalypse-mode .main-menu-content{grid-template-columns:minmax(0,1fr)}
+body.apocalypse-mode .main-menu-actions{display:none!important}
+body.apocalypse-mode .world-selector-panel{border-color:#70434a;background:linear-gradient(150deg,#21151d,#0d1018)}
+body.apocalypse-mode .world-count{border-color:#78434a;background:#2b1b23;color:#f0b9b1}
+body.apocalypse-mode .world-card{border-color:#5b3941;background:linear-gradient(130deg,#2a1b24,#12131c)}
+body.apocalypse-mode .world-card-art{background:radial-gradient(ellipse at 55% 10%,#d28b7c66,transparent 34%),linear-gradient(155deg,#65443c,#30222c 65%,#151720)}
+body.apocalypse-mode .world-card-art:before{background:#2a2025;box-shadow:35px -10px 0 #493035}
+body.apocalypse-mode .world-enter-button{background:linear-gradient(115deg,#9b4149,#652b38);border-color:#c16b70}
+body.apocalypse-mode .world-rename-button{background:#211820;border-color:#68414a}
+body.apocalypse-mode .apocalypse-menu-nav{display:flex}
+.apocalypse-menu-nav{display:none;justify-content:center;gap:12px;padding:18px 24px 2px}
+.apocalypse-menu-button{display:flex;align-items:center;gap:11px;min-width:190px;max-width:260px;flex:1;padding:12px 15px;text-align:left;border:1px solid #63404a;border-radius:13px;background:linear-gradient(135deg,#251820,#14141d);color:#f1e6e8;cursor:pointer;transition:transform .18s,border-color .18s,filter .18s}
+.apocalypse-menu-button:hover{transform:translateY(-2px);border-color:#d18a85;filter:brightness(1.12)}
+.apocalypse-menu-button:active{transform:scale(.985)}
+.apocalypse-menu-button.apocalypse-menu-primary{background:linear-gradient(130deg,#9b4149,#632b38);border-color:#d17c7c;box-shadow:0 9px 25px #9c3c4533}
+.apocalypse-menu-icon{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:1px solid #a96b6b55;border-radius:10px;background:#512932;color:#ffe1dc;font-size:17px}
+.apocalypse-menu-button b,.apocalypse-menu-button small{display:block}
+.apocalypse-menu-button b{font-size:12px}
+.apocalypse-menu-button small{margin-top:4px;color:#c5a9ad;font-size:9px;line-height:1.35}
+body.apocalypse-mode #world{filter:saturate(.76) sepia(.12) contrast(1.06) hue-rotate(-8deg)}
+body.apocalypse-mode .top-hud,body.apocalypse-mode .quest,body.apocalypse-mode .location-chip,body.apocalypse-mode .bottom-hud,body.apocalypse-mode .pause-button{border-color:rgba(190,106,108,.34)}
+@media(max-width:760px){.apocalypse-menu-nav{gap:7px;padding:12px 13px 0}.apocalypse-menu-button{min-width:0;padding:9px 8px;gap:6px}.apocalypse-menu-icon{width:29px;height:29px;flex-basis:29px;font-size:14px}.apocalypse-menu-button b{font-size:10px}.apocalypse-menu-button small{font-size:7px}}
+@media(prefers-reduced-motion:reduce){.apocalypse-menu-button{transition:none}}
+</style>
 </head>
 <body>
 <div class="game-shell">
@@ -346,6 +378,11 @@
         <div class="main-menu-brand"><div class="main-menu-kicker">SKYREALM · ПЕРВЫЙ РАССВЕТ</div><h1>Твоя история <span>начинается здесь</span></h1><p>Создай мир, исследуй неизведанные земли и оставь след в долине.</p></div>
         <div class="main-menu-version"><span class="live-pip"></span> 2D SURVIVAL · 0.20.50.170</div>
       </header>
+      <nav class="apocalypse-menu-nav" id="apocalypse-menu-nav" aria-label="Меню Apocalypse">
+        <button class="apocalypse-menu-button apocalypse-menu-primary" id="apocalypse-play" type="button"><span class="apocalypse-menu-icon">▶</span><span><b>Играть</b><small>Продолжить последнее убежище</small></span></button>
+        <button class="apocalypse-menu-button" id="apocalypse-settings" type="button"><span class="apocalypse-menu-icon">⚙</span><span><b>Настройки</b><small>Графика и управление</small></span></button>
+        <button class="apocalypse-menu-button" id="apocalypse-coop" type="button"><span class="apocalypse-menu-icon">♧</span><span><b>Co-op</b><small>Выживайте вместе</small></span></button>
+      </nav>
       <div class="main-menu-content">
         <nav class="main-menu-actions" aria-label="Действия главного меню">
           <button class="main-menu-action coop-menu-action" id="menu-coop" type="button"><span class="menu-action-icon">♧</span><span><b>Кооператив</b><small>Играть вместе · до 8 игроков</small></span><span class="menu-action-arrow">→</span></button>
