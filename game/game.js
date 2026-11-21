@@ -2187,8 +2187,8 @@ function updateVillageNpcs(dt){
   function drawEmergencyWorld(){
     // Recovery renderer: if a decorative drawing routine fails, keep the playable world visible.
     const bounds=canvas.getBoundingClientRect();
-    const emergencyWidth=Math.max(1,Number.isFinite(width)&&width>0?width:Number(canvas.clientWidth)||Number(bounds.emergencyWidth)||Number(window.innerWidth)||1);
-    const emergencyHeight=Math.max(1,Number.isFinite(height)&&height>0?height:Number(canvas.clientHeight)||Number(bounds.emergencyHeight)||Number(window.innerHeight)||1);
+    const emergencyWidth=Math.max(1,Number.isFinite(width)&&width>0?width:Number(canvas.clientWidth)||Number(bounds.width)||Number(window.innerWidth)||1);
+    const emergencyHeight=Math.max(1,Number.isFinite(height)&&height>0?height:Number(canvas.clientHeight)||Number(bounds.height)||Number(window.innerHeight)||1);
     ctx.save();
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.fillStyle='#285b43';ctx.fillRect(0,0,emergencyWidth,emergencyHeight);
