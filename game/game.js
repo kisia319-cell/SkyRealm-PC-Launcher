@@ -1,5 +1,5 @@
 (() => {
-  const SKYREALM_GAME_MODE = (() => { try { return new URLSearchParams(window.location.search).get('mode') === 'apocalypse' ? 'apocalypse' : 'normal'; } catch (_) { return 'normal'; } })();
+  const SKYREALM_GAME_MODE = (() => { try { const params=new URLSearchParams(window.location.search); return (params.get('mode')||params.get('edition')||'').toLowerCase()==='apocalypse' ? 'apocalypse' : 'normal'; } catch (_) { return 'normal'; } })();
   const IS_APOCALYPSE_MODE = SKYREALM_GAME_MODE === 'apocalypse';
   if (IS_APOCALYPSE_MODE) { document.documentElement.classList.add('apocalypse-mode'); document.body.classList.add('apocalypse-mode'); document.title = 'SkyRealm — Apocalypse'; }
   const canvas = document.getElementById('world');
@@ -1364,7 +1364,7 @@ let audioContext=null;
   function roundedRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
   function waterAt(x,y){if(tradeWorldMode)return false;const cx=52,cy=36,dx=(x-cx)/6.5,dy=(y-cy)/4.3;return dx*dx+dy*dy<1;}
   function pathAt(x,y){if(tradeWorldMode){const sx=tradeEntranceX,sy=tradeEntranceY;if(x>=sx-3&&x<=FARMER_SHOP.x+4&&Math.abs(y-sy)<=2.1)return true;for(const v of tradeVillageLayouts()){const dx=v.x-sx,dy=v.y-sy,t=dx?(x-sx)/dx:0;if(t>=0&&t<=1&&Math.abs(y-(sy+dy*t))<=1.6)return true;}return false;}if(y>=25&&y<=26&&x>=3&&x<=36)return true;let t=x+y;if(x>=27&&x<=37&&y>=14&&y<=24&&Math.abs(t-49)<=1.2)return true;if(x>=35&&x<=40&&y>=17&&y<=21)return true;const vx=Math.max(70,Math.min(COLS-16,Math.floor(COLS*.62))),vy=Math.max(48,Math.min(ROWS-16,Math.floor(ROWS*.58)));if((y>=25&&y<=27&&x>=34&&x<=48)||(Math.abs(y-31)<=1&&x>=44&&x<=vx)||(Math.abs(x-vx)<=1&&y>=31&&y<=vy+3))return true;return false;}
-  function biomeAt(x,y){if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';if(x>COLS*.70&&y<ROWS*.46)return 'snow';return 'forest';}
+  function biomeAt(x,y){if(IS_APOCALYPSE_MODE)return 'blight';if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)return 'volcano';if(x<COLS*.155&&y>ROWS*.60)return 'desert';if(x>COLS*.62&&y>ROWS*.55)return 'blight';if(x>COLS*.18&&x<COLS*.40&&y>ROWS*.36&&y<ROWS*.64)return 'jungle';if(x>COLS*.70&&y<ROWS*.46)return 'snow';return 'forest';}
   function biomeNameAt(x,y){return ({forest:'Лесная долина',snow:'Снежный рубеж',desert:'Песчаная пустошь',blight:'Заражённые земли',volcano:'Вулканические земли',jungle:'Затерянные джунгли'})[biomeAt(x,y)]||'Лесная долина';}
     function drawGrassTexture(target,x,y,sx,sy,h,biome,quality){
     const palettes={forest:'#47764b',snow:'#d0dfe1',desert:'#c8aa70',blight:'#59634b',jungle:'#34734c',volcano:'#57423a'};
@@ -1411,6 +1411,12 @@ let audioContext=null;
     const x=t.x-camX,y=t.y-camY,s=t.size;
     ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(ambientTime/1250+t.x*.013+t.y*.009)*.012);ctx.scale(s,s);
     const snowy=biomeAt(t.x/TILE,t.y/TILE)==='snow';
+    if(IS_APOCALYPSE_MODE){
+      ctx.fillStyle='#342b29';ctx.fillRect(-5,-3,10,25);ctx.fillStyle='#554039';ctx.fillRect(-2,1,3,16);
+      ctx.strokeStyle='#211d1d';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-1,5);ctx.lineTo(-19,-10);ctx.lineTo(-26,-22);ctx.moveTo(2,7);ctx.lineTo(17,-8);ctx.lineTo(24,-20);ctx.moveTo(-2,0);ctx.lineTo(-9,-18);ctx.lineTo(-8,-29);ctx.moveTo(1,2);ctx.lineTo(9,-17);ctx.lineTo(8,-30);ctx.stroke();
+      ctx.strokeStyle='rgba(161,58,54,.82)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-4,4);ctx.lineTo(-13,-5);ctx.moveTo(3,6);ctx.lineTo(13,-2);ctx.stroke();
+      ctx.fillStyle='#743d37';ctx.beginPath();ctx.ellipse(-19,-11,5,2,-.7,0,Math.PI*2);ctx.ellipse(17,-9,4,2,.7,0,Math.PI*2);ctx.ellipse(-8,-19,4,2,-.8,0,Math.PI*2);ctx.fill();ctx.restore();return;
+    }
     ctx.fillStyle=snowy?'#756b61':'#61462f';ctx.fillRect(-5,-3,10,24);
     ctx.fillStyle=snowy?'#a9a39a':'#7b5937';ctx.fillRect(-2,1,3,15);
     const colors=snowy?[['#536f7b','#a9c5d0','#edf7fa'],['#617d89','#b9d0d8','#f5fbff'],['#4c6877','#9fbcc9','#e3f2f7']][t.tint]:[['#174536','#20583f','#2c704c'],['#23503b','#2b6645','#438050'],['#1d493b','#28664d','#367e5a']][t.tint];
@@ -3175,6 +3181,38 @@ function updateVillageNpcs(dt){
     ctx.translate(-width/2+panX,-height/2+panY);
     return true;
   }
+  function drawApocalypseRuins(camX,camY,time){
+    if(!IS_APOCALYPSE_MODE)return;
+    const left=Math.max(4,Math.floor(camX/TILE/23)*23-23),top=Math.max(4,Math.floor(camY/TILE/19)*19-19);
+    for(let gy=top;gy<ROWS-5;gy+=19)for(let gx=left;gx<COLS-5;gx+=23){
+      if(hash(gx+311,gy+907)<.56)continue;
+      const wx=gx*TILE+hash(gx+19,gy+71)*210,wy=gy*TILE+hash(gx+83,gy+29)*150,x=wx-camX,y=wy-camY;
+      if(x<-170||x>width+170||y<-130||y>height+130)continue;
+      const w=76+hash(gx+42,gy+11)*66,h=46+hash(gx+73,gy+91)*34,lean=(hash(gx+54,gy+29)-.5)*15;
+      ctx.save();ctx.translate(x,y);ctx.rotate(lean*.004);
+      ctx.fillStyle='rgba(5,7,9,.42)';ctx.beginPath();ctx.ellipse(0,h*.30,w*.72,12,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#292827';ctx.fillRect(-w/2,-h*.35,w,h*.72);ctx.fillStyle='#48413d';ctx.fillRect(-w/2+5,-h*.35+5,w-10,h*.72-5);
+      ctx.fillStyle='#161718';ctx.fillRect(-w*.31,-h*.05,w*.19,h*.43);ctx.fillRect(w*.12,-h*.18,w*.18,h*.32);
+      ctx.fillStyle='#211e1e';ctx.beginPath();ctx.moveTo(-w*.58,-h*.35);ctx.lineTo(-w*.21,-h*.78);ctx.lineTo(w*.05,-h*.38);ctx.lineTo(w*.43,-h*.61);ctx.lineTo(w*.58,-h*.35);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#6c5144';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-w*.38,-h*.3);ctx.lineTo(-w*.16,-h*.07);ctx.lineTo(-w*.25,h*.04);ctx.moveTo(w*.25,-h*.29);ctx.lineTo(w*.1,-h*.05);ctx.stroke();
+      ctx.fillStyle='#69352f';ctx.globalAlpha=.55+.25*Math.sin(time/420+gx);ctx.fillRect(-w*.47,h*.2,w*.92,3);ctx.globalAlpha=1;
+      for(let n=0;n<5;n++){const rx=(hash(gx+n*7,gy+401)-.5)*w,ry=h*.30+hash(gx+87,gy+n*13)*12;ctx.fillStyle=n%2?'#51433c':'#77716a';ctx.fillRect(rx,ry,8+hash(n,gx)*11,4+hash(gy,n)*4);}
+      if(hash(gx+8,gy+801)>.62){ctx.strokeStyle='#9b4940';ctx.shadowColor='#be5749';ctx.shadowBlur=8;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-w*.16,h*.2);ctx.lineTo(-w*.1,h*.05);ctx.lineTo(-w*.02,h*.17);ctx.lineTo(w*.08,h*.03);ctx.stroke();}
+      ctx.restore();
+    }
+    for(let gy=top;gy<ROWS-3;gy+=7)for(let gx=left;gx<COLS-3;gx+=7){
+      const seed=hash(gx+1201,gy+4401);if(seed<.91)continue;const x=gx*TILE+16-camX,y=gy*TILE+16-camY;if(x<-12||x>width+12||y<-12||y>height+12)continue;
+      const pulse=.5+.5*Math.sin(time/360+gx+gy);ctx.save();ctx.globalAlpha=.35+.35*pulse;ctx.fillStyle='#8d3534';ctx.shadowColor='#da4c42';ctx.shadowBlur=8;ctx.beginPath();ctx.arc(x,y,3+5*pulse,0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+  }
+  function drawApocalypseAtmosphere(time){
+    if(!IS_APOCALYPSE_MODE)return;
+    ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+    const glow=ctx.createRadialGradient(width*.74,height*.08,8,width*.74,height*.08,Math.max(width,height)*.84);glow.addColorStop(0,'rgba(143,42,42,.17)');glow.addColorStop(.52,'rgba(82,29,32,.12)');glow.addColorStop(1,'rgba(8,9,12,.34)');ctx.fillStyle=glow;ctx.fillRect(0,0,width,height);
+    ctx.fillStyle='rgba(20,12,13,.13)';ctx.fillRect(0,0,width,height);
+    for(let i=0;i<34;i++){const x=(hash(i+131,29)*width+time*(.004+(i%4)*.001))%width,y=(hash(i+37,991)*height+time*(.009+(i%5)*.002))%height;ctx.globalAlpha=.14+.18*(.5+.5*Math.sin(time/540+i));ctx.fillStyle=i%5===0?'#e47a55':'#b9a59a';ctx.fillRect(x,y,1.3+(i%3),1.3+(i%2));}
+    ctx.restore();
+  }
   function draw(dt,time){
     if(dungeonMode){const cinematic=beginCombatInteriorCamera(time);drawDungeonInterior(dt,time);if(cinematic)ctx.restore();updateObjective();return;}
     if(caveMode){const cinematic=beginCombatInteriorCamera(time);drawCaveInterior(dt,time);if(cinematic)ctx.restore();updateObjective();return;}
@@ -3207,7 +3245,7 @@ function updateVillageNpcs(dt){
       ctx.transform(1,Math.sin(p*Math.PI)*.075,Math.sin(p*Math.PI)*-.045,1,0,0);
       ctx.translate(-focusX+panX,-focusY+panY);
     }
-    if(tradeWorldMode){drawTradeGround(camX,camY);}else if(bossRealmMode){drawBossRealmGround(camX,camY,time);drawBossRealmEnvironment(camX,camY,time);drawBossRealmForest(camX,camY,time);window.SkyRealmBossExploration?.draw?.(ctx,camX,camY,time,width,height);window.SkyRealmBossRealmHub?.draw?.(ctx,camX,camY,time,width,height);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);}
+    if(tradeWorldMode){drawTradeGround(camX,camY);}else if(bossRealmMode){drawBossRealmGround(camX,camY,time);drawBossRealmEnvironment(camX,camY,time);drawBossRealmForest(camX,camY,time);window.SkyRealmBossExploration?.draw?.(ctx,camX,camY,time,width,height);window.SkyRealmBossRealmHub?.draw?.(ctx,camX,camY,time,width,height);}else{drawGround(camX,camY);drawPond(camX,camY);drawPlacedStructures(camX,camY);if(IS_APOCALYPSE_MODE)drawApocalypseRuins(camX,camY,time);}
     if(bossRealmMode){drawMonsters(camX,camY,time);drawLootDrops(camX,camY,time);drawBossRealmPortal(camX,camY,time);}
     else if(tradeWorldMode){
       drawPlacedStructures(camX,camY);drawTradeEntrance(camX,camY); drawVillageSettlements(camX,camY,time); drawTreasureChests(camX,camY,time); drawLootDrops(camX,camY,time); drawMonsters(camX,camY,time);
@@ -3235,7 +3273,7 @@ function updateVillageNpcs(dt){
     drawRemotePlayers(camX,camY);
     drawVisualEffects(camX,camY,time);
     if(gameSettings.graphicsQuality!=='low') drawFireflies(camX,camY,time);
-    drawDayNightOverlay(camX,camY);
+    drawDayNightOverlay(camX,camY);if(IS_APOCALYPSE_MODE)drawApocalypseAtmosphere(time);
     updateObjective();
     ctx.restore();
     ctx.restore();
@@ -4328,11 +4366,11 @@ function updateVillageNpcs(dt){
       const y=Math.max(TILE*2,Math.min(ROWS*TILE-TILE*2,player.y+Math.sin(angle)*radius));
       if(waterAt(x/TILE,y/TILE)||blocked(x,y))continue;
       let type=typeOverride;
-      if(type===null){const biome=biomeAt(x/TILE,y/TILE),roll=Math.random();if(biome==='volcano'&&roll<.62)type='ember';else if(biome==='snow'&&roll<.42)type='yeti';else if(biome==='snow'&&roll<.72)type='ice';else if(biome==='desert'&&roll<.58)type='scorpion';else type=roll<.28?'skeleton':(['shadow','brute','wisp'][Math.floor(Math.random()*3)]);}
-      const cfg=difficultyConfig(),baseHp=type==='ember'?155:type==='yeti'?120:type==='bomb'?55:type==='skeleton'?80:type==='brute'?135:type==='ice'?115:type==='scorpion'?90:100,hp=Math.max(20,Math.round(baseHp*cfg.monsterHp*(isModInstalled('brutal_world')?1.45:1)*(isModInstalled('blood_moon')&&isNightTime()?1.15:1)));
-      const speed=(type==='ember'?43:type==='yeti'?45:type==='brute'?31:type==='wisp'?58:type==='skeleton'?47:type==='bomb'?49:type==='ice'?39:type==='scorpion'?62:43)*(currentDifficulty==='easy'?.88:currentDifficulty==='impossible'?1.42:currentDifficulty==='hell'?1.2:currentDifficulty==='hard'?1.1:1)*(isModInstalled('brutal_world')?1.12:1);
-      monsters.push({id:newCoopEntityId(),x,y,hp,maxHp:hp,type,speed,damageScale:cfg.monsterDamage*(isModInstalled('brutal_world')?1.35:1)*(isModInstalled('blood_moon')&&isNightTime()?1.15:1),attackCooldown:0,specialCooldown:4+Math.random()*3,phase:Math.random()*6.28,flash:0,fuseStarted:false,fuseTime:1.45,exploding:false,explosionTimer:0,damageApplied:false});
-      const warning=document.getElementById('night-warning');if(warning){warning.hidden=false;const text=document.getElementById('night-warning-text');if(text)text.textContent=type==='bomb'?'ОСТОРОЖНО: взрывная бомбочка! Убегай!':monsterLabel(type)+' появился в лесу';setTimeout(()=>{if(warning)warning.hidden=true;},2600);}
+      if(type===null){if(IS_APOCALYPSE_MODE){const roll=Math.random();type=roll<.48?'skeleton':roll<.82?'brute':'shadow';}else{const biome=biomeAt(x/TILE,y/TILE),roll=Math.random();if(biome==='volcano'&&roll<.62)type='ember';else if(biome==='snow'&&roll<.42)type='yeti';else if(biome==='snow'&&roll<.72)type='ice';else if(biome==='desert'&&roll<.58)type='scorpion';else type=roll<.28?'skeleton':(['shadow','brute','wisp'][Math.floor(Math.random()*3)]);}}
+      const cfg=difficultyConfig(),infected=IS_APOCALYPSE_MODE,baseHp=type==='ember'?155:type==='yeti'?120:type==='bomb'?55:type==='skeleton'?80:type==='brute'?135:type==='ice'?115:type==='scorpion'?90:100,hp=Math.max(20,Math.round(baseHp*cfg.monsterHp*(infected?1.7:1)*(isModInstalled('brutal_world')?1.45:1)*(isModInstalled('blood_moon')&&isNightTime()?1.15:1)));
+      const speed=(type==='ember'?43:type==='yeti'?45:type==='brute'?31:type==='wisp'?58:type==='skeleton'?47:type==='bomb'?49:type==='ice'?39:type==='scorpion'?62:43)*(currentDifficulty==='easy'?.88:currentDifficulty==='impossible'?1.42:currentDifficulty==='hell'?1.2:currentDifficulty==='hard'?1.1:1)*(infected?1.12:1)*(isModInstalled('brutal_world')?1.12:1);
+      monsters.push({id:newCoopEntityId(),x,y,hp,maxHp:hp,type,speed,apocalypseInfected:infected,damageScale:cfg.monsterDamage*(infected?1.32:1)*(isModInstalled('brutal_world')?1.35:1)*(isModInstalled('blood_moon')&&isNightTime()?1.15:1),attackCooldown:0,specialCooldown:4+Math.random()*3,phase:Math.random()*6.28,flash:0,fuseStarted:false,fuseTime:1.45,exploding:false,explosionTimer:0,damageApplied:false});
+      const warning=document.getElementById('night-warning');if(warning){warning.hidden=false;const text=document.getElementById('night-warning-text');if(text)text.textContent=type==='bomb'?'ОСТОРОЖНО: взрывная бомбочка! Убегай!':infected?'ЗАРАЖЁННЫЙ ЗАМЕТИЛ ТЕБЯ':monsterLabel(type)+' появился в лесу';setTimeout(()=>{if(warning)warning.hidden=true;},2600);}
       drawMinimap();return true;
     }
     return false;
@@ -4607,8 +4645,8 @@ function updateWolfAndDog(dt){
       }
       return;
     }
-      const active=isNightTime()&&(worldEarlyMonsters===true||survivedNights>=(currentDifficulty==='impossible'?1:3));
-    if(active){monsterSpawnTimer+=dt;const brutal=isModInstalled('brutal_world'),eternalMoon=isModInstalled('blood_moon');const spawnInterval=(bloodMoonActive?5:10)*difficultyConfig().monsterSpawn*(brutal?.78:1)*(eternalMoon?.72:1)*(isModInstalled('arena_survival')?.78:1);const populationLimit=(currentDifficulty==='impossible'?10:6)+(brutal?2:0)+(eternalMoon?2:0)+(isModInstalled('arena_survival')?3:0);if(monsterSpawnTimer>=spawnInterval&&monsters.length<populationLimit){const bombChance=(currentDifficulty==='impossible'?.35:.20)+(eternalMoon?.25:0);if(Math.random()<bombChance)spawnMonster('bomb');else spawnMonster();monsterSpawnTimer=0;}}
+      const active=IS_APOCALYPSE_MODE?!sleeping:(isNightTime()&&(worldEarlyMonsters===true||survivedNights>=(currentDifficulty==='impossible'?1:3)));
+    if(active){monsterSpawnTimer+=dt;const brutal=isModInstalled('brutal_world'),eternalMoon=isModInstalled('blood_moon');const spawnInterval=(IS_APOCALYPSE_MODE?7.5:(bloodMoonActive?5:10))*difficultyConfig().monsterSpawn*(brutal?.78:1)*(eternalMoon?.72:1)*(isModInstalled('arena_survival')?.78:1);const populationLimit=(IS_APOCALYPSE_MODE?7:(currentDifficulty==='impossible'?10:6))+(brutal?2:0)+(eternalMoon?2:0)+(isModInstalled('arena_survival')?3:0);if(monsterSpawnTimer>=spawnInterval&&monsters.length<populationLimit){const bombChance=IS_APOCALYPSE_MODE?0:(currentDifficulty==='impossible'?.35:.20)+(eternalMoon?.25:0);if(Math.random()<bombChance)spawnMonster('bomb');else spawnMonster();monsterSpawnTimer=0;}}
     else {monsterSpawnTimer=0;for(let j=monsters.length-1;j>=0;j--)if(!monsters[j].adminSpawned)monsters.splice(j,1);}
     damageToastTimer=Math.max(0,damageToastTimer-dt);
     for(let i=monsters.length-1;i>=0;i--){
@@ -4731,7 +4769,13 @@ function updateWolfAndDog(dt){
       if(mob.forestTreant&&!mob.exploding){drawForestTreantMob(mob,x,y,time);continue;}
       if(mob.exploding){const p=1-Math.max(0,mob.explosionTimer)/.42;ctx.save();ctx.globalAlpha=Math.max(.15,1-p*.7);ctx.fillStyle='#ff7a32';ctx.beginPath();ctx.arc(x,y,24+90*p,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ffe7a0';ctx.lineWidth=5;ctx.beginPath();ctx.arc(x,y,15+72*p,0,Math.PI*2);ctx.stroke();ctx.restore();continue;}
       const bob=Math.sin(time/210+mob.phase)*2,walk=Math.sin(time/95+mob.phase)*(Math.hypot(mob.vx||0,mob.vy||0)>1?3:1);ctx.save();ctx.translate(x,y+bob);if(mob.isRebornBoss){const scale=Math.min(2.1,1.35+(mob.rebirthMultiplier||1)*.08);ctx.scale(scale,scale);ctx.shadowColor='#ffbd65';ctx.shadowBlur=gameSettings.graphicsQuality==='low'?0:18;ctx.strokeStyle='#ffe5a6';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-13,22,Math.PI,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;}ctx.fillStyle='#090f1e88';ctx.beginPath();ctx.ellipse(0,10,16,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#202536';ctx.fillRect(-8,8+walk,5,5);ctx.fillRect(4,8-walk,5,5);
-      if(mob.type==='ice'){ctx.fillStyle=mob.flash>0?'#fff':'#6fd7ee';ctx.shadowColor='#6fe6ff';ctx.shadowBlur=gameSettings.graphicsQuality==='low'?0:12;ctx.beginPath();ctx.moveTo(0,-25);ctx.lineTo(16,-7);ctx.lineTo(12,10);ctx.lineTo(0,17);ctx.lineTo(-12,10);ctx.lineTo(-16,-7);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#e5fcff';ctx.fillRect(-7,-11,4,4);ctx.fillRect(4,-11,4,4);ctx.fillStyle='#25759b';ctx.fillRect(-7,1,14,5);}
+      if(mob.apocalypseInfected){
+        ctx.fillStyle='#16191a';ctx.beginPath();ctx.moveTo(-13,7);ctx.lineTo(-11,-12);ctx.lineTo(-7,-22);ctx.lineTo(7,-22);ctx.lineTo(13,-10);ctx.lineTo(11,9);ctx.closePath();ctx.fill();
+        ctx.fillStyle=mob.flash>0?'#f7d8ca':'#65605a';ctx.beginPath();ctx.arc(0,-18,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#292322';ctx.fillRect(-7,-23,14,5);ctx.fillRect(-4,-12,8,2);
+        ctx.fillStyle='#ff5549';ctx.shadowColor='#f43b3b';ctx.shadowBlur=gameSettings.graphicsQuality==='low'?1:13;ctx.fillRect(-5,-19,3,2);ctx.fillRect(3,-19,3,2);ctx.beginPath();ctx.arc(0,1,4+Math.sin(time/90+mob.phase),0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+        ctx.strokeStyle='#9f4540';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(-8,-5);ctx.lineTo(-16,walk-2);ctx.lineTo(-19,7);ctx.moveTo(8,-5);ctx.lineTo(15,-walk-1);ctx.lineTo(18,7);ctx.moveTo(-3,7);ctx.lineTo(-6,17);ctx.lineTo(-9,22);ctx.moveTo(3,7);ctx.lineTo(7,17);ctx.lineTo(10,22);ctx.stroke();
+        ctx.strokeStyle='#d15a50';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-5,-9);ctx.lineTo(0,-3);ctx.lineTo(5,-8);ctx.moveTo(0,-3);ctx.lineTo(-2,5);ctx.stroke();
+      }else if(mob.type==='ice'){ctx.fillStyle=mob.flash>0?'#fff':'#6fd7ee';ctx.shadowColor='#6fe6ff';ctx.shadowBlur=gameSettings.graphicsQuality==='low'?0:12;ctx.beginPath();ctx.moveTo(0,-25);ctx.lineTo(16,-7);ctx.lineTo(12,10);ctx.lineTo(0,17);ctx.lineTo(-12,10);ctx.lineTo(-16,-7);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#e5fcff';ctx.fillRect(-7,-11,4,4);ctx.fillRect(4,-11,4,4);ctx.fillStyle='#25759b';ctx.fillRect(-7,1,14,5);}
       else if(mob.type==='scorpion'){ctx.fillStyle=mob.flash>0?'#fff':'#bd7b36';ctx.beginPath();ctx.ellipse(0,2,15,10,0,0,Math.PI*2);ctx.fill();ctx.fillRect(-13,-4,6,8);ctx.fillRect(9,-4,6,8);ctx.strokeStyle='#e1a14a';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(7,-4);ctx.quadraticCurveTo(20,-12,14,-22);ctx.stroke();ctx.fillStyle='#e84a42';ctx.beginPath();ctx.moveTo(12,-22);ctx.lineTo(18,-26);ctx.lineTo(16,-18);ctx.closePath();ctx.fill();ctx.fillStyle='#261a16';ctx.fillRect(-6,-5,3,3);ctx.fillRect(4,-5,3,3);}
       else if(mob.type==='skeleton'){
         if(gameSettings.graphicsQuality==='high'){ctx.shadowColor='#e2e8f0';ctx.shadowBlur=9;}
@@ -4748,7 +4792,8 @@ function updateWolfAndDog(dt){
         if(mob.type==='brute'){ctx.fillStyle='#8a765e';ctx.fillRect(-15,-9,7,14);ctx.fillRect(8,-9,7,14);}ctx.fillStyle='#0b1121';ctx.fillRect(-10,-22,5,5);ctx.fillRect(5,-22,5,5);
       }
       ctx.restore();
-      if(mob.hp<mob.maxHp){ctx.fillStyle='#231c2b';ctx.fillRect(x-15,y-36,30,4);ctx.fillStyle=mob.isRebornBoss?'#ffc66d':'#fb6289';ctx.fillRect(x-15,y-36,30*Math.max(0,mob.hp/mob.maxHp),4);}if(mob.isRebornBoss){ctx.save();ctx.textAlign='center';ctx.font='900 9px Segoe UI';ctx.fillStyle='#ffe6ad';ctx.shadowColor='#321b0b';ctx.shadowBlur=5;ctx.fillText((mob.bossTitle||'БОСС').toUpperCase()+' · ВОЗРОЖДЁН',x,y-43);ctx.restore();}
+      if(mob.apocalypseInfected){ctx.save();ctx.textAlign='center';ctx.font='900 8px Segoe UI';ctx.fillStyle='#ff9b8d';ctx.shadowColor='#120708';ctx.shadowBlur=5;ctx.fillText('ЗАРАЖЁННЫЙ',x,y-42);ctx.restore();}
+      if(mob.hp<mob.maxHp){ctx.fillStyle='#231c2b';ctx.fillRect(x-15,y-36,30,4);ctx.fillStyle=mob.apocalypseInfected?'#e94e43':mob.isRebornBoss?'#ffc66d':'#fb6289';ctx.fillRect(x-15,y-36,30*Math.max(0,mob.hp/mob.maxHp),4);}if(mob.isRebornBoss){ctx.save();ctx.textAlign='center';ctx.font='900 9px Segoe UI';ctx.fillStyle='#ffe6ad';ctx.shadowColor='#321b0b';ctx.shadowBlur=5;ctx.fillText((mob.bossTitle||'БОСС').toUpperCase()+' · ВОЗРОЖДЁН',x,y-43);ctx.restore();}
     }
   }
   function updateVitals(){const hp=document.querySelector('.hp i'),stamina=document.querySelector('.stamina i'),energy=document.querySelector('.combat-energy i'),energyText=document.querySelector('.combat-energy-value');if(hp)hp.style.width=Math.max(0,Math.min(100,player.hp))+'%';if(stamina)stamina.style.width=Math.max(0,Math.min(100,player.stamina))+'%';if(energy)energy.style.width=Math.max(0,Math.min(100,combatEnergy))+'%';if(energyText)energyText.textContent=Math.floor(combatEnergy)+'%';}
@@ -6431,7 +6476,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
   function deleteWorld(id){const worlds=readWorlds(),record=worlds.find(w=>w.id===id);if(!record)return;if(!window.confirm('Удалить мир «'+record.name+'» вместе с его сохранением? Это действие нельзя отменить.'))return;try{localStorage.removeItem(worldSaveKey(id));const remaining=worlds.filter(w=>w.id!==id);writeWorlds(remaining);if(currentWorldId===id){currentWorldId=null;currentWorldName='';saveKey=LEGACY_SAVE_KEY;}renderWorldList();toast('Мир удалён. Осталось миров: '+remaining.length+'.');}catch(e){toast('Не удалось удалить мир: '+String(e));}}
   function openWorldCreate(){
     const shade=document.getElementById('world-create-shade');shade.hidden=false;shade.setAttribute('aria-hidden','false');
-    const input=document.getElementById('world-name-input');input.value=IS_APOCALYPSE_MODE?'Последний рубеж':'Мой мир';setTimeout(()=>{input.focus();input.select();},30);
+    const input=document.getElementById('world-name-input');input.value=IS_APOCALYPSE_MODE?'Последнее убежище':'Мой мир';
+    if(IS_APOCALYPSE_MODE){const title=document.getElementById('world-create-title'),desc=shade.querySelector('p'),eyebrow=shade.querySelector('.eyebrow'),submit=shade.querySelector('button[type="submit"]');if(title)title.textContent='Создать убежище';if(desc)desc.textContent='Это отдельная кампания Apocalypse. Заброшенные районы, заражённые враги и опасные вылазки ждут тебя с первого дня.';if(eyebrow)eyebrow.textContent='APOCALYPSE · НОВОЕ УБЕЖИЩЕ';if(submit)submit.textContent='Начать выживание';}
+    setTimeout(()=>{input.focus();input.select();},30);
   }
   function closeWorldCreate(){const shade=document.getElementById('world-create-shade');shade.hidden=true;shade.setAttribute('aria-hidden','true');}
   function createWorld(name){
@@ -7410,6 +7457,8 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     const version=document.querySelector('.main-menu-version');
     const worldHeading=document.querySelector('.world-selector-heading h2');
     const worldIntro=document.querySelector('.world-selector-intro');
+    const introTitle=document.querySelector('.apocalypse-intro-copy strong'),introSub=document.querySelector('.apocalypse-intro-copy p'),introButton=document.getElementById('sr-enter-game'),introTools=document.querySelector('.sr-intro-tools'),introNormal=document.querySelector('.sr-intro-content');
+    if(introTitle)introTitle.textContent='SKYREALM';if(introSub)introSub.textContent='Мир пал. Найди убежище. Доживи до рассвета.';if(introButton)introButton.innerHTML='ОТКРЫТЬ УБЕЖИЩЕ <span aria-hidden="true">⛨</span>';if(introTools)introTools.hidden=true;if(introNormal)introNormal.setAttribute('data-edition','apocalypse');
     if(kicker)kicker.textContent='SKYREALM · APOCALYPSE';
     if(heading)heading.innerHTML='Последний рассвет <span>уже наступил</span>';
     if(intro)intro.textContent='Мир изменился. Найди убежище, подготовься к вылазкам и выживи.';
