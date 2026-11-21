@@ -1895,6 +1895,22 @@ if __name__ == "__main__":
             if sys.argv[1] == "--prime-competitive":
                 run_prime_competitive_window(sys.argv[2])
             else:
+                # Explicit mode argument is authoritative for standalone Hub launches.
+                # Keep the environment variable for backwards compatibility with older runners.
+                requested_mode = ""
+                if "--mode" in sys.argv:
+                    try:
+                        requested_mode = sys.argv[sys.argv.index("--mode") + 1].strip().lower()
+                    except (IndexError, ValueError):
+                        requested_mode = ""
+                for argument in sys.argv[3:]:
+                    if argument.lower().startswith("--mode="):
+                        requested_mode = argument.split("=", 1)[1].strip().lower()
+                        break
+                if requested_mode == "apocalypse":
+                    os.environ["SKYREALM_GAME_MODE"] = "apocalypse"
+                elif requested_mode == "normal":
+                    os.environ.pop("SKYREALM_GAME_MODE", None)
                 run_game_window(sys.argv[2])
             # Reopen the launcher only after the game WebView and local HTTP server exit.
             if return_launcher:
