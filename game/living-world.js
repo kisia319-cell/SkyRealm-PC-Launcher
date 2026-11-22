@@ -554,7 +554,29 @@
     ctx.strokeStyle='#8a6544';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(28,-4);ctx.lineTo(50,-7+sway);ctx.lineTo(58,1);ctx.stroke();ctx.fillStyle='#986a48';ctx.beginPath();ctx.ellipse(58,-7+sway,11,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d2b18a';ctx.beginPath();ctx.arc(67,-13+sway,6,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#d8bd87';ctx.fillRect(-12,-48,3,20);ctx.fillStyle=caravan.status==='complete'?'#8bd8b5':'#d65f56';ctx.beginPath();ctx.moveTo(-9,-47);ctx.lineTo(13,-40);ctx.lineTo(-9,-32);ctx.closePath();ctx.fill();ctx.fillStyle='#f7d58a';ctx.shadowColor='#ffd27e';ctx.shadowBlur=9;ctx.beginPath();ctx.arc(-4,-22,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#f1f5ea';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('КАРАВАН',0,-57);ctx.restore();
   }
-  function drawHorse(ctx,x,y,time){const gait=Math.sin(time/75)*3;ctx.save();ctx.translate(x,y+5);ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(0,12,22,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8b5a37';ctx.beginPath();ctx.ellipse(0,-1,17,10,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(12,-10,8,11,-.2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#5a3828';ctx.fillRect(-12,5,4,12+gait);ctx.fillRect(5,5,4,12-gait);ctx.fillRect(13,-3,3,13+gait);ctx.fillStyle='#4b2d23';ctx.beginPath();ctx.moveTo(18,-18);ctx.lineTo(22,-25);ctx.lineTo(25,-17);ctx.fill();ctx.beginPath();ctx.arc(17,-12,2,0,Math.PI*2);ctx.fillStyle='#f7e7c9';ctx.fill();ctx.fillStyle='#24212a';ctx.beginPath();ctx.arc(18,-12,1,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d7b47d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-15,-5);ctx.quadraticCurveTo(-25,-12,-22,-21);ctx.stroke();ctx.fillStyle='#553e32';ctx.fillRect(-2,-14,14,3);ctx.fillStyle='#d5b57e';ctx.fillRect(-2,-15,3,5);ctx.restore();}
+  function drawHorse(ctx,x,y,time){
+    const gait=Math.sin(time/75)*3,hoof=Math.sin(time/75+Math.PI)*2;
+    ctx.save();ctx.translate(x,y+5);
+    ctx.fillStyle='rgba(0,0,0,.30)';ctx.beginPath();ctx.ellipse(0,13,24,7,0,0,Math.PI*2);ctx.fill();
+    const coat=ctx.createLinearGradient(-12,-25,15,14);coat.addColorStop(0,'#d7a16a');coat.addColorStop(.42,'#9b623d');coat.addColorStop(1,'#593923');
+    ctx.fillStyle=coat;ctx.beginPath();ctx.ellipse(-1,-1,18,10,-.08,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#bd8050';ctx.beginPath();ctx.ellipse(12,-11,8,12,-.28,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#6d422e';ctx.beginPath();ctx.ellipse(18,-18,7,5,-.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#4a2c22';ctx.beginPath();ctx.moveTo(17,-19);ctx.lineTo(18,-27);ctx.lineTo(23,-22);ctx.closePath();ctx.moveTo(10,-20);ctx.lineTo(8,-27);ctx.lineTo(15,-23);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#4b2d22';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-14,5);ctx.quadraticCurveTo(-18,12,-22,17+gait);ctx.stroke();
+    ctx.strokeStyle='#6b402b';ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(-10,5);ctx.lineTo(-12,18-hoof);ctx.moveTo(4,5);ctx.lineTo(5,18+hoof);ctx.moveTo(10,-4);ctx.lineTo(13,13-gait);ctx.stroke();
+    ctx.strokeStyle='#e2c18d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-12,17-hoof);ctx.lineTo(-12,20-hoof);ctx.moveTo(5,17+hoof);ctx.lineTo(5,20+hoof);ctx.stroke();
+    ctx.fillStyle='#533629';ctx.beginPath();ctx.moveTo(-9,-13);ctx.quadraticCurveTo(-4,-25,6,-22);ctx.quadraticCurveTo(13,-19,12,-11);ctx.lineTo(6,-13);ctx.lineTo(1,-19);ctx.lineTo(-4,-12);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#3d2821';ctx.beginPath();ctx.moveTo(11,-22);ctx.quadraticCurveTo(2,-31,-3,-24);ctx.lineTo(4,-21);ctx.lineTo(9,-16);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#4b3025';ctx.beginPath();ctx.ellipse(0,-5,11,6,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#b68b59';ctx.beginPath();ctx.moveTo(-8,-12);ctx.lineTo(8,-12);ctx.lineTo(10,-4);ctx.lineTo(-9,-4);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#e0c18d';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.strokeStyle='#d5b47d';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(11,-15);ctx.lineTo(20,-8);ctx.lineTo(21,2);ctx.moveTo(13,-13);ctx.lineTo(18,-5);ctx.stroke();
+    ctx.fillStyle='#f7e7c9';ctx.beginPath();ctx.arc(18,-13,2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#24212a';ctx.beginPath();ctx.arc(18.5,-13,1,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f0d9c2';ctx.beginPath();ctx.ellipse(23,-17,3,1.8,-.2,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(255,224,177,.3)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-10,-5);ctx.quadraticCurveTo(-2,-12,7,-7);ctx.stroke();
+    ctx.restore();
+  }
   function draw(ctx,camX,camY,time,width,height){
     if(!ctx||!worldId())return;
     if(state.horseOwned&&state.horseMounted)drawHorse(ctx,state.horseX-camX,state.horseY-camY,time);
