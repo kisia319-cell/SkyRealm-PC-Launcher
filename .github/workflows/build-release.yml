@@ -165,14 +165,14 @@ jobs:
           if ($bytes.Length -lt 1000000 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) { throw "SkyRealmApocalypse.exe is not a valid Windows executable" }
 
       - name: Build PrimeLauncher runtime
-        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --noupx --name PrimeLauncher --icon "${PWD}/PrimeLauncher.ico" --distpath prime_launcher_dist --workpath build_prime_launcher/work --specpath build_prime_launcher --add-data "${PWD}/game/competitive;game/competitive" --add-data "${PWD}/updater_config.json;." --add-data "${PWD}/launcher_version.txt;." --add-data "${PWD}/PrimeLauncher.ico;." launcher.py
 
       - name: Verify PrimeLauncher bundled game UI
         shell: pwsh
         run: |
           $listing = python -m PyInstaller.utils.cliutils.archive_viewer -l -b "prime_launcher_dist/PrimeLauncher.exe" 2>&1 | Out-String
           $normalized = $listing.ToLower().Replace("\", "/")
-          foreach ($asset in @("game/competitive/index.html", "game/competitive/prime-world.js", "game/competitive/prime-online.js")) {
+          foreach ($asset in @("game/competitive/index.html", "game/competitive/prime-world.js", "game/competitive/prime-online.js", "updater_config.json", "launcher_version.txt", "PrimeLauncher.ico")) {
             if (-not $normalized.Contains($asset)) { throw "PrimeLauncher is missing bundled asset: $asset" }
           }
 
