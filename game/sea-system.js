@@ -450,7 +450,50 @@
     // Sharks: animated bodies, tail, dorsal and pectoral fins.
     for(const s of state.sharks){const x=s.x*TILE,y=s.y*TILE,swim=Math.sin(state.time*5+(s.angle||0))*3;ctx.save();ctx.translate(x,y);ctx.scale(1.55,1.55);ctx.rotate((s.angle||0)+(Math.atan2(state.y-s.y,state.x-s.x)*.12));ctx.fillStyle='rgba(0,18,35,.24)';ctx.beginPath();ctx.ellipse(0,9,22,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#719db0';ctx.beginPath();ctx.moveTo(25,0);ctx.quadraticCurveTo(5,-14,-18,-4);ctx.quadraticCurveTo(-26,0,-18,5);ctx.quadraticCurveTo(5,14,25,0);ctx.fill();ctx.fillStyle='#456f86';ctx.beginPath();ctx.moveTo(-17,0);ctx.lineTo(-34,-12+swim);ctx.lineTo(-29,0);ctx.lineTo(-34,12+swim);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(-2,-5);ctx.lineTo(4,-18);ctx.lineTo(11,-4);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(1,5);ctx.lineTo(10,14);ctx.lineTo(13,5);ctx.closePath();ctx.fill();ctx.fillStyle='#e8f5f8';ctx.fillRect(12,-3,3,3);ctx.fillStyle='#10283a';ctx.fillRect(13,-3,2,2);ctx.restore();}
     // Underwater guardians, collectible fish and decorative schools.
-    if(state.underwater)for(const f of state.fish){if(f.respawnAt&&f.respawnAt>Date.now())continue;const spec=SEA_FISH_SPECIES.find(v=>v.id===f.species);if(!spec)continue;const x=f.x*TILE,y=f.y*TILE,swim=Math.sin(state.time*5+(f.x||0))*2.2;ctx.save();ctx.translate(x,y);ctx.rotate(Math.atan2(Math.sin(f.angle||0),Math.cos(f.angle||0)));ctx.fillStyle='rgba(0,12,28,.22)';ctx.beginPath();ctx.ellipse(0,6,10,3,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=spec.color;ctx.beginPath();ctx.ellipse(0,0,10,5+swim*.18,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(-15,-5+swim);ctx.lineTo(-15,5+swim);ctx.closePath();ctx.fill();ctx.fillStyle='#f4fbff';ctx.beginPath();ctx.arc(5,-1,1.7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#142a3b';ctx.beginPath();ctx.arc(5,-1,0.8,0,Math.PI*2);ctx.fill();if(spec.rarity==='Легендарная'||spec.rarity==='Эпическая'){ctx.globalAlpha=.35+.2*Math.sin(state.time*3);ctx.strokeStyle=spec.color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,14,0,Math.PI*2);ctx.stroke();}ctx.restore();}
+    if(state.underwater)for(const f of state.fish){
+      if(f.respawnAt&&f.respawnAt>Date.now())continue;
+      const spec=SEA_FISH_SPECIES.find(v=>v.id===f.species);if(!spec)continue;
+      const x=f.x*TILE,y=f.y*TILE,swim=Math.sin(state.time*5+(f.x||0))*2.2;
+      ctx.save();ctx.translate(x,y);ctx.rotate(Math.atan2(Math.sin(f.angle||0),Math.cos(f.angle||0)));
+      ctx.fillStyle='rgba(0,12,28,.24)';ctx.beginPath();ctx.ellipse(0,7,13,3.5,0,0,Math.PI*2);ctx.fill();
+      const body=ctx.createLinearGradient(0,-7,0,7);body.addColorStop(0,'#ffffff55');body.addColorStop(.32,spec.color);body.addColorStop(1,'#122c4a88');
+      ctx.fillStyle=body;
+      if(spec.id==='moon_jellyfish'){
+        ctx.beginPath();ctx.arc(0,-1,9,Math.PI,0);ctx.quadraticCurveTo(10,8,5,6);ctx.quadraticCurveTo(0,10,-5,6);ctx.quadraticCurveTo(-10,8,-9,-1);ctx.fill();
+        ctx.strokeStyle=spec.color;ctx.lineWidth=1.5;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*3,5);ctx.quadraticCurveTo(i*4+swim,12,i*3-2,17);ctx.stroke();}
+        ctx.globalAlpha=.6;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-3,-3,2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      }else if(spec.id==='golden_seahorse'){
+        ctx.strokeStyle=spec.color;ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,7);ctx.quadraticCurveTo(-9,2,-3,-3);ctx.quadraticCurveTo(7,-9,4,-15);ctx.stroke();
+        ctx.fillStyle=spec.color;ctx.beginPath();ctx.arc(4,-13,4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(6,-15);ctx.lineTo(12,-17);ctx.lineTo(8,-11);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='#fff0b0';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(-1,3,4,Math.PI*.2,Math.PI*1.5);ctx.stroke();
+      }else if(spec.id==='glass_ray'){
+        ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(13,0);ctx.quadraticCurveTo(2,-3,-5,-13);ctx.quadraticCurveTo(-3,-4,-14,-5);ctx.quadraticCurveTo(-9,0,-14,5);ctx.quadraticCurveTo(-3,4,-5,13);ctx.quadraticCurveTo(2,3,13,0);ctx.fill();
+        ctx.strokeStyle='rgba(235,255,255,.75)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-8,-4);ctx.lineTo(5,0);ctx.lineTo(-8,4);ctx.stroke();
+        ctx.strokeStyle=spec.color;ctx.beginPath();ctx.moveTo(-11,0);ctx.quadraticCurveTo(-18,5,-21,11+swim);ctx.stroke();
+      }else if(spec.id==='abyss_eel'){
+        ctx.beginPath();ctx.moveTo(14,0);ctx.bezierCurveTo(6,-9,-1,9,-9,0);ctx.bezierCurveTo(-14,-7,-18,-4,-19,0);ctx.bezierCurveTo(-12,8,-4,-8,5,0);ctx.bezierCurveTo(9,4,12,3,14,0);ctx.fill();
+        ctx.fillStyle='#d6efff';ctx.beginPath();ctx.arc(10,-2,1.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#10152d';ctx.beginPath();ctx.arc(10,-2,.7,0,Math.PI*2);ctx.fill();
+      }else if(spec.id==='pearl_nautilus'){
+        ctx.beginPath();ctx.ellipse(-1,0,11,8,-.15,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#fff1c9';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(-2,0,6,0,Math.PI*1.85);ctx.stroke();ctx.beginPath();ctx.arc(-2,0,3,0,Math.PI*1.8);ctx.stroke();
+        ctx.strokeStyle='#e8d4a5';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(7,-2);ctx.quadraticCurveTo(14,-7,16,-12);ctx.moveTo(8,1);ctx.quadraticCurveTo(15,4,18,8);ctx.stroke();
+      }else{
+        const wide=spec.id==='abyss_angler'?13:spec.id==='coral_lionfish'?9:11;
+        ctx.beginPath();ctx.ellipse(0,0,wide,5+swim*.16,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=spec.id==='coral_lionfish'?'#fff0d0':spec.id==='clown_fish'?'#fff0dc':'rgba(255,255,255,.55)';
+        if(spec.id==='clown_fish'||spec.id==='coral_lionfish'){ctx.fillRect(-4,-4,2,8);ctx.fillRect(3,-4,2,8);}
+        if(spec.id==='blue_tang'){ctx.fillStyle='#132e63';ctx.beginPath();ctx.moveTo(-8,-4);ctx.lineTo(-1,-5);ctx.lineTo(2,5);ctx.lineTo(-6,4);ctx.fill();}
+        if(spec.id==='silver_fish'){ctx.strokeStyle='#f5fdff';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-6,-1);ctx.lineTo(7,-1);ctx.stroke();}
+        if(spec.id==='abyss_angler'){ctx.fillStyle='#e4d8ff';ctx.beginPath();ctx.arc(9,-5,2,0,Math.PI*2);ctx.fill();ctx.strokeStyle=spec.color;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(7,-2);ctx.quadraticCurveTo(13,-12,9,-14);ctx.stroke();}
+        if(spec.id==='coral_lionfish'){ctx.strokeStyle=spec.color;ctx.lineWidth=1.5;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(i*3,-3);ctx.lineTo(i*5,-12);ctx.moveTo(i*3,3);ctx.lineTo(i*5,12);ctx.stroke();}}
+        ctx.fillStyle=spec.color;ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(-16,-6+swim);ctx.lineTo(-16,6+swim);ctx.closePath();ctx.fill();
+        ctx.beginPath();ctx.moveTo(-1,-4);ctx.lineTo(3,-10);ctx.lineTo(6,-3);ctx.closePath();ctx.fill();
+      }
+      ctx.fillStyle='#f4fbff';ctx.beginPath();ctx.arc(spec.id==='golden_seahorse'?5:-7,-2,1.7,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#142a3b';ctx.beginPath();ctx.arc(spec.id==='golden_seahorse'?5.5:-7,-2,.8,0,Math.PI*2);ctx.fill();
+      if(spec.rarity==='Легендарная'||spec.rarity==='Эпическая'){ctx.globalAlpha=.28+.18*Math.sin(state.time*3);ctx.strokeStyle=spec.color;ctx.lineWidth=1.7;ctx.beginPath();ctx.arc(0,0,17,0,Math.PI*2);ctx.stroke();}
+      ctx.restore();
+    }
     for(const m of state.monsters){const x=m.x*TILE,y=m.y*TILE,pulse=Math.sin(state.time*4+x)*2;ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(8,19,48,.3)';ctx.beginPath();ctx.ellipse(0,9,17,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9368b4';ctx.beginPath();ctx.ellipse(0,0,12,10+pulse,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d5b5f3';ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-18,-8);ctx.lineTo(-16,8);ctx.closePath();ctx.fill();ctx.fillStyle='#f6eaff';ctx.fillRect(-5,-3,3,3);ctx.fillRect(3,-3,3,3);ctx.restore();}
     for(let shoal=0;shoal<24;shoal++){const bx=(25+shoal*23%338)*TILE,by=(12+(shoal*31)%242)*TILE;if(bx/TILE<left-5||bx/TILE>right+5||by/TILE<top-5||by/TILE>bottom+5)continue;for(let f=0;f<5;f++){const fx=bx+Math.sin(state.time*1.5+f+shoal)*18+f*8,fy=by+Math.cos(state.time*1.7+f)*9;ctx.fillStyle='#d5eef0';ctx.beginPath();ctx.ellipse(fx,fy,5,2.5,.15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7cc8cf';ctx.beginPath();ctx.moveTo(fx-4,fy);ctx.lineTo(fx-9,fy-4);ctx.lineTo(fx-9,fy+4);ctx.fill();}}
     if(state.underwater){    // A glowing stone arch marks the only entrance to the three-room underwater grotto.
