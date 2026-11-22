@@ -27,7 +27,11 @@
     {id:'blue_tang',name:'Синий хирург',rarity:'Редкая',color:'#4e9cff',minDepth:25,weight:12},
     {id:'moon_jellyfish',name:'Лунная медуза',rarity:'Редкая',color:'#d8a5ff',minDepth:55,weight:9},
     {id:'abyss_angler',name:'Глубинный удильщик',rarity:'Эпическая',color:'#8c75d8',minDepth:105,weight:5},
-    {id:'golden_seahorse',name:'Золотой морской конёк',rarity:'Легендарная',color:'#ffd76a',minDepth:145,weight:2}
+    {id:'golden_seahorse',name:'Золотой морской конёк',rarity:'Легендарная',color:'#ffd76a',minDepth:145,weight:2},
+    {id:'glass_ray',name:'Стеклянный скат',rarity:'Эпическая',color:'#9ce8e5',minDepth:85,weight:4},
+    {id:'abyss_eel',name:'Бездна угорь',rarity:'Эпическая',color:'#6474c9',minDepth:125,weight:4},
+    {id:'coral_lionfish',name:'Коралловая крылатка',rarity:'Редкая',color:'#ef9874',minDepth:45,weight:8},
+    {id:'pearl_nautilus',name:'Жемчужный наутилус',rarity:'Легендарная',color:'#f6e5b9',minDepth:175,weight:1}
   ];
   const KRAKEN_LAIR={x:320,y:132,radius:13};
   const KRAKEN_BASE_HP=4200;
@@ -94,7 +98,7 @@
     if(!Array.isArray(state.fish))state.fish=[];
     if(!state.fishCaught||typeof state.fishCaught!=='object')state.fishCaught={};
     state.fishCaught=Object.fromEntries(SEA_FISH_SPECIES.map(spec=>[spec.id,clamp(Math.floor(Number(state.fishCaught[spec.id])||0),0,999999)]));
-    if(state.fish.length<18){for(let i=state.fish.length;i<26;i++){const x=rand(18,W-12),y=rand(10,H-10),spec=SEA_FISH_SPECIES[Math.floor(Math.random()*3)];state.fish.push({id:'sea-fish-'+i+'-'+Math.floor(Math.random()*1e6),species:spec.id,x,y,angle:rand(0,6.28),speed:rand(2.5,5.5),respawnAt:0});}}
+    if(state.fish.length<26){for(let i=state.fish.length;i<34;i++){const x=rand(18,W-12),y=rand(10,H-10),pool=SEA_FISH_SPECIES.filter(spec=>y>=spec.minDepth),total=pool.reduce((n,spec)=>n+spec.weight,0);let roll=Math.random()*total,spec=pool[0];for(const candidate of pool){roll-=candidate.weight;if(roll<=0){spec=candidate;break;}}state.fish.push({id:'sea-fish-'+i+'-'+Math.floor(Math.random()*1e6),species:spec.id,x,y,angle:rand(0,6.28),speed:rand(2.5,5.5),respawnAt:0});}}
     state.fish=state.fish.filter(f=>f&&SEA_FISH_SPECIES.some(spec=>spec.id===f.species)&&Number.isFinite(f.x)&&Number.isFinite(f.y)).slice(0,80);
   }
   function build(){
@@ -242,10 +246,7 @@
   function catchSeaFish(){
     const fish=nearestSeaFish();if(!fish)return false;
     const spec=SEA_FISH_SPECIES.find(v=>v.id===fish.species);if(!spec)return false;
-    const depth=state.y,rareRoll=Math.random();let caught=spec;
-    const pool=SEA_FISH_SPECIES.filter(v=>depth>=v.minDepth);
-    const total=pool.reduce((sum,v)=>sum+v.weight,0);let roll=rareRoll*total;
-    for(const candidate of pool){roll-=candidate.weight;if(roll<=0){caught=candidate;break;}}
+    const depth=state.y;let caught=spec;
     const b=bridge();b?.addItem?.(caught.name,1,'Поймано в морской экспедиции.');
     state.fishCaught[caught.id]=(Number(state.fishCaught[caught.id])||0)+1;
     const target=state.fish.find(v=>v.id===fish.id);if(target){target.respawnAt=Date.now()+rand(12000,26000);target.x=clamp(target.x+rand(-14,14),5,W-5);target.y=clamp(target.y+rand(-14,14),5,H-5);}
