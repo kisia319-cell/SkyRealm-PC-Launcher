@@ -149,11 +149,11 @@
     state.ownedPets.push(id);state.petLevels[id]={level:1,xp:0};state.activePet=id;state.petCooldown=.5;save();notify('\u041d\u043e\u0432\u044b\u0439 \u0441\u043f\u0443\u0442\u043d\u0438\u043a \u0432 \u043a\u043e\u043c\u0430\u043d\u0434\u0435: '+pet.name+'!');checkAchievements();render();
   }
   function buyHorse(){
-    const b=bridge();if(state.horseOwned){state.horseMounted=!state.horseMounted;save();notify(state.horseMounted?'Ты оседлал коня. Открой вкладку поселения в Мире торговых городов, чтобы отправиться к знакомому селению.':'Ты спешился.');render();return;}
+    const b=bridge();if(state.horseOwned){state.horseMounted=!state.horseMounted;const pos=b?.getPlayerPosition?.();if(state.horseMounted&&pos){state.horseX=pos.x;state.horseY=pos.y+8;}save();notify(state.horseMounted?'Ты оседлал коня. Открой вкладку поселения в Мире торговых городов, чтобы отправиться к знакомому селению.':'Ты спешился.');render();return;}
     if(b?.isCoopWorld?.()||b?.isBossRealm?.()||b?.isSpecialWorldMode?.()){notify('Конюшня доступна в обычном мире, не во время особых экспедиций.');return;}
     if(Number(b?.getGold?.()||0)<1800){notify('Для покупки коня нужно 1800 золота.');return;}
     if(b?.spendGold?.(1800)!==true){notify('Не удалось оплатить покупку коня.');return;}
-    state.horseOwned=true;state.horseMounted=true;save();notify('Лошадь куплена и осёдлана! Теперь можно быстро добираться до открытых селений в Мире торговых городов.');render();
+    state.horseOwned=true;state.horseMounted=true;const pos=b?.getPlayerPosition?.();if(pos){state.horseX=pos.x;state.horseY=pos.y+8;}save();notify('Лошадь куплена и осёдлана! Теперь можно быстро добираться до открытых селений в Мире торговых городов.');render();
   }
   function travelByHorse(index){
     const b=bridge();if(!state.horseOwned||!state.horseMounted){notify('Сначала оседлай своего коня.');return;}
