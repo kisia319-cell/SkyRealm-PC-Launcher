@@ -66,7 +66,7 @@
     engineer:{name:'Городской мастер',icon:'⚒️',cost:1100,requires:'school',desc:'Снижает стоимость улучшения построек на 10%.'}
   };
   const defaults = () => ({
-    version:VERSION, ownedPets:[], activePet:null, petLevels:{}, petGear:{}, petX:0, petY:0, petCooldown:1.5,
+    version:VERSION, ownedPets:[], activePet:null, petLevels:{}, petGear:{}, petX:0, petY:0, petCooldown:1.5, horseOwned:false, horseMounted:false, horseX:0, horseY:0,
     fish:{}, projects:{}, projectLevels:{}, lastSeasonKey:'', pendingSeason:'', claimedSeasons:[],
     seasonsSeen:[], lastMarketDay:-1, lastGranaryDay:-1, lastFountainDay:-1, contractsDay:-1, contracts:[], raid:null, raidCooldownDay:0,
     town:{renown:0,happiness:55,lastIncomeDay:-1,patrolCooldownDay:0,patrol:null,population:15,lastPopulationDay:-1,nextCaravanDay:3,caravan:{day:-1,status:'none',id:'',spawned:0},staff:{},lastStaffIncomeDay:-1},
@@ -83,6 +83,7 @@
     s.activePet=s.ownedPets.includes(raw.activePet)?raw.activePet:null;
     s.petLevels=raw.petLevels&&typeof raw.petLevels==='object'?Object.fromEntries(s.ownedPets.map(id=>{const v=raw.petLevels[id]||{};return [id,{level:clamp(Math.floor(Number(v.level)||1),1,10),xp:clamp(Math.floor(Number(v.xp)||0),0,99)}];})):{};
     s.petGear=raw.petGear&&typeof raw.petGear==='object'?Object.fromEntries(s.ownedPets.map(id=>{const v=raw.petGear[id]||{};return [id,{collar:clamp(Math.floor(Number(v.collar)||0),0,3),armor:clamp(Math.floor(Number(v.armor)||0),0,3)}];})):Object.fromEntries(s.ownedPets.map(id=>[id,{collar:0,armor:0}]));
+    s.horseOwned=raw.horseOwned===true;s.horseMounted=s.horseOwned&&raw.horseMounted===true;s.horseX=Number.isFinite(raw.horseX)?clamp(raw.horseX,0,10000000):0;s.horseY=Number.isFinite(raw.horseY)?clamp(raw.horseY,0,10000000):0;
     s.petX=Number.isFinite(raw.petX)?clamp(raw.petX,0,10000000):0;
     s.petY=Number.isFinite(raw.petY)?clamp(raw.petY,0,10000000):0;
     s.petCooldown=clamp(Number(raw.petCooldown)||1.5,0,30);
@@ -146,6 +147,19 @@
     if(Number(bridge()?.getGold?.()||0)<pet.price){notify('\u041d\u0443\u0436\u043d\u043e \u0437\u043e\u043b\u043e\u0442\u043e: '+pet.price+'.');return;}
     if(bridge()?.spendGold?.(pet.price)!==true){notify('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u043f\u043b\u0430\u0442\u0438\u0442\u044c \u043f\u043e\u043a\u0443\u043f\u043a\u0443.');return;}
     state.ownedPets.push(id);state.petLevels[id]={level:1,xp:0};state.activePet=id;state.petCooldown=.5;save();notify('\u041d\u043e\u0432\u044b\u0439 \u0441\u043f\u0443\u0442\u043d\u0438\u043a \u0432 \u043a\u043e\u043c\u0430\u043d\u0434\u0435: '+pet.name+'!');checkAchievements();render();
+  }
+  function buyHorse(){
+    const b=bridge();if(state.horseOwned){state.horseMounted=!state.horseMounted;save();notify(state.horseMounted?'Ты оседлал коня. Открой вкладку поселения в Мире торговых городов, чтобы отправиться к знакомому селению.':'Ты спешился.');render();return;}
+    if(b?.isCoopWorld?.()||b?.isBossRealm?.()||b?.isSpecialWorldMode?.()){notify('Конюшня доступна в обычном мире, не во время особых экспедиций.');return;}
+    if(Number(b?.getGold?.()||0)<1800){notify('Для покупки коня нужно 1800 золота.');return;}
+    if(b?.spendGold?.(1800)!==true){notify('Не удалось оплатить покупку коня.');return;}
+    state.horseOwned=true;state.horseMounted=true;save();notify('Лошадь куплена и осёдлана! Теперь можно быстро добираться до открытых селений в Мире торговых городов.');render();
+  }
+  function travelByHorse(index){
+    const b=bridge();if(!state.horseOwned||!state.horseMounted){notify('Сначала оседлай своего коня.');return;}
+    if(!b?.isTradeWorld?.()){notify('Быстрые конные маршруты доступны между открытыми селениями в Мире торговых городов.');return;}
+    if(b?.travelToVillage?.(index)!==true){notify('Не удалось найти безопасное место для высадки у этого селения.');return;}
+    notify('Конный переход завершён.');save();
   }
   function upgradePetGear(id,slot){
     if(!state.ownedPets.includes(id)||!['collar','armor'].includes(slot))return false;
@@ -297,6 +311,7 @@
       if(day>0)notify('\u0416\u0438\u0442\u0435\u043b\u0438 \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u0438\u043b\u0438 \u043d\u043e\u0432\u044b\u0435 \u0435\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0435 \u043f\u043e\u0440\u0443\u0447\u0435\u043d\u0438\u044f.');
     }
     const pet=currentPet(),pos=b?.getPlayerPosition?.();
+    if(state.horseOwned&&state.horseMounted&&pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.y)){state.horseX=pos.x;state.horseY=pos.y+8;}
     if(pet&&pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.y)){
       if(!state.petX&&!state.petY){state.petX=pos.x-42;state.petY=pos.y+28;}
       const targetX=pos.x-42,targetY=pos.y+28+Math.sin(Date.now()/240)*3,blend=clamp(dt*3.2,0,1);
@@ -539,8 +554,10 @@
     ctx.strokeStyle='#8a6544';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(28,-4);ctx.lineTo(50,-7+sway);ctx.lineTo(58,1);ctx.stroke();ctx.fillStyle='#986a48';ctx.beginPath();ctx.ellipse(58,-7+sway,11,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d2b18a';ctx.beginPath();ctx.arc(67,-13+sway,6,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#d8bd87';ctx.fillRect(-12,-48,3,20);ctx.fillStyle=caravan.status==='complete'?'#8bd8b5':'#d65f56';ctx.beginPath();ctx.moveTo(-9,-47);ctx.lineTo(13,-40);ctx.lineTo(-9,-32);ctx.closePath();ctx.fill();ctx.fillStyle='#f7d58a';ctx.shadowColor='#ffd27e';ctx.shadowBlur=9;ctx.beginPath();ctx.arc(-4,-22,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#f1f5ea';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('КАРАВАН',0,-57);ctx.restore();
   }
+  function drawHorse(ctx,x,y,time){const gait=Math.sin(time/75)*3;ctx.save();ctx.translate(x,y+5);ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(0,12,22,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8b5a37';ctx.beginPath();ctx.ellipse(0,-1,17,10,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(12,-10,8,11,-.2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#5a3828';ctx.fillRect(-12,5,4,12+gait);ctx.fillRect(5,5,4,12-gait);ctx.fillRect(13,-3,3,13+gait);ctx.fillStyle='#4b2d23';ctx.beginPath();ctx.moveTo(18,-18);ctx.lineTo(22,-25);ctx.lineTo(25,-17);ctx.fill();ctx.beginPath();ctx.arc(17,-12,2,0,Math.PI*2);ctx.fillStyle='#f7e7c9';ctx.fill();ctx.fillStyle='#24212a';ctx.beginPath();ctx.arc(18,-12,1,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d7b47d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-15,-5);ctx.quadraticCurveTo(-25,-12,-22,-21);ctx.stroke();ctx.fillStyle='#553e32';ctx.fillRect(-2,-14,14,3);ctx.fillStyle='#d5b57e';ctx.fillRect(-2,-15,3,5);ctx.restore();}
   function draw(ctx,camX,camY,time,width,height){
     if(!ctx||!worldId())return;
+    if(state.horseOwned&&state.horseMounted)drawHorse(ctx,state.horseX-camX,state.horseY-camY,time);
     const pet=currentPet();if(pet)drawPet(ctx,state.petX-camX,state.petY-camY,time,pet);
     drawTownProjects(ctx,camX,camY,time);
     window.SkyRealmAdventureGuild?.draw?.(ctx,camX,camY,time,width,height);
@@ -553,7 +570,9 @@
     return '<article class="lw-card"><div class="lw-metrics"><div><b>'+unique+' / '+FISH.length+'</b><small>\u0412\u0438\u0434\u043e\u0432 \u0432 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438</small></div><div><b>'+total+'</b><small>\u0420\u0435\u0434\u043a\u0438\u0445 \u0443\u043b\u043e\u0432\u043e\u0432</small></div></div><p>\u0420\u044b\u0431\u0430\u043b\u043a\u0430 \u0443\u0436\u0435 \u0435\u0441\u0442\u044c \u0432 \u0438\u0433\u0440\u0435. \u0422\u0435\u043f\u0435\u0440\u044c \u0432 \u043a\u0430\u0436\u0434\u043e\u043c \u0441\u0435\u0437\u043e\u043d\u0435 \u043c\u043e\u0436\u043d\u043e \u043d\u0430\u0439\u0442\u0438 \u0443\u043d\u0438\u043a\u0430\u043b\u044c\u043d\u044b\u0435 \u0432\u0438\u0434\u044b. \u041b\u043e\u0432\u0438 \u0443 \u0431\u0435\u0440\u0435\u0433\u0430 \u0441 \u0443\u0434\u043e\u0447\u043a\u043e\u0439 \u043a\u0430\u043a \u0440\u0430\u043d\u044c\u0448\u0435.</p></article><div class="lw-grid">'+FISH.map(f=>{const count=Number(state.fish[f.id])||0,stock=Math.max(0,Number(bridge()?.getItemCount?.(f.name))||0);return '<article class="lw-card"><div class="lw-fish-icon">'+(count?f.icon:'\u{1F512}')+'</div><b>'+esc(count?f.name:'???')+'</b><small>'+esc(count?f.rarity:'\u0415\u0449\u0451 \u043d\u0435 \u043f\u043e\u0439\u043c\u0430\u043d\u0430')+'</small><span class="lw-count">'+count+' \u0448\u0442. \u0432 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438</span>'+(stock?'<button type="button" data-lw-action="fish-sell:'+f.id+'">\u041f\u0440\u043e\u0434\u0430\u0442\u044c '+stock+' \u00b7 '+(stock*f.price)+' \u0437\u043e\u043b\u043e\u0442\u0430</button>':'<small>\u041d\u0435\u0442 \u0440\u044b\u0431\u044b \u0434\u043b\u044f \u043f\u0440\u043e\u0434\u0430\u0436\u0438</small>')+'</article>';}).join('')+'</div>';
   }
   function renderPets(){
-    return '<p class="lw-note">Спутник следует за героем и автоматически атакует ближайших обычных врагов. За победы питомец получает опыт и растёт до 10 уровня. Боевой ошейник добавляет урон, защитная броня даёт владельцу дополнительную защиту. Улучшения сохраняются в мире.</p><div class="lw-grid">'+Object.entries(PETS).map(([id,p])=>{const owned=state.ownedPets.includes(id),active=state.activePet===id,locked=p.premium&&!premium(),progress=state.petLevels[id]||{level:1,xp:0},gear=state.petGear[id]||{collar:0,armor:0},rarity={fox:'Обычная',wolf:'Редкая',owl:'Редкая',turtle:'Эпическая',phoenix:'Легендарная',dragon:'Мифическая'}[id];return '<article class="lw-card lw-pet '+(active?'selected':'')+'"><div class="lw-pet-icon">'+p.icon+'</div><b>'+esc(p.name)+'</b><small>'+esc(rarity)+(owned?' · Ур. '+progress.level+'/10':'')+'</small><small>'+esc(p.desc)+'</small><small>Урон: '+(p.damage+(owned?(progress.level-1)*2:0)+(owned?gear.collar*4+gear.armor*2:0))+' · КД: '+p.cooldown+'с</small>'+(owned?'<small>Ошейник '+gear.collar+'/3 · Броня '+gear.armor+'/3</small><button type="button" data-lw-action="pet-gear:'+id+':collar">Улучшить ошейник</button><button type="button" data-lw-action="pet-gear:'+id+':armor">Улучшить броню питомца</button>':'')+(locked?'<span class="lw-premium">👑 Premium</span>':'')+'<button type="button" data-lw-action="pet:'+id+'">'+(active?'Активен':owned?'Выбрать':p.premium?'Открыть Premium':('Приручить · '+p.price+' золота'))+'</button></article>';}).join('')+'</div>';
+    const villages=bridge()?.isTradeWorld?.()?bridge()?.getVillageCenters?.()||[]:[];
+    const horse='<article class="lw-card lw-pet '+(state.horseMounted?'selected':'')+'"><div class="lw-pet-icon">🐎</div><b>Лошадь-путешественница</b><small>'+(state.horseOwned?'Твоя лошадь · '+(state.horseMounted?'осёдлана':'в конюшне'):'Конь для дальних путешествий')+'</small><small>Позволяет быстро перемещаться между открытыми селениями в Мире торговых городов. Покупка: 1800 золота.</small><button type="button" data-lw-action="horse">'+(state.horseOwned?(state.horseMounted?'Спешиться':'Оседлать'):'Купить лошадь · 1800 золота')+'</button>'+(state.horseOwned&&state.horseMounted?(villages.length?'<div class="lw-note">Конные маршруты · выбери селение</div>'+villages.map((v,i)=>'<button type="button" data-lw-action="horse-travel:'+i+'">Отправиться: '+esc(v.id||('Селение '+(i+1)))+'</button>').join(''):'<small>Чтобы открыть конные маршруты, перейди в Мир торговых городов.</small>'):'')+'</article>';
+    return horse+'<p class="lw-note">Спутник следует за героем и автоматически атакует ближайших обычных врагов. За победы питомец получает опыт и растёт до 10 уровня. Боевой ошейник добавляет урон, защитная броня даёт владельцу дополнительную защиту. Улучшения сохраняются в мире.</p><div class="lw-grid">'+Object.entries(PETS).map(([id,p])=>{const owned=state.ownedPets.includes(id),active=state.activePet===id,locked=p.premium&&!premium(),progress=state.petLevels[id]||{level:1,xp:0},gear=state.petGear[id]||{collar:0,armor:0},rarity={fox:'Обычная',wolf:'Редкая',owl:'Редкая',turtle:'Эпическая',phoenix:'Легендарная',dragon:'Мифическая'}[id];return '<article class="lw-card lw-pet '+(active?'selected':'')+'"><div class="lw-pet-icon">'+p.icon+'</div><b>'+esc(p.name)+'</b><small>'+esc(rarity)+(owned?' · Ур. '+progress.level+'/10':'')+'</small><small>'+esc(p.desc)+'</small><small>Урон: '+(p.damage+(owned?(progress.level-1)*2:0)+(owned?gear.collar*4+gear.armor*2:0))+' · КД: '+p.cooldown+'с</small>'+(owned?'<small>Ошейник '+gear.collar+'/3 · Броня '+gear.armor+'/3</small><button type="button" data-lw-action="pet-gear:'+id+':collar">Улучшить ошейник</button><button type="button" data-lw-action="pet-gear:'+id+':armor">Улучшить броню питомца</button>':'')+(locked?'<span class="lw-premium">👑 Premium</span>':'')+'<button type="button" data-lw-action="pet:'+id+'">'+(active?'Активен':owned?'Выбрать':p.premium?'Открыть Premium':('Приручить · '+p.price+' золота'))+'</button></article>';}).join('')+'</div>';
   }
   function renderContracts(){
     const day=Math.max(0,Number(bridge()?.getGameDay?.())||0);
@@ -624,6 +643,8 @@
       if(action.startsWith('fish-sell:')){sellFish(action.slice(10));return;}
       if(action.startsWith('pet:')){buyOrSelectPet(action.slice(4));return;}
       if(action.startsWith('pet-gear:')){const parts=action.split(':');upgradePetGear(parts[1],parts[2]);return;}
+      if(action==='horse'){buyHorse();return;}
+      if(action.startsWith('horse-travel:')){travelByHorse(Number(action.slice(13)));return;}
       if(action.startsWith('project:')){buildProject(action.slice(8));return;}
       if(action.startsWith('upgrade:')){upgradeProject(action.slice(8));return;}
       if(action==='town-patrol'){startTownPatrol();return;}
