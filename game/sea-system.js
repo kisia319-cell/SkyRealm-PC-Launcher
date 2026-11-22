@@ -31,7 +31,7 @@
     {id:'glass_ray',name:'Стеклянный скат',rarity:'Эпическая',color:'#9ce8e5',minDepth:85,weight:4},
     {id:'abyss_eel',name:'Бездна угорь',rarity:'Эпическая',color:'#6474c9',minDepth:125,weight:4},
     {id:'coral_lionfish',name:'Коралловая крылатка',rarity:'Редкая',color:'#ef9874',minDepth:45,weight:8},
-    {id:'pearl_nautilus',name:'Жемчужный наутилус',rarity:'Легендарная',color:'#f6e5b9',minDepth:175,weight:1}
+    {id:'pearl_nautilus',name:'Жемчужный наутилус',rarity:'Легендарная',color:'#f6e5b9',minDepth:150,weight:1}
   ];
   const KRAKEN_LAIR={x:320,y:132,radius:13};
   const KRAKEN_BASE_HP=4200;
