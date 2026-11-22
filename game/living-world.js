@@ -303,7 +303,7 @@
       state.petX+=(targetX-state.petX)*blend;state.petY+=(targetY-state.petY)*blend;
       state.petCooldown=Math.max(0,state.petCooldown-dt);
       if(state.petCooldown<=0){
-        const progression=state.petLevels[state.activePet]||{level:1,xp:0},gear=state.petGear[state.activePet]||{collar:0,armor:0};const petDamage=pet.damage+(progression.level-1)*2+gear.collar*4+gear.armor*2;
+        const progression=state.petLevels[state.activePet]||{level:1,xp:0},gear=state.petGear[state.activePet]||{collar:0,armor:0};const petDamage=pet.damage+(progression.level-1)*2+gear.collar*4;
         const result=b?.petAttackNearest?.(Math.round(petDamage*(state.projects.watchtower?1.3:1)));
         if(result&&typeof result==='object'&&result.killed){state.stats.petKills++;progression.xp++;if(progression.xp>=progression.level*5&&progression.level<10){progression.level++;progression.xp=0;notify(pet.name+' достиг уровня '+progression.level+'!');}state.petLevels[state.activePet]=progression;checkAchievements();save();}
         state.petCooldown=pet.cooldown*(state.projects.sanctuary?.86:1);
