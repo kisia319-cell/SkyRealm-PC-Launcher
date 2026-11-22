@@ -66,7 +66,7 @@
     engineer:{name:'Городской мастер',icon:'⚒️',cost:1100,requires:'school',desc:'Снижает стоимость улучшения построек на 10%.'}
   };
   const defaults = () => ({
-    version:VERSION, ownedPets:[], activePet:null, petLevels:{}, petX:0, petY:0, petCooldown:1.5,
+    version:VERSION, ownedPets:[], activePet:null, petLevels:{}, petGear:{}, petX:0, petY:0, petCooldown:1.5,
     fish:{}, projects:{}, projectLevels:{}, lastSeasonKey:'', pendingSeason:'', claimedSeasons:[],
     seasonsSeen:[], lastMarketDay:-1, lastGranaryDay:-1, lastFountainDay:-1, contractsDay:-1, contracts:[], raid:null, raidCooldownDay:0,
     town:{renown:0,happiness:55,lastIncomeDay:-1,patrolCooldownDay:0,patrol:null,population:15,lastPopulationDay:-1,nextCaravanDay:3,caravan:{day:-1,status:'none',id:'',spawned:0},staff:{},lastStaffIncomeDay:-1},
@@ -82,6 +82,7 @@
     s.ownedPets=Array.isArray(raw.ownedPets)?Array.from(new Set(raw.ownedPets.filter(id=>Object.prototype.hasOwnProperty.call(PETS,id)))).slice(0,6):[];
     s.activePet=s.ownedPets.includes(raw.activePet)?raw.activePet:null;
     s.petLevels=raw.petLevels&&typeof raw.petLevels==='object'?Object.fromEntries(s.ownedPets.map(id=>{const v=raw.petLevels[id]||{};return [id,{level:clamp(Math.floor(Number(v.level)||1),1,10),xp:clamp(Math.floor(Number(v.xp)||0),0,99)}];})):{};
+    s.petGear=raw.petGear&&typeof raw.petGear==='object'?Object.fromEntries(s.ownedPets.map(id=>{const v=raw.petGear[id]||{};return [id,{collar:clamp(Math.floor(Number(v.collar)||0),0,3),armor:clamp(Math.floor(Number(v.armor)||0),0,3)}];})):Object.fromEntries(s.ownedPets.map(id=>[id,{collar:0,armor:0}]));
     s.petX=Number.isFinite(raw.petX)?clamp(raw.petX,0,10000000):0;
     s.petY=Number.isFinite(raw.petY)?clamp(raw.petY,0,10000000):0;
     s.petCooldown=clamp(Number(raw.petCooldown)||1.5,0,30);
@@ -145,6 +146,16 @@
     if(Number(bridge()?.getGold?.()||0)<pet.price){notify('\u041d\u0443\u0436\u043d\u043e \u0437\u043e\u043b\u043e\u0442\u043e: '+pet.price+'.');return;}
     if(bridge()?.spendGold?.(pet.price)!==true){notify('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u043f\u043b\u0430\u0442\u0438\u0442\u044c \u043f\u043e\u043a\u0443\u043f\u043a\u0443.');return;}
     state.ownedPets.push(id);state.petLevels[id]={level:1,xp:0};state.activePet=id;state.petCooldown=.5;save();notify('\u041d\u043e\u0432\u044b\u0439 \u0441\u043f\u0443\u0442\u043d\u0438\u043a \u0432 \u043a\u043e\u043c\u0430\u043d\u0434\u0435: '+pet.name+'!');checkAchievements();render();
+  }
+  function upgradePetGear(id,slot){
+    if(!state.ownedPets.includes(id)||!['collar','armor'].includes(slot))return false;
+    const gear=state.petGear[id]||(state.petGear[id]={collar:0,armor:0}),level=clamp(Math.floor(Number(gear[slot])||0),0,3);
+    if(level>=3){notify('Это снаряжение уже улучшено до максимума.');return false;}
+    const costs=slot==='collar'?[{'Кожа':3,'Железо':2},{'Кожа':5,'Серебро':3,'Кристалл':1},{'Кожа':8,'Мифрил':4,'Рубин':2}]:[{'Кожа':4,'Кость':3},{'Кожа':6,'Железо':5,'Обсидиан':2},{'Кожа':9,'Мифрил':4,'Алмаз':2}];
+    const cost=costs[level],b=bridge(),missing=Object.entries(cost).filter(([name,count])=>(Number(b?.getItemCount?.(name))||0)<count);
+    if(missing.length){notify('Не хватает материалов: '+missing.map(([name,count])=>name+' '+(Number(b?.getItemCount?.(name))||0)+'/'+count).join(', ')+'.');return false;}
+    for(const [name,count] of Object.entries(cost)){if(b?.spendItem?.(name,count)!==true){notify('Не удалось списать материалы для снаряжения.');return false;}}
+    gear[slot]=level+1;save();notify((PETS[id]?.name||'Питомец')+': '+(slot==='collar'?'боевой ошейник':'защитная броня')+' улучшены до '+(level+1)+' уровня.');render();return true;
   }
   function buildProject(id){
     const item=PROJECTS[id];if(!item||state.projects[id])return false;
@@ -292,7 +303,7 @@
       state.petX+=(targetX-state.petX)*blend;state.petY+=(targetY-state.petY)*blend;
       state.petCooldown=Math.max(0,state.petCooldown-dt);
       if(state.petCooldown<=0){
-        const progression=state.petLevels[state.activePet]||{level:1,xp:0};const petDamage=pet.damage+(progression.level-1)*2;
+        const progression=state.petLevels[state.activePet]||{level:1,xp:0},gear=state.petGear[state.activePet]||{collar:0,armor:0};const petDamage=pet.damage+(progression.level-1)*2+gear.collar*4+gear.armor*2;
         const result=b?.petAttackNearest?.(Math.round(petDamage*(state.projects.watchtower?1.3:1)));
         if(result&&typeof result==='object'&&result.killed){state.stats.petKills++;progression.xp++;if(progression.xp>=progression.level*5&&progression.level<10){progression.level++;progression.xp=0;notify(pet.name+' достиг уровня '+progression.level+'!');}state.petLevels[state.activePet]=progression;checkAchievements();save();}
         state.petCooldown=pet.cooldown*(state.projects.sanctuary?.86:1);
@@ -542,7 +553,7 @@
     return '<article class="lw-card"><div class="lw-metrics"><div><b>'+unique+' / '+FISH.length+'</b><small>\u0412\u0438\u0434\u043e\u0432 \u0432 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438</small></div><div><b>'+total+'</b><small>\u0420\u0435\u0434\u043a\u0438\u0445 \u0443\u043b\u043e\u0432\u043e\u0432</small></div></div><p>\u0420\u044b\u0431\u0430\u043b\u043a\u0430 \u0443\u0436\u0435 \u0435\u0441\u0442\u044c \u0432 \u0438\u0433\u0440\u0435. \u0422\u0435\u043f\u0435\u0440\u044c \u0432 \u043a\u0430\u0436\u0434\u043e\u043c \u0441\u0435\u0437\u043e\u043d\u0435 \u043c\u043e\u0436\u043d\u043e \u043d\u0430\u0439\u0442\u0438 \u0443\u043d\u0438\u043a\u0430\u043b\u044c\u043d\u044b\u0435 \u0432\u0438\u0434\u044b. \u041b\u043e\u0432\u0438 \u0443 \u0431\u0435\u0440\u0435\u0433\u0430 \u0441 \u0443\u0434\u043e\u0447\u043a\u043e\u0439 \u043a\u0430\u043a \u0440\u0430\u043d\u044c\u0448\u0435.</p></article><div class="lw-grid">'+FISH.map(f=>{const count=Number(state.fish[f.id])||0,stock=Math.max(0,Number(bridge()?.getItemCount?.(f.name))||0);return '<article class="lw-card"><div class="lw-fish-icon">'+(count?f.icon:'\u{1F512}')+'</div><b>'+esc(count?f.name:'???')+'</b><small>'+esc(count?f.rarity:'\u0415\u0449\u0451 \u043d\u0435 \u043f\u043e\u0439\u043c\u0430\u043d\u0430')+'</small><span class="lw-count">'+count+' \u0448\u0442. \u0432 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438</span>'+(stock?'<button type="button" data-lw-action="fish-sell:'+f.id+'">\u041f\u0440\u043e\u0434\u0430\u0442\u044c '+stock+' \u00b7 '+(stock*f.price)+' \u0437\u043e\u043b\u043e\u0442\u0430</button>':'<small>\u041d\u0435\u0442 \u0440\u044b\u0431\u044b \u0434\u043b\u044f \u043f\u0440\u043e\u0434\u0430\u0436\u0438</small>')+'</article>';}).join('')+'</div>';
   }
   function renderPets(){
-    return '<p class="lw-note">\u0421\u043f\u0443\u0442\u043d\u0438\u043a \u0441\u043b\u0435\u0434\u0443\u0435\u0442 \u0437\u0430 \u0433\u0435\u0440\u043e\u0435\u043c \u0438 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u0430\u0442\u0430\u043a\u0443\u0435\u0442 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0438\u0445 \u043e\u0431\u044b\u0447\u043d\u044b\u0445 \u0432\u0440\u0430\u0433\u043e\u0432. \u0417\u0430 \u043f\u043e\u0431\u0435\u0434\u044b \u043f\u0438\u0442\u043e\u043c\u0435\u0446 \u043f\u043e\u043b\u0443\u0447\u0430\u0435\u0442 \u043e\u043f\u044b\u0442 \u0438 \u0440\u0430\u0441\u0442\u0451\u0442 \u0434\u043e 10 \u0443\u0440\u043e\u0432\u043d\u044f.</p><div class="lw-grid">'+Object.entries(PETS).map(([id,p])=>{const owned=state.ownedPets.includes(id),active=state.activePet===id,locked=p.premium&&!premium(),progress=state.petLevels[id]||{level:1,xp:0},rarity={fox:'\u041e\u0431\u044b\u0447\u043d\u0430\u044f',wolf:'\u0420\u0435\u0434\u043a\u0430\u044f',owl:'\u0420\u0435\u0434\u043a\u0430\u044f',turtle:'\u042d\u043f\u0438\u0447\u0435\u0441\u043a\u0430\u044f',phoenix:'\u041b\u0435\u0433\u0435\u043d\u0434\u0430\u0440\u043d\u0430\u044f',dragon:'\u041c\u0438\u0444\u0438\u0447\u0435\u0441\u043a\u0430\u044f'}[id];return '<article class="lw-card lw-pet '+(active?'selected':'')+'"><div class="lw-pet-icon">'+p.icon+'</div><b>'+esc(p.name)+'</b><small>'+esc(rarity)+(owned?' \u00b7 \u0423\u0440. '+progress.level+'/10':'')+'</small><small>'+esc(p.desc)+'</small><small>\u0423\u0440\u043e\u043d: '+(p.damage+(owned?(progress.level-1)*2:0))+' \u00b7 \u041a\u0414: '+p.cooldown+'\u0441</small>'+(locked?'<span class="lw-premium">\u{1F451} Premium</span>':'')+'<button type="button" data-lw-action="pet:'+id+'">'+(active?'\u0410\u043a\u0442\u0438\u0432\u0435\u043d':owned?'\u0412\u044b\u0431\u0440\u0430\u0442\u044c':p.premium?'\u041e\u0442\u043a\u0440\u044b\u0442\u044c Premium':('\u041f\u0440\u0438\u0440\u0443\u0447\u0438\u0442\u044c \u00b7 '+p.price+' \u0437\u043e\u043b\u043e\u0442\u0430'))+'</button></article>';}).join('')+'</div>';
+    return '<p class="lw-note">Спутник следует за героем и автоматически атакует ближайших обычных врагов. За победы питомец получает опыт и растёт до 10 уровня. Боевой ошейник добавляет урон, защитная броня усиливает питомца. Улучшения сохраняются в мире.</p><div class="lw-grid">'+Object.entries(PETS).map(([id,p])=>{const owned=state.ownedPets.includes(id),active=state.activePet===id,locked=p.premium&&!premium(),progress=state.petLevels[id]||{level:1,xp:0},gear=state.petGear[id]||{collar:0,armor:0},rarity={fox:'Обычная',wolf:'Редкая',owl:'Редкая',turtle:'Эпическая',phoenix:'Легендарная',dragon:'Мифическая'}[id];return '<article class="lw-card lw-pet '+(active?'selected':'')+'"><div class="lw-pet-icon">'+p.icon+'</div><b>'+esc(p.name)+'</b><small>'+esc(rarity)+(owned?' · Ур. '+progress.level+'/10':'')+'</small><small>'+esc(p.desc)+'</small><small>Урон: '+(p.damage+(owned?(progress.level-1)*2:0)+(owned?gear.collar*4+gear.armor*2:0))+' · КД: '+p.cooldown+'с</small>'+(owned?'<small>Ошейник '+gear.collar+'/3 · Броня '+gear.armor+'/3</small><button type="button" data-lw-action="pet-gear:'+id+':collar">Улучшить ошейник</button><button type="button" data-lw-action="pet-gear:'+id+':armor">Улучшить броню питомца</button>':'')+(locked?'<span class="lw-premium">👑 Premium</span>':'')+'<button type="button" data-lw-action="pet:'+id+'">'+(active?'Активен':owned?'Выбрать':p.premium?'Открыть Premium':('Приручить · '+p.price+' золота'))+'</button></article>';}).join('')+'</div>';
   }
   function renderContracts(){
     const day=Math.max(0,Number(bridge()?.getGameDay?.())||0);
@@ -612,6 +623,7 @@
       if(action.startsWith('tab:')){activeTab=action.slice(4);render();return;}
       if(action.startsWith('fish-sell:')){sellFish(action.slice(10));return;}
       if(action.startsWith('pet:')){buyOrSelectPet(action.slice(4));return;}
+      if(action.startsWith('pet-gear:')){const parts=action.split(':');upgradePetGear(parts[1],parts[2]);return;}
       if(action.startsWith('project:')){buildProject(action.slice(8));return;}
       if(action.startsWith('upgrade:')){upgradeProject(action.slice(8));return;}
       if(action==='town-patrol'){startTownPatrol();return;}
