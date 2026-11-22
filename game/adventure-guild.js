@@ -225,7 +225,14 @@
     load();wrapProfession();reconcileExpedition();opened=true;root.hidden=false;bridge()?.pause?.();render();
   }
   function close(){
-    if(!opened)return;opened=false;root.hidden=true;bridge()?.resume?.();
+    if(!opened)return;
+    opened=false;
+    if(root)root.hidden=true;
+    // Closing the guild panel must also leave the interior scene. Otherwise
+    // drawGuildInterior keeps painting its full-screen brown backdrop over the world.
+    insideGuild=false;
+    interiorOrigin=null;
+    bridge()?.resume?.();
   }
   function click(event){
     const el=event.target?.closest?.('[data-adv]');if(!el)return;
