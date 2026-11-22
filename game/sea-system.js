@@ -10,7 +10,7 @@
     vaultUnlocked: false, vaultRoom: 0, vaultPath: 0, vaultBosses: { tide:false, abyss:false },
     relics: [], discovered: [], message: '', messageLeft: 0, lastSave: 0,
     chartFound: false, bossHp: 0, bossAttack: 0, stormDamageAt: 0,
-    diveCooldown: 0, mapMarks: [], islandsDiscovered:[], salvageClaims:{}, kraken:{active:false,defeated:false,hp:0,maxHp:0,phase:1,attacks:0,guardNext:false}, cave:{room:1,cleared:[],finished:false,enemyHp:0,enemyMaxHp:0}
+    diveCooldown: 0, mapMarks: [], islandsDiscovered:[], salvageClaims:{}, fish:[], fishCaught:{}, kraken:{active:false,defeated:false,hp:0,maxHp:0,phase:1,attacks:0,guardNext:false}, cave:{room:1,cleared:[],finished:false,enemyHp:0,enemyMaxHp:0}
   };
   const DEFAULT_STATE=JSON.parse(JSON.stringify(state));
   const W = 360, H = 260, TILE = 32;
@@ -19,6 +19,15 @@
     {id:'coral_atoll',name:'Коралловый атолл',x:56,y:38,kind:'coral',description:'Тёплая лагуна, розовые кораллы и старый маячный буй.',reward:'Коралловый фрагмент',amount:3,gold:12000},
     {id:'storm_lighthouse',name:'Маяк штормового мыса',x:166,y:54,kind:'lighthouse',description:'Заброшенный маяк хранит осколки навигационного кристалла.',reward:'Осколок маяка',amount:2,gold:18000},
     {id:'shipbreaker_cove',name:'Бухта Кораблекрушителей',x:266,y:202,kind:'wreck',description:'Пляж усеян останками кораблей. В песке спрятана карта последнего рейда.',reward:'Старая карта архипелага',amount:1,gold:24000}
+  ];
+  const SEA_FISH_SPECIES=[
+    {id:'reef_fish',name:'Рифовая рыбка',rarity:'Обычная',color:'#f2b45e',minDepth:0,weight:46},
+    {id:'silver_fish',name:'Серебряная рыба',rarity:'Обычная',color:'#c9e8ee',minDepth:0,weight:32},
+    {id:'clown_fish',name:'Рыба-клоун',rarity:'Необычная',color:'#ff8b54',minDepth:0,weight:18},
+    {id:'blue_tang',name:'Синий хирург',rarity:'Редкая',color:'#4e9cff',minDepth:25,weight:12},
+    {id:'moon_jellyfish',name:'Лунная медуза',rarity:'Редкая',color:'#d8a5ff',minDepth:55,weight:9},
+    {id:'abyss_angler',name:'Глубинный удильщик',rarity:'Эпическая',color:'#8c75d8',minDepth:105,weight:5},
+    {id:'golden_seahorse',name:'Золотой морской конёк',rarity:'Легендарная',color:'#ffd76a',minDepth:145,weight:2}
   ];
   const KRAKEN_LAIR={x:320,y:132,radius:13};
   const KRAKEN_BASE_HP=4200;
@@ -64,6 +73,8 @@
       const savedSalvage=d.salvageClaims&&typeof d.salvageClaims==='object'?d.salvageClaims:{};state.salvageClaims=Object.fromEntries(SALVAGE_SITES.map(site=>{const day=Number(savedSalvage[site.id]);return [site.id,Number.isInteger(day)&&day>=0?day:-1];}));
       const kraken=d.kraken&&typeof d.kraken==='object'?d.kraken:{};state.kraken={active:kraken.active===true&&kraken.defeated!==true,defeated:kraken.defeated===true,hp:clamp(Number(kraken.hp)||0,0,100000),maxHp:clamp(Number(kraken.maxHp)||0,0,100000),phase:clamp(Math.floor(Number(kraken.phase)||1),1,3),attacks:clamp(Math.floor(Number(kraken.attacks)||0),0,10000),guardNext:kraken.guardNext===true};
       state.cave=ensureCaveState(d.cave);
+      state.fish=Array.isArray(d.fish)?d.fish.filter(f=>f&&SEA_FISH_SPECIES.some(spec=>spec.id===f.species)&&Number.isFinite(f.x)&&Number.isFinite(f.y)).slice(0,80):[];
+      state.fishCaught=d.fishCaught&&typeof d.fishCaught==='object'?Object.fromEntries(SEA_FISH_SPECIES.map(spec=>[spec.id,clamp(Math.floor(Number(d.fishCaught[spec.id])||0),0,999999)])):{};
     } catch(e){ console.warn('Sea save load failed',e); }
   }
   function ensureWorld(){
@@ -80,6 +91,11 @@
     if(!state.kraken||typeof state.kraken!=='object')state.kraken={active:false,defeated:false,hp:0,maxHp:0,phase:1,attacks:0,guardNext:false};
     state.kraken={active:state.kraken.active===true&&state.kraken.defeated!==true,defeated:state.kraken.defeated===true,hp:clamp(Number(state.kraken.hp)||0,0,100000),maxHp:clamp(Number(state.kraken.maxHp)||0,0,100000),phase:clamp(Math.floor(Number(state.kraken.phase)||1),1,3),attacks:clamp(Math.floor(Number(state.kraken.attacks)||0),0,10000),guardNext:state.kraken.guardNext===true};
     state.cave=ensureCaveState(state.cave);
+    if(!Array.isArray(state.fish))state.fish=[];
+    if(!state.fishCaught||typeof state.fishCaught!=='object')state.fishCaught={};
+    state.fishCaught=Object.fromEntries(SEA_FISH_SPECIES.map(spec=>[spec.id,clamp(Math.floor(Number(state.fishCaught[spec.id])||0),0,999999)]));
+    if(state.fish.length<18){for(let i=state.fish.length;i<26;i++){const x=rand(18,W-12),y=rand(10,H-10),spec=SEA_FISH_SPECIES[Math.floor(Math.random()*3)];state.fish.push({id:'sea-fish-'+i+'-'+Math.floor(Math.random()*1e6),species:spec.id,x,y,angle:rand(0,6.28),speed:rand(2.5,5.5),respawnAt:0});}}
+    state.fish=state.fish.filter(f=>f&&SEA_FISH_SPECIES.some(spec=>spec.id===f.species)&&Number.isFinite(f.x)&&Number.isFinite(f.y)).slice(0,80);
   }
   function build(){
     if(root)return;
@@ -222,8 +238,23 @@
     }
     bridge()?.damagePlayer?.(def.damage);drainAir(4);bridge()?.save?.();save();renderCave();return true;
   }
+  function nearestSeaFish(){return state.fish.filter(f=>!f.respawnAt||f.respawnAt<=Date.now()).map(f=>({...f,distance:Math.hypot(f.x-state.x,f.y-state.y)})).filter(f=>f.distance<=5.5).sort((a,b)=>a.distance-b.distance)[0]||null;}
+  function catchSeaFish(){
+    const fish=nearestSeaFish();if(!fish)return false;
+    const spec=SEA_FISH_SPECIES.find(v=>v.id===fish.species);if(!spec)return false;
+    const depth=state.y,rareRoll=Math.random();let caught=spec;
+    const pool=SEA_FISH_SPECIES.filter(v=>depth>=v.minDepth);
+    const total=pool.reduce((sum,v)=>sum+v.weight,0);let roll=rareRoll*total;
+    for(const candidate of pool){roll-=candidate.weight;if(roll<=0){caught=candidate;break;}}
+    const b=bridge();b?.addItem?.(caught.name,1,'Поймано в морской экспедиции.');
+    state.fishCaught[caught.id]=(Number(state.fishCaught[caught.id])||0)+1;
+    const target=state.fish.find(v=>v.id===fish.id);if(target){target.respawnAt=Date.now()+rand(12000,26000);target.x=clamp(target.x+rand(-14,14),5,W-5);target.y=clamp(target.y+rand(-14,14),5,H-5);}
+    const totalCaught=Object.values(state.fishCaught).reduce((sum,v)=>sum+(Number(v)||0),0);
+    msg((caught.rarity==='Легендарная'?'ЛЕГЕНДАРНАЯ НАХОДКА! ':caught.rarity==='Эпическая'?'ЭПИЧЕСКИЙ УЛОВ! ':'')+caught.name+' · '+caught.rarity+'. Всего морских рыб поймано: '+totalCaught+'.');
+    save();b?.save?.();return true;
+  }
   function interact(){
-    if(state.underwater){if(caveNear()){enterCave();return;}const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет.');return;}
+    if(state.underwater){if(caveNear()){enterCave();return;}if(catchSeaFish())return;const t=nearestTreasure();if(t){openTreasure(t);return;}msg('Осмотри дно рядом: здесь пока ничего нет. Подплыви к стайке рыб и нажми E, чтобы поймать её.');return;}
     if(visitNearestIsland())return;
     if(krakenNear()&&krakenUnlocked()){startKrakenFight();return;}
     const salvage=nearestSalvage();if(salvage){claimSalvage(salvage);return;}
@@ -367,6 +398,7 @@
     if(state.weather==='storm'&&!state.underwater&&Math.random()<dt*.06){state.boatHp=Math.max(0,state.boatHp-Math.max(.5,1-state.shipLevel*.18));if(state.boatHp<=0)msg('Шторм разбил корабль! Вернись на берег.');}
     for(const s of state.sharks){const vx=state.x-s.x,vy=state.y-s.y,d=Math.hypot(vx,vy)||1;if(d<24){s.x+=vx/d*s.speed*dt;s.y+=vy/d*s.speed*dt;s.cool-=dt;if(s.cool<=0){s.cool=2.2;state.boatHp=Math.max(0,state.boatHp-Math.max(1,5-state.shipLevel));msg('Акула укусила корабль! Прочность '+state.boatHp+'%.');}}else{s.angle+=rand(-.6,.6)*dt;s.x+=Math.cos(s.angle)*s.speed*.25*dt;s.y+=Math.sin(s.angle)*s.speed*.25*dt;}s.x=clamp(s.x,2,W-2);s.y=clamp(s.y,2,H-2);}
     if(state.underwater){for(const m of state.monsters){const vx=state.x-m.x,vy=state.y-m.y,d=Math.hypot(vx,vy)||1;if(d<20){m.x+=vx/d*m.speed*dt;m.y+=vy/d*m.speed*dt;if(Math.random()<dt*.08){drainAir(3);msg('Подводный страж атакует!');}}}}
+    for(const f of state.fish){if(f.respawnAt&&f.respawnAt>Date.now())continue;if(f.respawnAt&&f.respawnAt<=Date.now()){f.respawnAt=0;f.x=rand(18,W-12);f.y=rand(10,H-10);}f.angle=(Number(f.angle)||0)+rand(-.45,.45)*dt;const flee=Math.hypot(f.x-state.x,f.y-state.y)<8&&state.underwater;const direction=flee?Math.atan2(f.y-state.y,f.x-state.x):f.angle;f.x=clamp(f.x+Math.cos(direction)*f.speed*(flee?2.5:1)*dt,4,W-4);f.y=clamp(f.y+Math.sin(direction)*f.speed*(flee?2.5:1)*dt,4,H-4);}
     if(!state.underwater){state.sharkSpawnTimer=(state.sharkSpawnTimer||rand(85,145))-dt;if(state.sharkSpawnTimer<=0){if(state.sharks.length<3&&Math.random()<.32)spawnShark();state.sharkSpawnTimer=rand(85,165);}}
     $('sea-cave-btn').disabled=!(state.underwater&&caveNear());$('sea-cave-btn').title=state.underwater?(caveNear()?'Войти в подводный грот':'Найди светящийся вход в грот у координат 309 / 214'):'Нужно погрузиться с водяным шлемом и доплыть до координат 309 / 214.';
     $('sea-weather').textContent='Погода: '+({calm:'штиль',rain:'дождь',storm:'ШТОРМ'}[state.weather]);
@@ -416,7 +448,8 @@
     for(const t of state.treasures){if(state.opened.includes(t.id))continue;const x=t.x*TILE,y=t.y*TILE;if(t.kind==='wreck'){ctx.save();ctx.translate(x,y);ctx.rotate(-.18);ctx.fillStyle='#513c2b';ctx.fillRect(-29,-7,58,15);ctx.fillStyle='#986b43';ctx.fillRect(-23,-14,46,8);ctx.strokeStyle='#d0a16a';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-17,-12);ctx.lineTo(-8,-28);ctx.moveTo(8,-12);ctx.lineTo(21,-22);ctx.stroke();ctx.restore();}else{ctx.fillStyle='#62452e';ctx.fillRect(x-10,y-8,20,16);ctx.fillStyle='#d8a94f';ctx.fillRect(x-10,y-8,20,5);ctx.fillStyle='#fff0a5';ctx.fillRect(x-2,y-7,4,6);}}
     // Sharks: animated bodies, tail, dorsal and pectoral fins.
     for(const s of state.sharks){const x=s.x*TILE,y=s.y*TILE,swim=Math.sin(state.time*5+(s.angle||0))*3;ctx.save();ctx.translate(x,y);ctx.scale(1.55,1.55);ctx.rotate((s.angle||0)+(Math.atan2(state.y-s.y,state.x-s.x)*.12));ctx.fillStyle='rgba(0,18,35,.24)';ctx.beginPath();ctx.ellipse(0,9,22,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#719db0';ctx.beginPath();ctx.moveTo(25,0);ctx.quadraticCurveTo(5,-14,-18,-4);ctx.quadraticCurveTo(-26,0,-18,5);ctx.quadraticCurveTo(5,14,25,0);ctx.fill();ctx.fillStyle='#456f86';ctx.beginPath();ctx.moveTo(-17,0);ctx.lineTo(-34,-12+swim);ctx.lineTo(-29,0);ctx.lineTo(-34,12+swim);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(-2,-5);ctx.lineTo(4,-18);ctx.lineTo(11,-4);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(1,5);ctx.lineTo(10,14);ctx.lineTo(13,5);ctx.closePath();ctx.fill();ctx.fillStyle='#e8f5f8';ctx.fillRect(12,-3,3,3);ctx.fillStyle='#10283a';ctx.fillRect(13,-3,2,2);ctx.restore();}
-    // Underwater guardians and schools of fish.
+    // Underwater guardians, collectible fish and decorative schools.
+    for(const f of state.fish){if(f.respawnAt&&f.respawnAt>Date.now())continue;const spec=SEA_FISH_SPECIES.find(v=>v.id===f.species);if(!spec)continue;const x=f.x*TILE,y=f.y*TILE,swim=Math.sin(state.time*5+(f.x||0))*2.2;ctx.save();ctx.translate(x,y);ctx.rotate(Math.atan2(Math.sin(f.angle||0),Math.cos(f.angle||0)));ctx.fillStyle='rgba(0,12,28,.22)';ctx.beginPath();ctx.ellipse(0,6,10,3,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=spec.color;ctx.beginPath();ctx.ellipse(0,0,10,5+swim*.18,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(-15,-5+swim);ctx.lineTo(-15,5+swim);ctx.closePath();ctx.fill();ctx.fillStyle='#f4fbff';ctx.beginPath();ctx.arc(5,-1,1.7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#142a3b';ctx.beginPath();ctx.arc(5,-1,0.8,0,Math.PI*2);ctx.fill();if(spec.rarity==='Легендарная'||spec.rarity==='Эпическая'){ctx.globalAlpha=.35+.2*Math.sin(state.time*3);ctx.strokeStyle=spec.color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,14,0,Math.PI*2);ctx.stroke();}ctx.restore();}
     for(const m of state.monsters){const x=m.x*TILE,y=m.y*TILE,pulse=Math.sin(state.time*4+x)*2;ctx.save();ctx.translate(x,y);ctx.fillStyle='rgba(8,19,48,.3)';ctx.beginPath();ctx.ellipse(0,9,17,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#9368b4';ctx.beginPath();ctx.ellipse(0,0,12,10+pulse,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d5b5f3';ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-18,-8);ctx.lineTo(-16,8);ctx.closePath();ctx.fill();ctx.fillStyle='#f6eaff';ctx.fillRect(-5,-3,3,3);ctx.fillRect(3,-3,3,3);ctx.restore();}
     for(let shoal=0;shoal<24;shoal++){const bx=(25+shoal*23%338)*TILE,by=(12+(shoal*31)%242)*TILE;if(bx/TILE<left-5||bx/TILE>right+5||by/TILE<top-5||by/TILE>bottom+5)continue;for(let f=0;f<5;f++){const fx=bx+Math.sin(state.time*1.5+f+shoal)*18+f*8,fy=by+Math.cos(state.time*1.7+f)*9;ctx.fillStyle='#d5eef0';ctx.beginPath();ctx.ellipse(fx,fy,5,2.5,.15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7cc8cf';ctx.beginPath();ctx.moveTo(fx-4,fy);ctx.lineTo(fx-9,fy-4);ctx.lineTo(fx-9,fy+4);ctx.fill();}}
     if(state.underwater){    // A glowing stone arch marks the only entrance to the three-room underwater grotto.
