@@ -11,13 +11,23 @@ android {
         applicationId = "com.skyrealm.primelauncher"
         minSdk = 23
         targetSdk = 34
-        versionCode = 1273
-        versionName = "1.2.73"
+        versionCode = 1274
+        versionName = "1.2.74"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("release.keystore")
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -32,4 +42,5 @@ android {
 
 dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
+    implementation("androidx.core:core-ktx:1.15.0")
 }
