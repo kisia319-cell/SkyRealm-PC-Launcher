@@ -42,7 +42,7 @@ function floorZombies(lab,floor){
  for(let i=0;i<count;i++){
   const id='z'+i;if(dead.includes(id))continue;
   const x=floor===2?250+i*150:250+(i*263)%650,y=floor===2?215+(i%2)*45:260+(i%2)*180;
-  out.push({id,lab,floor,x,y,hp:floor===4&&i===1?760:floor===3?240:floor===2?175:120,maxHp:floor===4&&i===1?760:floor===3?240:floor===2?175:120,speed:floor===4?48:floor===2?30:35,damage:floor===4?22:floor===2?11:8,attackCd:.7+hash(lab*9+i,floor)*.8,phase:hash(lab*13+i,floor)*6.28,cell:floor===2&&i<4&&!wasReleased(lab,id),escaped:floor===2&&i>=4,boss:floor===4&&i===1,flash:0});
+  out.push({id,lab,floor,x,y,hp:floor===4&&i===1?760:floor===3?240:floor===2?175:120,maxHp:floor===4&&i===1?760:floor===3?240:floor===2?175:120,speed:floor===4?48:floor===2?30:35,damage:floor===4?22:floor===2?11:8,attackCd:.7+hash(lab*9+i,floor)*.8,phase:hash(lab*13+i,floor)*6.28,cell:floor===2&&i<4&&!wasReleased(lab,id),escaped:floor===2&&i>=4,boss:floor===4&&i===1,flash:0,chargeCd:2+hash(i,lab)*2});
  }
  return out;
 }
