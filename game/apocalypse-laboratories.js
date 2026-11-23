@@ -5,6 +5,7 @@ if (window.SKYREALM_BUILD_EDITION !== 'apocalypse' && document.documentElement.d
   if (p.get('mode') !== 'apocalypse' && p.get('edition') !== 'apocalypse') return;
 }
 // This module is loaded only by the dedicated Apocalypse edition.
+// All laboratory floors are local to the hidden Apocalypse map.
 const SAVE_KEY='skyrealm_apocalypse_laboratories_v1';
 const RATIOS=[[.12,.52],[.50,.78],[.84,.48]];
 const NAMES=['ОБЪЕКТ «ФЕНИКС»','КОМПЛЕКС «ЭХО»','СТАНЦИЯ «НУЛЬ»'];
