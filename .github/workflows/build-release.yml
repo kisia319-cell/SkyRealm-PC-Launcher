@@ -361,6 +361,18 @@ jobs:
             }
           }
 
+          # Android APK tags are separate distribution artifacts and must never be
+          # selected by /releases/latest, which the Windows game updater uses.
+          $allReleases = gh release list --limit 100 --json tagName,isPrerelease | ConvertFrom-Json
+          foreach ($release in $allReleases) {
+            if ($release.tagName -match '^prime-android-v' -and -not $release.isPrerelease) {
+              gh release edit $release.tagName --prerelease
+              if ($LASTEXITCODE -ne 0) { throw "Could not mark Android release as prerelease: $($release.tagName)" }
+            }
+          }
+          gh release edit $tag --latest
+          if ($LASTEXITCODE -ne 0) { throw "Could not mark Windows release $tag as latest" }
+
       - name: Reject stale manifest publication
         shell: pwsh
         run: |
