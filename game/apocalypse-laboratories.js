@@ -80,7 +80,7 @@ function drawZombie(ctx,x,y,z,time){
  ctx.fillStyle='#853e35';ctx.fillRect(-9,-8,5,3);ctx.fillRect(4,1,4,3);ctx.restore();
  if(z.hp<z.maxHp){ctx.fillStyle='#171b1a';ctx.fillRect(x-17,y-35,34,4);ctx.fillStyle='#b94e43';ctx.fillRect(x-17,y-35,34*clamp(z.hp/z.maxHp,0,1),4);}
 }
-function drawExterior(ctx,camX,camY,time,width,height,cols,rows,tile){
+function drawExterior(ctx,camX,camY,time,width,height,cols,rows,tile,player){
  if(!window.SKYREALM_BUILD_EDITION&&!document.documentElement.classList.contains('apocalypse-mode'))return;
  for(const s of sites(cols,rows,tile)){
   const x=s.x-camX,y=s.y-camY;if(x<-260||x>width+260||y<-250||y>height+250)continue;
@@ -102,7 +102,9 @@ function drawExterior(ctx,camX,camY,time,width,height,cols,rows,tile){
   ctx.fillStyle='#303a3c';ctx.fillRect(-160,15,26,34);ctx.fillStyle='#7c8b80';ctx.fillRect(-156,19,18,8);ctx.strokeStyle='#b34e40';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-156,34);ctx.lineTo(-143,34);ctx.lineTo(-143,43);ctx.stroke();
   ctx.fillStyle='#292d2e';ctx.fillRect(110,-104,42,26);ctx.fillStyle='#69736e';ctx.fillRect(115,-99,32,7);
   ctx.strokeStyle='#111819';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-130,55);ctx.lineTo(-100,90);ctx.lineTo(100,90);ctx.lineTo(130,55);ctx.stroke();
-  ctx.fillStyle='#d8a24b';ctx.shadowColor='#e7a14a';ctx.shadowBlur=12;ctx.globalAlpha=.55+.4*pulse;ctx.beginPath();ctx.arc(0,51,4,0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.fillStyle='#d8a24b';ctx.shadowColor='#e7a14a';ctx.shadowBlur=12;ctx.globalAlpha=.55+.4*pulse;ctx.beginPath();ctx.arc(0,51,4,0,Math.PI*2);ctx.fill();
+  if(player&&Math.hypot(player.x-s.x,player.y-(s.y+108))<180){ctx.globalAlpha=1;ctx.fillStyle='#f2d99d';ctx.font='900 11px Segoe UI';ctx.textAlign='center';ctx.shadowColor='#090c0d';ctx.shadowBlur=8;ctx.fillText('E · ВОЙТИ',0,105);ctx.shadowBlur=0;}
+  ctx.restore();
   // The entrance is not marked on the map; the player must find the doorway.
  }
 }
