@@ -53,6 +53,8 @@ jobs:
       - run: node tests/village-frontier-test.cjs
       - run: node tests/expansion-systems-test.cjs
       - run: node tests/armor-set-test.cjs
+      - run: node --check game/apocalypse-laboratories.js
+      - run: node tests/apocalypse-laboratories-test.cjs
       - run: node tests/game-smoke-test.cjs
       - run: node tests/performance-optimization-test.cjs
       - run: node tests/achievement-system-test.cjs

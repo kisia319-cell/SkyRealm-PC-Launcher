@@ -1,0 +1,25 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const game = fs.readFileSync(path.join(root, 'game/game.js'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'game/index.html'), 'utf8');
+const labs = fs.readFileSync(path.join(root, 'game/apocalypse-laboratories.js'), 'utf8');
+
+assert.match(html, /apocalypse-laboratories\.js/);
+assert.match(html, /skyrealm-game-version" content="0\.20\.50\.180"/);
+assert.match(game, /SkyRealmApocalypseLabs\?\.drawExterior/);
+assert.match(game, /SkyRealmApocalypseLabs\.drawInterior/);
+assert.match(game, /SkyRealmApocalypseLabs\?\.interact/);
+assert.match(game, /SkyRealmApocalypseLabs\.attack/);
+assert.match(labs, /RATIOS=\[\[\.12,\.52\],\[\.50,\.78\],\[\.84,\.48\]\]/);
+assert.match(labs, /ОБЪЕКТ «ФЕНИКС»/);
+assert.match(labs, /КОМПЛЕКС «ЭХО»/);
+assert.match(labs, /СТАНЦИЯ «НУЛЬ»/);
+assert.match(labs, /floorStart\(floor\)/);
+assert.match(labs, /БЛОК КАРАНТИНА/);
+assert.match(labs, /АРХИВ · БИБЛИОТЕКА ИССЛЕДОВАНИЙ/);
+assert.match(labs, /ЦЕНТР УПРАВЛЕНИЯ/);
+assert.match(labs, /drawZombie/);
+assert.match(labs, /SAVE_KEY='skyrealm_apocalypse_laboratories_v1'/);
+console.log('Apocalypse secret laboratory regression checks passed.');
