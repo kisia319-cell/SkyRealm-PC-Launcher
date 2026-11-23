@@ -43,16 +43,46 @@ jobs:
       - name: Verify bundled PrimeLauncher assets match Windows source
         run: python3 tests/prime-android-assets-test.py
 
-      - name: Build installable Android APK
-        run: gradle --no-daemon :app:assembleDebug
-        working-directory: mobile/prime-launcher-android
+      - name: Verify Android updater configuration
+        run: python3 tests/prime-android-updater-test.py
+
+      - name: Build APK (stable release signature when configured)
+        id: build
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd mobile/prime-launcher-android
+          if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_KEYSTORE_PASSWORD" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/release.keystore
+            gradle --no-daemon :app:assembleRelease
+            APK="app/build/outputs/apk/release/app-release.apk"
+            ASSET_NAME="app-release.apk"
+            SIGNING="stable"
+          else
+            echo "::warning::Android signing secrets are not configured; building a debug APK. Debug APKs from separate CI runners are not guaranteed to update each other in place."
+            gradle --no-daemon :app:assembleDebug
+            APK="app/build/outputs/apk/debug/app-debug.apk"
+            ASSET_NAME="app-debug.apk"
+            SIGNING="debug"
+          fi
+          test -s "$APK"
+          echo "apk_path=mobile/prime-launcher-android/$APK" >> "$GITHUB_OUTPUT"
+          echo "asset_name=$ASSET_NAME" >> "$GITHUB_OUTPUT"
+          echo "signing=$SIGNING" >> "$GITHUB_OUTPUT"
 
       - name: Verify APK contents
+        env:
+          APK_PATH: ${{ steps.build.outputs.apk_path }}
         run: |
           python3 - <<'PY'
+          import os
           from pathlib import Path
           from zipfile import ZipFile
-          apk = Path("mobile/prime-launcher-android/app/build/outputs/apk/debug/app-debug.apk")
+          apk = Path(os.environ["APK_PATH"])
           if not apk.is_file() or apk.stat().st_size < 1_000_000:
               raise SystemExit("Android APK is missing or unexpectedly small")
           with ZipFile(apk) as archive:
@@ -62,6 +92,7 @@ jobs:
                   "assets/prime/prime-world.js",
                   "assets/prime/prime-online.js",
                   "classes.dex",
+                  "res/xml/file_paths.xml",
               }
               missing = required - names
               if missing:
@@ -86,14 +117,14 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
-          files: mobile/prime-launcher-android/app/build/outputs/apk/debug/app-debug.apk
+          files: ${{ steps.build.outputs.apk_path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload APK build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PrimeLauncher-Android
-          path: mobile/prime-launcher-android/app/build/outputs/apk/debug/app-debug.apk
+          name: PrimeLauncher-Android-${{ steps.version.outputs.version }}-${{ steps.build.outputs.signing }}
+          path: ${{ steps.build.outputs.apk_path }}
           if-no-files-found: error
           retention-days: 30
