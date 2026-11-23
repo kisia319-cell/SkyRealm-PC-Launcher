@@ -174,6 +174,13 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
  ctx.fillStyle='#d2b77c';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ВЫХОД',58,height/2+84);ctx.fillText('ЛЕСТНИЦА',width-58,height/2+84);
  ctx.fillStyle='#e2d2a9';ctx.font='900 15px Segoe UI';ctx.fillText(active.site.name+' · ЭТАЖ '+floor+'/4',width/2,42);
  ctx.fillStyle='#aebcba';ctx.font='10px Segoe UI';ctx.fillText('WASD — движение · E — взаимодействие · SPACE — атака · ESC — меню',width/2,height-20);
+ // Searchable storage is visible on every floor, not represented by invisible triggers.
+ for(const item of (CONTAINERS[floor]||[])){
+  const x=sx(item.x),y=sy(item.y);
+  if(item.kind==='chest'){ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(x+5,y+8,58,38);ctx.fillStyle=wasOpened(active.lab,floor,item.id)?'#514c43':'#8a5d32';ctx.fillRect(x,y,58,34);ctx.fillStyle='#c49b5d';ctx.fillRect(x,y+5,58,5);ctx.fillStyle='#e3c47b';ctx.fillRect(x+26,y+13,7,9);ctx.strokeStyle='#35251b';ctx.strokeRect(x+1,y+1,56,32);}
+  else drawCabinet(ctx,x,y,68,44);
+  if(!wasOpened(active.lab,floor,item.id)){ctx.fillStyle='#f0d28b';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('E · ОБЫСКАТЬ',x+30,y-8);}
+ }
  // Roaming infected are rendered on top of furniture and below the player.
  for(const z of active.zombies.filter(z=>!z.cell)){drawZombie(ctx,sx(z.x),sy(z.y),z,time);}
  // Small local lamps and emergency red pulses.
@@ -194,8 +201,13 @@ function interact(args){
  const lx=player.x-active.originX,ly=player.y-active.originY,f=active.floor;
  if(lx<120&&Math.abs(ly-410)<105){leave(player,toast,resetInput);return true;}
  if(lx>1000&&Math.abs(ly-410)<110){
-  if(f<4){active.floor++;const pos=floorStart(active.floor);player.x=active.originX+pos.x;player.y=active.originY+pos.y;active.zombies=floorZombies(active.lab,active.floor);active.hint=2;resetInput?.();toast('Этаж '+active.floor+'/4. Внимание: внутри обнаружены заражённые.');}
-  else{active.floor=3;const pos=floorStart(3);player.x=active.originX+pos.x;player.y=active.originY+pos.y;active.zombies=floorZombies(active.lab,3);resetInput?.();toast('Ты спустился на третий этаж.');}
+  if(f<4){active.floor++;const pos=floorStart(active.floor);player.x=active.originX+pos.x;player.y=active.originY+pos.y;active.zombies=floorZombies(active.lab,active.floor);active.hint=2;resetInput?.();toast('Подъём на этаж '+active.floor+'/4. Внимание: внутри обнаружены заражённые.');}
+  else toast('Это верхний этаж. Для спуска подойди к лестнице слева.');
+  return true;
+ }
+ if(lx>760&&lx<930&&Math.abs(ly-410)<110){
+  if(f>1){active.floor--;const pos=floorStart(active.floor);player.x=active.originX+pos.x;player.y=active.originY+pos.y;active.zombies=floorZombies(active.lab,active.floor);resetInput?.();toast('Спуск на этаж '+active.floor+'/4.');}
+  else toast('Ты уже на первом этаже.');
   return true;
  }
  const list=(CONTAINERS[f]||[]).map(c=>({c,d:Math.hypot(lx-c.x,ly-c.y)})).sort((a,b)=>a.d-b.d);
