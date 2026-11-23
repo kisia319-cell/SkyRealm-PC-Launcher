@@ -5,7 +5,8 @@
   if(!openButton||!shade)return;
   const status=$('cloud-save-status'),upload=$('cloud-save-upload'),restore=$('cloud-save-restore');
   let busy=false,remoteRevision=0,remoteSave=null;
-  const allowedKey=key=>key==='skyrealm_worlds_v1'||key==='skyrealm_game_save_v1'||/^skyrealm_game_save_v2_[A-Za-z0-9_-]{1,64}$/.test(key);
+  const WORLD_LIST_KEYS=['skyrealm_worlds_v1','skyrealm_apocalypse_worlds_v1'];
+  const allowedKey=key=>WORLD_LIST_KEYS.includes(key)||['skyrealm_game_save_v1','skyrealm_apocalypse_game_save_v1','skyrealm_apocalypse_laboratories_v1'].includes(key)||/^skyrealm_(?:apocalypse_)?game_save_v2_[A-Za-z0-9_-]{1,128}$/.test(key)||/^skyrealm_(?:living_world|world_events)_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key)||/^skyrealm_apocalypse_laboratories_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key);
   function setStatus(message,error=false){status.textContent=message;status.classList.toggle('cloud-save-error',error);}
   function getLocalItems(){
     const items=[];
@@ -27,7 +28,7 @@
       if(bytes>1_800_000)return false;
       try{JSON.parse(item.value);}catch(_){return false;}
     }
-    return keys.has('skyrealm_worlds_v1')||keys.has('skyrealm_game_save_v1');
+    return WORLD_LIST_KEYS.some(key=>keys.has(key))||keys.has('skyrealm_game_save_v1')||keys.has('skyrealm_apocalypse_game_save_v1');
   }
   async function call(method,bundle=null,revision=0){
     const api=window.pywebview?.api;if(!api)throw new Error('Облачные сохранения доступны в установленной Windows-версии игры.');
@@ -56,7 +57,7 @@
     if(busy)return;busy=true;upload.disabled=restore.disabled=true;
     try{
       const items=getLocalItems();
-      if(!items.some(x=>x.key==='skyrealm_worlds_v1'||x.key==='skyrealm_game_save_v1'))throw new Error('Сначала создай хотя бы один мир.');
+      if(!items.some(x=>WORLD_LIST_KEYS.includes(x.key)||x.key==='skyrealm_game_save_v1'||x.key==='skyrealm_apocalypse_game_save_v1'))throw new Error('Сначала создай хотя бы один мир.');
       const bytes=items.reduce((sum,x)=>sum+new TextEncoder().encode(x.value).byteLength,0);
       if(bytes>1_800_000)throw new Error('Размер сохранений превышает лимит облачного архива 1,8 МБ.');
       const latest=await call('GET');const revision=Number(latest.save?.revision)||0;
@@ -68,17 +69,18 @@
     finally{busy=false;upload.disabled=restore.disabled=false;}
   }
   function mergeAndRestore(cloudBundle){
-    const localWorldsRaw=localStorage.getItem('skyrealm_worlds_v1')||'[]';
-    let localWorlds=[],cloudWorlds=[];
-    try{localWorlds=JSON.parse(localWorldsRaw);if(!Array.isArray(localWorlds))localWorlds=[];}catch(_){}
-    const cloudWorldItem=cloudBundle.items.find(x=>x.key==='skyrealm_worlds_v1');
-    try{cloudWorlds=cloudWorldItem?JSON.parse(cloudWorldItem.value):[];if(!Array.isArray(cloudWorlds))cloudWorlds=[];}catch(_){}
-    const merged=new Map();
-    localWorlds.forEach(world=>{if(world&&typeof world.id==='string')merged.set(world.id,world);});
-    cloudWorlds.forEach(world=>{if(world&&typeof world.id==='string')merged.set(world.id,{...(merged.get(world.id)||{}),...world});});
-    localStorage.setItem('skyrealm_worlds_v1',JSON.stringify([...merged.values()]));
+    for(const listKey of WORLD_LIST_KEYS){
+      const localRaw=localStorage.getItem(listKey)||'[]';let localWorlds=[],cloudWorlds=[];
+      try{localWorlds=JSON.parse(localRaw);if(!Array.isArray(localWorlds))localWorlds=[];}catch(_){}
+      const item=cloudBundle.items.find(x=>x.key===listKey);
+      try{cloudWorlds=item?JSON.parse(item.value):[];if(!Array.isArray(cloudWorlds))cloudWorlds=[];}catch(_){}
+      const merged=new Map();
+      localWorlds.forEach(world=>{if(world&&typeof world.id==='string')merged.set(world.id,world);});
+      cloudWorlds.forEach(world=>{if(world&&typeof world.id==='string')merged.set(world.id,{...(merged.get(world.id)||{}),...world});});
+      if(item||localStorage.getItem(listKey))localStorage.setItem(listKey,JSON.stringify([...merged.values()]));
+    }
     for(const item of cloudBundle.items){
-      if(item.key==='skyrealm_worlds_v1')continue;
+      if(WORLD_LIST_KEYS.includes(item.key))continue;
       localStorage.setItem(item.key,item.value);
     }
   }
