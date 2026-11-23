@@ -32,7 +32,7 @@
     </nav>
 
     <div class="sidebar-spacer"></div>
-    <div class="side-version">SKYREALM <b>v1.2.78</b></div>
+    <div class="side-version">SKYREALM <b>v1.2.79</b></div>
   </aside>
 
   <main class="main">
@@ -317,7 +317,19 @@
 <div class="setting-row"><div><b>Резервная копия миров</b><small>Создать архив или восстановить последний архив сохранений.</small></div><div class="backup-actions"><button class="secondary-btn" id="backup-worlds" type="button">Создать копию</button><button class="secondary-btn" id="restore-worlds" type="button">Восстановить</button></div></div>
 <p id="backup-status" class="settings-note" role="status"></p>
 <div class="settings-subheading"><span class="settings-subheading-icon">✦</span><div><b id="launcher-interface-title">Интерфейс лаунчера</b><small id="launcher-interface-subtitle">Внешний вид самого лаунчера.</small></div></div>
-<div class="setting-row"><div><b id="effects-label">Эффекты интерфейса</b><small id="effects-help">Анимации и свечение панелей</small></div><label class="toggle"><input type="checkbox" id="effects-toggle" checked><span></span></label></div><div class="setting-row"><div><b id="compact-label">Компактный интерфейс</b><small id="compact-help">Уменьшить расстояния между элементами</small></div><label class="toggle"><input type="checkbox" id="compact-toggle"><span></span></label></div><div class="setting-row"><div><b id="greeting-label">Показывать приветствие</b><small id="greeting-help">Сообщение на главной странице</small></div><label class="toggle"><input type="checkbox" id="greeting-toggle" checked><span></span></label></div><div class="settings-subheading" id="staff-admin-heading" hidden><span class="settings-subheading-icon">♜</span><div><b>Администрирование аккаунта</b><small>Управление серверными ролями игроков. Доступ открывается только после проверки прав сервером.</small></div></div>
+<div class="setting-row"><div><b id="effects-label">Эффекты интерфейса</b><small id="effects-help">Анимации и свечение панелей</small></div><label class="toggle"><input type="checkbox" id="effects-toggle" checked><span></span></label></div><div class="setting-row"><div><b id="compact-label">Компактный интерфейс</b><small id="compact-help">Уменьшить расстояния между элементами</small></div><label class="toggle"><input type="checkbox" id="compact-toggle"><span></span></label></div><div class="setting-row"><div><b id="greeting-label">Показывать приветствие</b><small id="greeting-help">Сообщение на главной странице</small></div><label class="toggle"><input type="checkbox" id="greeting-toggle" checked><span></span></label></div><div class="settings-subheading"><span class="settings-subheading-icon">◈</span><div><b>Поведение лаунчера</b><small>Автоматизация, уведомления и безопасный запуск.</small></div></div>
+<div class="setting-row"><div><b>Проверять обновления при запуске</b><small>Автоматическая проверка новых версий. Ручная проверка останется доступна в центре управления.</small></div><label class="toggle"><input type="checkbox" id="launcher-auto-updates" checked><span></span></label></div>
+<div class="setting-row"><div><b>Показывать уведомление об обновлении</b><small>Не скрывает обновления из центра управления, только отключает всплывающее окно при старте.</small></div><label class="toggle"><input type="checkbox" id="launcher-update-notifications" checked><span></span></label></div>
+<div class="setting-row"><div><b>Создавать копию миров перед обновлением</b><small>Перед установкой обновления лаунчер попробует сохранить WebView-хранилище миров. Если копию нельзя создать из-за ошибки, обновление не начнётся.</small></div><label class="toggle"><input type="checkbox" id="launcher-auto-backup" checked><span></span></label></div>
+<div class="setting-row"><div><b>Подтверждать выход</b><small>Защита от случайного закрытия лаунчера кнопкой ×.</small></div><label class="toggle"><input type="checkbox" id="launcher-confirm-exit" checked><span></span></label></div>
+<div class="setting-row"><div><b>Запоминать последний раздел</b><small>При следующем запуске открывать раздел, который был выбран перед выходом.</small></div><label class="toggle"><input type="checkbox" id="launcher-remember-page"><span></span></label></div>
+<div class="settings-subheading"><span class="settings-subheading-icon">⇄</span><div><b>Профиль настроек</b><small>Перенос параметров между компьютерами. Сохранения миров и данные аккаунта в файл настроек не входят.</small></div></div>
+<div class="launcher-settings-tools">
+  <div class="launcher-settings-tools-copy"><b>Управление конфигурацией</b><small>Экспортируй настройки в JSON, импортируй ранее сохранённый файл или верни стандартные параметры. Сброс не удаляет игровые миры, аккаунт и резервные копии.</small></div>
+  <div class="launcher-settings-tools-actions"><button class="secondary-btn" id="launcher-settings-save" type="button">Сохранить всё</button><button class="secondary-btn" id="launcher-settings-export" type="button">Экспорт JSON</button><button class="secondary-btn" id="launcher-settings-import-button" type="button">Импорт JSON</button><button class="outline-btn" id="launcher-settings-reset" type="button">Сбросить настройки</button><input id="launcher-settings-import-file" type="file" accept=".json,application/json" hidden></div>
+  <p class="launcher-settings-status" id="launcher-settings-status" role="status" aria-live="polite">Параметры сохраняются автоматически.</p>
+</div>
+<div class="settings-subheading" id="staff-admin-heading" hidden><span class="settings-subheading-icon">♜</span><div><b>Администрирование аккаунта</b><small>Управление серверными ролями игроков. Доступ открывается только после проверки прав сервером.</small></div></div>
 <section class="staff-admin-panel" id="staff-admin-panel" hidden aria-labelledby="staff-admin-heading">
   <div class="staff-admin-top">
     <div><div class="staff-admin-kicker">SKYREALM · STAFF ACCESS</div><h3>Привилегии игроков</h3><p id="staff-admin-account">Проверяем серверную роль…</p></div>
@@ -374,6 +386,7 @@
 <link rel="stylesheet" href="community-mods.css">
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="launcher-settings-plus.js"></script>
 <script src="launcher-enhancements.js"></script>
 <script src="community-mods.js"></script>
 </body>
