@@ -60,9 +60,14 @@ async function cloudSaveDb(path: string, init: RequestInit = {}) {
 function validateCloudBundle(input: any) {
   if (!input || typeof input !== "object" || Array.isArray(input) || input.format !== 1 ||
       !Array.isArray(input.items) || input.items.length < 1 || input.items.length > 52) return null;
+  const worldListKeys = ["skyrealm_worlds_v1", "skyrealm_apocalypse_worlds_v1"];
   const allowedKey = (key: string) =>
-    key === "skyrealm_worlds_v1" || key === "skyrealm_game_save_v1" ||
-    /^skyrealm_game_save_v2_[A-Za-z0-9_-]{1,64}$/.test(key);
+    worldListKeys.includes(key) || ["skyrealm_game_save_v1", "skyrealm_apocalypse_game_save_v1", "skyrealm_apocalypse_laboratories_v1"].includes(key) ||
+    /^skyrealm_(?:apocalypse_)?game_save_v2_[A-Za-z0-9_-]{1,128}$/.test(key) ||
+    /^skyrealm_(?:living_world|world_events|world_expansion)_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key) ||
+    /^skyrealm_forest_ecosystem_v2_[A-Za-z0-9_%.-]{1,180}$/.test(key) ||
+    /^skyrealm_challenge_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key) ||
+    /^skyrealm_apocalypse_laboratories_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key);
   const seen = new Set<string>();
   const items: {key:string;value:string}[] = [];
   let totalBytes = 0;
@@ -75,7 +80,7 @@ function validateCloudBundle(input: any) {
     if (size > 1_500_000 || totalBytes > 1_800_000) return null;
     let parsed: any;
     try { parsed = JSON.parse(raw.value); } catch { return null; }
-    if (raw.key === "skyrealm_worlds_v1") {
+    if (worldListKeys.includes(raw.key)) {
       if (!Array.isArray(parsed) || parsed.length > 50 ||
           parsed.some((world:any) => !world || typeof world !== "object" ||
             typeof world.id !== "string" || typeof world.name !== "string" ||
@@ -83,7 +88,7 @@ function validateCloudBundle(input: any) {
     } else if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
     items.push({key:raw.key,value:raw.value});
   }
-  if (!seen.has("skyrealm_worlds_v1") && !seen.has("skyrealm_game_save_v1")) return null;
+  if (!worldListKeys.some(key => seen.has(key)) && !seen.has("skyrealm_game_save_v1") && !seen.has("skyrealm_apocalypse_game_save_v1")) return null;
   return {format:1,items,created_at:typeof input.created_at==="string" ? input.created_at.slice(0,40) : new Date().toISOString()};
 }
 async function authRequest(path: string, method = "GET", body?: unknown, accessToken?: string) {
