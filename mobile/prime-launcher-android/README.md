@@ -24,7 +24,14 @@ The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`.
 
 Android only permits an APK to update an installed app when both APKs have the same signing certificate. The original 1.2.73 APK was built with GitHub Actions' ephemeral debug key, so a newly generated CI debug APK cannot be guaranteed to update it in place.
 
-For future in-place updates, create a permanent Android upload keystore and configure these GitHub Actions repository secrets:
+For future in-place updates, create a permanent Android upload keystore locally (never commit it):
+
+```sh
+keytool -genkeypair -v -keystore primelauncher-upload.jks -alias primelauncher -keyalg RSA -keysize 4096 -validity 10000
+base64 -w 0 primelauncher-upload.jks
+```
+
+Copy the base64 output into the `ANDROID_KEYSTORE_BASE64` GitHub Actions secret. Set the remaining three secrets to the keystore password, alias (`primelauncher` in this example), and key password. Configure these four GitHub Actions repository secrets:
 
 - `ANDROID_KEYSTORE_BASE64`: base64-encoded keystore file
 - `ANDROID_KEYSTORE_PASSWORD`
