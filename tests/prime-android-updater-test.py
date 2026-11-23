@@ -17,6 +17,8 @@ required_activity = (
     "FileProvider.getUriForFile",
     "ACTION_INSTALL_PACKAGE",
     "canRequestPackageInstalls",
+    "hasMatchingSigningCertificate",
+    "GET_SIGNING_CERTIFICATES",
     "MIN_APK_SIZE",
     "https://github.com/",
 )
