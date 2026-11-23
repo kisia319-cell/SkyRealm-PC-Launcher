@@ -64,7 +64,9 @@ function validateCloudBundle(input: any) {
   const allowedKey = (key: string) =>
     worldListKeys.includes(key) || ["skyrealm_game_save_v1", "skyrealm_apocalypse_game_save_v1", "skyrealm_apocalypse_laboratories_v1"].includes(key) ||
     /^skyrealm_(?:apocalypse_)?game_save_v2_[A-Za-z0-9_-]{1,128}$/.test(key) ||
-    /^skyrealm_(?:living_world|world_events)_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key) ||
+    /^skyrealm_(?:living_world|world_events|world_expansion)_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key) ||
+    /^skyrealm_forest_ecosystem_v2_[A-Za-z0-9_%.-]{1,180}$/.test(key) ||
+    /^skyrealm_challenge_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key) ||
     /^skyrealm_apocalypse_laboratories_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key);
   const seen = new Set<string>();
   const items: {key:string;value:string}[] = [];
