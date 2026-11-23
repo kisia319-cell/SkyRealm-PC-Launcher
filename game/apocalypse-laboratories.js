@@ -227,6 +227,13 @@ function interact(args){
  active.onDamage=onDamage;
  const lx=player.x-active.originX,ly=player.y-active.originY,f=active.floor;
  if(lx<120&&Math.abs(ly-410)<105){leave(player,toast,resetInput);return true;}
+ // Open containment cells deliberately: each released infected becomes a persistent roaming threat.
+ if(f===2){for(let i=0;i<4;i++){const cx=220+(i%4)*178+71,cy=145+Math.floor(i/4)*170+66,id='z'+i,z=active.zombies.find(v=>v.id===id);if(Math.hypot(lx-cx,ly-cy)<92){if(!z||wasReleased(active.lab,id)){toast('Камера уже пуста.');return true;}z.cell=false;z.x=cx;z.y=cy;releaseCell(active.lab,id);toast('КАМЕРА ОТКРЫТА! Заражённый вырвался.');return true;}}}
+ const near=(x,y,r=105)=>Math.hypot(lx-x,ly-y)<r;
+ if(f===1&&near(672,510)){if(!flag(active.lab,'terminal')){setFlag(active.lab,'terminal');toast('Архив расшифрован. Найдены записи персонала и схема комплекса.');}else toast('В архиве: эвакуация сорвана, заражение началось с нижних камер.');return true;}
+ if(f===2&&near(710,530)){setFlag(active.lab,'power');toast('Резервный генератор включён. Камеры и лифтовые системы запитаны.');return true;}
+ if(f===3&&near(935,630)){if(!flag(active.lab,'terminal')){setFlag(active.lab,'terminal');toast('Система биосинтеза запущена. Данные образцов сохранены.');}else if(!flag(active.lab,'power'))toast('Нет питания. Сначала запусти генератор на этаже карантина.');else{setFlag(active.lab,'reactor');toast('Охлаждение восстановлено. Реактор готов к запуску.');}return true;}
+ if(f===4&&near(893,590)){if(!flag(active.lab,'power')||!flag(active.lab,'reactor')){toast('РЕАКТОР ЗАБЛОКИРОВАН: восстанови питание и охлаждение.');return true;}if(!flag(active.lab,'finalVault')){setFlag(active.lab,'finalVault');onLoot?.('Осколок пробуждения',3);onLoot?.('Эссенция глубин',2);toast('Протокол «НОЛЬ» завершён! Получены редкие материалы.');}else toast('Протокол «НОЛЬ» уже завершён.');return true;}
  if(lx>1000&&Math.abs(ly-410)<110){
   if(f<4){active.floor++;const pos=floorStart(active.floor);player.x=active.originX+pos.x;player.y=active.originY+pos.y;active.zombies=floorZombies(active.lab,active.floor);active.hint=2;resetInput?.();toast('Подъём на этаж '+active.floor+'/4. Внимание: внутри обнаружены заражённые.');}
   else toast('Это верхний этаж. Для спуска подойди к лестнице слева.');
