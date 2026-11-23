@@ -10,16 +10,12 @@ android {
     defaultConfig {
         applicationId = "com.skyrealm.primelauncher"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1273
         versionName = "1.2.73"
     }
 
     buildTypes {
-        debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
-        }
         release {
             isMinifyEnabled = false
         }
