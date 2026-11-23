@@ -7,7 +7,7 @@ const html = fs.readFileSync(path.join(root, 'game/index.html'), 'utf8');
 const labs = fs.readFileSync(path.join(root, 'game/apocalypse-laboratories.js'), 'utf8');
 
 assert.match(html, /apocalypse-laboratories\.js/);
-assert.match(html, /skyrealm-game-version" content="0\.20\.50\.183"/);
+assert.match(html, /skyrealm-game-version" content="0\.20\.50\.184"/);
 assert.match(game, /SkyRealmApocalypseLabs\?\.drawExterior/);
 assert.match(game, /SkyRealmApocalypseLabs\.drawInterior/);
 assert.match(game, /SkyRealmApocalypseLabs\?\.interact/);
@@ -28,5 +28,5 @@ assert.match(labs, /Резервный генератор включён/);
 assert.match(labs, /Протокол «НОЛЬ» завершён/);
 assert.match(labs, /chargeCd/);
 assert.match(labs, /finalVault/);
-assert.match(labs, /SAVE_KEY='skyrealm_apocalypse_laboratories_v1'/);
+assert.match(labs, /LEGACY_SAVE_KEY='skyrealm_apocalypse_laboratories_v1'/);\nassert.match(labs, /SAVE_KEY=\(\)=>LEGACY_SAVE_KEY/);\nassert.match(labs, /loadWorld\(\)/);\nassert.match(labs, /importProgress\(raw\)/);
 console.log('Apocalypse secret laboratory regression checks passed.');
