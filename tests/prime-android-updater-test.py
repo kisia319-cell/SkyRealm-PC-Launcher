@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 ROOT = Path(__file__).resolve().parents[1]
 base = ROOT / "mobile/prime-launcher-android"
@@ -34,8 +33,7 @@ if 'androidx.core.content.FileProvider' not in manifest or '@xml/file_paths' not
 if 'external-files-path' not in paths or 'Download/' not in paths:
     raise SystemExit("FileProvider must expose only the app's update download folder")
 
-version_name = re.search(r'versionName\\s*=\\s*"([^"]+)"', gradle)
-if not version_name or version_name.group(1) != version:
+if f'versionName = "{version}"' not in gradle:
     raise SystemExit("Gradle versionName and version.txt do not match")
 if "prerelease: true" not in workflow:
     raise SystemExit("Android releases must remain prereleases so Windows update discovery ignores APKs")
