@@ -123,6 +123,7 @@ jobs:
           node tests/coop-ui-integration-test.cjs
           node tests/auth-smoke.mjs
           node tests/launcher-enhancements-test.cjs
+          node tests/launcher-settings-plus-test.cjs
           node tests/cloud-save-ui-test.cjs
           node tests/cloud-save-api-test.cjs
           node tests/supabase-migration-history-test.cjs
