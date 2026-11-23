@@ -173,7 +173,7 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
  // Floor labels, exit/elevator markers, doors and wall-mounted lamps.
  ctx.fillStyle='#202a2d';ctx.fillRect(42,height/2-70,34,140);ctx.fillRect(width-76,height/2-70,34,140);
  ctx.fillStyle='#9eaa9f';ctx.fillRect(45,height/2-58,28,116);ctx.fillRect(width-73,height/2-58,28,116);
- ctx.fillStyle='#d2b77c';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ВЫХОД',58,height/2+84);ctx.fillText('ЛЕСТНИЦА',width-58,height/2+84);
+ ctx.fillStyle='#d2b77c';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ВЫХОД',58,height/2+84);ctx.fillText('ЛЕСТНИЦА ↑',width-58,height/2+84);ctx.fillText('ЛЕСТНИЦА ↓',width*.72,height/2+84);
  ctx.fillStyle='#e2d2a9';ctx.font='900 15px Segoe UI';ctx.fillText(active.site.name+' · ЭТАЖ '+floor+'/4',width/2,42);
  ctx.fillStyle='#aebcba';ctx.font='10px Segoe UI';ctx.fillText('WASD — движение · E — взаимодействие · SPACE — атака · ESC — меню',width/2,height-20);
  // Searchable storage is visible on every floor, not represented by invisible triggers.
