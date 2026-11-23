@@ -81,6 +81,8 @@ jobs:
       - run: node --check game/multiplayer-client.js
       - run: node --check game/multiplayer-ui.js
       - run: node --check game/mobile-touch-controls.js
+      - run: node --check game/spawn-settlement.js
+      - run: node tests/spawn-settlement-test.cjs
       - run: node --check game/game.js
       - run: node --check game/world-events.js
       - run: node --check game/sea-system.js
