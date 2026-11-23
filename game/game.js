@@ -2303,7 +2303,16 @@ function updateVillageNpcs(dt){
     saveGame();
   }
   function updateCaveBoss(dt){if(!caveMode||caveBossDefeated||caveSecretRoom>0)return;const cfg=difficultyConfig();caveBossFlash=Math.max(0,caveBossFlash-dt);const dx=player.x-caveBossX,dy=player.y-caveBossY,dist=Math.hypot(dx,dy)||1;if(dist>62){caveBossX+=dx/dist*cfg.bossSpeed*dt;caveBossY+=dy/dist*cfg.bossSpeed*dt;}caveBossAttackTimer-=dt;caveBossSpecialTimer=Math.max(0,caveBossSpecialTimer-dt);if(caveBossSpecialTimer<=0){caveBossSpecialTimer=8;if(dist<180&&!immortal&&dodgeTimer<=0){const special=Math.max(1,Math.round(cfg.bossDamage*1.8*(1-armorReduction())));player.hp=Math.max(0,player.hp-special);updateVitals();spawnVisualBurst(player.x,player.y,24,'spark','#8ef5ff');toast('КАМЕННЫЙ СТРАЖ · СЕЙСМИЧЕСКИЙ РАЗЛОМ: −'+special+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}}if(caveBossAttackTimer<=0){caveBossAttackTimer=cfg.bossInterval;if(dist<102&&dodgeTimer<=0&&!immortal){const reduction=armorReduction();const hit=Math.max(1,Math.round(cfg.bossDamage*(1-reduction)));player.hp=Math.max(0,player.hp-hit);updateVitals();spawnVisualBurst(player.x,player.y,12,'spark','#fb6876');toast('Каменный страж ударил: −'+hit+' HP!');if(player.hp<=0)respawnPlayerAfterDefeat();}} }
-  function drawCaveSecretRoom(time){
+  function drawCavePlayerVisibility(){
+    // A restrained local lantern halo keeps the avatar readable against dark cave floors.
+    const px=player.x,py=player.y;
+    const glow=ctx.createRadialGradient(px,py,4,px,py,76);
+    glow.addColorStop(0,'rgba(255,207,133,.18)');
+    glow.addColorStop(.42,'rgba(255,190,112,.075)');
+    glow.addColorStop(1,'rgba(255,190,112,0)');
+    ctx.save();ctx.fillStyle=glow;ctx.beginPath();ctx.arc(px,py,76,0,Math.PI*2);ctx.fill();ctx.restore();
+  }
+  function drawCaveSecretRoom(time,dt){
     const t=Number.isFinite(time)?time:performance.now(),room=caveSecretRoom;
     const bg=ctx.createLinearGradient(0,0,0,height);bg.addColorStop(0,room===1?'#343c4a':'#263c31');bg.addColorStop(1,'#10151d');ctx.fillStyle=bg;ctx.fillRect(0,0,width,height);
     ctx.fillStyle=room===1?'#5a6270':'#385d42';ctx.beginPath();ctx.ellipse(width*.5,height*.52,width*.39,height*.34,0,0,Math.PI*2);ctx.fill();
@@ -2314,12 +2323,12 @@ function updateVillageNpcs(dt){
     if(!opened){ctx.shadowColor=room===1?'#a9d7ff':'#8eff9a';ctx.shadowBlur=20;ctx.fillStyle='#fff0a5';ctx.beginPath();ctx.arc(cx,cy-18,4+Math.sin(t/180)*1.5,0,6.28);ctx.fill();ctx.shadowBlur=0;}
     ctx.fillStyle='#eaf0f6';ctx.font='900 17px Segoe UI';ctx.textAlign='center';ctx.fillText(room===1?'ТАЙНАЯ БИБЛИОТЕКА':'ЗАЛ ЖИВОГО КОРНЯ',width*.5,38);
     ctx.font='12px Segoe UI';ctx.fillStyle='#c6d4e1';ctx.fillText(opened?'Сундук уже исследован':'Подойди к сундуку и нажми E',width*.5,60);
-    ctx.fillStyle='#17232d';ctx.beginPath();ctx.ellipse(player.x,player.y+12,17,7,0,0,6.28);ctx.fill();ctx.fillStyle=playerAppearance.armor||'#526fba';ctx.fillRect(player.x-9,player.y-4,18,18);ctx.fillStyle=playerAppearance.skin||'#e8b88c';ctx.fillRect(player.x-6,player.y-18,12,13);ctx.fillStyle='#352d3d';ctx.fillRect(player.x-7,player.y-22,14,5);
+    drawCavePlayerVisibility();drawPlayer(0,0,dt||1/60);drawRemotePlayers(0,0);
     ctx.fillStyle='#f4d69d';ctx.font='bold 12px Segoe UI';ctx.fillText('ВЫХОД · E',width*.16,height*.82);
   }
   function drawCaveInterior(dt,time){
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    if(caveSecretRoom){drawCaveSecretRoom(time);return;}
+    if(caveSecretRoom){drawCaveSecretRoom(time,dt);return;}
     const t=Number.isFinite(time)?time:performance.now();
     // A broad natural cavern: one open central chamber with roomy side galleries, never a maze.
     const base=ctx.createLinearGradient(0,0,0,height);
@@ -2421,24 +2430,8 @@ function updateVillageNpcs(dt){
     ctx.fillStyle=caveChestOpened?'#827463':'#c18a45';ctx.fillRect(cx-20,cy-14,40,12);
     ctx.fillStyle='#f7d56e';ctx.fillRect(cx-3,cy-6,6,15);
     if(!caveChestOpened){ctx.shadowColor='#ffcf62';ctx.shadowBlur=20;ctx.fillStyle='#ffdf81';ctx.beginPath();ctx.arc(cx,cy-14,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
-    const px=player.x,py=player.y;
-    ctx.fillStyle='#102a2a99';ctx.beginPath();ctx.ellipse(px,py+13,16,7,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#3b2837';ctx.fillRect(px-7,py+6,5,9);ctx.fillRect(px+2,py+6,5,9);
-    ctx.fillStyle=playerAppearance.armor||'#526fba';ctx.fillRect(px-9,py-4,18,15);
-    const caveLook=playerAppearance,caveHair=caveLook.hairStyle||'short',caveFace=caveLook.face||'normal';
-    if(caveHair==='hood'){ctx.fillStyle=caveLook.accent||'#9cb9ff';ctx.fillRect(px-9,py-22,18,19);}
-    ctx.fillStyle=caveLook.skin||'#e8b88c';ctx.fillRect(px-6,py-18,12,13);ctx.fillStyle=caveLook.hair||'#352d3d';
-    if(caveHair==='mohawk')ctx.fillRect(px-2,py-23,4,10);
-    else if(caveHair==='curly'){for(const [hx,hy] of [[-6,-20],[0,-22],[6,-20]]){ctx.beginPath();ctx.arc(px+hx,py+hy,3,0,Math.PI*2);ctx.fill();}}
-    else if(caveHair!=='hood'){ctx.fillRect(px-7,py-21,14,5);if(caveHair==='long')ctx.fillRect(px-8,py-17,3,12);}
-    if(caveFace==='visor'){ctx.fillStyle=caveLook.accent||'#9cb9ff';ctx.fillRect(px-7,py-14,14,5);ctx.fillStyle=caveLook.eye||'#26334c';ctx.fillRect(px-4,py-13,3,2);ctx.fillRect(px+2,py-13,3,2);}
-    else{ctx.fillStyle=caveLook.eye||'#26334c';ctx.fillRect(px-4,py-13,2,2);ctx.fillRect(px+3,py-13,2,2);if(caveFace==='stern'){ctx.fillRect(px-5,py-15,4,1);ctx.fillRect(px+2,py-15,4,1);}if(caveFace==='smile'){ctx.fillStyle='#7c4135';ctx.fillRect(px-2,py-8,5,1);}else if(caveFace==='mask'){ctx.fillStyle='#d5dce6';ctx.fillRect(px-5,py-10,10,5);ctx.fillStyle='#7e8ba0';ctx.fillRect(px-3,py-8,2,1);ctx.fillRect(px+1,py-8,2,1);}}
-    if(equipment.helmet){ctx.fillStyle='#d7dfe8';ctx.fillRect(px-9,py-22,18,5);}
-    ctx.fillStyle='#182b38';ctx.beginPath();ctx.ellipse(width*.16,height*.8,42,28,0,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#7bd7e7';ctx.lineWidth=4;ctx.stroke();
-    ctx.fillStyle='#f0d28b';ctx.font='bold 15px Segoe UI';ctx.textAlign='center';ctx.fillText('БОЛЬШАЯ ПЕЩЕРА · ОТКРЫТЫЙ ЗАЛ',width/2,35);
-    ctx.fillStyle='#a6bddb';ctx.font='12px Segoe UI';ctx.fillText(caveChestOpened?'Сундук открыт · E у выхода — вернуться':'Просторная пещера · победи Каменного стража и открой сундук',width/2,58);
-    if(dodgeTimer>0){ctx.strokeStyle='#a8d9ff';ctx.lineWidth=4;ctx.globalAlpha=dodgeTimer/.24;ctx.beginPath();ctx.arc(px,py,30,0,Math.PI*1.6);ctx.stroke();ctx.globalAlpha=1;}
+    drawCavePlayerVisibility();
+    drawPlayer(0,0,dt);
     drawRemotePlayers(0,0);
   }
   function drawForestLabel(camX,camY){if(IS_APOCALYPSE_MODE){drawApocalypseAreaLabel();return;}const x=(COLS-18)*TILE-camX,y=(ROWS-26)*TILE-camY;if(x<-220||x>width+220||y<-40||y>height+40)return;ctx.save();ctx.textAlign='center';ctx.font='900 12px Segoe UI';ctx.fillStyle='#d4f5b4';ctx.shadowColor='#143a1d';ctx.shadowBlur=8;ctx.fillText('ЛЕС · ЛОГОВО ОБОРОТНЯ',x,y);ctx.restore();}
