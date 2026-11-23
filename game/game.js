@@ -3319,6 +3319,7 @@ function updateVillageNpcs(dt){
       const seed=hash(gx+1201,gy+4401);if(seed<.91)continue;const x=gx*TILE+16-camX,y=gy*TILE+16-camY;if(x<-12||x>width+12||y<-12||y>height+12)continue;
       const pulse=.5+.5*Math.sin(time/360+gx+gy);ctx.save();ctx.globalAlpha=.35+.35*pulse;ctx.fillStyle='#8d3534';ctx.shadowColor='#da4c42';ctx.shadowBlur=8;ctx.beginPath();ctx.arc(x,y,3+5*pulse,0,Math.PI*2);ctx.fill();ctx.restore();
     }
+    window.SkyRealmApocalypseLabs?.drawExterior?.(ctx,camX,camY,time,width,height,COLS,ROWS,TILE);
   }
   function drawApocalypseAtmosphere(time){
     if(!IS_APOCALYPSE_MODE)return;
@@ -3384,13 +3385,14 @@ function updateVillageNpcs(dt){
       aura.addColorStop(0,'rgba(151,188,255,.12)'); aura.addColorStop(1,'rgba(151,188,255,0)');
       ctx.fillStyle=aura;ctx.beginPath();ctx.arc(px,py,36,0,Math.PI*2);ctx.fill();
     }
+    if(IS_APOCALYPSE_MODE&&window.SkyRealmApocalypseLabs?.isInside?.())window.SkyRealmApocalypseLabs.drawInterior(ctx,player,camX,camY,dt,time,width,height);
     drawPlayer(camX,camY,dt);
     drawBossRealmHud();
     drawFishingCast(camX,camY,time);
     drawRemotePlayers(camX,camY);
     drawVisualEffects(camX,camY,time);
     if(gameSettings.graphicsQuality!=='low') drawFireflies(camX,camY,time);
-    drawDayNightOverlay(camX,camY);if(IS_APOCALYPSE_MODE)drawApocalypseAtmosphere(time);
+    if(!window.SkyRealmApocalypseLabs?.isInside?.()){drawDayNightOverlay(camX,camY);if(IS_APOCALYPSE_MODE)drawApocalypseAtmosphere(time);}
     updateObjective();
     ctx.restore();
     ctx.restore();
@@ -4990,6 +4992,7 @@ function updateWolfAndDog(dt){
     function attackNearestMonster(){
     if(playerAttackCooldown>0)return;
     combatBeginStrike();
+    if(IS_APOCALYPSE_MODE&&window.SkyRealmApocalypseLabs?.isInside?.()){playerAttackCooldown=.7;attackAnimTimer=.24;playSound('hit');const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(combatWeaponDamage(weapon)*(1+skills.warrior*.1));window.SkyRealmApocalypseLabs.attack(player,weaponRange(),damage,toast,(name,count)=>{if(changeItem(name,count)){renderInventory();saveGame();}});return;}
     if(dungeonMode&&isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){
       playerAttackCooldown=.7;attackAnimTimer=.24;
       const weapon=equipment.weapon||'Деревянный меч',damage=Math.round(combatWeaponDamage(weapon)*(1+skills.warrior*.1));
@@ -5486,6 +5489,7 @@ function updateWolfAndDog(dt){
   }
   async function interact(){
     if(dungeonMode){interactDungeon();return;}
+    if(IS_APOCALYPSE_MODE&&window.SkyRealmApocalypseLabs?.interact?.({player,TILE,COLS,ROWS,toast,onLoot:(name,count)=>{if(changeItem(name,count)){renderInventory();saveGame();}},resetInput:()=>{keys.clear();pressedMovementCodes.clear();movementDirections.clear();},onDamage:amount=>{player.hp=Math.max(0,player.hp-amount);updateVitals();if(player.hp<=0){window.SkyRealmApocalypseLabs?.leave?.(player,toast);respawnPlayerAfterDefeat();}}}))return;
     if(window.SkyRealmForestEcosystem?.interact?.())return;
     if(bossRealmMode&&mineBossRealmRock())return;
     if(!inHouse){
