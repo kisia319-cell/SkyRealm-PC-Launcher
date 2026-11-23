@@ -74,6 +74,8 @@ jobs:
       - run: node tests/cloud-save-ui-test.cjs
       - run: node tests/custom-mod-runtime-test.cjs
       - run: node tests/farm-economy-test.cjs
+      - run: node --check launcher-settings-plus.js
+      - run: node tests/launcher-settings-plus-test.cjs
       - run: node tests/launcher-enhancements-test.cjs
       - run: node tests/launcher-staff-admin-test.cjs
       - run: node tests/mod-studio-handoff-test.cjs
