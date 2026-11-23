@@ -3319,7 +3319,7 @@ function updateVillageNpcs(dt){
       const seed=hash(gx+1201,gy+4401);if(seed<.91)continue;const x=gx*TILE+16-camX,y=gy*TILE+16-camY;if(x<-12||x>width+12||y<-12||y>height+12)continue;
       const pulse=.5+.5*Math.sin(time/360+gx+gy);ctx.save();ctx.globalAlpha=.35+.35*pulse;ctx.fillStyle='#8d3534';ctx.shadowColor='#da4c42';ctx.shadowBlur=8;ctx.beginPath();ctx.arc(x,y,3+5*pulse,0,Math.PI*2);ctx.fill();ctx.restore();
     }
-    window.SkyRealmApocalypseLabs?.drawExterior?.(ctx,camX,camY,time,width,height,COLS,ROWS,TILE);
+    window.SkyRealmApocalypseLabs?.drawExterior?.(ctx,camX,camY,time,width,height,COLS,ROWS,TILE,player);
   }
   function drawApocalypseAtmosphere(time){
     if(!IS_APOCALYPSE_MODE)return;
