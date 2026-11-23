@@ -6398,7 +6398,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
     try{
       const d=JSON.parse(localStorage.getItem(saveKey)||'null');
       window.SkyRealmExpansionSystems?.importState?.(d?.expansionSystems||null);
-      if(IS_APOCALYPSE_MODE)window.SkyRealmApocalypseLabs?.importProgress?.(d?.apocalypseLabs||null);
+      if(IS_APOCALYPSE_MODE&&d?.apocalypseLabs)window.SkyRealmApocalypseLabs?.importProgress?.(d.apocalypseLabs);
       if(Array.isArray(d?.worldEventEnemies)){
         for(const raw of d.worldEventEnemies.slice(0,12)){
           if(!raw||typeof raw!=='object'||!Number.isFinite(raw.x)||!Number.isFinite(raw.y))continue;
@@ -6728,7 +6728,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     currentWorldId=record.id;currentWorldName=coopSession?('Кооператив · '+record.name):record.name;worldSessionStartedAt=Date.now();worldSessionRecorded=false;
     saveKey=coopSession?('skyrealm_coop_save_v1_'+coopSession.id+'_'+network.userId):worldSaveKey(record.id);
     localStorage.setItem('skyrealm_active_world_id',record.id);bossRealmMode=record.bossRealm===true;bossReturnWorldId=typeof record.bossReturnWorldId==='string'?record.bossReturnWorldId:null;bossReturnX=Number.isFinite(record.bossReturnX)?record.bossReturnX:21*TILE+16;bossReturnY=Number.isFinite(record.bossReturnY)?record.bossReturnY:26*TILE+16;mineMode=false;workbenchDialogOpen=false;
-    createMineForWorld(coopSession?('skyrealm-coop-'+coopSession.id):record.id);if(coopSession){coopSnapshotRoomId=coopSession.id;lastAppliedCoopSnapshotVersion=0;coopSnapshotTimer=0;}loadGame();if(coopSession)coopWorldEntry={room_id:coopSession.id,world_id:'coop_'+coopSession.id,world_name:record.name,difficulty:selectedDifficulty,started_at:Number(coopWorldEntry?.started_at)||Date.now()};if(migrateLegacyDifficulty&&caveBossHp>0&&Number.isFinite(caveBossHp)&&caveBossHp<=260&&!caveBossDefeated)caveBossHp=bossMaxHp();markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
+    createMineForWorld(coopSession?('skyrealm-coop-'+coopSession.id):record.id);if(IS_APOCALYPSE_MODE)window.SkyRealmApocalypseLabs?.loadWorld?.();if(coopSession){coopSnapshotRoomId=coopSession.id;lastAppliedCoopSnapshotVersion=0;coopSnapshotTimer=0;}loadGame();if(coopSession)coopWorldEntry={room_id:coopSession.id,world_id:'coop_'+coopSession.id,world_name:record.name,difficulty:selectedDifficulty,started_at:Number(coopWorldEntry?.started_at)||Date.now()};if(migrateLegacyDifficulty&&caveBossHp>0&&Number.isFinite(caveBossHp)&&caveBossHp<=260&&!caveBossDefeated)caveBossHp=bossMaxHp();markExploredAroundPlayer();saveGame();renderInventory();drawMinimap();
     if(coopSession&&network?.isRoomOwner)network.broadcastWorldEntry?.(coopWorldEntry).catch(error=>console.warn('[SkyRealm co-op world launch]',error));
     document.querySelector('.realm-sub').textContent=record.name+' · '+difficultyConfig().name.toUpperCase()+' · ПЕРВЫЙ РАССВЕТ';
     document.getElementById('main-menu-shade').hidden=true;document.getElementById('main-menu-shade').setAttribute('aria-hidden','true');
