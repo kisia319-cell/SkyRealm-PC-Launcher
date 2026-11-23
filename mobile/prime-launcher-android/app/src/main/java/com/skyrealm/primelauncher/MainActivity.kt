@@ -14,7 +14,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.OnBackPressedCallback
 import androidx.webkit.WebViewAssetLoader
 
 class MainActivity : Activity() {
@@ -118,16 +117,16 @@ class MainActivity : Activity() {
             webView.restoreState(savedInstanceState)
         }
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Закрыть PrimeLauncher?")
-                    .setMessage("Текущий прогресс сохраняется автоматически.")
-                    .setNegativeButton("Остаться", null)
-                    .setPositiveButton("Выйти") { _, _ -> finish() }
-                    .show()
-            }
-        })
+    }
+
+    @Deprecated("Deprecated in Android but retained for broad device compatibility")
+    override fun onBackPressed() {
+        AlertDialog.Builder(this)
+            .setTitle("Закрыть PrimeLauncher?")
+            .setMessage("Текущий прогресс сохраняется автоматически.")
+            .setNegativeButton("Остаться", null)
+            .setPositiveButton("Выйти") { _, _ -> finish() }
+            .show()
     }
 
     private fun openExternal(uri: Uri): Boolean {
