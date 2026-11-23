@@ -150,7 +150,7 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
  // Simulate contained and escaped infected without touching the surface-world monster list.
  for(const z of active.zombies){
   z.flash=Math.max(0,z.flash-dt);z.attackCd-=dt;
-  if(!z.cell){const dx=px-z.x,dy=py-z.y,d=Math.hypot(dx,dy)||1;if(d>29){z.x+=dx/d*z.speed*dt;z.y+=dy/d*z.speed*dt;}else if(z.attackCd<=0){z.attackCd=1.35;active.pendingDamage=(active.pendingDamage||0)+z.damage;}}
+  if(!z.cell){const dx=px-z.x,dy=py-z.y,d=Math.hypot(dx,dy)||1;if(z.boss&&d<260&&z.chargeCd!==undefined){z.chargeCd-=dt;if(z.chargeCd<=0){z.chargeCd=3.8;z.x+=dx/d*78;z.y+=dy/d*78;z.flash=.3;if(d<115)active.pendingDamage=(active.pendingDamage||0)+z.damage*1.5;}else if(d>29){z.x+=dx/d*z.speed*dt;z.y+=dy/d*z.speed*dt;}}else if(d>29){z.x+=dx/d*z.speed*dt;z.y+=dy/d*z.speed*dt;}else if(z.attackCd<=0){z.attackCd=1.35;active.pendingDamage=(active.pendingDamage||0)+z.damage;}}
  }
  const pendingDamage=active.pendingDamage||0;active.pendingDamage=0;
  ctx.save();ctx.setTransform(window.devicePixelRatio||1,0,0,window.devicePixelRatio||1,0,0);
