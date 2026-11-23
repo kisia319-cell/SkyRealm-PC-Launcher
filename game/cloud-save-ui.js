@@ -6,7 +6,7 @@
   const status=$('cloud-save-status'),upload=$('cloud-save-upload'),restore=$('cloud-save-restore');
   let busy=false,remoteRevision=0,remoteSave=null;
   const WORLD_LIST_KEYS=['skyrealm_worlds_v1','skyrealm_apocalypse_worlds_v1'];
-  const allowedKey=key=>WORLD_LIST_KEYS.includes(key)||['skyrealm_game_save_v1','skyrealm_apocalypse_game_save_v1','skyrealm_apocalypse_laboratories_v1'].includes(key)||/^skyrealm_(?:apocalypse_)?game_save_v2_[A-Za-z0-9_-]{1,128}$/.test(key)||/^skyrealm_(?:living_world|world_events)_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key)||/^skyrealm_apocalypse_laboratories_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key);
+  const allowedKey=key=>WORLD_LIST_KEYS.includes(key)||['skyrealm_game_save_v1','skyrealm_apocalypse_game_save_v1','skyrealm_apocalypse_laboratories_v1'].includes(key)||/^skyrealm_(?:apocalypse_)?game_save_v2_[A-Za-z0-9_-]{1,128}$/.test(key)||/^skyrealm_(?:living_world|world_events|world_expansion)_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key)||/^skyrealm_forest_ecosystem_v2_[A-Za-z0-9_%.-]{1,180}$/.test(key)||/^skyrealm_challenge_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key)||/^skyrealm_apocalypse_laboratories_v1_[A-Za-z0-9_%.-]{1,180}$/.test(key);
   function setStatus(message,error=false){status.textContent=message;status.classList.toggle('cloud-save-error',error);}
   function getLocalItems(){
     const items=[];
