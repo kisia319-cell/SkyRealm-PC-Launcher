@@ -67,7 +67,7 @@
   function refresh() {
     const inGame = !mainMenu() && !intro();
     action.hidden = !inGame || modalOpen();
-    back.hidden = intro() || mainMenu();
+    back.hidden = intro() || (mainMenu() && !modalOpen());
   }
 
   action.addEventListener('pointerdown', event => {
