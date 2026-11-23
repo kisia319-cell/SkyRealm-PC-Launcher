@@ -237,3 +237,10 @@
 - Four upgradable camp buildings, six collectible relics and a seasonal token festival.
 - Per-world progress persistence, interrupted-expedition recovery and responsive guild UI.
 - Player movement and walking code remain unchanged.
+
+
+## PrimeLauncher for Android
+
+An Android APK port of the PrimeLauncher competitive hub is maintained in `mobile/prime-launcher-android`. It embeds the exact same `game/competitive/index.html`, `prime-world.js`, and `prime-online.js` assets used by the Windows PrimeLauncher, inside an Android WebView with persistent local storage and touch-friendly responsive layout.
+
+The APK is built and published automatically by `.github/workflows/prime-launcher-android.yml` whenever the Android wrapper or shared PrimeLauncher web assets change. Download it from the repository's Releases under the `prime-android-v*` tag.
