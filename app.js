@@ -119,10 +119,14 @@
   });
 
   function showPage(name) {
-    $$('.page').forEach(p => p.classList.toggle('active', p.id === `page-${name}`));
-    $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === name));
+    $('.page').forEach(p => p.classList.toggle('active', p.id === `page-${name}`));
+    $('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === name));
     $('#crumb-label').textContent = pageNames[name] || pageNames.home;
     $('.main').scrollTop = 0;
+    try {
+      const behavior=JSON.parse(localStorage.getItem('skyrealm_launcher_behavior_v1')||'{}');
+      if(behavior.rememberLastPage===true && name!=='settings')localStorage.setItem('skyrealm_launcher_last_page',name);
+    } catch (_) {}
     if (name === 'settings') { loadSettings(); loadStaffAdminPanel(); }
     if (name === 'profile' && currentToken()) loadPlayerProfile();
     if (name === 'community' && currentToken()) { loadSocialFriends(); refreshSocialInvites(); requestSocial('/api/social/active-room').then(x=>socialActiveRoom=x.room).catch(()=>{}); }
@@ -970,6 +974,11 @@
   let startupGameUpdateCheckInFlight = false;
   async function checkStartupGameUpdate() {
     if (startupGameUpdateCheckComplete || startupGameUpdateCheckInFlight) return startupGameUpdateCheckComplete;
+    try {
+      const behavior=JSON.parse(localStorage.getItem('skyrealm_launcher_behavior_v1')||'{}');
+      const game=JSON.parse(localStorage.getItem('skyrealm_game_preferences')||'{}');
+      if(behavior.autoCheckUpdates===false || (behavior.autoCheckUpdates===undefined && game.autoCheckUpdates===false)){startupGameUpdateCheckComplete=true;return true;}
+    } catch (_) {}
     const api = window.pywebview?.api;
     if (!api?.get_update_status) return false;
     startupGameUpdateCheckInFlight = true;
@@ -978,6 +987,11 @@
       if (!state?.ok) return false;
       startupGameUpdateCheckComplete = true;
       if (!state.game_update_available) return true;
+      try {
+        const behavior=JSON.parse(localStorage.getItem('skyrealm_launcher_behavior_v1')||'{}');
+        const game=JSON.parse(localStorage.getItem('skyrealm_game_preferences')||'{}');
+        if(behavior.updateNotifications===false || (behavior.updateNotifications===undefined && game.updateNotifications===false))return true;
+      } catch (_) {}
       const version = $('#game-update-version');
       const current = $('#game-update-current');
       const overlay = $('#game-update-overlay');
@@ -1246,6 +1260,15 @@
   }
   window.addEventListener('pywebviewready', syncPreferencesFromDesktop);
   loadSettings();
+  window.setTimeout(() => {
+    try {
+      const behavior=JSON.parse(localStorage.getItem('skyrealm_launcher_behavior_v1')||'{}');
+      if(behavior.rememberLastPage===true){
+        const last=String(localStorage.getItem('skyrealm_launcher_last_page')||'');
+        if(last && document.getElementById('page-'+last))showPage(last);
+      }
+    } catch (_) {}
+  },180);
   document.body.classList.toggle('no-effects', localStorage.getItem('skyrealm_effects') === 'false');
   document.body.classList.toggle('compact', localStorage.getItem('skyrealm_compact') === 'true');
   if (localStorage.getItem('skyrealm_greeting') === 'false') $('.hero-copy').style.display = 'none';
@@ -1474,5 +1497,13 @@
 
   // Window controls work only inside the packaged desktop app.
   $('#minimize').addEventListener('click', () => { if (window.pywebview?.api?.minimize) window.pywebview.api.minimize(); else toast('Кнопка сворачивания работает в приложении Windows.'); });
-  $('#close').addEventListener('click', () => { if (window.pywebview?.api?.close) window.pywebview.api.close(); else toast('Закрой вкладку браузера, чтобы выйти из демо.'); });
+  $('#close').addEventListener('click', () => {
+    try {
+      const behavior=JSON.parse(localStorage.getItem('skyrealm_launcher_behavior_v1')||'{}');
+      const game=JSON.parse(localStorage.getItem('skyrealm_game_preferences')||'{}');
+      const confirmExit=behavior.confirmExit!==undefined?behavior.confirmExit:game.confirmExit;
+      if(confirmExit!==false && !window.confirm('Закрыть PrimeLauncher?'))return;
+    } catch (_) {}
+    if (window.pywebview?.api?.close) window.pywebview.api.close(); else toast('Закрой вкладку браузера, чтобы выйти из демо.');
+  });
 })();
