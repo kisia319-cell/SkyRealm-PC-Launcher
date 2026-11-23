@@ -69,7 +69,7 @@ class MainActivity : Activity() {
             allowFileAccess = false
             allowContentAccess = true
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            userAgentString = "$userAgentString PrimeLauncherAndroid/${BuildConfig.VERSION_NAME}"
+            userAgentString = "$userAgentString PrimeLauncherAndroid/1.2.74"
         }
 
         webView.webViewClient = object : WebViewClient() {
@@ -155,7 +155,7 @@ class MainActivity : Activity() {
                 if (release.optBoolean("draft") || release.optBoolean("prerelease")) return@Thread
                 val tag = release.optString("tag_name")
                 val remoteVersion = tag.removePrefix(RELEASE_TAG_PREFIX)
-                val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: BuildConfig.VERSION_NAME
+                val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "1.2.74"
                 if (!tag.startsWith(RELEASE_TAG_PREFIX) || compareVersions(remoteVersion, currentVersion) <= 0) {
                     return@Thread
                 }
@@ -216,7 +216,7 @@ class MainActivity : Activity() {
                 if (connection.responseCode !in 200..299) {
                     throw IllegalStateException("Не удалось скачать APK: HTTP ${connection.responseCode}")
                 }
-                val expectedLength = connection.contentLength
+                val expectedLength = connection.contentLengthLong
                 val directory = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
                     ?: throw IllegalStateException("Папка загрузок недоступна")
                 if (!directory.exists() && !directory.mkdirs()) {
