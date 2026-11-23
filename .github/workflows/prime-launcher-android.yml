@@ -1,0 +1,90 @@
+name: Build and publish PrimeLauncher Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/prime-launcher-android/**"
+      - "game/competitive/index.html"
+      - "game/competitive/prime-world.js"
+      - "game/competitive/prime-online.js"
+      - ".github/workflows/prime-launcher-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Verify bundled PrimeLauncher assets match Windows source
+        run: python3 tests/prime-android-assets-test.py
+
+      - name: Build installable Android APK
+        run: gradle --no-daemon :app:assembleDebug
+        working-directory: mobile/prime-launcher-android
+
+      - name: Verify APK contents
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          apk = Path("mobile/prime-launcher-android/app/build/outputs/apk/debug/app-debug.apk")
+          if not apk.is_file() or apk.stat().st_size < 1_000_000:
+              raise SystemExit("Android APK is missing or unexpectedly small")
+          with ZipFile(apk) as archive:
+              names = set(archive.namelist())
+              required = {
+                  "assets/prime/index.html",
+                  "assets/prime/prime-world.js",
+                  "assets/prime/prime-online.js",
+                  "classes.dex",
+              }
+              missing = required - names
+              if missing:
+                  raise SystemExit("APK missing: " + ", ".join(sorted(missing)))
+          print(f"Verified {apk} ({apk.stat().st_size} bytes)")
+          PY
+
+      - name: Read Android release version
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(cat mobile/prime-launcher-android/version.txt | tr -d '[:space:]')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: prime-android-v${{ steps.version.outputs.version }}
+          name: PrimeLauncher Android ${{ steps.version.outputs.version }}
+          target_commitish: main
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          files: mobile/prime-launcher-android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload APK build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrimeLauncher-Android
+          path: mobile/prime-launcher-android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
