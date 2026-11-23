@@ -133,7 +133,7 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
   z.flash=Math.max(0,z.flash-dt);z.attackCd-=dt;
   if(!z.cell){const dx=px-z.x,dy=py-z.y,d=Math.hypot(dx,dy)||1;if(d>29){z.x+=dx/d*z.speed*dt;z.y+=dy/d*z.speed*dt;}else if(z.attackCd<=0){z.attackCd=1.35;active.pendingDamage=(active.pendingDamage||0)+z.damage;}}
  }
- if(active.pendingDamage){const amount=active.pendingDamage;active.pendingDamage=0;active.onDamage?.(amount);}
+ const pendingDamage=active.pendingDamage||0;active.pendingDamage=0;
  ctx.save();ctx.setTransform(window.devicePixelRatio||1,0,0,window.devicePixelRatio||1,0,0);
  const bg=ctx.createLinearGradient(0,0,0,height);bg.addColorStop(0,'#303638');bg.addColorStop(1,'#171c1d');ctx.fillStyle=bg;ctx.fillRect(0,0,width,height);
  ctx.fillStyle='#414342';ctx.fillRect(0,0,width,height);
@@ -190,6 +190,7 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
  // Top-level HUD is kept readable while the world outside is hidden.
  ctx.fillStyle='rgba(5,10,13,.88)';ctx.fillRect(width/2-170,55,340,22);ctx.strokeStyle='#778984';ctx.strokeRect(width/2-170,55,340,22);ctx.fillStyle='#d5d0b8';ctx.font='bold 10px Segoe UI';ctx.fillText('ОБЪЕКТ '+String(active.lab).padStart(2,'0')+' · '+(active.floor===2?'ЗАРАЖЁННЫЙ КАРАНТИН':active.floor===3?'БИОСИНТЕЗ':'ЗАКРЫТЫЙ СЕКТОР'),width/2,70);
  ctx.restore();
+ if(pendingDamage>0)active?.onDamage?.(pendingDamage);
 }
 function interact(args){
  const {player,TILE,COLS,ROWS,toast,onLoot,resetInput,onDamage}=args||{};
