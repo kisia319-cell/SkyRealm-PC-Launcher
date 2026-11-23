@@ -6,7 +6,7 @@ if (window.SKYREALM_BUILD_EDITION !== 'apocalypse' && document.documentElement.d
 }
 // This module is loaded only by the dedicated Apocalypse edition.
 // All laboratory floors are local to the hidden Apocalypse map.
-const SAVE_KEY='skyrealm_apocalypse_laboratories_v1';
+const LEGACY_SAVE_KEY='skyrealm_apocalypse_laboratories_v1'; const SAVE_KEY=()=>LEGACY_SAVE_KEY+'_'+encodeURIComponent(window.SkyRealmSeaBridge?.getWorldId?.()||'default');
 const RATIOS=[[.12,.52],[.50,.78],[.84,.48]];
 const NAMES=['ОБЪЕКТ «ФЕНИКС»','КОМПЛЕКС «ЭХО»','СТАНЦИЯ «НУЛЬ»'];
 const THEMES=['bio','military','reactor'];
@@ -261,5 +261,5 @@ function attack(player,range,damage,toast,onLoot){
  if(z.hp<=0){markDead(z);active.zombies=active.zombies.filter(v=>v!==z);onLoot?.('Кость',z.boss?8:1);if(z.boss){onLoot?.('Осколок пробуждения',4);onLoot?.('Эссенция глубин',3);setFlag(active.lab,'mutantDefeated');}else if(Math.random()<.35)onLoot?.('Малое зелье',1);toast?.(z.boss?'МУТАНТ УНИЧТОЖЕН · ОБЪЕКТ ОБЕЗВРЕЖЕН':'Заражённый устранён.');}
  return true;
 }
-window.SkyRealmApocalypseLabs={drawExterior,drawInterior,interact,attack,leave,isInside:()=>!!active,getProgress:()=>JSON.parse(JSON.stringify(progress))};
+window.SkyRealmApocalypseLabs={drawExterior,drawInterior,interact,attack,leave,isInside:()=>!!active,getProgress:()=>JSON.parse(JSON.stringify(progress)),importProgress(raw){if(!raw||typeof raw!=='object')return false;const next={opened:Array.isArray(raw.opened)?raw.opened.filter(v=>typeof v==='string'&&v.length<=180).slice(0,5000):[],dead:{},labState:{}};if(raw.dead&&typeof raw.dead==='object')for(const [k,v] of Object.entries(raw.dead).slice(0,12)){if(/^\d:[1-4]$/.test(k)&&Array.isArray(v))next.dead[k]=v.filter(id=>typeof id==='string'&&/^z\d+$/.test(id)).slice(0,20);}if(raw.labState&&typeof raw.labState==='object')for(const [k,v] of Object.entries(raw.labState).slice(0,3)){if(!['1','2','3'].includes(k)||!v||typeof v!=='object')continue;next.labState[k]={power:v.power===true,terminal:v.terminal===true,reactor:v.reactor===true,released:Array.isArray(v.released)?v.released.filter(id=>typeof id==='string'&&id.length<=80).slice(0,30):[],finalVault:v.finalVault===true,mutantDefeated:v.mutantDefeated===true};}progress=next;persist();return true;}};
 })();
