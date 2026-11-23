@@ -10,6 +10,16 @@ const SAVE_KEY='skyrealm_apocalypse_laboratories_v1';
 const RATIOS=[[.12,.52],[.50,.78],[.84,.48]];
 const NAMES=['ОБЪЕКТ «ФЕНИКС»','КОМПЛЕКС «ЭХО»','СТАНЦИЯ «НУЛЬ»'];
 const THEMES=['bio','military','reactor'];
+const PALETTES={bio:{wall:'#35413d',light:'#8bc2a4',accent:'#668c72',danger:'#b45d4b'},military:{wall:'#3a4143',light:'#c0b68c',accent:'#66716d',danger:'#c15a42'},reactor:{wall:'#333c43',light:'#80c9d2',accent:'#557e88',danger:'#d4a34e'}};
+const FLOOR_NAMES=['АРХИВ И ПРИЁМНАЯ','КАРАНТИН И КАМЕРЫ','БИОСИНТЕЗ И ОПЫТЫ','КОМАНДНЫЙ ЦЕНТР'];
+function labState(lab){progress.labState=progress.labState||{};progress.labState[lab]=progress.labState[lab]||{power:false,terminal:false,reactor:false,released:[],finalVault:false,mutantDefeated:false};return progress.labState[lab];}
+function flag(lab,name){return !!labState(lab)[name];}
+function setFlag(lab,name,value=true){labState(lab)[name]=value;persist();}
+function wasReleased(lab,id){return labState(lab).released.includes(id);}
+function releaseCell(lab,id){const s=labState(lab);if(!s.released.includes(id))s.released.push(id);persist();}
+function drawMonitor(ctx,x,y,w=78,h=48,on=false,time=0){ctx.fillStyle='#11191c';ctx.fillRect(x-3,y-3,w+6,h+8);ctx.fillStyle='#293b40';ctx.fillRect(x,y,w,h);ctx.fillStyle=on?'#8bd3a6':'#9b5148';ctx.globalAlpha=.55+.18*Math.sin(time/180);ctx.fillRect(x+5,y+5,w-10,h-15);ctx.globalAlpha=1;ctx.strokeStyle='#82979a';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);ctx.fillStyle='#b5c7bf';for(let i=0;i<3;i++)ctx.fillRect(x+8,y+10+i*7,w*(.35+.12*i),2);ctx.fillStyle='#8c9994';ctx.fillRect(x+w*.35,y+h,w*.3,7);}
+function warningStripe(ctx,x,y,w,h){ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();for(let i=-h;i<w+h;i+=18){ctx.strokeStyle='#d2ad57';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(x+i,y+h);ctx.lineTo(x+i+h,y);ctx.stroke();}ctx.restore();}
+function bloodTrail(ctx,x,y,len=54){ctx.strokeStyle='rgba(112,39,34,.55)';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x+len*.25,y+12,x+len*.65,y-9,x+len,y+5);ctx.stroke();}
 let active=null,siteCache=[];
 function load(){try{return JSON.parse(localStorage.getItem(SAVE_KEY)||'{}')||{};}catch(_){return {};}}
 let progress=load();
@@ -32,7 +42,7 @@ function floorZombies(lab,floor){
  for(let i=0;i<count;i++){
   const id='z'+i;if(dead.includes(id))continue;
   const x=floor===2?250+i*150:250+(i*263)%650,y=floor===2?215+(i%2)*45:260+(i%2)*180;
-  out.push({id,lab,floor,x,y,hp:floor===4&&i===1?520:floor===3?190:floor===2?150:110,maxHp:floor===4&&i===1?520:floor===3?190:floor===2?150:110,speed:floor===4?40:floor===2?25:32,damage:floor===4?17:floor===2?9:7,attackCd:.7+hash(lab*9+i,floor)*.8,phase:hash(lab*13+i,floor)*6.28,cell:floor===2&&i<4,escaped:floor===2&&i>=4,boss:floor===4&&i===1,flash:0});
+  out.push({id,lab,floor,x,y,hp:floor===4&&i===1?760:floor===3?240:floor===2?175:120,maxHp:floor===4&&i===1?760:floor===3?240:floor===2?175:120,speed:floor===4?48:floor===2?30:35,damage:floor===4?22:floor===2?11:8,attackCd:.7+hash(lab*9+i,floor)*.8,phase:hash(lab*13+i,floor)*6.28,cell:floor===2&&i<4&&!wasReleased(lab,id),escaped:floor===2&&i>=4,boss:floor===4&&i===1,flash:0,chargeCd:2+hash(i,lab)*2});
  }
  return out;
 }
@@ -79,14 +89,18 @@ function drawZombie(ctx,x,y,z,time){
  ctx.fillStyle='#241f1b';ctx.fillRect(-5,-22,3,2);ctx.fillRect(3,-22,3,2);ctx.fillStyle='#d94c42';ctx.shadowColor='#ef4b42';ctx.shadowBlur=7;ctx.fillRect(-4,-22,2,2);ctx.fillRect(4,-22,2,2);ctx.shadowBlur=0;
  ctx.strokeStyle='#281f1d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-3,-13);ctx.lineTo(4,-12);ctx.stroke();
  ctx.strokeStyle='#4b5944';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-5,8);ctx.lineTo(-7,17);ctx.moveTo(5,8);ctx.lineTo(7,17);ctx.stroke();
- ctx.fillStyle='#853e35';ctx.fillRect(-9,-8,5,3);ctx.fillRect(4,1,4,3);ctx.restore();
+ ctx.fillStyle='#853e35';ctx.fillRect(-9,-8,5,3);ctx.fillRect(4,1,4,3);
+  ctx.strokeStyle='#303d35';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-6,-5);ctx.lineTo(-2,1);ctx.lineTo(4,4);ctx.moveTo(-4,2);ctx.lineTo(1,8);ctx.stroke();
+  ctx.fillStyle='#342a25';ctx.fillRect(-4,-16,8,2);ctx.fillRect(-3,-12,6,2);
+  if(z.boss){ctx.fillStyle='#b7a06a';ctx.beginPath();ctx.moveTo(-8,-26);ctx.lineTo(-15,-39);ctx.lineTo(-3,-32);ctx.lineTo(2,-42);ctx.lineTo(8,-27);ctx.fill();ctx.strokeStyle='#8a4c3d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-2);ctx.lineTo(-24,5);ctx.moveTo(12,-2);ctx.lineTo(25,6);ctx.stroke();}
+  ctx.restore();
  if(z.hp<z.maxHp){ctx.fillStyle='#171b1a';ctx.fillRect(x-17,y-35,34,4);ctx.fillStyle='#b94e43';ctx.fillRect(x-17,y-35,34*clamp(z.hp/z.maxHp,0,1),4);}
 }
 function drawExterior(ctx,camX,camY,time,width,height,cols,rows,tile,player){
  if(!window.SKYREALM_BUILD_EDITION&&!document.documentElement.classList.contains('apocalypse-mode'))return;
  for(const s of sites(cols,rows,tile)){
   const x=s.x-camX,y=s.y-camY;if(x<-260||x>width+260||y<-250||y>height+250)continue;
-  const pulse=.5+.5*Math.sin(time/460+s.id);
+  const pulse=.5+.5*Math.sin(time/460+s.id),theme=PALETTES[s.theme];
   ctx.save();ctx.translate(x,y);
   ctx.fillStyle='rgba(0,0,0,.48)';ctx.beginPath();ctx.ellipse(0,72,190,28,0,0,Math.PI*2);ctx.fill();
   // Broken perimeter fence and warning lamps.
@@ -95,10 +109,13 @@ function drawExterior(ctx,camX,camY,time,width,height,cols,rows,tile,player){
   ctx.fillStyle='#252b2d';ctx.fillRect(-148,-94,296,164);ctx.fillStyle='#454b49';ctx.fillRect(-140,-86,280,148);
   ctx.fillStyle='#24292a';ctx.fillRect(-128,-75,256,126);
   // Four-storey silhouette, roof equipment and damaged concrete.
-  ctx.fillStyle='#5c6460';ctx.fillRect(-132,-78,264,18);ctx.fillStyle='#30383a';ctx.fillRect(-122,-60,244,105);
-  for(let floor=0;floor<4;floor++){const fy=-52+floor*24;ctx.fillStyle=floor%2?'#242d30':'#1d2629';ctx.fillRect(-113,fy,226,16);for(let wx=-101;wx<=91;wx+=32){ctx.fillStyle='#8aa0a0';ctx.globalAlpha=.38+.2*pulse;ctx.fillRect(wx,fy+3,13,8);ctx.globalAlpha=1;}}
+  ctx.fillStyle=theme.wall;ctx.fillRect(-132,-78,264,18);ctx.fillStyle='#30383a';ctx.fillRect(-122,-60,244,105);
+  for(let floor=0;floor<4;floor++){const fy=-52+floor*24;ctx.fillStyle=floor%2?'#242d30':'#1d2629';ctx.fillRect(-113,fy,226,16);for(let wx=-101;wx<=91;wx+=32){ctx.fillStyle=theme.light;ctx.globalAlpha=.38+.2*pulse;ctx.fillRect(wx,fy+3,13,8);ctx.globalAlpha=1;}}
   ctx.fillStyle='#101719';ctx.fillRect(-26,22,52,28);ctx.fillStyle='#8b4a3d';ctx.fillRect(-22,25,44,24);ctx.fillStyle='#c0a18a';ctx.fillRect(-3,30,6,18);
   ctx.fillStyle='#b3a78b';ctx.font='900 12px Segoe UI';ctx.textAlign='center';ctx.fillText('СЕКТОР '+String(s.id).padStart(2,'0'),0,-101);
+   ctx.fillStyle='#171d1f';ctx.fillRect(-66,-69,132,10);ctx.fillStyle=theme.danger;ctx.fillRect(-63,-67,126,3);
+   ctx.fillStyle='#1a2326';ctx.fillRect(-88,-100,12,22);ctx.fillRect(76,-96,17,18);ctx.strokeStyle='#92988c';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-82,-101);ctx.lineTo(-82,-124);ctx.moveTo(83,-96);ctx.lineTo(95,-113);ctx.stroke();
+   ctx.fillStyle='#2a3030';ctx.fillRect(-175,-22,25,48);ctx.fillRect(151,-14,22,38);ctx.fillStyle=theme.danger;ctx.globalAlpha=.7+.3*pulse;ctx.fillRect(-169,-18,4,5);ctx.fillRect(157,-9,4,5);ctx.globalAlpha=1;warningStripe(ctx,-172,42,44,8);
   ctx.fillStyle='#b9d0c9';ctx.font='bold 10px Segoe UI';ctx.fillText(s.name,0,65);
   // Generator, vents, cable bundles and wrecked vehicle.
   ctx.fillStyle='#303a3c';ctx.fillRect(-160,15,26,34);ctx.fillStyle='#7c8b80';ctx.fillRect(-156,19,18,8);ctx.strokeStyle='#b34e40';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-156,34);ctx.lineTo(-143,34);ctx.lineTo(-143,43);ctx.stroke();
@@ -133,7 +150,7 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
  // Simulate contained and escaped infected without touching the surface-world monster list.
  for(const z of active.zombies){
   z.flash=Math.max(0,z.flash-dt);z.attackCd-=dt;
-  if(!z.cell){const dx=px-z.x,dy=py-z.y,d=Math.hypot(dx,dy)||1;if(d>29){z.x+=dx/d*z.speed*dt;z.y+=dy/d*z.speed*dt;}else if(z.attackCd<=0){z.attackCd=1.35;active.pendingDamage=(active.pendingDamage||0)+z.damage;}}
+  if(!z.cell){const dx=px-z.x,dy=py-z.y,d=Math.hypot(dx,dy)||1;if(z.boss&&d<260&&z.chargeCd!==undefined){z.chargeCd-=dt;if(z.chargeCd<=0){z.chargeCd=3.8;z.x+=dx/d*78;z.y+=dy/d*78;z.flash=.3;if(d<115)active.pendingDamage=(active.pendingDamage||0)+z.damage*1.5;}else if(d>29){z.x+=dx/d*z.speed*dt;z.y+=dy/d*z.speed*dt;}}else if(d>29){z.x+=dx/d*z.speed*dt;z.y+=dy/d*z.speed*dt;}else if(z.attackCd<=0){z.attackCd=1.35;active.pendingDamage=(active.pendingDamage||0)+z.damage;}}
  }
  const pendingDamage=active.pendingDamage||0;active.pendingDamage=0;
  ctx.save();ctx.setTransform(window.devicePixelRatio||1,0,0,window.devicePixelRatio||1,0,0);
@@ -145,7 +162,8 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
  ctx.fillStyle='#171d20';ctx.fillRect(24,24,width-48,24);ctx.fillRect(24,height-48,width-48,24);ctx.fillRect(24,24,24,height-48);ctx.fillRect(width-48,24,24,height-48);
  for(let x=48;x<width-48;x+=150){ctx.fillStyle='#657071';ctx.fillRect(x,24,7,24);ctx.fillRect(x,height-48,7,24);}
  // Room furniture is drawn in local coordinates, then follows the player's exploration camera.
- const floor=active.floor;
+ const floor=active.floor,theme=PALETTES[active.site.theme],state=labState(active.lab);
+ ctx.fillStyle=theme.wall;ctx.fillRect(26,26,width-52,8);ctx.fillStyle=theme.accent;ctx.fillRect(26,34,width-52,3);
  if(floor===1){
   // Reception, security desk and a huge two-aisle archive library.
   floorProp(ctx,sx(175),sy(160),'desk',time);floorProp(ctx,sx(180),sy(245),'cabinet',time);floorProp(ctx,sx(180),sy(320),'cabinet',time);
@@ -153,16 +171,20 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
   for(let col=0;col<4;col++){floorProp(ctx,sx(330+col*190),sy(635),'cabinet',time);floorProp(ctx,sx(330+col*190),sy(705),'crate',time);}
   floorProp(ctx,sx(930),sy(210),'desk',time);floorProp(ctx,sx(930),sy(310),'desk',time);floorProp(ctx,sx(930),sy(410),'cabinet',time);
   ctx.fillStyle='#a58a5e';ctx.font='900 14px Segoe UI';ctx.textAlign='center';ctx.fillText('АРХИВ · БИБЛИОТЕКА ИССЛЕДОВАНИЙ',sx(635),sy(105));
+   drawMonitor(ctx,sx(630),sy(485),84,52,state.terminal,time);bloodTrail(ctx,sx(760),sy(560),66);ctx.fillStyle='#b5a78c';ctx.font='bold 9px Segoe UI';ctx.fillText('ТЕРМИНАЛ АРХИВА · E',sx(672),sy(550));
   ctx.fillStyle='#7b8985';ctx.fillRect(sx(840),sy(590),120,76);ctx.fillStyle='#a77a43';ctx.fillRect(sx(850),sy(600),100,58);ctx.fillStyle='#e5bd72';ctx.fillRect(sx(895),sy(610),12,8);
  }else if(floor===2){
   ctx.fillStyle='#697477';ctx.fillRect(95,115,width-190,6);ctx.fillStyle='#8b9b9a';ctx.font='900 14px Segoe UI';ctx.textAlign='center';ctx.fillText('БЛОК КАРАНТИНА · КАМЕРЫ СОДЕРЖАНИЯ',width/2,88);
   active.zombies.filter(z=>z.cell).forEach((z,i)=>drawCell(ctx,sx(220+(i%4)*178),sy(145+Math.floor(i/4)*170),z,time));
+   ctx.fillStyle='#20292c';ctx.fillRect(sx(130),sy(112),940,16);ctx.fillStyle='#b94f43';ctx.fillRect(sx(130),sy(112),state.power?940:420,4);
+   ctx.fillStyle='#c4c8bc';ctx.font='bold 9px Segoe UI';ctx.textAlign='left';ctx.fillText(state.power?'ПИТАНИЕ ВОССТАНОВЛЕНО':'АВАРИЙНОЕ ПИТАНИЕ · НЕСТАБИЛЬНО',sx(145),sy(102));warningStripe(ctx,sx(625),sy(518),170,8);ctx.fillStyle='#e0cba4';ctx.font='bold 9px Segoe UI';ctx.textAlign='center';ctx.fillText('ПАНЕЛЬ ПИТАНИЯ · E',sx(710),sy(505));
   floorProp(ctx,sx(180),sy(590),'desk',time);floorProp(ctx,sx(360),sy(600),'cabinet',time);floorProp(ctx,sx(920),sy(610),'cabinet',time);
   ctx.fillStyle='#9b4c43';ctx.fillRect(sx(650),sy(530),120,12);ctx.fillStyle='#d8c5a6';ctx.font='bold 10px Segoe UI';ctx.fillText('ПАНЕЛЬ АВАРИЙНОГО ОТКРЫТИЯ',sx(710),sy(520));
  }else if(floor===3){
-  for(let i=0;i<5;i++)floorProp(ctx,sx(220+i*180),sy(165),'tank',time);
+  for(let i=0;i<5;i++){floorProp(ctx,sx(220+i*180),sy(165),'tank',time);drawMonitor(ctx,sx(210+i*180),sy(285),64,42,state.power,time);}
   for(let i=0;i<4;i++){floorProp(ctx,sx(250+i*210),sy(420),'desk',time);floorProp(ctx,sx(250+i*210),sy(520),'cabinet',time);}
   ctx.fillStyle='#a7c3bd';ctx.font='900 14px Segoe UI';ctx.textAlign='center';ctx.fillText('ЛАБОРАТОРИЯ БИОСИНТЕЗА · ОБРАЗЦЫ И МУТАЦИИ',width/2,90);
+   ctx.fillStyle='#a4b9a7';ctx.font='bold 9px Segoe UI';ctx.fillText(state.power?'СИСТЕМА ОХЛАЖДЕНИЯ: РАБОТАЕТ':'СИСТЕМА ОХЛАЖДЕНИЯ: ОТКЛЮЧЕНА',width/2,108);warningStripe(ctx,sx(845),sy(620),178,9);ctx.fillStyle='#d9c69e';ctx.font='bold 9px Segoe UI';ctx.fillText('ЗАПУСК РЕАКТОРА · E',sx(935),sy(610));
   ctx.fillStyle='#314e4d';ctx.fillRect(sx(850),sy(630),170,100);ctx.strokeStyle='#b9c9b7';ctx.strokeRect(sx(850),sy(630),170,100);
  }else{
   floorProp(ctx,sx(180),sy(170),'desk',time);floorProp(ctx,sx(180),sy(280),'desk',time);
@@ -170,13 +192,13 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
   floorProp(ctx,sx(620),sy(430),'tank',time);floorProp(ctx,sx(880),sy(430),'tank',time);
   ctx.fillStyle='#b7c6c6';ctx.font='900 14px Segoe UI';ctx.textAlign='center';ctx.fillText('ЦЕНТР УПРАВЛЕНИЯ · ПРОТОКОЛ «НОЛЬ»',width/2,90);
   ctx.fillStyle='#293d43';ctx.fillRect(sx(390),sy(560),410,110);ctx.strokeStyle='#d5ad68';ctx.lineWidth=3;ctx.strokeRect(sx(390),sy(560),410,110);
-  ctx.fillStyle='#d6b777';ctx.font='bold 11px Segoe UI';ctx.fillText('РЕЗЕРВНЫЙ РЕАКТОР',sx(595),sy(615));
+  ctx.fillStyle='#d6b777';ctx.font='bold 11px Segoe UI';ctx.fillText('РЕЗЕРВНЫЙ РЕАКТОР',sx(595),sy(615));ctx.fillStyle=state.finalVault?'#8ac99a':'#b64f42';ctx.shadowColor=state.finalVault?'#72d59b':'#d94d3e';ctx.shadowBlur=state.finalVault?18:9;ctx.beginPath();ctx.arc(sx(595),sy(650),state.finalVault?28:18,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;drawMonitor(ctx,sx(845),sy(560),96,58,state.finalVault,time);ctx.fillStyle='#d6c5a1';ctx.font='bold 9px Segoe UI';ctx.fillText('ПАНЕЛЬ РЕАКТОРА · E',sx(893),sy(635));
  }
  // Floor labels, exit/elevator markers, doors and wall-mounted lamps.
  ctx.fillStyle='#202a2d';ctx.fillRect(42,height/2-70,34,140);ctx.fillRect(width-76,height/2-70,34,140);
  ctx.fillStyle='#9eaa9f';ctx.fillRect(45,height/2-58,28,116);ctx.fillRect(width-73,height/2-58,28,116);
  ctx.fillStyle='#d2b77c';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('ВЫХОД',58,height/2+84);ctx.fillText('ЛЕСТНИЦА ↑',width-58,height/2+84);ctx.fillText('ЛЕСТНИЦА ↓',width*.72,height/2+84);
- ctx.fillStyle='#e2d2a9';ctx.font='900 15px Segoe UI';ctx.fillText(active.site.name+' · ЭТАЖ '+floor+'/4',width/2,42);
+ ctx.fillStyle='#e2d2a9';ctx.font='900 15px Segoe UI';ctx.fillText(active.site.name+' · '+FLOOR_NAMES[floor-1]+' · '+floor+'/4',width/2,42);
  ctx.fillStyle='#aebcba';ctx.font='10px Segoe UI';ctx.fillText('WASD — движение · E — взаимодействие · SPACE — атака · ESC — меню',width/2,height-20);
  // Searchable storage is visible on every floor, not represented by invisible triggers.
  for(const item of (CONTAINERS[floor]||[])){
@@ -190,7 +212,7 @@ function drawInterior(ctx,player,camX,camY,dt,time,width,height){
  // Small local lamps and emergency red pulses.
  for(const p of [[105,105],[width-105,105],[105,height-105],[width-105,height-105]]){const pulse=.5+.5*Math.sin(time/280+p[0]);ctx.fillStyle='#d8b978';ctx.shadowColor='#e2b86b';ctx.shadowBlur=12;ctx.globalAlpha=.5+.3*pulse;ctx.beginPath();ctx.arc(p[0],p[1],4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;}
  // Top-level HUD is kept readable while the world outside is hidden.
- ctx.fillStyle='rgba(5,10,13,.88)';ctx.fillRect(width/2-170,55,340,22);ctx.strokeStyle='#778984';ctx.strokeRect(width/2-170,55,340,22);ctx.fillStyle='#d5d0b8';ctx.font='bold 10px Segoe UI';ctx.fillText('ОБЪЕКТ '+String(active.lab).padStart(2,'0')+' · '+(active.floor===2?'ЗАРАЖЁННЫЙ КАРАНТИН':active.floor===3?'БИОСИНТЕЗ':'ЗАКРЫТЫЙ СЕКТОР'),width/2,70);
+ ctx.fillStyle='rgba(5,10,13,.88)';ctx.fillRect(width/2-170,55,340,22);ctx.strokeStyle='#778984';ctx.strokeRect(width/2-170,55,340,22);ctx.fillStyle='#d5d0b8';ctx.font='bold 10px Segoe UI';ctx.fillText('ОБЪЕКТ '+String(active.lab).padStart(2,'0')+' · '+(state.finalVault?'ПРОТОКОЛ ЗАВЕРШЁН':state.power?'ПИТАНИЕ ВОССТАНОВЛЕНО':'АВАРИЙНЫЙ РЕЖИМ'),width/2,70);
  ctx.restore();
  if(pendingDamage>0)active?.onDamage?.(pendingDamage);
 }
@@ -205,6 +227,13 @@ function interact(args){
  active.onDamage=onDamage;
  const lx=player.x-active.originX,ly=player.y-active.originY,f=active.floor;
  if(lx<120&&Math.abs(ly-410)<105){leave(player,toast,resetInput);return true;}
+ // Open containment cells deliberately: each released infected becomes a persistent roaming threat.
+ if(f===2){for(let i=0;i<4;i++){const cx=220+(i%4)*178+71,cy=145+Math.floor(i/4)*170+66,id='z'+i,z=active.zombies.find(v=>v.id===id);if(Math.hypot(lx-cx,ly-cy)<92){if(!z||wasReleased(active.lab,id)){toast('Камера уже пуста.');return true;}z.cell=false;z.x=cx;z.y=cy;releaseCell(active.lab,id);toast('КАМЕРА ОТКРЫТА! Заражённый вырвался.');return true;}}}
+ const near=(x,y,r=105)=>Math.hypot(lx-x,ly-y)<r;
+ if(f===1&&near(672,510)){if(!flag(active.lab,'terminal')){setFlag(active.lab,'terminal');toast('Архив расшифрован. Найдены записи персонала и схема комплекса.');}else toast('В архиве: эвакуация сорвана, заражение началось с нижних камер.');return true;}
+ if(f===2&&near(710,530)){setFlag(active.lab,'power');toast('Резервный генератор включён. Камеры и лифтовые системы запитаны.');return true;}
+ if(f===3&&near(935,630)){if(!flag(active.lab,'terminal')){setFlag(active.lab,'terminal');toast('Система биосинтеза запущена. Данные образцов сохранены.');}else if(!flag(active.lab,'power'))toast('Нет питания. Сначала запусти генератор на этаже карантина.');else{setFlag(active.lab,'reactor');toast('Охлаждение восстановлено. Реактор готов к запуску.');}return true;}
+ if(f===4&&near(893,590)){if(!flag(active.lab,'power')||!flag(active.lab,'reactor')){toast('РЕАКТОР ЗАБЛОКИРОВАН: восстанови питание и охлаждение.');return true;}if(!flag(active.lab,'finalVault')){setFlag(active.lab,'finalVault');onLoot?.('Осколок пробуждения',3);onLoot?.('Эссенция глубин',2);toast('Протокол «НОЛЬ» завершён! Получены редкие материалы.');}else toast('Протокол «НОЛЬ» уже завершён.');return true;}
  if(lx>1000&&Math.abs(ly-410)<110){
   if(f<4){active.floor++;const pos=floorStart(active.floor);player.x=active.originX+pos.x;player.y=active.originY+pos.y;active.zombies=floorZombies(active.lab,active.floor);active.hint=2;resetInput?.();toast('Подъём на этаж '+active.floor+'/4. Внимание: внутри обнаружены заражённые.');}
   else toast('Это верхний этаж. Для спуска подойди к лестнице слева.');
@@ -229,8 +258,8 @@ function attack(player,range,damage,toast,onLoot){
  const target=active.zombies.filter(z=>!z.cell&&z.hp>0).map(z=>({z,d:Math.hypot(z.x-px,z.y-py)})).filter(v=>v.d<=Math.max(75,range+24)).sort((a,b)=>a.d-b.d)[0];
  if(!target){toast?.('Рядом нет заражённых.');return true;}
  const z=target.z;z.hp=Math.max(0,z.hp-damage);z.flash=.18;toast?.((z.boss?'МУТАНТ':'ЗОМБИ')+' получил '+damage+' урона · '+Math.ceil(z.hp)+' HP');
- if(z.hp<=0){markDead(z);active.zombies=active.zombies.filter(v=>v!==z);onLoot?.('Кость',1);if(Math.random()<.35)onLoot?.('Малое зелье',1);toast?.('Заражённый устранён.');}
+ if(z.hp<=0){markDead(z);active.zombies=active.zombies.filter(v=>v!==z);onLoot?.('Кость',z.boss?8:1);if(z.boss){onLoot?.('Осколок пробуждения',4);onLoot?.('Эссенция глубин',3);setFlag(active.lab,'mutantDefeated');}else if(Math.random()<.35)onLoot?.('Малое зелье',1);toast?.(z.boss?'МУТАНТ УНИЧТОЖЕН · ОБЪЕКТ ОБЕЗВРЕЖЕН':'Заражённый устранён.');}
  return true;
 }
-window.SkyRealmApocalypseLabs={drawExterior,drawInterior,interact,attack,leave,isInside:()=>!!active};
+window.SkyRealmApocalypseLabs={drawExterior,drawInterior,interact,attack,leave,isInside:()=>!!active,getProgress:()=>JSON.parse(JSON.stringify(progress))};
 })();
