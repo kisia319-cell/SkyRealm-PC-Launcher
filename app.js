@@ -986,10 +986,10 @@
     if (startupGameUpdateCheckComplete || startupGameUpdateCheckInFlight) return startupGameUpdateCheckComplete;
     const api = window.pywebview?.api;
     if (!api?.get_update_status) return false;
-    const startupPreferences=await getStartupLauncherPreferences(api);
-    if(startupPreferences.autoCheckUpdates===false){startupGameUpdateCheckComplete=true;return true;}
     startupGameUpdateCheckInFlight = true;
     try {
+      const startupPreferences=await getStartupLauncherPreferences(api);
+      if(startupPreferences.autoCheckUpdates===false){startupGameUpdateCheckComplete=true;return true;}
       const state = await api.get_update_status();
       if (!state?.ok) return false;
       startupGameUpdateCheckComplete = true;
@@ -1266,7 +1266,8 @@
   window.setTimeout(() => {
     try {
       const behavior=JSON.parse(localStorage.getItem('skyrealm_launcher_behavior_v1')||'{}');
-      if(behavior.rememberLastPage===true){
+      const game=JSON.parse(localStorage.getItem('skyrealm_game_preferences')||'{}');
+      if((behavior.rememberLastPage??game.rememberLastPage)===true){
         const last=String(localStorage.getItem('skyrealm_launcher_last_page')||'');
         if(last && document.getElementById('page-'+last))showPage(last);
       }
