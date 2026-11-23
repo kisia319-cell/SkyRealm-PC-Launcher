@@ -45,7 +45,7 @@ function leave(player,toast,resetInput){
  player.x=s.outsideX;player.y=s.outsideY;player.vx=player.vy=0;
  resetInput?.();toast?.('Ты покинул секретную лабораторию.');return true;
 }
-function floorStart(floor){return floor===1?{x:180,y:410}:floor===2?{x:1020,y:410}:floor===3?{x:180,y:410}:{x:1020,y:410};}
+function floorStart(floor){return floor===1?{x:180,y:410}:floor===2?{x:950,y:410}:floor===3?{x:180,y:410}:{x:1020,y:410};}
 const CONTAINERS={
  1:[{id:'archive-chest',x:1000,y:680,kind:'chest',loot:[['Малое зелье',2],['Бинт',2],['Уран',1]]},{id:'library-cabinet',x:650,y:170,kind:'cabinet',loot:[['Метеоритный осколок',1],['Бинт',1]]},{id:'medical-locker',x:220,y:620,kind:'cabinet',loot:[['Малое зелье',1],['Бинт',2]]}],
  2:[{id:'security-locker',x:190,y:670,kind:'cabinet',loot:[['Бинт',3],['Малое зелье',1]]},{id:'specimen-safe',x:1000,y:680,kind:'chest',loot:[['Осколок пробуждения',1],['Уран',2]]}],
