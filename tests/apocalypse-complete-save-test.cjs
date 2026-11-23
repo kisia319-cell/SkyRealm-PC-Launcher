@@ -21,10 +21,14 @@ assert.match(labs,/skyrealm_apocalypse_labs_legacy_migrated_v1/,'old global lab 
 assert.match(labs,/localStorage\.setItem\(SAVE_KEY\(\),JSON\.stringify\(progress\)\)/);
 assert.match(labs,/importProgress\(raw\)/);
 
-for(const key of ['skyrealm_apocalypse_worlds_v1','skyrealm_apocalypse_game_save_v1','skyrealm_apocalypse_laboratories_v1_','skyrealm_living_world_v1_','skyrealm_world_events_v1_','skyrealm_world_expansion_v1_','skyrealm_forest_ecosystem_v2_','skyrealm_challenge_v1_']){
+for(const key of ['skyrealm_apocalypse_worlds_v1','skyrealm_apocalypse_game_save_v1','skyrealm_apocalypse_laboratories_v1_']){
  assert.ok(cloud.includes(key),'cloud UI must include '+key);
  assert.ok(auth.includes(key),'cloud API must allow '+key);
 }
+assert.match(cloud,/living_world\|world_events\|world_expansion/);
+assert.match(auth,/living_world\|world_events\|world_expansion/);
+assert.match(cloud,/forest_ecosystem_v2_/);assert.match(auth,/forest_ecosystem_v2_/);
+assert.match(cloud,/challenge_v1_/);assert.match(auth,/challenge_v1_/);
 assert.match(cloud,/WORLD_LIST_KEYS/,'cloud restore must merge both normal and Apocalypse world lists');
 assert.match(auth,/worldListKeys/,'cloud API must validate both world-list formats');
 assert.match(html,/0\.20\.50\.184/);
