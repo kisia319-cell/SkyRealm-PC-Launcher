@@ -6,7 +6,7 @@ This Android app packages the original PrimeLauncher experience rather than a re
 - Android WebView provides rendering, touch input, persistent local storage, HTTPS networking, and hardware-accelerated canvas rendering.
 - The original responsive layout is used for portrait and landscape screens.
 - Game/profile data is stored in WebView local storage on the device.
-- On every fresh launch, the app checks the latest non-draft, non-prerelease GitHub Release tagged `prime-android-vX.Y.Z`.
+- On every fresh launch, the app checks the latest non-draft Android GitHub Release (Android releases are intentionally prereleases) tagged `prime-android-vX.Y.Z`.
 - If a newer version exists, the user can review the release notes, download the APK, and open Android's package installer. Android always asks the user to confirm installation.
 - Downloads are written to the app's private external-files directory and exposed to the installer only through AndroidX FileProvider.
 
