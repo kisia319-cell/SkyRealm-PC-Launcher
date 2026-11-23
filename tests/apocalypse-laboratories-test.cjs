@@ -7,7 +7,7 @@ const html = fs.readFileSync(path.join(root, 'game/index.html'), 'utf8');
 const labs = fs.readFileSync(path.join(root, 'game/apocalypse-laboratories.js'), 'utf8');
 
 assert.match(html, /apocalypse-laboratories\.js/);
-assert.match(html, /skyrealm-game-version" content="0\.20\.50\.181"/);
+assert.match(html, /skyrealm-game-version" content="0\.20\.50\.182"/);
 assert.match(game, /SkyRealmApocalypseLabs\?\.drawExterior/);
 assert.match(game, /SkyRealmApocalypseLabs\.drawInterior/);
 assert.match(game, /SkyRealmApocalypseLabs\?\.interact/);

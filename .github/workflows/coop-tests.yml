@@ -80,6 +80,7 @@ jobs:
       - run: node --check game/multiplayer-core.js
       - run: node --check game/multiplayer-client.js
       - run: node --check game/multiplayer-ui.js
+      - run: node --check game/mobile-touch-controls.js
       - run: node --check game/game.js
       - run: node --check game/world-events.js
       - run: node --check game/sea-system.js
