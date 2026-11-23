@@ -12,7 +12,7 @@ assert.ok(html.includes('id="cloud-save-open"')&&html.includes('id="cloud-save-s
 assert.ok(html.includes('src="cloud-save-ui.js"'));
 assert.ok(ui.includes('skyrealm_worlds_v1')&&ui.includes('game_save_v2_'));
 assert.ok(ui.includes('skyrealm_apocalypse_worlds_v1')&&ui.includes('(?:apocalypse_)?game_save_v2_'));
-assert.ok(ui.includes('skyrealm_apocalypse_laboratories_v1_')&&ui.includes('world_events)_v1_'));
+assert.ok(ui.includes('skyrealm_apocalypse_laboratories_v1_')&&ui.includes('world_events|world_expansion)_v1_'));
 assert.ok(ui.includes('downloadSafetyCopy')&&ui.includes('mergeAndRestore'));
 assert.ok(!ui.includes('skyrealm_token')&&!ui.includes('skyrealm_refresh_token'),'Auth tokens must never enter cloud save bundles.');
 assert.ok(launcher.includes('def get_cloud_save')&&launcher.includes('def upload_cloud_save'));
