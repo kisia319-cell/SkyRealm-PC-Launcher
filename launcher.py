@@ -65,6 +65,11 @@ DEFAULT_SETTINGS = {
     "showInventory": True,
     "adminMode": False,
     "moderatorMode": False,
+    "autoCheckUpdates": True,
+    "updateNotifications": True,
+    "autoBackupBeforeUpdate": True,
+    "confirmExit": True,
+    "rememberLastPage": False,
 }
 
 
@@ -102,7 +107,7 @@ def normalize_settings(value=None) -> dict:
     if len(set(bindings.values())) != len(default_bindings):
         bindings = dict(default_bindings)
     settings["keyBindings"] = bindings
-    if str(settings.get("uiScale")) not in {"85", "100", "115"}:
+    if str(settings.get("uiScale")) not in {"85", "100", "115", "130"}:
         settings["uiScale"] = DEFAULT_SETTINGS["uiScale"]
     else:
         settings["uiScale"] = str(settings["uiScale"])
@@ -110,6 +115,9 @@ def normalize_settings(value=None) -> dict:
         settings[key] = settings.get(key) is not False
     settings["adminMode"] = settings.get("adminMode") is True
     settings["moderatorMode"] = settings.get("moderatorMode") is True
+    for key in ("autoCheckUpdates", "updateNotifications", "autoBackupBeforeUpdate", "confirmExit"):
+        settings[key] = settings.get(key) is not False
+    settings["rememberLastPage"] = settings.get("rememberLastPage") is True
     return settings
 
 
@@ -627,7 +635,16 @@ class LauncherApi:
                 return state
             if not state.get("game_update_available"):
                 return {"ok": True, "updated": False, "version": state.get("game_version"), "message": "Установлена последняя версия игры."}
-            install_dir = skyrealm_game_dir()
+            preferences = read_user_settings()
+            if preferences.get("autoBackupBeforeUpdate", True):
+                backup = self._skyrealm_create_world_backup(prefix="skyrealm-worlds")
+                if not backup.get("ok"):
+                    reason = str(backup.get("message") or "")
+                    no_existing_worlds = ("хранилище миров не найдено" in reason.lower()
+                                          or "пока нет файлов сохранений" in reason.lower())
+                    if not no_existing_worlds:
+                        return {"ok": False, "message": "Обновление остановлено: не удалось создать резервную копию миров. " + reason}
+            install_dir = skyrealm_game_dir(preferences)
             bundled_version = Path(resource_path("game/version.txt")).read_text(encoding="utf-8").strip()
             installed = _skyrealm_update_game(install_dir, bundled_version, allow_update=True)
             if installed != state.get("latest_game_version"):
