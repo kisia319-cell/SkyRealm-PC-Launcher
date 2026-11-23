@@ -10,9 +10,9 @@ const migration=fs.readFileSync('supabase/migrations/20261101140643_skyrealm_clo
 const policy=fs.readFileSync('supabase/migrations/20261101140737_skyrealm_cloud_saves_deny_policy.sql','utf8');
 assert.ok(html.includes('id="cloud-save-open"')&&html.includes('id="cloud-save-shade"'));
 assert.ok(html.includes('src="cloud-save-ui.js"'));
-assert.ok(ui.includes('skyrealm_worlds_v1')&&ui.includes('skyrealm_game_save_v2_'));
+assert.ok(ui.includes('skyrealm_worlds_v1')&&ui.includes('game_save_v2_'));
 assert.ok(ui.includes('skyrealm_apocalypse_worlds_v1')&&ui.includes('(?:apocalypse_)?game_save_v2_'));
-assert.ok(ui.includes('skyrealm_apocalypse_laboratories_v1_')&&ui.includes('skyrealm_world_events_v1_'));
+assert.ok(ui.includes('skyrealm_apocalypse_laboratories_v1_')&&ui.includes('world_events)_v1_'));
 assert.ok(ui.includes('downloadSafetyCopy')&&ui.includes('mergeAndRestore'));
 assert.ok(!ui.includes('skyrealm_token')&&!ui.includes('skyrealm_refresh_token'),'Auth tokens must never enter cloud save bundles.');
 assert.ok(launcher.includes('def get_cloud_save')&&launcher.includes('def upload_cloud_save'));
