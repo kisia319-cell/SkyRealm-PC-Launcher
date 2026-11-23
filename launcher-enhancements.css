@@ -223,3 +223,15 @@ body.performance-saver .art-orb, body.performance-saver .live-dot, body.performa
 .command-backup-history-report{grid-column:1/-1;color:#8fa6c8;font-size:10px;line-height:1.5;overflow-wrap:anywhere}
 .command-backup-history button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:900px){.command-backup-history{grid-template-columns:1fr}.command-backup-history label,.command-backup-history-report{grid-column:1}}
+
+/* Expanded launcher settings: responsive configuration and portability tools. */
+.launcher-settings-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.9fr);gap:14px;align-items:center;margin:14px 0 20px;padding:17px;border:1px solid var(--line,#30445f);border-radius:13px;background:linear-gradient(135deg,rgba(22,43,70,.78),rgba(9,23,40,.9))}
+.launcher-settings-tools-copy b,.launcher-settings-tools-copy small{display:block}
+.launcher-settings-tools-copy b{font-size:13px;color:#edf4ff}
+.launcher-settings-tools-copy small{margin-top:7px;color:#9db1cf;font-size:10px;line-height:1.6}
+.launcher-settings-tools-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.launcher-settings-tools-actions button{min-height:36px;font-size:10px}
+.launcher-settings-status{grid-column:1/-1;margin:0;color:#91b7d9;font-size:10px;line-height:1.5}
+#launcher-settings-reset{border-color:rgba(222,119,119,.55);color:#f0b1b1}
+#launcher-settings-import-file{display:none}
+@media(max-width:760px){.launcher-settings-tools{grid-template-columns:1fr}.launcher-settings-tools-actions{justify-content:flex-start}.launcher-settings-status{grid-column:1}}
