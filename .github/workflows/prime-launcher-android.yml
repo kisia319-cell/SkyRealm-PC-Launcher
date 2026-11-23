@@ -1,6 +1,14 @@
 name: Build and publish PrimeLauncher Android APK
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "mobile/prime-launcher-android/**"
+      - "game/competitive/index.html"
+      - "game/competitive/prime-world.js"
+      - "game/competitive/prime-online.js"
+      - ".github/workflows/prime-launcher-android.yml"
   push:
     branches: [main]
     paths:
@@ -69,6 +77,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Publish APK to GitHub Releases
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: prime-android-v${{ steps.version.outputs.version }}
