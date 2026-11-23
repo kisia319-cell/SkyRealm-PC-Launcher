@@ -40,7 +40,7 @@ jobs:
         shell: pwsh
         run: |
           $required = @(
-            "launcher.py", "update_helper.py", "launcher_version.txt",
+            "launcher.py", "update_helper.py", "launcher-settings-plus.js", "launcher_version.txt",
             "game_runner_version.txt", "updater_config.json", "index.html",
             "style.css", "app.js", "launcher-enhancements.css", "launcher-enhancements.js", "community-mods.css", "community-mods.js", "config.js", "realm.jpg", "icon.png",
             "SkyRealm.ico", "PrimeLauncher.ico", "game/index.html", "game/game.js", "game/version.txt", "tests/apocalypse-edition-test.cjs", "game/bugfix_counter.txt",
@@ -66,6 +66,7 @@ jobs:
           node --check tests/sea-world-regression-test.cjs
           node --check tests/challenge-staff-regression-test.cjs
           node --check app.js
+          node --check launcher-settings-plus.js
           node --check launcher-enhancements.js
           node --check community-mods.js
           node --check game/cloud-save-ui.js
@@ -122,6 +123,7 @@ jobs:
           node tests/coop-ui-integration-test.cjs
           node tests/auth-smoke.mjs
           node tests/launcher-enhancements-test.cjs
+          node tests/launcher-settings-plus-test.cjs
           node tests/cloud-save-ui-test.cjs
           node tests/cloud-save-api-test.cjs
           node tests/supabase-migration-history-test.cjs
@@ -186,7 +188,7 @@ jobs:
           if (-not (Test-Path "dist/SkyRealm.exe")) { throw "SkyRealm.exe was not created" }
           $listing = python -m PyInstaller.utils.cliutils.archive_viewer -l -b "dist/SkyRealm.exe" 2>&1 | Out-String
           $normalized = $listing.ToLower() -replace '\\+', '/'
-          foreach ($asset in @("index.html", "style.css", "app.js", "config.js", "launcher-enhancements.js", "launcher-enhancements.css", "launcher_version.txt", "updater_config.json", "realm.jpg", "skyrealmgame.exe", "primelauncher.exe", "skyrealmupdater.exe")) {
+          foreach ($asset in @("index.html", "style.css", "app.js", "launcher-settings-plus.js", "config.js", "launcher-enhancements.js", "launcher-enhancements.css", "launcher_version.txt", "updater_config.json", "realm.jpg", "skyrealmgame.exe", "primelauncher.exe", "skyrealmupdater.exe")) {
             if (-not $normalized.Contains($asset)) { Write-Host $listing; throw "SkyRealm.exe is missing bundled launcher asset: $asset" }
           }
 
