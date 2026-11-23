@@ -276,6 +276,21 @@ class MainActivity : Activity() {
             Toast.makeText(this, "Файл обновления не найден или повреждён", Toast.LENGTH_LONG).show()
             return
         }
+        if (!hasMatchingSigningCertificate(apk)) {
+            AlertDialog.Builder(this)
+                .setTitle("Нужна переустановка PrimeLauncher")
+                .setMessage(
+                    "Этот APK подписан другим сертификатом. Android не разрешит установить его поверх текущей версии. " +
+                        "Сначала сохраните нужные локальные данные, удалите старую версию и установите APK со страницы релизов. " +
+                        "Удаление приложения может стереть локальный прогресс."
+                )
+                .setNegativeButton("Позже", null)
+                .setPositiveButton("Открыть релизы") { _, _ ->
+                    openExternal(Uri.parse("https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest"))
+                }
+                .show()
+            return
+        }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
             !packageManager.canRequestPackageInstalls()) {
             AlertDialog.Builder(this)
@@ -306,6 +321,35 @@ class MainActivity : Activity() {
                     packageManager.canRequestPackageInstalls())) {
                 launchPackageInstaller(pending)
             }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun hasMatchingSigningCertificate(apk: File): Boolean {
+        return try {
+            val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            } else {
+                android.content.pm.PackageManager.GET_SIGNATURES
+            }
+            val installed = packageManager.getPackageInfo(packageName, flags)
+            val candidate = packageManager.getPackageArchiveInfo(apk.absolutePath, flags) ?: return false
+            val installedSigners = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                installed.signingInfo?.apkContentsSigners
+            } else {
+                installed.signatures
+            }
+            val candidateSigners = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                candidate.signingInfo?.apkContentsSigners
+            } else {
+                candidate.signatures
+            }
+            val installedDigests = installedSigners?.map { it.toCharsString() }?.sorted()
+            val candidateDigests = candidateSigners?.map { it.toCharsString() }?.sorted()
+            !installedDigests.isNullOrEmpty() && installedDigests == candidateDigests
+        } catch (error: Exception) {
+            android.util.Log.w(TAG, "Could not verify APK signing certificate", error)
+            false
         }
     }
 
