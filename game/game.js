@@ -7606,7 +7606,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     document.getElementById('apocalypse-play')?.addEventListener('click',()=>{
       const worlds=readWorlds().sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
       if(!worlds.length){openWorldCreate();return;}
-      enterWorld(worlds[0].id);
+      const begin=()=>enterWorld(worlds[0].id);
+      if(window.ApocalypseCinematic&&typeof window.ApocalypseCinematic.play==='function')window.ApocalypseCinematic.play(begin);
+      else begin();
     });
     document.getElementById('apocalypse-settings')?.addEventListener('click',openSettingsFromMainMenu);
     document.getElementById('apocalypse-coop')?.addEventListener('click',()=>document.getElementById('menu-coop')?.click());
