@@ -31,5 +31,5 @@ assert.match(cloud,/forest_ecosystem_v2_/);assert.match(auth,/forest_ecosystem_v
 assert.match(cloud,/challenge_v1_/);assert.match(auth,/challenge_v1_/);
 assert.match(cloud,/WORLD_LIST_KEYS/,'cloud restore must merge both normal and Apocalypse world lists');
 assert.match(auth,/worldListKeys/,'cloud API must validate both world-list formats');
-assert.ok(html.includes('name="skyrealm-game-version" content="' + fs.readFileSync(path.join(root, 'game/version.txt'), 'utf8').trim() + '"'), 'Apocalypse save screen metadata must match the current packaged version.');
+assert.ok(html.includes('name="skyrealm-game-version" content="' + fs.readFileSync('game/version.txt', 'utf8').trim() + '"'), 'Apocalypse save screen metadata must match the current packaged version.');
 console.log('Apocalypse complete save regression checks passed.');
