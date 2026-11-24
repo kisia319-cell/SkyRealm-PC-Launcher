@@ -1308,7 +1308,16 @@ let audioContext=null;
     {name:"\u0410\u0441\u0442\u0440\u0430\u043b\u044c\u043d\u044b\u0439 \u041e\u0440\u0435\u043e\u043b",icon:"\u2728",count:0,description:"\u0423\u0440\u043e\u043d \u043e\u0440\u0443\u0436\u0438\u044f +8%."},
     {name:"\u041f\u0435\u0441\u043e\u0447\u043d\u044b\u0435 \u0427\u0430\u0441\u044b \u0425\u0440\u043e\u043d\u043e\u0441\u0430",icon:"\u231b",count:0,description:"\u0423\u0440\u043e\u043d +4%, \u0437\u0430\u0449\u0438\u0442\u0430 +3%."},
     {name:"\u042f\u0434\u0440\u043e \u0420\u0430\u0437\u0440\u0443\u0448\u0438\u0442\u0435\u043b\u044f \u041c\u0438\u0440\u043e\u0432",icon:"\ud83d\udc8e",count:0,description:"\u0423\u0440\u043e\u043d +12%, \u0437\u0430\u0449\u0438\u0442\u0430 +5%."},
-    {name:'Сердце Древнего Леса',icon:'🌳',count:0,description:'Урон +14%, защита +7%. Реликвия Короля Древнего Леса.'}
+    {name:'Сердце Древнего Леса',icon:'🌳',count:0,description:'Урон +14%, защита +7%. Реликвия Короля Древнего Леса.'},
+    {name:'Бинт',icon:'🩹',count:0,description:'Быстро восстанавливает 25 здоровья. Использование: U.'},
+    {name:'Полевая аптечка',icon:'⛑️',count:0,description:'Восстанавливает до 60 здоровья. Использование: U.'},
+    {name:'Энергетик',icon:'🥤',count:0,description:'Восстанавливает 45 выносливости. Использование: U.'},
+    {name:'Консервы',icon:'🥫',count:0,description:'Восстанавливают 30 сытости. Использование: U.'},
+    {name:'Чистая вода',icon:'💧',count:0,description:'Восстанавливает 15 сытости и 20 выносливости. Использование: U.'},
+    {name:'Сигнальная ракета',icon:'🚨',count:0,description:'Запускает яркую сигнальную вспышку и отмечает ближайший сундук. Использование: U.'},
+    {name:'Дымовая шашка',icon:'🌫️',count:0,description:'Сбивает атаку ближайших монстров на несколько секунд. Использование: U.'},
+    {name:'Осколочная граната',icon:'💣',count:0,description:'Наносит урон монстрам в радиусе 150 пикселей. Использование: U.'},
+    {name:'Радиомаяк',icon:'📡',count:0,description:'Раскрывает большую область карты и показывает ближайший тайник. Использование: U.'}
   ];
   for (const relic of BOSS_REALM_RELICS) if (!inventoryItems.some(item => item.name === relic.name)) inventoryItems.push({...relic});
 
@@ -1727,9 +1736,12 @@ let audioContext=null;
     const cfg=difficultyConfig(),gold=5+Math.floor(Math.random()*11);
     const rewards=[{name:'Золото',count:gold},{name:'Кристалл',count:1},{name:'Малое зелье',count:1}];
     const chosen=rewards.filter((r,i)=>i===0||(i===1?Math.random()<cfg.chests.crystal:Math.random()<cfg.chests.potion));
+    const supplyNames=['Бинт','Полевая аптечка','Энергетик','Консервы','Чистая вода','Сигнальная ракета','Дымовая шашка','Осколочная граната','Радиомаяк'];
+    if(Math.random()<.72){const supply=supplyNames[Math.floor(Math.random()*supplyNames.length)];chosen.push({name:supply,count:1});}
+    if(Math.random()<.18){const supply=supplyNames[Math.floor(Math.random()*supplyNames.length)];chosen.push({name:supply,count:1});}
     if(isModInstalled('treasure_hunter')&&Math.random()<.30)chosen.push({name:'Кристалл',count:1});
-    for(const r of chosen){if(r.name==='Золото')walletCents+=Math.round(r.count*100*(isModInstalled('ancient_civs')?1.25:1));else changeItem(r.name,r.count);}
-    spawnVisualBurst(chest.x,chest.y,22,'spark','#ffd86b');playSound('coin');renderInventory();saveGame();drawMinimap();awardXP(45,'найден сундук');
+    for(const r of chosen){if(r.name==='Золото')walletCents+=Math.round(r.count*100*(isModInstalled('ancient_civs')?1.25:1));else {lootDrops.push({x:chest.x,y:chest.y-12,name:r.name,count:r.count,life:240,phase:Math.random()*6.28,vx:(Math.random()-.5)*92,vy:-75-Math.random()*55,pickupDelay:.7,crateDrop:true});}}
+    spawnVisualBurst(chest.x,chest.y-8,34,'spark','#ffd86b');spawnVisualBurst(chest.x,chest.y+3,18,'dust','#c49a68');playSound('coin');renderInventory();saveGame();drawMinimap();awardXP(45,'найден сундук');
     toast('Сундук открыт! Золота: '+gold+'; '+chosen.filter(r=>r.name!=='Золото').map(r=>r.name+' ×'+r.count).join(', '));
   }
   function startDodge(){if(paused||inMainMenu||workbenchDialogOpen||inventoryDialogOpen||signDialogOpen||dodgeCooldown>0||player.stamina<18||mineMode)return;let dx=0,dy=0;const f=player.face;if(f==='left')dx=-1;else if(f==='right')dx=1;else if(f==='up')dy=-1;else dy=1;dodgeVX=dx;dodgeVY=dy;dodgeFacing=f;dodgeTimer=.24;dodgeCooldown=1.15;player.stamina=Math.max(0,player.stamina-18);combatPerfectDodge=.24;combatEnergy=Math.min(100,combatEnergy+7);updateVitals();spawnVisualBurst(player.x,player.y,18,'dust','#a8d9ff');spawnVisualBurst(player.x,player.y,8,'spark','#d9f4ff');toast('Перекат! Точное уклонение усилит следующую атаку.');}
@@ -2267,13 +2279,18 @@ function updateVillageNpcs(dt){
     for(const chest of treasureChests){
       const x=chest.x-camX,y=chest.y-camY;if(x<-44||x>width+44||y<-44||y>height+44)continue;
       ctx.save();ctx.translate(x,y);const pulse=.5+.5*Math.sin(time/180+(chest.x||0)*.01);
-      ctx.fillStyle='rgba(5,13,18,.38)';ctx.beginPath();ctx.ellipse(0,12,22,8,0,0,Math.PI*2);ctx.fill();
-      // Thick plank body, iron straps, corner caps and a hand-forged lock.
-      ctx.fillStyle='#3a2924';ctx.fillRect(-18,-7,36,22);ctx.fillStyle=chest.opened?'#65594a':'#81502c';ctx.fillRect(-16,-6,32,18);
-      ctx.fillStyle=chest.opened?'#8e806b':'#b17a42';ctx.fillRect(-16,-6,32,4);ctx.fillRect(-16,8,32,4);
-      ctx.fillStyle='#533722';for(const bx of [-13,-4,5,12])ctx.fillRect(bx,-3,2,9);
-      ctx.strokeStyle='#dfba72';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-17,-4);ctx.lineTo(-17,12);ctx.moveTo(17,-4);ctx.lineTo(17,12);ctx.stroke();
-      ctx.fillStyle='#d9b76d';ctx.fillRect(-3,-6,6,18);ctx.fillStyle='#f7e3aa';ctx.beginPath();ctx.arc(0,1,2.2,0,Math.PI*2);ctx.fill();
+      // Detailed field supply crate: reinforced base, thick planks, iron corner plates, a hand-forged lock and readable lid.
+      ctx.fillStyle='rgba(5,13,18,.42)';ctx.beginPath();ctx.ellipse(0,14,26,9,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#261d18';ctx.fillRect(-22,-10,44,28);
+      ctx.fillStyle=chest.opened?'#65594a':'#80502f';ctx.fillRect(-20,-9,40,24);
+      ctx.fillStyle=chest.opened?'#8e806b':'#b17a42';ctx.fillRect(-19,-8,38,4);ctx.fillRect(-19,10,38,4);
+      for(let plank=0;plank<5;plank++){ctx.fillStyle=plank%2?'#95663d':'#a97949';ctx.fillRect(-18+plank*8,-3,7,12);ctx.strokeStyle='rgba(48,30,20,.65)';ctx.lineWidth=.8;ctx.strokeRect(-18+plank*8,-3,7,12);}
+      ctx.fillStyle='#3b2a22';ctx.fillRect(-21,-15,42,9);ctx.fillStyle=chest.opened?'#75604a':'#c18a4e';ctx.fillRect(-19,-16,38,7);
+      ctx.fillStyle='#6c7371';ctx.fillRect(-21,-13,4,29);ctx.fillRect(17,-13,4,29);ctx.fillRect(-20,-17,40,3);ctx.fillRect(-20,11,40,3);
+      ctx.fillStyle='#d5b878';ctx.fillRect(-4,-8,8,18);ctx.fillStyle='#f7e3aa';ctx.fillRect(-2,-3,4,5);
+      ctx.strokeStyle='#e3c38a';ctx.lineWidth=1.2;ctx.strokeRect(-19,-16,38,31);
+      ctx.fillStyle='#ead5a8';ctx.font='900 6px Segoe UI';ctx.textAlign='center';ctx.fillText('SUPPLY',0,6);
+      if(!chest.opened){ctx.fillStyle='#e6c77b';ctx.fillRect(-20,-20,40,3);}
       if(chest.opened){
         ctx.save();ctx.translate(0,-7);ctx.rotate(-.55);ctx.fillStyle='#503526';ctx.fillRect(-17,-9,34,8);ctx.fillStyle='#987047';ctx.fillRect(-15,-8,30,5);ctx.strokeStyle='#d2ae72';ctx.lineWidth=1;ctx.strokeRect(-16,-9,32,7);ctx.restore();
         ctx.fillStyle='#756957';ctx.fillRect(-10,-1,20,4);
@@ -4556,8 +4573,8 @@ function updateVillageNpcs(dt){
   }
   function pickUpLoot(dt){
     if(inHouse||mineMode||tradeWorldMode)return;
-    for(let i=lootDrops.length-1;i>=0;i--){const drop=lootDrops[i];drop.life-=dt;if(drop.life<=0){if(drop.shared&&isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner)continue;lootDrops.splice(i,1);continue;}
-      if(Math.hypot(player.x-drop.x,player.y-drop.y)<34){
+    for(let i=lootDrops.length-1;i>=0;i--){const drop=lootDrops[i];if(drop.crateDrop){drop.pickupDelay=Math.max(0,(drop.pickupDelay||0)-dt);drop.x+=(drop.vx||0)*dt;drop.y+=(drop.vy||0)*dt;drop.vx=(drop.vx||0)*Math.pow(.12,dt);drop.vy=(drop.vy||0)*Math.pow(.12,dt)+145*dt;}drop.life-=dt;if(drop.life<=0){if(drop.shared&&isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner)continue;lootDrops.splice(i,1);continue;}
+      if((drop.pickupDelay||0)<=0&&Math.hypot(player.x-drop.x,player.y-drop.y)<34){
         if(drop.shared&&isCoopWorldActive()&&!window.SkyRealmCoopClient?.isRoomOwner){queueGuestLootPickup(drop);continue;}
         if(drop.shared&&isCoopWorldActive()&&window.SkyRealmCoopClient?.isRoomOwner){
           grantLootToPersonalInventory(drop.name,drop.count);
@@ -5621,6 +5638,22 @@ function updateWolfAndDog(dt){
     }
     saveGame();
   }
+  function useApocalypseSupplyItem(){
+    if(paused||inMainMenu||signDialogOpen||inventoryDialogOpen||workbenchDialogOpen||shopDialogOpen||mineMode)return false;
+    const item=selectedInventoryItem();if(!item)return false;
+    const take=()=>{item.count=Math.max(0,item.count-1);renderInventory();saveGame();};
+    const heal=amount=>{const before=player.hp;player.hp=Math.min(100,player.hp+amount);updateVitals();return player.hp-before;};
+    if(item.name==='Бинт'){const gained=heal(25);if(gained<=0){toast('Здоровье уже полностью восстановлено.');return true;}take();spawnVisualBurst(player.x,player.y,9,'spark','#a7e7a0');toast('Бинт использован · +'+gained+' HP');return true;}
+    if(item.name==='Полевая аптечка'){const gained=heal(60);if(gained<=0){toast('Здоровье уже полностью восстановлено.');return true;}take();spawnVisualBurst(player.x,player.y,18,'spark','#75e0a4');playSound('coin');toast('Аптечка использована · +'+gained+' HP');return true;}
+    if(item.name==='Энергетик'){if(player.stamina>=100){toast('Выносливость уже полная.');return true;}player.stamina=Math.min(100,player.stamina+45);take();updateVitals();spawnVisualBurst(player.x,player.y,12,'spark','#7bdcff');toast('Энергетик выпит · выносливость восстановлена.');return true;}
+    if(item.name==='Консервы'){if(hunger>=100){toast('Сытость уже полная.');return true;}hunger=Math.min(100,hunger+30);take();updateVitals();spawnVisualBurst(player.x,player.y,8,'spark','#e6b96c');toast('Консервы съедены · +30 сытости.');return true;}
+    if(item.name==='Чистая вода'){if(hunger>=100&&player.stamina>=100){toast('Сытость и выносливость уже полные.');return true;}hunger=Math.min(100,hunger+15);player.stamina=Math.min(100,player.stamina+20);take();updateVitals();spawnVisualBurst(player.x,player.y,10,'spark','#7dcfff');toast('Вода выпита · +15 сытости, +20 выносливости.');return true;}
+    if(item.name==='Сигнальная ракета'){take();spawnVisualBurst(player.x,player.y,42,'spark','#ff7d48');const nearest=treasureChests.filter(c=>!c.opened).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];if(nearest){const d=Math.round(Math.hypot(nearest.x-player.x,nearest.y-player.y)/TILE);toast('Сигнал виден издалека · ближайший тайник примерно в '+d+' м.');}else toast('Сигнальная ракета поднялась над поселением.');playSound('coin');return true;}
+    if(item.name==='Дымовая шашка'){take();let affected=0;for(const mob of monsters){if(Math.hypot(mob.x-player.x,mob.y-player.y)<=190){mob.attackCooldown=Math.max(mob.attackCooldown||0,4.5);mob.specialCooldown=Math.max(mob.specialCooldown||0,4.5);affected++;}}spawnVisualBurst(player.x,player.y,34,'dust','#aab4b8');spawnVisualBurst(player.x,player.y,12,'spark','#d4e2e8');toast('Дымовая завеса · атаки '+affected+' монстров задержаны.');return true;}
+    if(item.name==='Осколочная граната'){take();let hits=0,kills=0;for(const mob of [...monsters]){const d=Math.hypot(mob.x-player.x,mob.y-player.y);if(d>150)continue;const damage=Math.round(85*(1-d/220));mob.hp=Math.max(0,mob.hp-damage);mob.flash=.25;hits++;if(mob.hp<=0){if(mob.bossRealmCreature)recordBossRealmDefeat(mob);if(mob.isRebornBoss)triggerBossVictory(mob.bossTitle||monsterLabel(mob.type),mob.x,mob.y,'#ffb56b');const ix=monsters.indexOf(mob);if(ix>=0)monsters.splice(ix,1);dropMonsterLoot(mob);kills++;}}spawnVisualBurst(player.x,player.y,42,'spark','#ff9a55');spawnVisualBurst(player.x,player.y,24,'dust','#b4a28d');playSound('hit');toast('Взрыв гранаты · поражено '+hits+' целей, уничтожено '+kills+'.');saveGame();return true;}
+    if(item.name==='Радиомаяк'){take();const tx=Math.floor(player.x/TILE),ty=Math.floor(player.y/TILE);for(let y=-12;y<=12;y++)for(let x=-12;x<=12;x++)if(x*x+y*y<=144)exploredCells.add((tx+x)+','+(ty+y));drawMinimap();const nearest=treasureChests.filter(c=>!c.opened).sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];toast(nearest?'Радиомаяк обновил карту · ближайший тайник отмечен ориентиром.':'Радиомаяк обновил карту вокруг тебя.');saveGame();return true;}
+    return false;
+  }
   function openTutorial(){const el=document.getElementById('tutorial-shade');if(!el)return;paused=true;keys.clear();pressedMovementCodes.clear();renderTutorialStep();el.hidden=false;el.setAttribute('aria-hidden','false');}
   function renderTutorialStep(){const step=tutorialSteps[Math.min(tutorialStep,tutorialSteps.length-1)];document.getElementById('tutorial-step-title').textContent=step.title;document.getElementById('tutorial-step-key').textContent=step.key;document.getElementById('tutorial-step-text').textContent=step.text;document.getElementById('tutorial-next').textContent=tutorialStep>=tutorialSteps.length-1?'Завершить обучение':'Следующий шаг';}
   function nextTutorialStep(){if(tutorialStep<tutorialSteps.length-1){tutorialStep++;renderTutorialStep();}else closeTutorial();}
@@ -6336,7 +6369,7 @@ const extra=adventureQuestDefs.map(v=>{const n=adventureQuestProgress[v.id]||0,r
       const houseD=Math.hypot(player.x-(36*TILE+40),player.y-(15*TILE+154));
       const mineD=Math.hypot(player.x-(mineTileX*TILE+16),player.y-(mineTileY*TILE+16));
       const hint = document.getElementById('hint');
-      const nearbyTradeNpc=nearestVillageNpc(),nearShop=tradeWorldMode&&Math.min(Math.hypot(player.x-(SELL_SHOP.x*TILE+16),player.y-(SELL_SHOP.y*TILE+16)),Math.hypot(player.x-(BUY_SHOP.x*TILE+16),player.y-(BUY_SHOP.y*TILE+16)))<125;if(nearbyTradeNpc){hint.classList.add('show');hint.textContent=NPC_NAMES[nearbyTradeNpc.id]+' · E — задание / T — лавка';}else if(nearShop){hint.classList.add('show');hint.textContent='ЛАВКА · Нажми T, чтобы открыть торговлю';}else if(worldEventCamp&&!caveMode&&!mineMode&&!inHouse&&!tradeWorldMode&&Math.hypot(player.x-worldEventCamp.x,player.y-worldEventCamp.y)<125){hint.classList.add('show');hint.textContent='🏕️ ЗАБРОШЕННЫЙ ЛАГЕРЬ · E — осмотреть';}else if(worldEventTraveler&&!caveMode&&!mineMode&&!inHouse&&!tradeWorldMode&&Math.hypot(player.x-worldEventTraveler.x,player.y-worldEventTraveler.y)<125){hint.classList.add('show');hint.textContent='🧳 ПУТНИК · E — поговорить';}else if(worldEventShrine&&!caveMode&&!mineMode&&!inHouse&&!tradeWorldMode&&Math.hypot(player.x-worldEventShrine.x,player.y-worldEventShrine.y)<125){hint.classList.add('show');hint.textContent='✨ ДРЕВНЕЕ СВЯТИЛИЩЕ · E — получить благословение';}else if(caveMode){hint.classList.add('show');hint.textContent='E · сундук / выйти из пещеры';}else if(mineMode){hint.classList.add('show');const atEntrance=Math.hypot(minePlayerX-1.5*MINE_CELL_SIZE,minePlayerY-(MINE_MAZE_ROWS-1.5)*MINE_CELL_SIZE)<48,atStairs=Math.hypot(minePlayerX-(MINE_MAZE_COLS-1.5)*MINE_CELL_SIZE,minePlayerY-1.5*MINE_CELL_SIZE)<48;hint.textContent=atEntrance?'E · выйти из шахты':atStairs?(mineDepth<8?'E · спуститься на глубину '+(mineDepth+1):'E · сокровищница'):'Найди лестницу · E у входа — выйти';}else if(tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16),player.y-(SELL_SHOP.y*TILE+16))<130){hint.classList.add('show');hint.textContent='🟡 ЛАВКА ЛЕСНИКА · E — продать ресурсы';}else if(tradeWorldMode&&Math.hypot(player.x-(BUY_SHOP.x*TILE+16),player.y-(BUY_SHOP.y*TILE+16))<130){hint.classList.add('show');hint.textContent='⛏ ЛАВКА РУДОКОПА · E — купить руду';}else if(inHouse){hint.classList.add('show');hint.textContent='E · взаимодействие | кровать, верстак, дверь';}else if(placedStructures.some(s=>s.type==='house'&&Math.hypot(player.x-s.x,player.y-(s.y+25))<105)){hint.classList.add('show');hint.textContent='🏠 ТВОЙ ДОМ · Нажми E, чтобы войти';}else if(Math.hypot(player.x-(tradeEntranceX*TILE+16),player.y-(tradeEntranceY*TILE+16))<130){hint.classList.add('show');hint.textContent='🌐 МИР ТОРГОВЛИ · Нажми E, чтобы перейти';}else if(Math.hypot(player.x-(74*TILE+16),player.y-(18*TILE+16))<130){hint.classList.add('show');hint.textContent='💎 ТАЙНАЯ ПЕЩЕРА · Нажми E, чтобы войти';}else if(placedStructures.some(v=>v.type==='storage'&&Math.hypot(player.x-v.x,player.y-v.y)<100)){hint.classList.add('show');hint.textContent='📦 СУНДУК · E — открыть хранилище';}else if(placedStructures.some(v=>v.type==='farmplot'&&Math.hypot(player.x-v.x,player.y-v.y)<100)){hint.classList.add('show');hint.textContent='🌱 ГРЯДКА · E — полить / собрать урожай';}else if(treasureChests.some(c=>!c.opened&&Math.hypot(player.x-c.x,player.y-c.y)<100)){hint.classList.add('show');hint.textContent='🎁 СУНДУК · Нажми E, чтобы открыть';}else if(mineD<130){hint.classList.add('show');hint.textContent='⛏ ШАХТА · Нажми E, чтобы войти';}else if (d < 112 && !signDialogOpen) {hint.classList.add('show');hint.textContent=discovered?'Нажми E, чтобы перечитать знак.':'Нажми E, чтобы прочитать знак.';}else if(houseD<125){hint.classList.add('show');hint.textContent='Нажми E, чтобы войти в дом.';}else hint.classList.remove('show');
+      const nearbyTradeNpc=nearestVillageNpc(),nearShop=tradeWorldMode&&Math.min(Math.hypot(player.x-(SELL_SHOP.x*TILE+16),player.y-(SELL_SHOP.y*TILE+16)),Math.hypot(player.x-(BUY_SHOP.x*TILE+16),player.y-(BUY_SHOP.y*TILE+16)))<125;if(nearbyTradeNpc){hint.classList.add('show');hint.textContent=NPC_NAMES[nearbyTradeNpc.id]+' · E — задание / T — лавка';}else if(nearShop){hint.classList.add('show');hint.textContent='ЛАВКА · Нажми T, чтобы открыть торговлю';}else if(worldEventCamp&&!caveMode&&!mineMode&&!inHouse&&!tradeWorldMode&&Math.hypot(player.x-worldEventCamp.x,player.y-worldEventCamp.y)<125){hint.classList.add('show');hint.textContent='🏕️ ЗАБРОШЕННЫЙ ЛАГЕРЬ · E — осмотреть';}else if(worldEventTraveler&&!caveMode&&!mineMode&&!inHouse&&!tradeWorldMode&&Math.hypot(player.x-worldEventTraveler.x,player.y-worldEventTraveler.y)<125){hint.classList.add('show');hint.textContent='🧳 ПУТНИК · E — поговорить';}else if(worldEventShrine&&!caveMode&&!mineMode&&!inHouse&&!tradeWorldMode&&Math.hypot(player.x-worldEventShrine.x,player.y-worldEventShrine.y)<125){hint.classList.add('show');hint.textContent='✨ ДРЕВНЕЕ СВЯТИЛИЩЕ · E — получить благословение';}else if(caveMode){hint.classList.add('show');hint.textContent='E · сундук / выйти из пещеры';}else if(mineMode){hint.classList.add('show');const atEntrance=Math.hypot(minePlayerX-1.5*MINE_CELL_SIZE,minePlayerY-(MINE_MAZE_ROWS-1.5)*MINE_CELL_SIZE)<48,atStairs=Math.hypot(minePlayerX-(MINE_MAZE_COLS-1.5)*MINE_CELL_SIZE,minePlayerY-1.5*MINE_CELL_SIZE)<48;hint.textContent=atEntrance?'E · выйти из шахты':atStairs?(mineDepth<8?'E · спуститься на глубину '+(mineDepth+1):'E · сокровищница'):'Найди лестницу · E у входа — выйти';}else if(tradeWorldMode&&Math.hypot(player.x-(SELL_SHOP.x*TILE+16),player.y-(SELL_SHOP.y*TILE+16))<130){hint.classList.add('show');hint.textContent='🟡 ЛАВКА ЛЕСНИКА · E — продать ресурсы';}else if(tradeWorldMode&&Math.hypot(player.x-(BUY_SHOP.x*TILE+16),player.y-(BUY_SHOP.y*TILE+16))<130){hint.classList.add('show');hint.textContent='⛏ ЛАВКА РУДОКОПА · E — купить руду';}else if(inHouse){hint.classList.add('show');hint.textContent='E · взаимодействие | кровать, верстак, дверь';}else if(placedStructures.some(s=>s.type==='house'&&Math.hypot(player.x-s.x,player.y-(s.y+25))<105)){hint.classList.add('show');hint.textContent='🏠 ТВОЙ ДОМ · Нажми E, чтобы войти';}else if(Math.hypot(player.x-(tradeEntranceX*TILE+16),player.y-(tradeEntranceY*TILE+16))<130){hint.classList.add('show');hint.textContent='🌐 МИР ТОРГОВЛИ · Нажми E, чтобы перейти';}else if(Math.hypot(player.x-(74*TILE+16),player.y-(18*TILE+16))<130){hint.classList.add('show');hint.textContent='💎 ТАЙНАЯ ПЕЩЕРА · Нажми E, чтобы войти';}else if(placedStructures.some(v=>v.type==='storage'&&Math.hypot(player.x-v.x,player.y-v.y)<100)){hint.classList.add('show');hint.textContent='📦 СУНДУК · E — открыть хранилище';}else if(placedStructures.some(v=>v.type==='farmplot'&&Math.hypot(player.x-v.x,player.y-v.y)<100)){hint.classList.add('show');hint.textContent='🌱 ГРЯДКА · E — полить / собрать урожай';}else if(treasureChests.some(c=>!c.opened&&Math.hypot(player.x-c.x,player.y-c.y)<100)){hint.classList.add('show');hint.textContent='📦 ЯЩИК С ПРИПАСАМИ · Нажми «Действие», чтобы открыть';}else if(mineD<130){hint.classList.add('show');hint.textContent='⛏ ШАХТА · Нажми E, чтобы войти';}else if (d < 112 && !signDialogOpen) {hint.classList.add('show');hint.textContent=discovered?'Нажми E, чтобы перечитать знак.':'Нажми E, чтобы прочитать знак.';}else if(houseD<125){hint.classList.add('show');hint.textContent='Нажми E, чтобы войти в дом.';}else hint.classList.remove('show');
       if(!caveMode&&!dungeonMode)markExploredAroundPlayer();
       saveTimer += dt;
       if (saveTimer > 4) { saveGame(); saveTimer = 0; }
@@ -7164,7 +7197,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       canvas.focus();
     }
     if(k===' '&&mineMode&&!formTarget&&!inMainMenu&&!paused&&!blockingOverlay){e.preventDefault();attackMineCreature();return;}
-    if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','o','q','j','r','t','f','g','1','2','3','4'].includes(k)) e.preventDefault();
+    if (!formTarget && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','e','i','l','o','q','j','r','t','f','g','u','1','2','3','4'].includes(k)) e.preventDefault();
     if(k==='l'&&!formTarget&&!inMainMenu){if(fullMapOpen)closeFullMap();else if(!paused&&!signDialogOpen&&!inventoryDialogOpen)openFullMap();return;}
     if(k==='o'&&bossRealmMode&&!paused&&!signDialogOpen&&!inventoryDialogOpen){bossRealmJournalOpen=!bossRealmJournalOpen;toast(bossRealmJournalOpen?'Журнал мира боссов открыт':'Журнал закрыт');return;}
     if(fullMapOpen){if(k==='escape'||k==='l')closeFullMap();return;}
@@ -7203,6 +7236,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     if(k==='v'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){useBossRealmInvisibility();return;}
     if(k==='b'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){useBossRealmDamageBoost();return;}
     if(k==='n'&&!paused&&!signDialogOpen&&!inventoryDialogOpen){useBossRealmSprint();return;}
+    if (k === 'u' && !paused && !signDialogOpen && !inventoryDialogOpen) { useApocalypseSupplyItem(); return; }
     if (k === 'h' && !paused && !signDialogOpen && !inventoryDialogOpen) { useHealingPotion(); return; }
     if (k === 'j' && !paused && !signDialogOpen && !inventoryDialogOpen) { useBuffPotion(); return; }
     if (k === ' ' && !paused && !signDialogOpen && !inventoryDialogOpen) { if(selectedInventoryItem()?.name==='Лопата')shovelSnowNearPlayer();else attackNearestMonster(); return; }
@@ -7606,7 +7640,9 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
     document.getElementById('apocalypse-play')?.addEventListener('click',()=>{
       const worlds=readWorlds().sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
       if(!worlds.length){openWorldCreate();return;}
-      enterWorld(worlds[0].id);
+      const begin=()=>enterWorld(worlds[0].id);
+      if(window.Apocalypse3DConsent?.enabled?.()&&window.ApocalypseCinematic&&typeof window.ApocalypseCinematic.play==='function')window.ApocalypseCinematic.play(begin);
+      else begin();
     });
     document.getElementById('apocalypse-settings')?.addEventListener('click',openSettingsFromMainMenu);
     document.getElementById('apocalypse-coop')?.addEventListener('click',()=>document.getElementById('menu-coop')?.click());
