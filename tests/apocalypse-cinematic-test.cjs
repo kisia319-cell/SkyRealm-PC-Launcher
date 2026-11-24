@@ -11,5 +11,10 @@ assert.match(game, /window\.ApocalypseCinematic&&typeof window\.ApocalypseCinema
 assert.match(scene, /const TOTAL=36\.1,BLACK_IN=16,BLACK_HOLD=17\.5,ZOMBIES_AT=21\.1,DESCENT_AT=31\.1/, 'cinematic timing must retain the agreed sequence');
 assert.match(scene, /function heli\(/, 'helicopter sequence must exist');
 assert.match(scene, /function person\(/, 'procedural zombie and mutant models must exist');
+assert.match(scene, /const shots=\[/, 'opening must use multiple cinematic camera shots');
+assert.match(scene, /const zshots=\[/, 'zombie reveal must use a separate moving camera path');
+assert.match(scene, /const orbit=Math\.sin\(q\*Math\.PI\*1\.25\)/, 'underground reveal must orbit while descending');
+assert.match(scene, /for\(let d=0;d<5;d\+\+\)/, 'infected emergence must include visible debris');
+assert.doesNotMatch(scene, /caption\.textContent|setCaption\(|createElement\('div'\).*caption/i, 'cinematic must tell the story without text overlays or dialogue');
 assert.match(scene, /fired\.growl2[\s\S]*fired\.growl3[\s\S]*fired\.base[\s\S]*fired\.tunnel/, 'several creature and underground sound cues must exist');
 console.log('Apocalypse cinematic integration checks passed.');
