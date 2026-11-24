@@ -2279,7 +2279,7 @@ function updateVillageNpcs(dt){
     for(const chest of treasureChests){
       const x=chest.x-camX,y=chest.y-camY;if(x<-44||x>width+44||y<-44||y>height+44)continue;
       ctx.save();ctx.translate(x,y);const pulse=.5+.5*Math.sin(time/180+(chest.x||0)*.01);
-      // Detailed field supply crate: reinforced base, thick planks, iron corner plates and readable lid.
+      // Detailed field supply crate: reinforced base, thick planks, iron corner plates, a hand-forged lock and readable lid.
       ctx.fillStyle='rgba(5,13,18,.42)';ctx.beginPath();ctx.ellipse(0,14,26,9,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#261d18';ctx.fillRect(-22,-10,44,28);
       ctx.fillStyle=chest.opened?'#65594a':'#80502f';ctx.fillRect(-20,-9,40,24);
@@ -7641,7 +7641,7 @@ if(Number.isInteger(d.playerLevel))playerLevel=Math.max(1,Math.min(999,d.playerL
       const worlds=readWorlds().sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
       if(!worlds.length){openWorldCreate();return;}
       const begin=()=>enterWorld(worlds[0].id);
-      if(window.ApocalypseCinematic&&typeof window.ApocalypseCinematic.play==='function')window.ApocalypseCinematic.play(begin);
+      if(window.Apocalypse3DConsent?.enabled?.()&&window.ApocalypseCinematic&&typeof window.ApocalypseCinematic.play==='function')window.ApocalypseCinematic.play(begin);
       else begin();
     });
     document.getElementById('apocalypse-settings')?.addEventListener('click',openSettingsFromMainMenu);
