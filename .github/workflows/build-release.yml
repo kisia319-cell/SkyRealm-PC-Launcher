@@ -284,6 +284,11 @@ jobs:
             game_sha256 = $gameHash
           } | ConvertTo-Json
           Set-Content -Path update_release/manifest.json -Value $manifest -Encoding utf8
+          $verifiedManifest = Get-Content update_release/manifest.json -Raw | ConvertFrom-Json
+          if ($verifiedManifest.game_version -ne $gameVersion) { throw "Manifest game_version does not match game/version.txt" }
+          if ($verifiedManifest.game_sha256 -ne $gameHash) { throw "Manifest game_sha256 does not match the packaged SkyRealm_Game.zip" }
+          if ($verifiedManifest.game_download_url -ne "https://github.com/kisia319-cell/SkyRealm-PC-Launcher/releases/latest/download/SkyRealm_Game.zip") { throw "Manifest game download URL is not the stable latest-release asset" }
+          if ((Get-Item "update_release/SkyRealm_Game.zip").Length -lt 100000) { throw "Stable game archive is unexpectedly small" }
           Copy-Item update_release/manifest.json manifest.json -Force
 
       - name: Reject stale release builds
