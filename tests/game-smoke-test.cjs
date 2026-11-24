@@ -58,7 +58,7 @@ assert.ok(launcherHtml.includes('v'+fs.readFileSync('launcher_version.txt','utf8
 assert.ok(gameHtml.includes('360 × 260') && !gameHtml.includes('180 × 130 · Босс 8500 HP'), 'Difficulty picker must show actual expanded map dimensions');
 
 assert.match(version, /^\d+\.\d+\.\d+\.\d+$/, 'game/version.txt must include the cumulative bug-fix counter');
-assert.match(gameHtml, new RegExp('name="skyrealm-game-version" content="' + version.replace(/[.*+?^${}()|[\\]\\]/g, '\\assert.ok(gameHtml.includes(version), 'game/index.html version label must match game/version.txt');') + '"'), 'game/index.html version metadata must match game/version.txt');
+assert.ok(gameHtml.includes('name="skyrealm-game-version" content="' + version + '"'), 'game/index.html version metadata must match game/version.txt');
 assert.ok(game.includes("forest:['#285b43','#2a6047','#285840','#397451','#306849','#4d8254']") && game.includes('function drawGround(camX,camY)') && game.includes('drawGrass(x,y,sx,sy)'), 'Ordinary valley must use the classic green tile ground painter.');
 assert.ok(game.includes("return 'forest';") && game.includes('else{drawGround(camX,camY);drawPond(camX,camY);'), 'The ordinary-world render branch must select the green classic ground renderer.');
 
@@ -118,7 +118,7 @@ for (const [difficulty, [cols, rows]] of Object.entries(expectedMapSizes)) {
 }
 assert.ok(game.includes("function biomeAt(x,y){if(IS_APOCALYPSE_MODE)return 'blight';if(x>COLS*.44&&x<COLS*.60&&y<ROWS*.15)"), 'Biome regions must scale with the larger map');
 
-assert.match(gameHtml, new RegExp('content="' + version.replace(/[.*+?^${}()|[\\]\\]/g, '\\assert.ok(gameHtml.includes('content="'+version+'"'), 'Game HTML version metadata must match game/version.txt');') + '"'), 'Game HTML version metadata must match game/version.txt');
+assert.ok(gameHtml.includes('content="' + version + '"'), 'Game HTML version metadata must match game/version.txt');
 assert.ok(gameHtml.includes('id="anvil-enchant-weapon"'), 'Enchanting button must exist in game UI');
 assert.ok(game.includes("getElementById('anvil-enchant-weapon')"), 'Enchanting button must be wired');
 assert.ok(game.includes('weaponEnchantments'), 'Weapon enchantments must be persisted');
