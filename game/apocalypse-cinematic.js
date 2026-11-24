@@ -48,7 +48,7 @@ return{ctx,master,rotor,wind,noise,tone,close(){try{master.gain.setTargetAtTime(
 }catch(_){return null;}
 }
 function play(done){
-if(running)return;running=true;
+if(running)return;if(window.Apocalypse3DConsent&&!window.Apocalypse3DConsent.enabled()){if(done)done();return;}running=true;
 const root=document.createElement('div');root.id='apocalypse-opening-cinematic';root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#020307;overflow:hidden;pointer-events:auto;font-family:Segoe UI,Arial,sans-serif';
 const canvas=document.createElement('canvas');canvas.style.cssText='width:100%;height:100%;display:block';
 const caption=document.createElement('div');caption.style.cssText='position:absolute;left:50%;bottom:9%;transform:translateX(-50%);color:#f1e7df;text-shadow:0 2px 12px #000;font-size:clamp(12px,2vw,20px);font-weight:800;letter-spacing:.18em;text-align:center;white-space:nowrap;opacity:0;transition:opacity .4s';
@@ -84,7 +84,20 @@ function render(t){
 const w=canvas.clientWidth,h=canvas.clientHeight,dpr=Math.min(1.6,window.devicePixelRatio||1);if(canvas.width!==Math.floor(w*dpr)||canvas.height!==Math.floor(h*dpr)){canvas.width=Math.floor(w*dpr);canvas.height=Math.floor(h*dpr);gl.viewport(0,0,canvas.width,canvas.height);}
 gl.enable(gl.DEPTH_TEST);gl.clearColor(.025,.035,.05,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);cam.proj=perspective(Math.PI/3,canvas.width/Math.max(1,canvas.height),.1,160);
 if(t<16){
-const shake=t>11?Math.sin(t*39)*.22*ease((t-11)/5):0;cam.view=look([0,7+shake,25],[0,3,0],[0,1,0]);draw(meshes.cube,0,-.35,0,45,.35,34,[.09,.1,.11]);
+const shake=t>11?Math.sin(t*39)*.22*ease((t-11)/5):0;
+const shots=[
+{a:0,b:2.7,e:[-10,5,19],c:[0,5,0]},
+{a:2.7,b:5.3,e:[-5,10,15],c:[-2,8,1]},
+{a:5.3,b:7.8,e:[12,8,17],c:[1,6,0]},
+{a:7.8,b:10.2,e:[7,3,11],c:[1,4,0]},
+{a:10.2,b:12.3,e:[-8,4,13],c:[1,2,0]},
+{a:12.3,b:14.2,e:[-2,13,23],c:[0,1,0]},
+{a:14.2,b:16,e:[0,4,27],c:[0,2,0]}
+];
+const shot=shots.find(s=>t>=s.a&&t<s.b)||shots[shots.length-1],p=ease((t-shot.a)/(shot.b-shot.a));
+const prev=shots[Math.max(0,shots.indexOf(shot)-1)];
+const eye=shot.e.map((v,i)=>mix(prev.e[i],v,p)),target=shot.c.map((v,i)=>mix(prev.c[i],v,p));
+eye[1]+=shake;cam.view=look(eye,target,[0,1,0]);draw(meshes.cube,0,-.35,0,45,.35,34,[.09,.1,.11]);
 for(const b of buildings){draw(meshes.cube,b[0],b[1]/2,b[2],b[3],b[1]/2,b[4],[.13,.15,.17]);for(let j=0;j<8;j++)draw(meshes.cube,b[0]+((j%3)-1)*.65,b[1]*.45,b[2]+b[4]*.52+.02,.12,.18,.03,[.45,.28,.12],.12);}
 if(t<13.5)heli(t);if(t>12.1){const k=ease((t-12.1)/1.2);for(let j=0;j<22;j++){const a=j*2.399;draw(meshes.sphere,1+Math.cos(a)*k*4,1+Math.sin(a*1.7)*k*2,Math.sin(a)*k*3,.18+k*.15,.18+k*.15,.18+k*.15,[.85,.28,.07],.25);}}
 }else if(t>=ZOMBIES_AT&&t<DESCENT_AT){
