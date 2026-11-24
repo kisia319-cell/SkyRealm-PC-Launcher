@@ -1,0 +1,15 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.join(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'game/index.html'), 'utf8');
+const game = fs.readFileSync(path.join(root, 'game/game.js'), 'utf8');
+const scene = fs.readFileSync(path.join(root, 'game/apocalypse-cinematic.js'), 'utf8');
+assert.match(html, /<script src="apocalypse-cinematic\.js"><\/script>\s*<script src="game\.js"><\/script>/, 'cinematic must load before game runtime');
+assert.match(game, /window\.ApocalypseCinematic&&typeof window\.ApocalypseCinematic\.play==='function'/, 'Apocalypse Play must start the opening before entering the shelter');
+assert.match(scene, /const TOTAL=36\.1,BLACK_IN=16,BLACK_HOLD=17\.5,ZOMBIES_AT=21\.1,DESCENT_AT=31\.1/, 'cinematic timing must retain the agreed sequence');
+assert.match(scene, /function heli\(/, 'helicopter sequence must exist');
+assert.match(scene, /function person\(/, 'procedural zombie and mutant models must exist');
+assert.match(scene, /fired\.growl2[\s\S]*fired\.growl3[\s\S]*fired\.base[\s\S]*fired\.tunnel/, 'several creature and underground sound cues must exist');
+console.log('Apocalypse cinematic integration checks passed.');
