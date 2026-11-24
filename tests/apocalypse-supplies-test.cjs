@@ -9,5 +9,5 @@ assert.match(game,/SUPPLY/,'field crates should have readable markings');
 assert.match(game,/ЯЩИК С ПРИПАСАМИ[\s\S]*Нажми «Действие», чтобы открыть/,'crate hint must use the action label without the E prefix');
 assert.match(scene,/const shots=\[/,'opening cinematic needs multiple camera shots');
 assert.match(consent,/Включить 3D[\s\S]*Продолжить в 2D/,'first-run 3D consent dialog missing');
-assert.match(html,/apocalypse-3d-consent\.js'><\/script><script src="apocalypse-cinematic\.js"/,'consent must load before cinematic');
+assert.match(html,/apocalypse-3d-consent\\.js"><\\/script><script src="apocalypse-cinematic\.js"/,'consent must load before cinematic');
 console.log('Apocalypse crates, supplies, camera and 3D consent checks passed.');
