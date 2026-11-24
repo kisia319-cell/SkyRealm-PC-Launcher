@@ -70,7 +70,7 @@
       ctx.fillStyle='#d9bd87';ctx.font='900 5px Segoe UI';ctx.textAlign='center';ctx.fillText('SUPPLY',0,4);
       ctx.restore();
     }
-    function barrel    function barrel(x, y, rusty = false) {
+    function barrel(x, y, rusty = false) {
       ctx.save(); ctx.translate(x, y); shadow(0, 12, 13, 5);
       ctx.fillStyle = rusty ? '#50342b' : '#6b472d';
       ctx.beginPath(); ctx.moveTo(-10, -15); ctx.quadraticCurveTo(-15, 0, -10, 12);
