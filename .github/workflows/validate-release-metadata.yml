@@ -1,0 +1,79 @@
+name: Validate release metadata
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "manifest.json"
+      - "launcher_version.txt"
+      - "game/version.txt"
+      - ".github/workflows/validate-release-metadata.yml"
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "manifest.json"
+      - "launcher_version.txt"
+      - "game/version.txt"
+      - ".github/workflows/validate-release-metadata.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Check manifest and version files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Validate release metadata
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest_path = Path("manifest.json")
+          launcher_path = Path("launcher_version.txt")
+          game_path = Path("game/version.txt")
+
+          for path in (manifest_path, launcher_path, game_path):
+              if not path.is_file():
+                  raise SystemExit(f"ERROR: required release metadata file is missing: {path}")
+
+          try:
+              manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          except Exception as exc:
+              raise SystemExit(f"ERROR: manifest.json is not valid JSON: {exc}")
+
+          launcher_version = launcher_path.read_text(encoding="utf-8").strip()
+          game_version = game_path.read_text(encoding="utf-8").strip()
+
+          errors = []
+          if manifest.get("version") != launcher_version:
+              errors.append(
+                  f"manifest.version={manifest.get('version')!r} does not match "
+                  f"launcher_version.txt={launcher_version!r}"
+              )
+          if manifest.get("game_version") != game_version:
+              errors.append(
+                  f"manifest.game_version={manifest.get('game_version')!r} does not match "
+                  f"game/version.txt={game_version!r}"
+              )
+
+          for key in ("download_url", "game_download_url", "sha256", "game_sha256"):
+              if not isinstance(manifest.get(key), str) or not manifest[key].strip():
+                  errors.append(f"manifest.{key} is missing or empty")
+
+          if errors:
+              for error in errors:
+                  print(f"::error::{error}")
+              raise SystemExit(1)
+
+          print(
+              "Release metadata is consistent: "
+              f"launcher {launcher_version}, game {game_version}."
+          )
+          PY
