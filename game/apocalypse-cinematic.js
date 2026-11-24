@@ -144,11 +144,38 @@ const DIALOGUES=[
 ];
 let spokenDialogue=-1;
 function dialogueAt(t){return DIALOGUES.find(d=>t>=d.at&&t<d.end)||null;}
+function chooseRussianVoice(kind){
+try{
+const voices=window.speechSynthesis.getVoices().filter(v=>/^ru(-|_)/i.test(v.lang));
+if(!voices.length)return null;
+const preferred=kind==='radio'?[/Microsoft.*Irina/i,/Google.*русский/i,/Russian.*Female/i]:kind==='mutant'?[/Microsoft.*Pavel/i,/Russian.*Male/i,/Google.*русский/i]:[/Microsoft.*Pavel/i,/Microsoft.*Irina/i,/Google.*русский/i];
+for(const pattern of preferred){const match=voices.find(v=>pattern.test(v.name));if(match)return match;}
+return voices.find(v=>v.localService)||voices[0];
+}catch(_){return null;}
+}
+function radioBurst(intensity=.04){
+if(!audio)return;
+audio.noise(.10,intensity,3100);audio.noise(.055,intensity*.7,7600);
+audio.tone(740,.045,.018,'square');
+}
 function speakDialogue(d){
-try{if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return;
-window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(d.text);u.lang='ru-RU';u.rate=d.kind==='radio'?.94:d.kind==='mutant'?.72:.82;u.pitch=d.kind==='mutant'?.48:d.kind==='infected'?.62:d.speaker==='ПИЛОТ'?.92:1;u.volume=d.kind==='radio'?.82:.9;
-const voices=window.speechSynthesis.getVoices(),ru=voices.find(v=>/^ru(-|_)/i.test(v.lang));if(ru)u.voice=ru;
-if(audio){if(d.kind==='radio'){audio.noise(.28,.035,5200);audio.tone(880,.12,.045,'square');}else{audio.noise(.42,.04,d.kind==='mutant'?260:620);audio.tone(d.kind==='mutant'?39:54,.6,.045,'sawtooth');}}window.speechSynthesis.speak(u);
+try{
+if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return;
+window.speechSynthesis.cancel();
+const u=new SpeechSynthesisUtterance(d.text);u.lang='ru-RU';
+u.rate=d.kind==='radio'?.91:d.kind==='mutant'?.76:.86;
+u.pitch=d.kind==='mutant'?.52:d.kind==='infected'?.72:d.speaker==='ПИЛОТ'?.88:1.02;
+u.volume=d.kind==='radio'?.9:.96;
+const voice=chooseRussianVoice(d.kind);if(voice)u.voice=voice;
+if(d.kind==='radio'){
+radioBurst(.065);
+if(audio){audio.tone(1050,.075,.035,'square');audio.tone(680,.11,.022,'square');}
+u.onstart=()=>{if(audio){audio.noise(.12,.018,2500);}};
+u.onend=()=>{radioBurst(.045);if(audio)audio.tone(820,.06,.025,'square');};
+}else{
+if(audio){audio.noise(.24,d.kind==='mutant'?.055:.028,d.kind==='mutant'?340:900);audio.tone(d.kind==='mutant'?43:67,.32,d.kind==='mutant'?.065:.025,'sawtooth');}
+}
+window.speechSynthesis.speak(u);
 }catch(_){}
 }
 function setCaption(t){
