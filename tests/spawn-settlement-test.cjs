@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, '..');
 const game = fs.readFileSync(path.join(root, 'game/game.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'game/index.html'), 'utf8');
 const settlement = fs.readFileSync(path.join(root, 'game/spawn-settlement.js'), 'utf8');
-assert.match(html, /<script src="spawn-settlement\.js"><\/script><script src="game\.js"><\/script>/);
+assert.match(html, /<script src="spawn-settlement\.js"><\/script>(?:<script src="apocalypse-3d-consent\.js"><\/script>)?(?:<script src="apocalypse-cinematic\.js"><\/script>)?<script src="game\.js"><\/script>/);
 assert.match(game, /window\.SkyRealmSpawnSettlement\?\.draw\?\.\(ctx,camX,camY,time,TILE,true\)/);
 assert.match(game, /window\.SkyRealmSpawnSettlement\?\.draw\?\.\(ctx,camX,camY,time,TILE,false\)/);
 assert.match(game, /spawnZone=x>=11&&x<=31&&y>=17&&y<=35/);
