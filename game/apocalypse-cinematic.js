@@ -2,7 +2,7 @@
 (() => {
 'use strict';
 if(window.ApocalypseCinematic)return;
-const TOTAL=36.1,BLACK_IN=16,BLACK_HOLD=17.5,ZOMBIES_AT=21.1,DESCENT_AT=31.1;
+const TOTAL=50.1,BLACK_IN=16,BLACK_HOLD=17.5,ZOMBIES_AT=21.1,DESCENT_AT=45.1;
 let running=false,raf=0,audio=null;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),mix=(a,b,t)=>a+(b-a)*t;
 const ease=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
@@ -51,7 +51,7 @@ function play(done){
 if(running)return;if(window.Apocalypse3DConsent&&!window.Apocalypse3DConsent.enabled()){if(done)done();return;}running=true;
 const root=document.createElement('div');root.id='apocalypse-opening-cinematic';root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#020307;overflow:hidden;pointer-events:auto;font-family:Segoe UI,Arial,sans-serif';
 const canvas=document.createElement('canvas');canvas.style.cssText='width:100%;height:100%;display:block';
-const caption=document.createElement('div');caption.style.cssText='position:absolute;left:50%;bottom:9%;transform:translateX(-50%);color:#f1e7df;text-shadow:0 2px 12px #000;font-size:clamp(12px,2vw,20px);font-weight:800;letter-spacing:.18em;text-align:center;white-space:nowrap;opacity:0;transition:opacity .4s';
+const caption=document.createElement('div');caption.style.cssText='position:absolute;left:50%;bottom:5%;transform:translateX(-50%);width:min(860px,92vw);padding:14px 22px;border:1px solid rgba(216,189,123,.55);border-radius:12px;background:linear-gradient(180deg,rgba(7,11,12,.78),rgba(2,4,5,.94));box-shadow:0 12px 38px #0009;color:#f1e7df;text-shadow:0 2px 12px #000;font-size:clamp(14px,2vw,20px);font-weight:800;text-align:center;white-space:normal;opacity:0;transition:opacity .18s';
 const black=document.createElement('div');black.style.cssText='position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .08s linear';
 const scan=document.createElement('div');scan.style.cssText='position:absolute;inset:0;opacity:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.035) 4px),radial-gradient(ellipse at center,transparent 38%,rgba(0,0,0,.75) 100%)';
 root.append(canvas,caption,scan,black);document.body.appendChild(root);
@@ -65,9 +65,9 @@ const model=mul(mul(tr(x,y,z),mul(ry(rot),mul(rz(tilt),rx(0)))),sc(sx,sy,sz)),mv
 gl.uniformMatrix4fv(l.model,false,model);gl.uniformMatrix4fv(l.mvp,false,mvp);gl.uniform3fv(l.color,color);gl.uniform1f(l.glow,glow);gl.uniform3f(l.light,-5,12,8);
 gl.bindBuffer(gl.ARRAY_BUFFER,mesh.pb);gl.vertexAttribPointer(l.p,3,gl.FLOAT,false,0,0);gl.enableVertexAttribArray(l.p);gl.bindBuffer(gl.ARRAY_BUFFER,mesh.nb);gl.vertexAttribPointer(l.n,3,gl.FLOAT,false,0,0);gl.enableVertexAttribArray(l.n);gl.drawArrays(gl.TRIANGLES,0,mesh.count);
 }
-function person(x,y,z,t,mutant=false){
+function person(x,y,z,t,mutant=false,speaking=false){
 const bob=Math.sin(t*4+x)*.06,k=mutant?1.35:1,skin=mutant?[.25,.31,.24]:[.34,.38,.29],cloth=mutant?[.16,.12,.12]:[.22,.19,.17];
-draw(meshes.sphere,x,y+.9*k+bob,z,.38*k,.56*k,.27*k,cloth);draw(meshes.sphere,x,y+1.55*k+bob,z,.28*k,.3*k,.25*k,skin);
+draw(meshes.sphere,x,y+.9*k+bob,z,.38*k,.56*k,.27*k,cloth);draw(meshes.sphere,x,y+1.55*k+bob,z,.28*k,.3*k,.25*k,skin);draw(meshes.sphere,x,y+1.405*k+bob,z+.235*k,.105*k,speaking?(.075+Math.abs(Math.sin(t*19))*.105)*k:.035*k,.025*k,[.045,.012,.012],speaking?.15:0);
 draw(meshes.sphere,x-.105*k,y+1.59*k+bob,z+.22*k,.045,.04,.035,[.9,.07,.045],1.3);draw(meshes.sphere,x+.105*k,y+1.59*k+bob,z+.22*k,.045,.04,.035,[.9,.07,.045],1.3);
 draw(meshes.sphere,x-.19*k,y+.38*k,z,.13*k,.42*k,.14*k,skin,0,0,Math.sin(t*3+x)*.16);draw(meshes.sphere,x+.19*k,y+.38*k,z,.13*k,.42*k,.14*k,skin,0,0,-Math.sin(t*3+x)*.16);
 draw(meshes.sphere,x-.46*k,y+1*k,z,.12*k,.4*k,.13*k,skin,0,0,Math.sin(t*4+x)*.35);draw(meshes.sphere,x+.46*k,y+1*k,z,.12*k,.4*k,.13*k,skin,0,0,-Math.sin(t*4+x)*.35);
@@ -101,10 +101,25 @@ eye[1]+=shake;cam.view=look(eye,target,[0,1,0]);draw(meshes.cube,0,-.35,0,45,.35
 for(const b of buildings){draw(meshes.cube,b[0],b[1]/2,b[2],b[3],b[1]/2,b[4],[.13,.15,.17]);for(let j=0;j<8;j++)draw(meshes.cube,b[0]+((j%3)-1)*.65,b[1]*.45,b[2]+b[4]*.52+.02,.12,.18,.03,[.45,.28,.12],.12);}
 if(t<13.5)heli(t);if(t>12.1){const k=ease((t-12.1)/1.2);for(let j=0;j<22;j++){const a=j*2.399;draw(meshes.sphere,1+Math.cos(a)*k*4,1+Math.sin(a*1.7)*k*2,Math.sin(a)*k*3,.18+k*.15,.18+k*.15,.18+k*.15,[.85,.28,.07],.25);}}
 }else if(t>=ZOMBIES_AT&&t<DESCENT_AT){
-const q=t-ZOMBIES_AT;cam.view=look([0,5+Math.sin(q*.4)*.35,20-q*.42],[0,1.2,0],[0,1,0]);draw(meshes.cube,0,-.35,0,48,.35,35,[.075,.08,.075]);
+const q=t-ZOMBIES_AT;
+const shots=[
+{a:0,b:3.5,e:[-13,2.5,15],c:[0,1,0]},
+{a:3.5,b:7,e:[-4,2.1,8],c:[-3,1.5,2]},
+{a:7,b:10.5,e:[8,4,12],c:[1,1,0]},
+{a:10.5,b:14,e:[0,10,9],c:[0,0,0]},
+{a:14,b:17.5,e:[-8,2.4,9],c:[-4,1,1]},
+{a:17.5,b:21,e:[7,2.7,8],c:[4,1,2]},
+{a:21,b:24,e:[0,5,17],c:[0,1,-2]}
+];
+const shot=shots.find(v=>q>=v.a&&q<v.b)||shots[shots.length-1],p=ease((q-shot.a)/(shot.b-shot.a));
+const eye=shot.e.map((v,i)=>v+Math.sin(q*.7+i)*(.35+i*.08)),target=shot.c.map((v,i)=>v+Math.sin(q*.42+i)*.18);
+cam.view=look(eye,target,[0,1,0]);draw(meshes.cube,0,-.35,0,48,.35,35,[.075,.08,.075]);
 for(const b of buildings)draw(meshes.cube,b[0],b[1]/2,b[2],b[3],b[1]/2,b[4],[.11,.12,.12]);
-for(let j=0;j<9;j++){const spawn=1+j*.78,p=ease((q-spawn)/2.1);if(p>0)person(-10+j*2.5,-1.3+p*1.3,2+(j%3)*-2,q,j===4||j===7);}
-for(let j=0;j<4;j++)if(q>3+j*.9)person(-5+j*3,-.02,-7,q,j%2===0);
+for(let j=0;j<9;j++){const spawn=1+j*.78,p=ease((q-spawn)/2.1);if(p>0)person(-10+j*2.5,-1.3+p*1.3,2+(j%3)*-2,q,j===4||j===7,false);}
+const active=dialogueAt(t);
+person(-3.5,.05,4,q,false,!!active&&active.speaker==='ЗАРАЖЁННЫЙ');
+person(3.5,.05,3,q,true,!!active&&active.speaker==='МУТАНТ');
+for(let j=0;j<4;j++)if(q>3+j*.9)person(-5+j*3,-.02,-7,q,j%2===0,false);
 }else{
 const q=clamp((t-DESCENT_AT)/5,0,1),y=mix(4,-10,ease(q));cam.view=look([0,y,13-q*3],[0,-10,0],[0,1,0]);
 draw(meshes.cube,0,.2,0,45,.25,35,[.12,.095,.07]);draw(meshes.cube,0,-11.8,0,28,.3,22,[.07,.075,.08]);
@@ -113,7 +128,33 @@ for(let j=0;j<10;j++){const x=-7+(j%5)*3.5,z=-7+Math.floor(j/5)*10;draw(meshes.s
 for(let j=0;j<6;j++)person(-6+j*2.4,-10.9,-3+(j%2)*5,t,j===2||j===5);draw(meshes.cube,0,-10.95,0,6,.12,1,[.19,.08,.07],.35);
 }
 }
-function setCaption(t){let s='';if(t<3)s='СИГНАЛ ПОТЕРЯН';else if(t<11)s='ОБЪЕКТ ПАДАЕТ';else if(t<16)s='УДАР · ПОСЛЕДНЯЯ ПЕРЕДАЧА';else if(t>=ZOMBIES_AT&&t<24)s='ГОРОД БОЛЬШЕ НЕ БЕЗОПАСЕН';else if(t>=24&&t<DESCENT_AT)s='ОНИ ВЫХОДЯТ ИЗ-ПОД ЗЕМЛИ';else if(t>=DESCENT_AT)s='ПОД ГОРОДОМ ЕСТЬ ЕЩЁ ОДИН МИР';caption.textContent=s;caption.style.opacity=s?'.95':'0';}
+const DIALOGUES=[
+{at:1.1,end:4.7,speaker:'ДИСПЕТЧЕР',role:'АВИАЦИОННЫЙ КАНАЛ',kind:'radio',text:'Борт двенадцать, ответьте. Вы входите в красную зону. Немедленно измените курс.'},
+{at:5.1,end:8.2,speaker:'ПИЛОТ',role:'БОРТ 12',kind:'radio',text:'Вижу движение на крышах... Их десятки. Нет, сотни! Что происходит в городе?'},
+{at:9.0,end:12.1,speaker:'ДИСПЕТЧЕР',role:'АВИАЦИОННЫЙ КАНАЛ',kind:'radio',text:'Не садитесь! Повторяю, не садитесь! Уходите на север, мы потеряли связь с патрулём!'},
+{at:12.3,end:15.8,speaker:'ПИЛОТ',role:'БОРТ 12',kind:'radio',text:'Двигатель отказывает! Мы падаем! Передайте базе... они уже здесь!'},
+{at:23.0,end:26.5,speaker:'ЗАРАЖЁННЫЙ',role:'НИЖНИЙ УРОВЕНЬ',kind:'infected',text:'Слышали?.. Наверху снова шумят живые.'},
+{at:27.4,end:30.7,speaker:'ЗАРАЖЁННЫЙ',role:'НИЖНИЙ УРОВЕНЬ',kind:'infected',text:'Тише. Они думают, что город пустой. Пусть спустятся.'},
+{at:32.0,end:35.4,speaker:'МУТАНТ',role:'ГЛУБОКИЙ ТОННЕЛЬ',kind:'mutant',text:'Откройте проход... я чувствую их запах.'},
+{at:37.0,end:41.2,speaker:'ЗАРАЖЁННЫЙ',role:'НИЖНИЙ УРОВЕНЬ',kind:'infected',text:'Подведите их к люку. Внизу их уже ждут.'},
+{at:42.0,end:44.8,speaker:'ДИСПЕТЧЕР',role:'АВАРИЙНЫЙ ПРИЁМНИК',kind:'radio',text:'Если кто-нибудь слышит этот сигнал... не входите в тоннели. Это не убежище.'}
+];
+let spokenDialogue=-1;
+function dialogueAt(t){return DIALOGUES.find(d=>t>=d.at&&t<d.end)||null;}
+function speakDialogue(d){
+try{if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return;
+window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(d.text);u.lang='ru-RU';u.rate=d.kind==='radio'?.94:d.kind==='mutant'?.72:.82;u.pitch=d.kind==='mutant'?.48:d.kind==='infected'?.62:d.speaker==='ПИЛОТ'?.92:1;u.volume=d.kind==='radio'?.82:.9;
+const voices=window.speechSynthesis.getVoices(),ru=voices.find(v=>/^ru(-|_)/i.test(v.lang));if(ru)u.voice=ru;
+window.speechSynthesis.speak(u);
+}catch(_){}
+}
+function setCaption(t){
+const d=dialogueAt(t);
+if(d){caption.innerHTML='<div style="font-size:10px;letter-spacing:2px;color:#d8bd7b;margin-bottom:7px">'+d.speaker+' · '+d.role+'</div><div style="font-size:clamp(14px,2.05vw,22px);font-weight:700;letter-spacing:0;line-height:1.35;white-space:normal">'+d.text+'</div>';caption.style.opacity='.98';}
+else{caption.textContent='';caption.style.opacity='0';}
+const idx=d?DIALOGUES.indexOf(d):-1;
+if(idx>=0&&idx!==spokenDialogue){spokenDialogue=idx;speakDialogue(d);}
+}
 const started=performance.now();
 function frame(now){
 if(!running)return;const t=Math.min(TOTAL,(now-started)/1000);
@@ -131,7 +172,7 @@ else if(t>=ZOMBIES_AT){black.style.opacity=String(1-ease((t-ZOMBIES_AT)/.28));sc
 else{black.style.opacity='0';scan.style.opacity=t>12?String(ease((t-12)/2)*.25):'0';}
 render(t);setCaption(t);if(t>=TOTAL){finish();return;}raf=requestAnimationFrame(frame);
 }
-function finish(){running=false;cancelAnimationFrame(raf);if(audio){audio.close();audio=null;}root.style.transition='opacity .45s';root.style.opacity='0';setTimeout(()=>{root.remove();if(typeof done==='function')done();},460);}
+function finish(){running=false;cancelAnimationFrame(raf);if('speechSynthesis'in window)try{window.speechSynthesis.cancel();}catch(_){}if(audio){audio.close();audio=null;}root.style.transition='opacity .45s';root.style.opacity='0';setTimeout(()=>{root.remove();if(typeof done==='function')done();},460);}
 raf=requestAnimationFrame(frame);
 }
 window.ApocalypseCinematic={play};
