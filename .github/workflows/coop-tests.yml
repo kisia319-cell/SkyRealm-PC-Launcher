@@ -28,6 +28,8 @@ jobs:
       - run: node tests/apocalypse-laboratories-test.cjs
       - run: node --check game/apocalypse-cinematic.js
       - run: node tests/apocalypse-cinematic-test.cjs
+      - run: node --check game/apocalypse-3d-consent.js
+      - run: node tests/apocalypse-supplies-test.cjs
       - run: node --check tests/apocalypse-complete-save-test.cjs
       - run: node tests/apocalypse-complete-save-test.cjs
       - run: node tests/multiplayer-client-test.cjs
