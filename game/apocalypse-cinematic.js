@@ -51,10 +51,10 @@ function play(done){
 if(running)return;if(window.Apocalypse3DConsent&&!window.Apocalypse3DConsent.enabled()){if(done)done();return;}running=true;
 const root=document.createElement('div');root.id='apocalypse-opening-cinematic';root.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#020307;overflow:hidden;pointer-events:auto;font-family:Segoe UI,Arial,sans-serif';
 const canvas=document.createElement('canvas');canvas.style.cssText='width:100%;height:100%;display:block';
-const caption=document.createElement('div');caption.style.cssText='position:absolute;left:50%;bottom:9%;transform:translateX(-50%);color:#f1e7df;text-shadow:0 2px 12px #000;font-size:clamp(12px,2vw,20px);font-weight:800;letter-spacing:.18em;text-align:center;white-space:nowrap;opacity:0;transition:opacity .4s';
+
 const black=document.createElement('div');black.style.cssText='position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .08s linear';
 const scan=document.createElement('div');scan.style.cssText='position:absolute;inset:0;opacity:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.035) 4px),radial-gradient(ellipse at center,transparent 38%,rgba(0,0,0,.75) 100%)';
-root.append(canvas,caption,scan,black);document.body.appendChild(root);
+root.append(canvas,scan,black);document.body.appendChild(root);
 let renderer;try{renderer=init(canvas);}catch(_){renderer=null;}
 if(!renderer){root.remove();running=false;if(done)done();return;}
 const {gl,l,meshes}=renderer;audio=makeAudio();const fired={impact:false,static:false,growl:false,growl2:false,growl3:false,base:false,tunnel:false};
@@ -86,34 +86,61 @@ gl.enable(gl.DEPTH_TEST);gl.clearColor(.025,.035,.05,1);gl.clear(gl.COLOR_BUFFER
 if(t<16){
 const shake=t>11?Math.sin(t*39)*.22*ease((t-11)/5):0;
 const shots=[
-{a:0,b:2.7,e:[-10,5,19],c:[0,5,0]},
-{a:2.7,b:5.3,e:[-5,10,15],c:[-2,8,1]},
-{a:5.3,b:7.8,e:[12,8,17],c:[1,6,0]},
-{a:7.8,b:10.2,e:[7,3,11],c:[1,4,0]},
-{a:10.2,b:12.3,e:[-8,4,13],c:[1,2,0]},
-{a:12.3,b:14.2,e:[-2,13,23],c:[0,1,0]},
-{a:14.2,b:16,e:[0,4,27],c:[0,2,0]}
+{a:0,b:1.5,e:[-18,13,26],c:[0,6,0],roll:0},
+{a:1.5,b:3.0,e:[-11,5,17],c:[-1,7,0],roll:-.025},
+{a:3.0,b:4.6,e:[-3,11,13],c:[-2,8,1],roll:.035},
+{a:4.6,b:6.1,e:[8,12,15],c:[1,7,0],roll:.02},
+{a:6.1,b:7.6,e:[15,5,9],c:[2,5,0],roll:-.035},
+{a:7.6,b:9.0,e:[4,2,8],c:[1,4,0],roll:.025},
+{a:9.0,b:10.3,e:[-7,3,7],c:[1,3,0],roll:-.02},
+{a:10.3,b:11.6,e:[-2,8,16],c:[1,1,0],roll:.04},
+{a:11.6,b:12.8,e:[5,2,6],c:[1,1,0],roll:.08},
+{a:12.8,b:14.1,e:[-5,12,19],c:[1,0,0],roll:.015},
+{a:14.1,b:16,e:[0,5,28],c:[0,1,0],roll:0}
 ];
 const shot=shots.find(s=>t>=s.a&&t<s.b)||shots[shots.length-1],p=ease((t-shot.a)/(shot.b-shot.a));
 const prev=shots[Math.max(0,shots.indexOf(shot)-1)];
 const eye=shot.e.map((v,i)=>mix(prev.e[i],v,p)),target=shot.c.map((v,i)=>mix(prev.c[i],v,p));
-eye[1]+=shake;cam.view=look(eye,target,[0,1,0]);draw(meshes.cube,0,-.35,0,45,.35,34,[.09,.1,.11]);
+eye[1]+=shake;
+const roll=mix(prev.roll,shot.roll,p),up=[Math.sin(roll),Math.cos(roll),0];
+cam.view=look(eye,target,up);draw(meshes.cube,0,-.35,0,45,.35,34,[.09,.1,.11]);
 for(const b of buildings){draw(meshes.cube,b[0],b[1]/2,b[2],b[3],b[1]/2,b[4],[.13,.15,.17]);for(let j=0;j<8;j++)draw(meshes.cube,b[0]+((j%3)-1)*.65,b[1]*.45,b[2]+b[4]*.52+.02,.12,.18,.03,[.45,.28,.12],.12);}
 if(t<13.5)heli(t);if(t>12.1){const k=ease((t-12.1)/1.2);for(let j=0;j<22;j++){const a=j*2.399;draw(meshes.sphere,1+Math.cos(a)*k*4,1+Math.sin(a*1.7)*k*2,Math.sin(a)*k*3,.18+k*.15,.18+k*.15,.18+k*.15,[.85,.28,.07],.25);}}
 }else if(t>=ZOMBIES_AT&&t<DESCENT_AT){
-const q=t-ZOMBIES_AT;cam.view=look([0,5+Math.sin(q*.4)*.35,20-q*.42],[0,1.2,0],[0,1,0]);draw(meshes.cube,0,-.35,0,48,.35,35,[.075,.08,.075]);
-for(const b of buildings)draw(meshes.cube,b[0],b[1]/2,b[2],b[3],b[1]/2,b[4],[.11,.12,.12]);
-for(let j=0;j<9;j++){const spawn=1+j*.78,p=ease((q-spawn)/2.1);if(p>0)person(-10+j*2.5,-1.3+p*1.3,2+(j%3)*-2,q,j===4||j===7);}
-for(let j=0;j<4;j++)if(q>3+j*.9)person(-5+j*3,-.02,-7,q,j%2===0);
+const q=t-ZOMBIES_AT;
+const zshots=[
+{a:0,b:1.8,e:[-15,13,22],c:[0,1,0],r:0},
+{a:1.8,b:3.7,e:[-9,5,14],c:[-2,1,0],r:-.025},
+{a:3.7,b:5.5,e:[-1,2,7],c:[0,1,0],r:.018},
+{a:5.5,b:7.2,e:[9,4,11],c:[2,1,-2],r:.04},
+{a:7.2,b:8.8,e:[4,10,17],c:[0,0,0],r:-.02},
+{a:8.8,b:10,e:[-4,3,8],c:[-1,1,0],r:.025}
+];
+const zs=zshots.find(v=>q>=v.a&&q<v.b)||zshots[zshots.length-1],zi=zshots.indexOf(zs),zp=ease((q-zs.a)/(zs.b-zs.a)),zprev=zshots[Math.max(0,zi-1)];
+const ze=zs.e.map((v,i)=>mix(zprev.e[i],v,zp)),zc=zs.c.map((v,i)=>mix(zprev.c[i],v,zp)),zr=mix(zprev.r,zs.r,zp);
+ze[0]+=Math.sin(q*1.25)*.35;ze[1]+=Math.sin(q*2.1)*.12;
+cam.view=look(ze,zc,[Math.sin(zr),Math.cos(zr),0]);
+draw(meshes.cube,0,-.35,0,48,.35,35,[.075,.08,.075]);
+for(const b of buildings){draw(meshes.cube,b[0],b[1]/2,b[2],b[3],b[1]/2,b[4],[.11,.12,.12]);if(q>2.5)draw(meshes.cube,b[0],b[1]+.08,b[2],b[3]*.7,.035,b[4]*.7,[.19,.11,.075],.12);}
+for(let j=0;j<9;j++){
+const spawn=1+j*.78,p=ease((q-spawn)/2.1),x=-10+j*2.5,z=2+(j%3)*-2;
+if(p>0){person(x,-1.3+p*1.3,z,q,j===4||j===7);
+const burst=clamp((q-spawn)*1.7,0,1);
+for(let d=0;d<5;d++){const ang=d*2.4+j;draw(meshes.sphere,x+Math.cos(ang)*(.4+burst*.65),-.1+Math.sin(ang*1.7)*.18,z+Math.sin(ang)*(.4+burst*.65),.12,.08,.12,[.24,.2,.15],.05);}
+}}
+for(let j=0;j<4;j++)if(q>3+j*.9){const x=-5+j*3,z=-7;person(x,-.02,z,q,j%2===0);if(j===1||j===3){const pulse=.85+Math.sin(q*5+j)*.12;draw(meshes.sphere,x,.35,z,.62*pulse,.9*pulse,.55*pulse,[.2,.23,.18],.08);}}
+
 }else{
-const q=clamp((t-DESCENT_AT)/5,0,1),y=mix(4,-10,ease(q));cam.view=look([0,y,13-q*3],[0,-10,0],[0,1,0]);
+const q=clamp((t-DESCENT_AT)/5,0,1),y=mix(4,-10,ease(q));
+const orbit=Math.sin(q*Math.PI*1.25)*2.4,forward=13-q*5;
+cam.view=look([orbit,y,forward],[0,-10,-1],[Math.sin(q*.35)*.04,1,0]);
 draw(meshes.cube,0,.2,0,45,.25,35,[.12,.095,.07]);draw(meshes.cube,0,-11.8,0,28,.3,22,[.07,.075,.08]);
 draw(meshes.cube,-9,-6,0,.5,6,15,[.15,.12,.1]);draw(meshes.cube,9,-6,0,.5,6,15,[.15,.12,.1]);draw(meshes.cube,0,-6,-12,9,6,.5,[.16,.12,.1]);draw(meshes.cube,0,-6,12,9,6,.5,[.16,.12,.1]);
 for(let j=0;j<10;j++){const x=-7+(j%5)*3.5,z=-7+Math.floor(j/5)*10;draw(meshes.sphere,x,-8.2,z,.22,.22,.22,[.8,.04,.025],1.6);draw(meshes.cube,x,-8.8,z,.08,.8,.08,[.18,.16,.14],.1);}
 for(let j=0;j<6;j++)person(-6+j*2.4,-10.9,-3+(j%2)*5,t,j===2||j===5);draw(meshes.cube,0,-10.95,0,6,.12,1,[.19,.08,.07],.35);
 }
 }
-function setCaption(t){let s='';if(t<3)s='СИГНАЛ ПОТЕРЯН';else if(t<11)s='ОБЪЕКТ ПАДАЕТ';else if(t<16)s='УДАР · ПОСЛЕДНЯЯ ПЕРЕДАЧА';else if(t>=ZOMBIES_AT&&t<24)s='ГОРОД БОЛЬШЕ НЕ БЕЗОПАСЕН';else if(t>=24&&t<DESCENT_AT)s='ОНИ ВЫХОДЯТ ИЗ-ПОД ЗЕМЛИ';else if(t>=DESCENT_AT)s='ПОД ГОРОДОМ ЕСТЬ ЕЩЁ ОДИН МИР';caption.textContent=s;caption.style.opacity=s?'.95':'0';}
+// Storytelling is visual-only: no captions, subtitles, or dialogue.
 const started=performance.now();
 function frame(now){
 if(!running)return;const t=Math.min(TOTAL,(now-started)/1000);
@@ -129,7 +156,7 @@ if(t>=BLACK_IN&&t<BLACK_HOLD){black.style.opacity=String(ease((t-BLACK_IN)/1.5))
 else if(t>=BLACK_HOLD&&t<ZOMBIES_AT){black.style.opacity='1';scan.style.opacity=t>20.8?'.8':'0';}
 else if(t>=ZOMBIES_AT){black.style.opacity=String(1-ease((t-ZOMBIES_AT)/.28));scan.style.opacity='0';}
 else{black.style.opacity='0';scan.style.opacity=t>12?String(ease((t-12)/2)*.25):'0';}
-render(t);setCaption(t);if(t>=TOTAL){finish();return;}raf=requestAnimationFrame(frame);
+render(t);if(t>=TOTAL){finish();return;}raf=requestAnimationFrame(frame);
 }
 function finish(){running=false;cancelAnimationFrame(raf);if(audio){audio.close();audio=null;}root.style.transition='opacity .45s';root.style.opacity='0';setTimeout(()=>{root.remove();if(typeof done==='function')done();},460);}
 raf=requestAnimationFrame(frame);
