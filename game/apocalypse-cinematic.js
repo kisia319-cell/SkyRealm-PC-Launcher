@@ -108,7 +108,10 @@ if(audio){audio.rotor.o.frequency.setTargetAtTime(32+Math.sin(t*17)*5,audio.ctx.
 if(t>12.1&&!fired.impact){fired.impact=true;if(audio){audio.noise(2.2,.24,950);audio.tone(72,2.5,.16,'sawtooth');}}
 if(t>17.4&&!fired.static){fired.static=true;if(audio)audio.noise(3.8,.09,6500);}
 if(t>ZOMBIES_AT+1&&!fired.growl){fired.growl=true;if(audio){audio.tone(48,2.4,.12);audio.noise(1.5,.09,480);}}
-if(t>24.5&&!fired.growl2){fired.growl2=true;if(audio){audio.tone(61,2.1,.11,'sawtooth');audio.noise(1.4,.07,720);}}\nif(t>28&&!fired.growl3){fired.growl3=true;if(audio){audio.tone(43,2.8,.13);audio.noise(1.8,.08,360);}}\nif(t>DESCENT_AT&&!fired.base){fired.base=true;if(audio){audio.tone(38,4.8,.12);audio.noise(3.5,.05,320);}}\nif(t>33.2&&!fired.tunnel){fired.tunnel=true;if(audio){audio.noise(2.4,.065,1800);audio.tone(84,2.2,.07);}}
+if(t>24.5&&!fired.growl2){fired.growl2=true;if(audio){audio.tone(61,2.1,.11,'sawtooth');audio.noise(1.4,.07,720);}}
+if(t>28&&!fired.growl3){fired.growl3=true;if(audio){audio.tone(43,2.8,.13);audio.noise(1.8,.08,360);}}
+if(t>DESCENT_AT&&!fired.base){fired.base=true;if(audio){audio.tone(38,4.8,.12);audio.noise(3.5,.05,320);}}
+if(t>33.2&&!fired.tunnel){fired.tunnel=true;if(audio){audio.noise(2.4,.065,1800);audio.tone(84,2.2,.07);}}
 if(t>=BLACK_IN&&t<BLACK_HOLD){black.style.opacity=String(ease((t-BLACK_IN)/1.5));scan.style.opacity='0';}
 else if(t>=BLACK_HOLD&&t<ZOMBIES_AT){black.style.opacity='1';scan.style.opacity=t>20.8?'.8':'0';}
 else if(t>=ZOMBIES_AT){black.style.opacity=String(1-ease((t-ZOMBIES_AT)/.28));scan.style.opacity='0';}
