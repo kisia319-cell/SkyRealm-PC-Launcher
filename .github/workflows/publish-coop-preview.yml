@@ -73,8 +73,9 @@ jobs:
           from pathlib import Path
           stable_path = Path("manifest.json")
           path = Path("preview-manifest.json")
-          source_path = path if path.exists() else stable_path
-          manifest = json.loads(source_path.read_text(encoding="utf-8"))
+          # Always inherit current stable launcher metadata; never carry stale launcher
+          # versions or hashes forward from an older preview manifest.
+          manifest = json.loads(stable_path.read_text(encoding="utf-8"))
           version = os.environ["GAME_VERSION"]
           manifest["game_version"] = version
           manifest["game_download_url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/SkyRealm_Game.zip"
