@@ -584,7 +584,8 @@ class LauncherApi:
             manifest_url = str(config.get("manifest_url", "")).strip()
             if not manifest_url.startswith("https://"):
                 raise ValueError("В конфигурации отсутствует HTTPS-ссылка на манифест.")
-            request = urllib.request.Request(manifest_url, headers={"User-Agent": "SkyRealmLauncher-UpdateCenter/1.0", "Cache-Control": "no-cache"})
+            cache_buster = ("&" if "?" in manifest_url else "?") + "cache=" + str(time.time_ns())
+            request = urllib.request.Request(manifest_url + cache_buster, headers={"User-Agent": "SkyRealmLauncher-UpdateCenter/1.0", "Cache-Control": "no-cache", "Pragma": "no-cache"})
             with urllib.request.urlopen(request, timeout=8) as response:
                 manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
             install_dir = skyrealm_game_dir()
@@ -1458,9 +1459,10 @@ def _skyrealm_update_game(install_dir: Path, bundled_version: str, allow_update:
         manifest_url = str(config.get("manifest_url", "")).strip()
         if not manifest_url.startswith("https://"):
             return fallback_version()
+        cache_buster = ("&" if "?" in manifest_url else "?") + "cache=" + str(time.time_ns())
         request = urllib.request.Request(
-            manifest_url,
-            headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0", "Cache-Control": "no-cache"},
+            manifest_url + cache_buster,
+            headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0", "Cache-Control": "no-cache", "Pragma": "no-cache"},
         )
         with urllib.request.urlopen(request, timeout=10) as response:
             manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
@@ -1578,9 +1580,10 @@ def _skyrealm_startup_game_update():
         manifest_url = str(config.get("manifest_url", "")).strip()
         if not manifest_url.startswith("https://"):
             return False
+        cache_buster = ("&" if "?" in manifest_url else "?") + "cache=" + str(time.time_ns())
         request = urllib.request.Request(
-            manifest_url,
-            headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0", "Cache-Control": "no-cache"},
+            manifest_url + cache_buster,
+            headers={"User-Agent": "SkyRealmLauncher-GameUpdater/1.0", "Cache-Control": "no-cache", "Pragma": "no-cache"},
         )
         with urllib.request.urlopen(request, timeout=10) as response:
             manifest = json.loads(response.read(256 * 1024).decode("utf-8"))
