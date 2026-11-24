@@ -6,7 +6,7 @@ for(const name of items){assert.ok(game.includes("name:'"+name+"'"),'missing sup
 assert.match(game,/k\s*===\s*'u'[\s\S]*useApocalypseSupplyItem/,'U key must activate selected supply');
 assert.match(game,/crateDrop:true[\s\S]*pickupDelay/,'crate rewards should eject before pickup');
 assert.match(game,/SUPPLY/,'field crates should have readable markings');
-assert.match(game,/ЯЩИК С ПРИПАСАМИ/,'crate hint must not show the E prefix');
+assert.match(game,/ЯЩИК С ПРИПАСАМИ[\s\S]*Нажми «Действие», чтобы открыть/,'crate hint must use the action label without the E prefix');
 assert.match(scene,/const shots=\[/,'opening cinematic needs multiple camera shots');
 assert.match(consent,/Включить 3D[\s\S]*Продолжить в 2D/,'first-run 3D consent dialog missing');
 assert.match(html,/apocalypse-3d-consent\.js'><\/script><script src="apocalypse-cinematic\.js"/,'consent must load before cinematic');
