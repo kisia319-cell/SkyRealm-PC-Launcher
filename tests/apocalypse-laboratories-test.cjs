@@ -5,9 +5,10 @@ const root = path.resolve(__dirname, '..');
 const game = fs.readFileSync(path.join(root, 'game/game.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'game/index.html'), 'utf8');
 const labs = fs.readFileSync(path.join(root, 'game/apocalypse-laboratories.js'), 'utf8');
+const version = fs.readFileSync(path.join(root, 'game/version.txt'), 'utf8').trim();
 
 assert.match(html, /apocalypse-laboratories\.js/);
-assert.match(html, /skyrealm-game-version" content="0\.20\.50\.184"/);
+assert.ok(html.includes('name="skyrealm-game-version" content="' + version + '"'), 'Apocalypse HTML metadata must match the packaged game version.');
 assert.match(game, /SkyRealmApocalypseLabs\?\.drawExterior/);
 assert.match(game, /SkyRealmApocalypseLabs\.drawInterior/);
 assert.match(game, /SkyRealmApocalypseLabs\?\.interact/);
